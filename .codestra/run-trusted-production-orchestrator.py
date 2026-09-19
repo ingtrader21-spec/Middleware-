@@ -32,19 +32,19 @@ SHA = re.compile(r"[0-9a-f]{40}")
 # key is a candidate generation it may accept. This one-way transition graph
 # prevents an older validator from being replayed after its successor merges.
 CURRENT_VALIDATOR_SHA256 = (
-    "086760b165e43963672da51ba7e22ddc37b1a6680ed7571e15b954ac48789ba3"
+    "c42c2edcbf83370e009c0c02927f0d467ada5a698de6daee3fa0c418c4f2e08d"
 )
 SUCCESSOR_VALIDATOR_SHA256 = (
-    "c42c2edcbf83370e009c0c02927f0d467ada5a698de6daee3fa0c418c4f2e08d"
+    "0590d86320aeb28c62b02d6cfdf3c5a64e503844dcff3cb785b0749b7fc0675e"
 )
 CURRENT_RELEASE_VALIDATOR_SHA256 = (
     "e8b9df096a4069fef1c725460f748fc315f2b6ec091b03254ef7b56c325c7058"
 )
 CURRENT_RELEASE_SECURITY_FINGERPRINT = (
-    "8b82663492fa67f6e0432bfc7dbc67f5ecd355d9edd50cdbb3b6c17bb03a72b4"
+    "d403a62826d4a4ceea1db68c6a1e5b5aa996b03ef2b29eaf382cef4cb9d1dac9"
 )
 SUCCESSOR_RELEASE_SECURITY_FINGERPRINT = (
-    "d403a62826d4a4ceea1db68c6a1e5b5aa996b03ef2b29eaf382cef4cb9d1dac9"
+    "63192fd83f7fc19fa624e2bf26d3b2ccc3941042e4e3c941ba378ff50581e565"
 )
 APPROVED_VALIDATOR_TRANSITIONS = {
     CURRENT_VALIDATOR_SHA256: {
