@@ -67,7 +67,7 @@ PROTECTED_RELEASE_GATES = {
 }
 TRUSTED_OIDC_ISSUER = "https://token.actions.githubusercontent.com"
 TRUSTED_WORKFLOW_PREFIX = (
-    "https://github.com/appolon1908-hue/Middleware-/.github/workflows/"
+    "https://github.com/ingtrader21-spec/Middleware-/.github/workflows/"
 )
 REQUIRED_BACKUPS = {
     "middleware",
