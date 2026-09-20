@@ -4,7 +4,7 @@ set -Eeuo pipefail
 image="${1:?image reference required}"
 expected_sha="${2:?source revision required}"
 expected_version="${3:?source version required}"
-expected_source="${4:-https://github.com/appolon1908-hue/Middleware-}"
+expected_source="${4:-https://github.com/ingtrader21-spec/Middleware-}"
 synthetic_marker="${5:-CODESTRA_SYNTHETIC_SECRET_MUST_NOT_APPEAR_7f4c2a}"
 
 inspect="$(docker image inspect "$image")"
