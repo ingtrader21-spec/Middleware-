@@ -56,7 +56,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "${GITHUB_REPOSITORY}" = "appolon1908-hue/Middleware-"
+          test "${GITHUB_REPOSITORY}" = "ingtrader21-spec/Middleware-"
           test "${IMAGE_REPOSITORY}" = \
             "ghcr.io/appolon1908-hue/codestra-middleware"
           [[ "${IMAGE_DIGEST}" =~ ^sha256:[0-9a-f]{64}$ ]]
@@ -93,7 +93,7 @@ jobs:
         shell: bash
         env:
           EXPECTED_ISSUER: https://token.actions.githubusercontent.com
-          EXPECTED_SIGNER: https://github.com/appolon1908-hue/Middleware-/.github/workflows/sign-middleware-release.yml@refs/heads/main
+          EXPECTED_SIGNER: https://github.com/ingtrader21-spec/Middleware-/.github/workflows/sign-middleware-release.yml@refs/heads/main
         run: |
           set -euo pipefail
           subject="${IMAGE_REPOSITORY}@${IMAGE_DIGEST}"

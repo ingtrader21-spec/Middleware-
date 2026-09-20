@@ -58,15 +58,15 @@ concurrency:
 env:
   COSIGN_VERSION: v3.1.2
   COSIGN_SHA256: f7622ed3cf22e55e1ae6377c080979ff77a22da9981c11df222a2e444991e7cf
-  SIGNING_IDENTITY: https://github.com/appolon1908-hue/Middleware-/.github/workflows/release-component-candidate.yml@refs/heads/main
-  AUTHORITY_IDENTITY: https://github.com/appolon1908-hue/Middleware-/.github/workflows/security-owner-authority-sign.yml@refs/heads/main
-  DECISION_IDENTITY: https://github.com/appolon1908-hue/Middleware-/.github/workflows/three-component-release-decision.yml@refs/heads/main
+  SIGNING_IDENTITY: https://github.com/ingtrader21-spec/Middleware-/.github/workflows/release-component-candidate.yml@refs/heads/main
+  AUTHORITY_IDENTITY: https://github.com/ingtrader21-spec/Middleware-/.github/workflows/security-owner-authority-sign.yml@refs/heads/main
+  DECISION_IDENTITY: https://github.com/ingtrader21-spec/Middleware-/.github/workflows/three-component-release-decision.yml@refs/heads/main
   OIDC_ISSUER: https://token.actions.githubusercontent.com
 
 jobs:
   release-decision:
     name: Verify and sign complete release tuple
-    if: github.repository == 'appolon1908-hue/Middleware-' && github.ref == 'refs/heads/main'
+    if: github.repository == 'ingtrader21-spec/Middleware-' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     environment: production-release-decision

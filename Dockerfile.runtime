@@ -16,7 +16,7 @@ RUN python -m pip install --require-hashes --prefix=/opt/runtime -r requirements
  && PYTHONPATH=/opt/runtime/lib/python3.14/site-packages python -m pip check
 
 FROM patched-final-base AS runtime-common
-ARG SOURCE_REPOSITORY=https://github.com/appolon1908-hue/Middleware-
+ARG SOURCE_REPOSITORY=https://github.com/ingtrader21-spec/Middleware-
 ARG SOURCE_REVISION
 ARG SOURCE_VERSION
 ARG BUILD_DATE
@@ -80,7 +80,7 @@ RUN python -m pip install --no-deps --prefix=/opt/connector ./runtime \
  && PYTHONPATH=/opt/connector/lib/python3.14/site-packages python -m pip check
 
 FROM patched-final-base AS connector-runtime
-ARG SOURCE_REPOSITORY=https://github.com/appolon1908-hue/Middleware-
+ARG SOURCE_REPOSITORY=https://github.com/ingtrader21-spec/Middleware-
 ARG SOURCE_REVISION
 ARG SOURCE_VERSION
 ARG BUILD_DATE
@@ -106,7 +106,7 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
 CMD ["-m", "uvicorn", "codestra_connector_runtime.main:app", "--host", "0.0.0.0", "--port", "8081", "--proxy-headers", "--forwarded-allow-ips=127.0.0.1"]
 
 FROM ${TEST_BASE} AS test
-ARG SOURCE_REPOSITORY=https://github.com/appolon1908-hue/Middleware-
+ARG SOURCE_REPOSITORY=https://github.com/ingtrader21-spec/Middleware-
 ARG SOURCE_REVISION
 ARG SOURCE_VERSION
 ARG BUILD_DATE

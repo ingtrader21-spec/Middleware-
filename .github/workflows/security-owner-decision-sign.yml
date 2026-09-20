@@ -73,7 +73,7 @@ jobs:
       pull-requests: read
     env:
       EXPECTED_ISSUER: https://token.actions.githubusercontent.com
-      EXPECTED_IDENTITY: https://github.com/appolon1908-hue/Middleware-/.github/workflows/security-owner-decision-sign.yml@refs/heads/main
+      EXPECTED_IDENTITY: https://github.com/ingtrader21-spec/Middleware-/.github/workflows/security-owner-decision-sign.yml@refs/heads/main
       PR_NUMBER: ${{ inputs.pr_number }}
       PR_HEAD_SHA: ${{ inputs.pr_head_sha }}
       DECISION_REQUEST_PATH: ${{ inputs.decision_request_path }}
@@ -93,7 +93,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "${GITHUB_REPOSITORY}" = "appolon1908-hue/Middleware-"
+          test "${GITHUB_REPOSITORY}" = "ingtrader21-spec/Middleware-"
           test "${GITHUB_REF}" = "refs/heads/main"
           test "${GITHUB_SHA}" = "$(git rev-parse HEAD)"
           [[ "${PR_NUMBER}" =~ ^[1-9][0-9]*$ ]]
@@ -216,7 +216,7 @@ jobs:
                 security_owner_authority_reference: $authority,
                 environment_name: "security-owner-signing",
                 environment_approval_record_id: $approval_record,
-                workflow_repository: "appolon1908-hue/Middleware-",
+                workflow_repository: "ingtrader21-spec/Middleware-",
                 workflow_path: ".github/workflows/security-owner-decision-sign.yml",
                 workflow_ref: "refs/heads/main",
                 workflow_sha: $workflow_sha,
@@ -354,7 +354,7 @@ jobs:
       - name: Sign and verify exact production OpenVEX
         run: |
           set -euo pipefail
-          identity="https://github.com/appolon1908-hue/Middleware-/.github/workflows/security-owner-decision-sign.yml@refs/heads/main"
+          identity="https://github.com/ingtrader21-spec/Middleware-/.github/workflows/security-owner-decision-sign.yml@refs/heads/main"
           issuer="https://token.actions.githubusercontent.com"
           cosign sign-blob --yes --bundle openvex.sigstore.json openvex.json
           cosign verify-blob --bundle openvex.sigstore.json \

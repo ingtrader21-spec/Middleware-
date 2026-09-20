@@ -53,7 +53,7 @@ env:
 jobs:
   release:
     name: Exact Main Production Release
-    if: github.repository == 'appolon1908-hue/Middleware-' && github.ref == 'refs/heads/main'
+    if: github.repository == 'ingtrader21-spec/Middleware-' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 75
     environment: production-release
@@ -147,7 +147,7 @@ jobs:
           echo "${AUTHORITY_DOCUMENT_SHA256}  authority/security-owner-authority.json" | sha256sum -c -
           "${RUNNER_TEMP}/cosign" verify-blob \
             --bundle authority/security-owner-authority.sigstore.json \
-            --certificate-identity "https://github.com/appolon1908-hue/Middleware-/.github/workflows/security-owner-authority-sign.yml@refs/heads/main" \
+            --certificate-identity "https://github.com/ingtrader21-spec/Middleware-/.github/workflows/security-owner-authority-sign.yml@refs/heads/main" \
             --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
             authority/security-owner-authority.json
           jq -e --arg sha "${SOURCE_SHA}" '
@@ -178,7 +178,7 @@ jobs:
           python -m pip install --disable-pip-version-check --require-hashes \
             -r requirements.lock -r requirements-test.lock
           ruff check --select E9,F63,F7,F82 app tests
-          test "$(alembic heads | awk 'NR == 1 {print $1}')" = "0059_integrated_monitoring"
+          test "$(alembic heads | awk 'NR == 1 {print $1}')" = "0067_service_catalog_monitoring_state"
           alembic upgrade head
           python -m pytest -q tests
 
@@ -193,7 +193,7 @@ jobs:
           (cd vex && sha256sum -c SHA256SUMS)
           "${RUNNER_TEMP}/cosign" verify-blob \
             --bundle vex/openvex.sigstore.json \
-            --certificate-identity "https://github.com/appolon1908-hue/Middleware-/.github/workflows/security-owner-decision-sign.yml@refs/heads/main" \
+            --certificate-identity "https://github.com/ingtrader21-spec/Middleware-/.github/workflows/security-owner-decision-sign.yml@refs/heads/main" \
             --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
             vex/openvex.json
           vex_digest="$(jq -er .metadata.image_digest vex/openvex.json)"
@@ -277,7 +277,7 @@ jobs:
             --arg sbom "$(sha256sum sbom.cdx.json | cut -d' ' -f1)" \
             --arg trivy "$(sha256sum trivy.json | cut -d' ' -f1)" \
             --arg grype "$(sha256sum grype-vex.json | cut -d' ' -f1)" \
-            '{buildDefinition:{buildType:"https://codestra.example/buildtypes/exact-main-middleware-production/v1",externalParameters:{sourceSha:$sha,platform:"linux/amd64"},resolvedDependencies:[{uri:("git+https://github.com/appolon1908-hue/Middleware-@"+$sha),digest:{gitCommit:$sha}}]},runDetails:{builder:{id:"https://github.com/appolon1908-hue/Middleware-/.github/workflows/exact-main-production-release.yml@refs/heads/main"}},subject:{digest:$digest},evidence:{sbomSha256:$sbom,trivySha256:$trivy,grypeSha256:$grype}}' > provenance.json
+            '{buildDefinition:{buildType:"https://codestra.example/buildtypes/exact-main-middleware-production/v1",externalParameters:{sourceSha:$sha,platform:"linux/amd64"},resolvedDependencies:[{uri:("git+https://github.com/ingtrader21-spec/Middleware-@"+$sha),digest:{gitCommit:$sha}}]},runDetails:{builder:{id:"https://github.com/ingtrader21-spec/Middleware-/.github/workflows/exact-main-production-release.yml@refs/heads/main"}},subject:{digest:$digest},evidence:{sbomSha256:$sbom,trivySha256:$trivy,grypeSha256:$grype}}' > provenance.json
 
       - name: Sign and attest exact digest
         env:
@@ -294,7 +294,7 @@ jobs:
         run: |
           set -euo pipefail
           subject="${{ steps.publish.outputs.reference }}"
-          identity="https://github.com/appolon1908-hue/Middleware-/.github/workflows/exact-main-production-release.yml@refs/heads/main"
+          identity="https://github.com/ingtrader21-spec/Middleware-/.github/workflows/exact-main-production-release.yml@refs/heads/main"
           issuer="https://token.actions.githubusercontent.com"
           docker image rm "middleware:${SOURCE_SHA}" "${IMAGE_REPOSITORY}:${SOURCE_SHA}"
           docker pull "${subject}"

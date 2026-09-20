@@ -5,7 +5,7 @@ directory="${1:?artifact directory required}"
 source_sha="${2:?source SHA required}"
 image_digest="${3:?image digest required}"
 cosign_bin="${COSIGN_BIN:-cosign}"
-identity="https://github.com/appolon1908-hue/Middleware-/.github/workflows/security-owner-decision-sign.yml@refs/heads/main"
+identity="https://github.com/ingtrader21-spec/Middleware-/.github/workflows/security-owner-decision-sign.yml@refs/heads/main"
 issuer="https://token.actions.githubusercontent.com"
 
 if command -v python >/dev/null 2>&1; then

@@ -47,7 +47,7 @@ jobs:
       (
         github.event.action == 'created' &&
         github.event.repository.id == 1347559071 &&
-        github.event.repository.full_name == 'appolon1908-hue/Middleware-' &&
+        github.event.repository.full_name == 'ingtrader21-spec/Middleware-' &&
         github.event.repository.default_branch == 'main' &&
         github.event.issue.number == 130 &&
         github.event.issue.pull_request == null &&
@@ -116,7 +116,7 @@ jobs:
       github.event_name == 'issue_comment' &&
       github.event.action == 'created' &&
       github.event.repository.id == 1347559071 &&
-      github.event.repository.full_name == 'appolon1908-hue/Middleware-' &&
+      github.event.repository.full_name == 'ingtrader21-spec/Middleware-' &&
       github.event.repository.default_branch == 'main' &&
       github.event.issue.number == 130 &&
       github.event.issue.pull_request == null &&

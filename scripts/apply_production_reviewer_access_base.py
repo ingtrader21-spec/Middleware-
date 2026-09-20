@@ -21,6 +21,16 @@ TOKEN_ENV = "CODESTRA_REPOSITORY_ADMIN_TOKEN"
 CONFIRMATION = "APPLY_PRODUCTION_REVIEWER_ACCESS_V1"
 AUTHORITY_ID = "codestra.production-reviewer-access.v1"
 EXPECTED_OWNER = "appolon1908-hue"
+# Repositories transferred out of the authority owner's account keep their
+# reviewer grant under the new owner, but only the exact names listed here;
+# every other repository must still belong to EXPECTED_OWNER.
+TRANSFERRED_REPOSITORY_OWNERS = {
+    "ingtrader21-spec/Middleware-": "ingtrader21-spec",
+}
+
+
+def expected_repository_owner(repository: str) -> str:
+    return TRANSFERRED_REPOSITORY_OWNERS.get(repository, EXPECTED_OWNER)
 EXPECTED_REVIEWER = {
     "login": "kazan555",
     "user_id": 77101516,
@@ -29,7 +39,7 @@ EXPECTED_REVIEWER = {
 }
 EXPECTED_REPOSITORIES = {
     "appolon1908-hue/codestra-production-platform",
-    "appolon1908-hue/Middleware-",
+    "ingtrader21-spec/Middleware-",
     "appolon1908-hue/Websocket-",
     "appolon1908-hue/Odoo",
     "appolon1908-hue/Caddy",
@@ -88,7 +98,7 @@ def validate_config(config: Mapping[str, Any]) -> list[str]:
     require(len(repositories) == len(set(repositories)), "duplicate repository")
     require(set(repositories) == EXPECTED_REPOSITORIES, "fixed repository coverage drift")
     require(
-        all(row.startswith(f"{EXPECTED_OWNER}/") for row in repositories),
+        all(row.startswith(f"{expected_repository_owner(row)}/") for row in repositories),
         "foreign owner forbidden",
     )
     return sorted(repositories, key=str.casefold)
@@ -209,7 +219,7 @@ def execute(mode: str, confirmation: str) -> dict[str, Any]:
     require(mode in {"apply", "verify"}, "unsupported mode")
     if os.environ.get("GITHUB_ACTIONS") == "true":
         require(
-            os.environ.get("GITHUB_REPOSITORY") == "appolon1908-hue/Middleware-",
+            os.environ.get("GITHUB_REPOSITORY") == "ingtrader21-spec/Middleware-",
             "workflow repository drift",
         )
         require(os.environ.get("GITHUB_REF") == "refs/heads/main", "protected main required")
@@ -235,7 +245,11 @@ def execute(mode: str, confirmation: str) -> dict[str, Any]:
         require(status == 200 and isinstance(metadata, Mapping), f"{repository}: repository unavailable")
         require(metadata.get("full_name") == repository, f"{repository}: full-name readback drift")
         owner = metadata.get("owner")
-        require(isinstance(owner, Mapping) and owner.get("login") == EXPECTED_OWNER, f"{repository}: owner drift")
+        require(
+            isinstance(owner, Mapping)
+            and owner.get("login") == expected_repository_owner(repository),
+            f"{repository}: owner drift",
+        )
         require(metadata.get("archived") is False, f"{repository}: archived repository")
         require(metadata.get("disabled") is False, f"{repository}: disabled repository")
         permissions = metadata.get("permissions")

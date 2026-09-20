@@ -17,6 +17,26 @@ ghcr.io/appolon1908-hue/codestra-middleware@sha256:<digest>
 The SHA/run tag is only a discovery aid. Staging and production must use the
 digest reference recorded in the signed manifest.
 
+### Repository identity versus registry namespace
+
+The repository moved from `appolon1908-hue/Middleware-` to
+`ingtrader21-spec/Middleware-`; every current workflow guard, Sigstore
+certificate identity, provenance URI and OCI source label names the new
+repository. The GHCR package is a separate authority: user-owned packages do
+not move with a repository transfer, `ghcr.io/appolon1908-hue/codestra-middleware`
+still holds every published digest (public pull, verified 2026-09-19) and no
+`ghcr.io/ingtrader21-spec/codestra-middleware` package exists. The release and
+candidate workflows therefore keep publishing to, and the trust contracts keep
+pinning, the `appolon1908-hue` namespace until the package itself is migrated
+in a dedicated, reviewed change; that transitional ownership is intentional,
+not a leftover.
+
+Releases signed before the transfer keep their historical repository name and
+`release.yml` identity. They stay verifiable only for the exact source SHA and
+image digest pairs pinned in `scripts/release_manifest.py`
+(`HISTORICAL_RELEASES`) and `contracts/release-manifest.v1.schema.json`; every
+other manifest must carry the current repository and identity.
+
 ## Evidence created for every accepted build
 
 The release workflow:
@@ -39,7 +59,7 @@ No private signing key is stored in GitHub or in this repository. The required
 certificate identity is:
 
 ```text
-https://github.com/appolon1908-hue/Middleware-/.github/workflows/release.yml@refs/heads/main
+https://github.com/ingtrader21-spec/Middleware-/.github/workflows/release.yml@refs/heads/main
 ```
 
 The required OIDC issuer is `https://token.actions.githubusercontent.com`.
@@ -61,7 +81,7 @@ Then verify the registry signature independently:
 
 ```bash
 cosign verify \
-  --certificate-identity 'https://github.com/appolon1908-hue/Middleware-/.github/workflows/release.yml@refs/heads/main' \
+  --certificate-identity 'https://github.com/ingtrader21-spec/Middleware-/.github/workflows/release.yml@refs/heads/main' \
   --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
   ghcr.io/appolon1908-hue/codestra-middleware@sha256:<digest>
 ```

@@ -64,7 +64,7 @@ concurrency:
 
 env:
   IMAGE_REPOSITORY: ghcr.io/appolon1908-hue/codestra-middleware
-  EXPECTED_REPOSITORY: appolon1908-hue/Middleware-
+  EXPECTED_REPOSITORY: ingtrader21-spec/Middleware-
   TRIVY_VERSION: v0.72.0
   TRIVY_SHA256: bbb64b9695866ce4a7a8f5c9592002c5961cab378577fa3f8a040df362b9b2ea
   RECONCILE_HELPER_SHA256: ed8cdb9c92064d31daac8bae257dedf6adfacf445171cf422e0d53753fb912ac
@@ -181,7 +181,7 @@ jobs:
           chmod 0755 "${RUNNER_TEMP}/cosign-authority"
           "${RUNNER_TEMP}/cosign-authority" verify-blob \
             --bundle "${RUNNER_TEMP}/authority/security-owner-authority.sigstore.json" \
-            --certificate-identity "https://github.com/appolon1908-hue/Middleware-/.github/workflows/security-owner-authority-sign.yml@refs/heads/main" \
+            --certificate-identity "https://github.com/ingtrader21-spec/Middleware-/.github/workflows/security-owner-authority-sign.yml@refs/heads/main" \
             --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
             "${RUNNER_TEMP}/authority/security-owner-authority.json"
 
@@ -311,7 +311,7 @@ jobs:
             --arg digest "${digest_hex}" \
             --arg source "${SOURCE_SHA}" \
             --arg invocation "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/attempts/${GITHUB_RUN_ATTEMPT}" \
-            '{_type:"https://in-toto.io/Statement/v1",subject:[{name:"ghcr.io/appolon1908-hue/codestra-middleware",digest:{sha256:$digest}}],predicateType:"https://slsa.dev/provenance/v1",predicate:{buildDefinition:{buildType:"https://codestra.example/staging-candidate/v1",externalParameters:{source_sha:$source},resolvedDependencies:[{uri:"git+https://github.com/appolon1908-hue/Middleware-",digest:{gitCommit:$source}}]},runDetails:{builder:{id:"https://github.com/appolon1908-hue/Middleware-/.github/workflows/staging-candidate-build-sign.yml@refs/heads/main"},metadata:{invocationId:$invocation}}}}' \
+            '{_type:"https://in-toto.io/Statement/v1",subject:[{name:"ghcr.io/appolon1908-hue/codestra-middleware",digest:{sha256:$digest}}],predicateType:"https://slsa.dev/provenance/v1",predicate:{buildDefinition:{buildType:"https://codestra.example/staging-candidate/v1",externalParameters:{source_sha:$source},resolvedDependencies:[{uri:"git+https://github.com/ingtrader21-spec/Middleware-",digest:{gitCommit:$source}}]},runDetails:{builder:{id:"https://github.com/ingtrader21-spec/Middleware-/.github/workflows/staging-candidate-build-sign.yml@refs/heads/main"},metadata:{invocationId:$invocation}}}}' \
             > provenance.json
           jq -n \
             --arg schema "https://codestra.internal/schemas/candidate-image-manifest.v1.json" \
@@ -341,7 +341,7 @@ jobs:
             --expected-head-sha "${SOURCE_SHA}" \
             --expected-image-repository "${IMAGE_REPOSITORY}" \
             --expected-image-digest "${digest}"
-          jq -e --arg source "${SOURCE_SHA}" '.Config.Labels["org.opencontainers.image.source"] == "https://github.com/appolon1908-hue/Middleware-" and .Config.Labels["org.opencontainers.image.revision"] == $source' \
+          jq -e --arg source "${SOURCE_SHA}" '.Config.Labels["org.opencontainers.image.source"] == "https://github.com/ingtrader21-spec/Middleware-" and .Config.Labels["org.opencontainers.image.revision"] == $source' \
             < <(docker image inspect "${IMAGE_REPOSITORY}:$(cat candidate-tag.txt)" | jq '.[0]')
           sha256sum candidate.cdx.json trivy.json trivy-version.txt grype.json vulnerability-matrix.csv vulnerability-summary.json provenance.json candidate-image-manifest.json image-digest.txt candidate-tag.txt reconcile-helper.sha256 > SHA256SUMS
 
@@ -369,7 +369,7 @@ jobs:
             trivy.json >/dev/null
           jq -e --arg source "${{ inputs.source_sha }}" --argjson pr_number "${PR_NUMBER}" \
             --arg digest "$(cat image-digest.txt)" \
-            '.repository == "appolon1908-hue/Middleware-" and
+            '.repository == "ingtrader21-spec/Middleware-" and
              .pr_number == $pr_number and
              .head_sha == $source and
              .image_repository == "ghcr.io/appolon1908-hue/codestra-middleware" and
@@ -551,7 +551,7 @@ jobs:
           echo "${authority_sha}  signed-authority/security-owner-authority.json" | sha256sum -c -
           "${RUNNER_TEMP}/cosign" verify-blob \
             --bundle signed-authority/security-owner-authority.sigstore.json \
-            --certificate-identity "https://github.com/appolon1908-hue/Middleware-/.github/workflows/security-owner-authority-sign.yml@refs/heads/main" \
+            --certificate-identity "https://github.com/ingtrader21-spec/Middleware-/.github/workflows/security-owner-authority-sign.yml@refs/heads/main" \
             --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
             signed-authority/security-owner-authority.json
 
@@ -575,7 +575,7 @@ jobs:
         run: |
           set -euo pipefail
           subject="${IMAGE_REPOSITORY}@${IMAGE_DIGEST}"
-          identity="https://github.com/appolon1908-hue/Middleware-/.github/workflows/staging-candidate-build-sign.yml@refs/heads/main"
+          identity="https://github.com/ingtrader21-spec/Middleware-/.github/workflows/staging-candidate-build-sign.yml@refs/heads/main"
           issuer="https://token.actions.githubusercontent.com"
           "${RUNNER_TEMP}/cosign" verify --certificate-identity "${identity}" --certificate-oidc-issuer "${issuer}" "${subject}"
           "${RUNNER_TEMP}/cosign" verify-attestation --type cyclonedx --certificate-identity "${identity}" --certificate-oidc-issuer "${issuer}" "${subject}"
