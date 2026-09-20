@@ -29,7 +29,7 @@
     "$schema": {"const": "https://codestra.internal/schemas/candidate-image-manifest.v1.json"},
     "manifest_version": {"const": 1},
     "company": {"const": "Codestra LLC"},
-    "repository": {"const": "appolon1908-hue/Middleware-"},
+    "repository": {"const": "ingtrader21-spec/Middleware-"},
     "pr_number": {"type": "integer", "minimum": 1},
     "head_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
     "image_repository": {"enum": [
