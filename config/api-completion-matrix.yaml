@@ -507,6 +507,102 @@ operations:
   canonical_operation_id: liveness_healthz_get
   implementation_file: registered FastAPI runtime
   runtime_state: IMPLEMENTED
+- domain: database
+  method: GET
+  path: /internal/v1/database/backups
+  canonical_operation_id: backups_internal_v1_database_backups_get
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: database
+  method: GET
+  path: /internal/v1/database/backups/latest
+  canonical_operation_id: latest_backup_internal_v1_database_backups_latest_get
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: database
+  method: GET
+  path: /internal/v1/database/capacity
+  canonical_operation_id: capacity_internal_v1_database_capacity_get
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: database
+  method: GET
+  path: /internal/v1/database/health
+  canonical_operation_id: health_internal_v1_database_health_get
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: database
+  method: GET
+  path: /internal/v1/database/locks
+  canonical_operation_id: locks_internal_v1_database_locks_get
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: database
+  method: GET
+  path: /internal/v1/database/migrations
+  canonical_operation_id: migrations_internal_v1_database_migrations_get
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: database
+  method: POST
+  path: /internal/v1/database/migrations/verify
+  canonical_operation_id: verify_migrations_internal_v1_database_migrations_verify_post
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: database
+  method: GET
+  path: /internal/v1/database/performance
+  canonical_operation_id: performance_internal_v1_database_performance_get
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: database
+  method: GET
+  path: /internal/v1/database/pool
+  canonical_operation_id: pool_internal_v1_database_pool_get
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: database
+  method: GET
+  path: /internal/v1/database/readiness
+  canonical_operation_id: readiness_internal_v1_database_readiness_get
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: database
+  method: GET
+  path: /internal/v1/database/restores/latest
+  canonical_operation_id: latest_restore_internal_v1_database_restores_latest_get
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: database
+  method: GET
+  path: /internal/v1/database/schema
+  canonical_operation_id: schema_internal_v1_database_schema_get
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: database
+  method: GET
+  path: /internal/v1/database/security/certificates
+  canonical_operation_id: certificates_internal_v1_database_security_certificates_get
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: database
+  method: GET
+  path: /internal/v1/database/security/rls
+  canonical_operation_id: rls_internal_v1_database_security_rls_get
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: database
+  method: GET
+  path: /internal/v1/database/security/tls
+  canonical_operation_id: tls_internal_v1_database_security_tls_get
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: database
+  method: GET
+  path: /internal/v1/database/status
+  canonical_operation_id: status_internal_v1_database_status_get
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
 - domain: metrics
   method: GET
   path: /metrics

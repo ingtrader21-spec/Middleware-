@@ -377,6 +377,7 @@ class Settings(BaseSettings):
 
     database_url: str = "postgresql+asyncpg://localhost/codestra_middleware"
     database_url_file: str = ""
+    database_certification_evidence_dir: str = ""
     redis_url: str = "redis://localhost:6379/2"
     redis_url_file: str = ""
     registry_snapshot_signing_key_file: str = ""
