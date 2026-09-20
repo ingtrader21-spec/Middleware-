@@ -857,9 +857,12 @@ class PostgresCommandStore:
         self.owns_pool = owns_pool
 
     @classmethod
-    async def connect(cls, database_url: str) -> "PostgresCommandStore":
+    async def connect(
+        cls, database_url: str, *, environment: str | None = None
+    ) -> "PostgresCommandStore":
         authority = database_connection_authority(
             database_url,
+            environment=environment,
             application_name="middleware-command-store",
             command_timeout=10,
         )
