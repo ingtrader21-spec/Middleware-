@@ -18,7 +18,7 @@ NOW = datetime(2026, 9, 9, 20, tzinfo=timezone.utc)
 def documents():
     workload = {
         "name": "middleware-api",
-        "source_repository": "https://github.com/appolon1908-hue/Middleware-",
+        "source_repository": "https://github.com/ingtrader21-spec/Middleware-",
         "source_revision": "a" * 40,
         "image_reference": "ghcr.io/appolon1908-hue/codestra-middleware@sha256:" + "b" * 64,
     }
