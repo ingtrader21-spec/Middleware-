@@ -32,7 +32,7 @@ else:
 
 EXPECTED_REPOSITORIES = {
     "appolon1908-hue/codestra-production-platform": 1314230781,
-    "appolon1908-hue/Middleware-": 1347559071,
+    "ingtrader21-spec/Middleware-": 1347559071,
     "appolon1908-hue/Websocket-": 1357322123,
     "appolon1908-hue/Odoo": 1347522940,
     "appolon1908-hue/Caddy": 1350228103,
