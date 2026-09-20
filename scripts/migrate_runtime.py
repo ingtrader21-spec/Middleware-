@@ -19,7 +19,6 @@ sys.path.insert(0, str(ROOT))
 from app.db.connection import (  # noqa: E402
     DatabaseConnectionError,
     database_connection_authority,
-    native_postgres_dsn,
 )
 
 ALEMBIC_VERSION_TABLE = "public.alembic_version"
