@@ -53,7 +53,7 @@ jobs:
           AUTHORITY_SHA256: ${{ inputs.authority_document_sha256 }}
         run: |
           set -euo pipefail
-          test "${GITHUB_REPOSITORY}" = "appolon1908-hue/Middleware-"
+          test "${GITHUB_REPOSITORY}" = "ingtrader21-spec/Middleware-"
           test "${GITHUB_REF}" = refs/heads/main
           test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
           [[ "${AUTHORITY_SHA256}" =~ ^[0-9a-f]{64}$ ]]
@@ -74,7 +74,7 @@ jobs:
       - name: Sign and independently verify authority
         run: |
           set -euo pipefail
-          identity="https://github.com/appolon1908-hue/Middleware-/.github/workflows/security-owner-authority-sign.yml@refs/heads/main"
+          identity="https://github.com/ingtrader21-spec/Middleware-/.github/workflows/security-owner-authority-sign.yml@refs/heads/main"
           issuer="https://token.actions.githubusercontent.com"
           cp security/governance/security-owner-authority.json security-owner-authority.json
           "${RUNNER_TEMP}/cosign" sign-blob --yes \
@@ -101,7 +101,7 @@ jobs:
             authority-signing-SHA256SUMS
 
   sign-production-authority:
-    if: inputs.authority_kind == 'production' && github.repository == 'appolon1908-hue/Middleware-' && github.ref == 'refs/heads/main'
+    if: inputs.authority_kind == 'production' && github.repository == 'ingtrader21-spec/Middleware-' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: security-owner-authority
@@ -163,7 +163,7 @@ jobs:
       - name: Sign and independently verify production authority
         run: |
           set -euo pipefail
-          identity="https://github.com/appolon1908-hue/Middleware-/.github/workflows/security-owner-authority-sign.yml@refs/heads/main"
+          identity="https://github.com/ingtrader21-spec/Middleware-/.github/workflows/security-owner-authority-sign.yml@refs/heads/main"
           issuer="https://token.actions.githubusercontent.com"
           "${RUNNER_TEMP}/cosign" sign-blob --yes \
             --bundle security-owner-authority.sigstore.json security-owner-authority.json
