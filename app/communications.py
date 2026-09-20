@@ -23,6 +23,7 @@ from pydantic import (
     model_validator,
 )
 
+from .db.connection import database_connection_authority
 from .canonical_contracts import validate_specialized_contract
 from .commands import CommandCapabilityDisabled, CommandEnvelope, CommandService
 from .control_plane_auth import (
@@ -493,7 +494,13 @@ class PostgresCommunicationsStore(MemoryCommunicationsStore):
 
     @classmethod
     async def connect(cls, database_url: str) -> "PostgresCommunicationsStore":
-        pool = await asyncpg.create_pool(database_url, min_size=1, max_size=5)
+        authority = database_connection_authority(
+            database_url,
+            application_name="middleware-communications-store",
+        )
+        pool = await asyncpg.create_pool(
+            **authority.asyncpg_pool_kwargs(min_size=1, max_size=5)
+        )
         store = cls(pool)
         await store._load()
         return store
