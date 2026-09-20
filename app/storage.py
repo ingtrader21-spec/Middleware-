@@ -8,6 +8,7 @@ from typing import Any, Literal, Protocol
 
 import asyncpg
 
+from .db.connection import database_connection_authority
 from .models import EventEnvelope, IngressResult
 
 
@@ -601,11 +602,13 @@ class PostgresInboxStore:
 
     @classmethod
     async def connect(cls, database_url: str) -> "PostgresInboxStore":
-        pool = await asyncpg.create_pool(
+        authority = database_connection_authority(
             database_url,
-            min_size=1,
-            max_size=10,
+            application_name="middleware-inbox-store",
             command_timeout=10,
+        )
+        pool = await asyncpg.create_pool(
+            **authority.asyncpg_pool_kwargs(min_size=1, max_size=10)
         )
         store = cls(pool)
         try:
