@@ -103,7 +103,7 @@ class ReleaseWorkflowRegressions(unittest.TestCase):
                 capture = Path(directory) / "arguments"
                 environment = {
                     "PATH": os.defpath,
-                    "GITHUB_REPOSITORY": "appolon1908-hue/Middleware-",
+                    "GITHUB_REPOSITORY": "ingtrader21-spec/Middleware-",
                     "GITHUB_SHA": "a" * 40,
                     "ROLLOUT_OUTCOME": outcome,
                     "CAPTURE_PATH": str(capture),
