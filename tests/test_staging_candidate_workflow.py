@@ -99,8 +99,17 @@ def test_reconciliation_helper_is_staged_from_protected_workflow_revision() -> N
 def test_identity_and_operational_boundaries_remain_enforced() -> None:
     workflow = workflow_text()
     assert workflow.count("id-token: write") == 1
-    assert "if: inputs.operation == 'build'" in workflow
-    assert "if: inputs.operation == 'sign'" in workflow
+
+    build_start = workflow.index("  build:")
+    sign_start = workflow.index("  sign:")
+    build_block = workflow[build_start:sign_start]
+    assert "RUNTIME_MUTATION_DISABLED=true" in build_block
+    assert "if: ${{ false }}" in build_block
+    assert "docker push" in build_block
+
+    sign_block = workflow[sign_start:]
+    assert "if: inputs.operation == 'sign' && github.ref == 'refs/heads/main'" in sign_block
+
     validator = (Path("scripts/validate_security_owner_decision.py")).read_text(encoding="utf-8")
     for boundary in (
         "production_deployment_gate",
