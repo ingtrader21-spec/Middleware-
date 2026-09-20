@@ -9,6 +9,7 @@ from typing import Any, AsyncIterator, Protocol
 
 import asyncpg
 
+from .db.connection import database_connection_authority
 from .storage import StorageError
 
 
@@ -100,7 +101,15 @@ class PostgresRealtimeStore:
 
     @classmethod
     async def connect(cls, database_url: str) -> PostgresRealtimeStore:
-        return cls(await asyncpg.create_pool(database_url, min_size=1, max_size=5))
+        authority = database_connection_authority(
+            database_url,
+            application_name="middleware-realtime-store",
+        )
+        return cls(
+            await asyncpg.create_pool(
+                **authority.asyncpg_pool_kwargs(min_size=1, max_size=5)
+            )
+        )
 
     async def consume_ticket(self, ticket: str, now: datetime) -> RealtimePrincipal | None:
         try:
