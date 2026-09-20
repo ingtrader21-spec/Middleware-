@@ -11,11 +11,18 @@ from scripts import migrate_runtime as runner
 
 
 @pytest.mark.parametrize("mode", ["disable", "require", "verify-ca", "verify-full"])
-def test_tls_parameters_are_dsn_values_not_unsupported_driver_keywords(mode):
+def test_tls_parameters_are_dsn_values_not_unsupported_driver_keywords(mode, tmp_path):
+    ca = tmp_path / "ca.pem"
+    cert = tmp_path / "client.pem"
+    key = tmp_path / "client.key"
+    ca.write_text("ca")
+    cert.write_text("cert")
+    key.write_text("key")
+    key.chmod(0o600)
     native = (
         "postgresql://migration:p%25%40word@db.internal:5544/canonical"
-        f"?sslmode={mode}&sslrootcert=%2Frun%2Fsecrets%2Fca.pem"
-        "&sslcert=%2Frun%2Fsecrets%2Fclient.pem&sslkey=%2Frun%2Fsecrets%2Fclient.key"
+        f"?sslmode={mode}&sslrootcert={ca}"
+        f"&sslcert={cert}&sslkey={key}"
     )
     native_dsn, sqlalchemy_url = runner.database_urls(native)
     engine_url, connect_args = runner.alembic_engine_options(sqlalchemy_url)
@@ -27,7 +34,10 @@ def test_tls_parameters_are_dsn_values_not_unsupported_driver_keywords(mode):
     assert keywords == {
         "dsn": native_dsn,
         "command_timeout": 30,
-        "server_settings": {"search_path": "public"},
+        "server_settings": {
+            "search_path": "public",
+            "application_name": "middleware-migration",
+        },
     }
     assert native_dsn == native
     assert "sslmode" not in keywords and "ssl" not in keywords
