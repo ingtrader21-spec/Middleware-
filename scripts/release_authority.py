@@ -155,7 +155,9 @@ def _build_push_action_pushes(step: dict[str, Any]) -> bool:
         "docker/build-push-action"
     ):
         return False
-    inputs = step.get("with") if isinstance(step.get("with"), dict) else {}
+    inputs = step.get("with")
+    if not isinstance(inputs, dict):
+        return False
     push = inputs.get("push", False)
     return push not in (False, "false")
 
