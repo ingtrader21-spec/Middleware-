@@ -12,9 +12,15 @@ import asyncio
 import os
 import sys
 from pathlib import Path
-from urllib.parse import parse_qsl, urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+from app.db.connection import (  # noqa: E402
+    DatabaseConnectionError,
+    database_connection_authority,
+    native_postgres_dsn,
+)
 
 ALEMBIC_VERSION_TABLE = "public.alembic_version"
 MIGRATION_LOCK = 742603070118
@@ -33,17 +39,17 @@ class MigrationError(RuntimeError):
 
 
 def database_urls(value: str) -> tuple[str, str]:
-    """Keep exactly one explicit target; do not use app settings/secret fallbacks."""
-    parsed = urlsplit(value)
-    if parsed.scheme not in {"postgres", "postgresql", "postgresql+asyncpg"}:
-        raise MigrationError("DATABASE_URL must use PostgreSQL")
-    if not parsed.hostname or not parsed.path.strip("/") or parsed.fragment:
-        raise MigrationError("DATABASE_URL requires an explicit host and database")
-    overrides = {"host", "port", "database", "dbname", "user", "password", "dsn", "server_settings"}
-    if any(key.lower() in overrides for key, _ in parse_qsl(parsed.query)):
-        raise MigrationError("DATABASE_URL query must not override its target or schema")
-    suffix = value.split(":", 1)[1]
-    return "postgresql:" + suffix, "postgresql+asyncpg:" + suffix
+    """Compatibility wrapper over the canonical PostgreSQL connection authority."""
+    try:
+        authority = database_connection_authority(
+            value,
+            application_name="middleware-migration",
+            command_timeout=30,
+        )
+    except DatabaseConnectionError as exc:
+        raise MigrationError(str(exc)) from None
+    suffix = authority.native_dsn.split(":", 1)[1]
+    return authority.native_dsn, "postgresql+asyncpg:" + suffix
 
 
 def migration_sets() -> tuple[tuple[str, tuple[Path, ...]], ...]:
@@ -83,20 +89,16 @@ async def verify_database_lineage(conn, graph: dict[str, tuple[str, ...]]) -> tu
 
 
 def alembic_engine_options(url: str) -> tuple[str, dict[str, object]]:
-    """Pass the validated native DSN to asyncpg, including its TLS semantics.
-
-    The SQLAlchemy asyncpg dialect forwards URL query keys as driver keyword
-    arguments. sslmode/sslrootcert/sslcert/sslkey are DSN parameters, not asyncpg
-    connect() keywords. A credential-free dialect URL plus the complete native
-    DSN preserves verify-full, client certificates, and escaped credentials on
-    both connections without translating or dropping any TLS policy.
-    """
-    native_url, _ = database_urls(url)
-    return "postgresql+asyncpg://", {
-        "dsn": native_url,
-        "command_timeout": 30,
-        "server_settings": {"search_path": "public"},
-    }
+    """Return migration engine arguments from the canonical DB authority."""
+    try:
+        authority = database_connection_authority(
+            url,
+            application_name="middleware-migration",
+            command_timeout=30,
+        )
+    except DatabaseConnectionError as exc:
+        raise MigrationError(str(exc)) from None
+    return authority.sqlalchemy_url, authority.connect_args
 
 
 async def upgrade_alembic(url: str, expected: str) -> None:
@@ -162,9 +164,6 @@ async def run_migrations(conn, sqlalchemy_url: str, expected: str, graph, bundle
 
 
 async def main(*, verify_only: bool = False) -> None:
-    # Script entrypoints start with scripts/ on sys.path; resolve the packaged
-    # repository import here without an out-of-order module-level import.
-    sys.path.insert(0, str(ROOT))
     from scripts.production_migration_authority import validate_authority
 
     from scripts.runtime_sql_schema import load_contract
@@ -174,11 +173,17 @@ async def main(*, verify_only: bool = False) -> None:
     if os.environ.get("SCHEMA_HEAD", expected) != expected:
         raise MigrationError("SCHEMA_HEAD differs from the protected release authority")
     bundles = migration_sets()  # Detect missing image assets before connecting.
-    native_url, sqlalchemy_url = database_urls(os.environ.get("DATABASE_URL", ""))
+    _native_url, sqlalchemy_url = database_urls(os.environ.get("DATABASE_URL", ""))
+    try:
+        authority = database_connection_authority(
+            sqlalchemy_url,
+            application_name="middleware-migration",
+            command_timeout=30,
+        )
+    except DatabaseConnectionError as exc:
+        raise MigrationError(str(exc)) from None
     import asyncpg
-    conn = await asyncpg.connect(
-        native_url, command_timeout=30, server_settings={"search_path": "public"},
-    )
+    conn = await asyncpg.connect(**authority.asyncpg_connect_kwargs)
     try:
         await run_migrations(conn, sqlalchemy_url, expected, graph, bundles, verify_only=verify_only)
     finally:
