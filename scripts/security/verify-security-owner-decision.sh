@@ -3,7 +3,7 @@ set -euo pipefail
 
 decision="${1:?decision path required}"
 bundle="${2:?Sigstore bundle path required}"
-identity='https://github.com/appolon1908-hue/Middleware-/.github/workflows/security-owner-decision-sign.yml@refs/heads/main'
+identity='https://github.com/ingtrader21-spec/Middleware-/.github/workflows/security-owner-decision-sign.yml@refs/heads/main'
 issuer='https://token.actions.githubusercontent.com'
 
 cosign verify-blob \
