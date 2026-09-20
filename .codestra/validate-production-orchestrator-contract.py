@@ -2845,11 +2845,27 @@ def approved_read_only_script_invocation(
     expected_hash, allowed_arguments = policy
     candidate = working_directory / normalized
     try:
+        root_lexical = ROOT.absolute()
+        root_resolved = ROOT.resolve(strict=True)
+        candidate_lexical = candidate.absolute()
+        candidate_lexical.relative_to(root_lexical)
+
+        current = candidate_lexical
+        while True:
+            if current.is_symlink():
+                return False
+            if current == root_lexical:
+                break
+            parent = current.parent
+            if parent == current:
+                return False
+            current = parent
+
         resolved = candidate.resolve(strict=True)
-        resolved.relative_to(ROOT.resolve())
+        resolved.relative_to(root_resolved)
     except (OSError, ValueError):
         return False
-    if not resolved.is_file() or resolved.is_symlink():
+    if resolved != candidate_lexical or not resolved.is_file():
         return False
     segment: list[str] = []
     for token in arguments:
