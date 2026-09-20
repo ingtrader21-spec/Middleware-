@@ -43,7 +43,7 @@ jobs:
       - name: Retrieve immutable evidence from the original successful release
         run: |
           set -Eeuo pipefail
-          test "$GITHUB_REPOSITORY" = appolon1908-hue/Middleware-
+          test "$GITHUB_REPOSITORY" = ingtrader21-spec/Middleware-
           gh api repos/appolon1908-hue/Middleware-/actions/runs/33922375053 > "$RUNNER_TEMP/original-run.json"
           jq -e --arg sha "$SOURCE_SHA" '.conclusion == "success" and .head_sha == $sha and .event == "workflow_run" and .path == ".github/workflows/release.yml"' "$RUNNER_TEMP/original-run.json"
           gh api repos/appolon1908-hue/Middleware-/actions/artifacts/9955590882 > "$RUNNER_TEMP/artifact.json"
@@ -117,7 +117,7 @@ jobs:
           EXPECTED_SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           set -Eeuo pipefail
-          test "$GITHUB_REPOSITORY" = "appolon1908-hue/Middleware-"
+          test "$GITHUB_REPOSITORY" = "ingtrader21-spec/Middleware-"
           test "$GITHUB_REF" = "refs/heads/main"
           test "$(git rev-parse HEAD)" = "$EXPECTED_SOURCE_SHA"
           test -z "$(git status --porcelain)"
@@ -235,13 +235,13 @@ jobs:
                       "platform": "linux/amd64",
                   },
                   "resolvedDependencies": [{
-                      "uri": f"git+https://github.com/appolon1908-hue/Middleware-@{os.environ['RELEASE_SOURCE_SHA']}",
+                      "uri": f"git+https://github.com/ingtrader21-spec/Middleware-@{os.environ['RELEASE_SOURCE_SHA']}",
                       "digest": {"gitCommit": os.environ["RELEASE_SOURCE_SHA"]},
                   }],
               },
               "runDetails": {
                   "builder": {
-                      "id": "https://github.com/appolon1908-hue/Middleware-/.github/workflows/release.yml@refs/heads/main"
+                      "id": "https://github.com/ingtrader21-spec/Middleware-/.github/workflows/release.yml@refs/heads/main"
                   }
               },
           }
@@ -269,7 +269,7 @@ jobs:
       - name: Verify signer identity and every release binding
         run: |
           set -Eeuo pipefail
-          SIGNER_IDENTITY='https://github.com/appolon1908-hue/Middleware-/.github/workflows/release.yml@refs/heads/main'
+          SIGNER_IDENTITY='https://github.com/ingtrader21-spec/Middleware-/.github/workflows/release.yml@refs/heads/main'
           OIDC_ISSUER='https://token.actions.githubusercontent.com'
           cosign verify \
             --certificate-identity "$SIGNER_IDENTITY" \
