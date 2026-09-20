@@ -1,7 +1,7 @@
 {
   "info": {
     "_postman_id": "middleware-openapi-generated",
-    "description": "Generated from contracts/platform/middleware-openapi.generated.json. OpenAPI SHA-256: 7f3a06936d12d4be38684152fe016f738d1d33aa9712ad6f5960c9ae5484e5e3. Do not edit by hand.",
+    "description": "Generated from contracts/platform/middleware-openapi.generated.json. Do not edit by hand; use scripts/generate_postman.py.",
     "name": "Middleware OpenAPI - Generated",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },

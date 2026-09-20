@@ -87,6 +87,7 @@ EXPECTED_ROUTER_REGISTRY_MODULE = "router_registry"
 # relative to the ``app`` package.
 EXPECTED_REGISTRY_ROUTERS = {
     "internal_ai_jobs_router": ("api.internal.ai_jobs", "router"),
+    "internal_database_router": ("api.internal.database", "router"),
     "klyrow_events_router": ("api.internal.klyrow_events", "router"),
     "klyrow_mail_router": ("api.internal.klyrow_mail", "router"),
     "telnexa_events_router": ("api.internal.telnexa_events", "router"),
@@ -161,6 +162,7 @@ EXPECTED_REGISTRY_ROUTERS = {
 EXPECTED_REGISTRY_TUPLES = {
     "CANONICAL_ROUTERS": frozenset(
         {
+            "internal_database_router",
             "platform_kernel_router",
             "automation_v2_router",
             "automation_router",

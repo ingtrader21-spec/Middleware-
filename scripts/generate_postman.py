@@ -146,7 +146,7 @@ def build() -> tuple[dict[str, Any], str]:
             "name": "Middleware OpenAPI - Generated",
             "description": (
                 "Generated from contracts/platform/middleware-openapi.generated.json. "
-                f"OpenAPI SHA-256: {digest}. Do not edit by hand."
+                "Do not edit by hand; use scripts/generate_postman.py."
             ),
             "schema": (
                 "https://schema.getpostman.com/json/collection/"
