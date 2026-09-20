@@ -537,6 +537,9 @@ def test_unregistered_trust_table_fails_derivation(validator: dict) -> None:
 
 
 def test_trust_derivation_check_passes() -> None:
+    if not (ROOT / ".git").exists():
+        pytest.skip("trust derivation --check requires Git metadata")
+
     command = [
         sys.executable,
         str(ROOT / "scripts" / "derive_trust_pins.py"),
