@@ -39,7 +39,7 @@ No private signing key is stored in GitHub or in this repository. The required
 certificate identity is:
 
 ```text
-https://github.com/appolon1908-hue/Middleware-/.github/workflows/release.yml@refs/heads/main
+https://github.com/ingtrader21-spec/Middleware-/.github/workflows/release.yml@refs/heads/main
 ```
 
 The required OIDC issuer is `https://token.actions.githubusercontent.com`.
@@ -61,7 +61,7 @@ Then verify the registry signature independently:
 
 ```bash
 cosign verify \
-  --certificate-identity 'https://github.com/appolon1908-hue/Middleware-/.github/workflows/release.yml@refs/heads/main' \
+  --certificate-identity 'https://github.com/ingtrader21-spec/Middleware-/.github/workflows/release.yml@refs/heads/main' \
   --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
   ghcr.io/appolon1908-hue/codestra-middleware@sha256:<digest>
 ```
