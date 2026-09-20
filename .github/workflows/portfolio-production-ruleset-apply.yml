@@ -26,7 +26,7 @@ concurrency:
 jobs:
   apply:
     if: >-
-      github.repository == 'appolon1908-hue/Middleware-' &&
+      github.repository == 'ingtrader21-spec/Middleware-' &&
       (
         (
           github.event_name == 'push' &&
@@ -106,7 +106,7 @@ jobs:
             printf -- '- Workflow outcome: `%s`\n' "$ROLLOUT_OUTCOME"
           } > /tmp/portfolio-ruleset-comment.md
           gh issue comment 116 \
-            --repo appolon1908-hue/Middleware- \
+            --repo ingtrader21-spec/Middleware- \
             --body-file /tmp/portfolio-ruleset-comment.md
 
       - name: Preserve fail-closed result
