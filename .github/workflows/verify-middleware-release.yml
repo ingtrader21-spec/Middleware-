@@ -1,4 +1,4 @@
-name: Verify middleware release
+name: Verify middleware release (read-only)
 
 on:
   workflow_dispatch:
@@ -16,7 +16,7 @@ on:
         required: true
         type: string
       release_tag:
-        description: Immutable image release tag
+        description: Immutable image tag published by release.yml (sha-<source>-run-<id>-attempt-<n>)
         required: true
         type: string
 
@@ -61,7 +61,8 @@ jobs:
             "ghcr.io/appolon1908-hue/codestra-middleware"
           [[ "${IMAGE_DIGEST}" =~ ^sha256:[0-9a-f]{64}$ ]]
           [[ "${SOURCE_COMMIT}" =~ ^[0-9a-f]{40}$ ]]
-          [[ "${RELEASE_TAG}" =~ ^middleware-[0-9A-Za-z][0-9A-Za-z._-]{0,79}$ ]]
+          [[ "${RELEASE_TAG}" =~ ^sha-[0-9a-f]{40}-run-[1-9][0-9]*-attempt-[1-9][0-9]*$ ]]
+          test "${RELEASE_TAG:4:40}" = "${SOURCE_COMMIT}"
           git cat-file -e "${SOURCE_COMMIT}^{commit}"
           git merge-base --is-ancestor "${SOURCE_COMMIT}" origin/main
 
@@ -93,7 +94,9 @@ jobs:
         shell: bash
         env:
           EXPECTED_ISSUER: https://token.actions.githubusercontent.com
-          EXPECTED_SIGNER: https://github.com/ingtrader21-spec/Middleware-/.github/workflows/sign-middleware-release.yml@refs/heads/main
+          # The single forward publisher is the only identity that may sign a
+          # production Middleware digest; this verifier never signs anything.
+          EXPECTED_SIGNER: https://github.com/ingtrader21-spec/Middleware-/.github/workflows/release.yml@refs/heads/main
         run: |
           set -euo pipefail
           subject="${IMAGE_REPOSITORY}@${IMAGE_DIGEST}"
@@ -102,10 +105,7 @@ jobs:
             --certificate-identity "${EXPECTED_SIGNER}" \
             --certificate-oidc-issuer "${EXPECTED_ISSUER}" \
             "${subject}" | tee image-verification.txt
-          for type in \
-            spdxjson slsaprovenance openvex \
-            https://codestra.example/attestation/security-decision/v1 \
-            https://codestra.example/attestation/evidence-manifest/v1
+          for type in spdxjson slsaprovenance1
           do
             safe_type="$(printf '%s' "${type}" | tr '/:' '__')"
             "${cosign}" verify-attestation \

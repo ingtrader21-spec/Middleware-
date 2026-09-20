@@ -1,4 +1,4 @@
-name: Exact main production release
+name: Exact main production release admission (read-only verifier)
 
 on:
   workflow_dispatch:
@@ -50,13 +50,16 @@ env:
   COSIGN_VERSION: v3.1.2
   COSIGN_SHA256: f7622ed3cf22e55e1ae6377c080979ff77a22da9981c11df222a2e444991e7cf
 
+# READ-ONLY VERIFIER. This workflow admits (or rejects) a candidate that the
+# single forward publisher, .github/workflows/release.yml, already built and
+# signed from the exact protected-main source. It cannot build, push, tag, sign
+# or attest anything: it holds no packages:write and no id-token:write.
 jobs:
   release:
-    name: Exact Main Production Release
+    name: Exact Main Production Release Admission (read-only)
     if: github.repository == 'ingtrader21-spec/Middleware-' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 75
-    environment: production-release
     services:
       postgres:
         image: postgres@sha256:742f40ea20b9ff2ff31db5458d127452988a2164df9e17441e191f3b72252193
@@ -74,8 +77,7 @@ jobs:
     permissions:
       actions: read
       contents: read
-      id-token: write
-      packages: write
+      packages: read
       pull-requests: read
       statuses: read
     steps:
@@ -178,7 +180,9 @@ jobs:
           python -m pip install --disable-pip-version-check --require-hashes \
             -r requirements.lock -r requirements-test.lock
           ruff check --select E9,F63,F7,F82 app tests
-          test "$(alembic heads | awk 'NR == 1 {print $1}')" = "0067_service_catalog_monitoring_state"
+          mapfile -t HEADS < <(alembic heads | awk '{print $1}')
+          test "${#HEADS[@]}" -eq 1
+          test "${HEADS[0]}" = "0067_service_catalog_monitoring_state"
           alembic upgrade head
           python -m pytest -q tests
 
@@ -210,6 +214,19 @@ jobs:
           docker run --rm --network none --read-only --cap-drop ALL \
             --security-opt no-new-privileges:true "middleware:${SOURCE_SHA}" \
             python -c 'from app.main import app; assert app'
+
+      - name: Verify the candidate was signed by the single forward publisher
+        env:
+          PUBLISHER_IDENTITY: https://github.com/ingtrader21-spec/Middleware-/.github/workflows/release.yml@refs/heads/main
+          OIDC_ISSUER: https://token.actions.githubusercontent.com
+        run: |
+          set -euo pipefail
+          subject="${IMAGE_REPOSITORY}@$(jq -er .metadata.image_digest vex/openvex.json)"
+          "${RUNNER_TEMP}/cosign" verify --certificate-identity "${PUBLISHER_IDENTITY}" --certificate-oidc-issuer "${OIDC_ISSUER}" "${subject}" > signature-verification.txt
+          "${RUNNER_TEMP}/cosign" verify-attestation --certificate-identity "${PUBLISHER_IDENTITY}" --certificate-oidc-issuer "${OIDC_ISSUER}" --type spdxjson "${subject}" > sbom-verification.txt
+          "${RUNNER_TEMP}/cosign" verify-attestation --certificate-identity "${PUBLISHER_IDENTITY}" --certificate-oidc-issuer "${OIDC_ISSUER}" --type slsaprovenance1 "${subject}" > provenance-verification.txt
+          jq -er '.payload' provenance-verification.txt | head -1 | base64 -d \
+            | jq -e --arg sha "${SOURCE_SHA}" '.predicate.buildDefinition.externalParameters.source.uri | endswith("@" + $sha)' >/dev/null
 
       - name: Generate exact-image CycloneDX SBOM
         uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610
@@ -254,83 +271,46 @@ jobs:
           jq -e '[.Results[]?.Vulnerabilities[]? | select(.Severity == "HIGH" or .Severity == "CRITICAL")] | length == 0' trivy.json
           jq -e '[.matches[]? | select(.vulnerability.severity == "High" or .vulnerability.severity == "Critical")] | length == 0' grype-vex.json
 
-      - name: Publish immutable full-SHA image
-        id: publish
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Delete local image and independently re-verify the exact digest
         run: |
           set -euo pipefail
-          printf '%s' "${GH_TOKEN}" | docker login ghcr.io -u "${GITHUB_ACTOR}" --password-stdin
-          tag="${IMAGE_REPOSITORY}:${SOURCE_SHA}"
-          docker tag "middleware:${SOURCE_SHA}" "${tag}"
-          docker push "${tag}"
-          digest="$(docker buildx imagetools inspect "${tag}" --format '{{json .Manifest.Digest}}' | tr -d '"')"
-          [[ "${digest}" =~ ^sha256:[0-9a-f]{64}$ ]]
-          test "$(jq -er .metadata.image_digest vex/openvex.json)" = "${digest}"
-          echo "digest=${digest}" >> "${GITHUB_OUTPUT}"
-          echo "reference=${IMAGE_REPOSITORY}@${digest}" >> "${GITHUB_OUTPUT}"
-
-      - name: Create digest-bound provenance
-        run: |
-          set -euo pipefail
-          jq -n --arg sha "${SOURCE_SHA}" --arg digest "${{ steps.publish.outputs.digest }}" \
-            --arg sbom "$(sha256sum sbom.cdx.json | cut -d' ' -f1)" \
-            --arg trivy "$(sha256sum trivy.json | cut -d' ' -f1)" \
-            --arg grype "$(sha256sum grype-vex.json | cut -d' ' -f1)" \
-            '{buildDefinition:{buildType:"https://codestra.example/buildtypes/exact-main-middleware-production/v1",externalParameters:{sourceSha:$sha,platform:"linux/amd64"},resolvedDependencies:[{uri:("git+https://github.com/ingtrader21-spec/Middleware-@"+$sha),digest:{gitCommit:$sha}}]},runDetails:{builder:{id:"https://github.com/ingtrader21-spec/Middleware-/.github/workflows/exact-main-production-release.yml@refs/heads/main"}},subject:{digest:$digest},evidence:{sbomSha256:$sbom,trivySha256:$trivy,grypeSha256:$grype}}' > provenance.json
-
-      - name: Sign and attest exact digest
-        env:
-          COSIGN_YES: "true"
-        run: |
-          set -euo pipefail
-          subject="${{ steps.publish.outputs.reference }}"
-          "${RUNNER_TEMP}/cosign" sign "${subject}"
-          "${RUNNER_TEMP}/cosign" attest --type cyclonedx --predicate sbom.cdx.json "${subject}"
-          "${RUNNER_TEMP}/cosign" attest --type slsaprovenance1 --predicate provenance.json "${subject}"
-          "${RUNNER_TEMP}/cosign" attest --type openvex --predicate vex/openvex.json "${subject}"
-
-      - name: Delete local image and independently verify by digest
-        run: |
-          set -euo pipefail
-          subject="${{ steps.publish.outputs.reference }}"
-          identity="https://github.com/ingtrader21-spec/Middleware-/.github/workflows/exact-main-production-release.yml@refs/heads/main"
+          digest="$(jq -er .metadata.image_digest vex/openvex.json)"
+          subject="${IMAGE_REPOSITORY}@${digest}"
+          identity="https://github.com/ingtrader21-spec/Middleware-/.github/workflows/release.yml@refs/heads/main"
           issuer="https://token.actions.githubusercontent.com"
-          docker image rm "middleware:${SOURCE_SHA}" "${IMAGE_REPOSITORY}:${SOURCE_SHA}"
+          docker image rm "middleware:${SOURCE_SHA}"
           docker pull "${subject}"
           test "$(docker image inspect "${subject}" --format '{{.Config.User}}')" = 10001:10001
-          "${RUNNER_TEMP}/cosign" verify --certificate-identity "${identity}" --certificate-oidc-issuer "${issuer}" "${subject}" > signature-verification.txt
-          "${RUNNER_TEMP}/cosign" verify-attestation --certificate-identity "${identity}" --certificate-oidc-issuer "${issuer}" --type cyclonedx "${subject}" > sbom-verification.txt
-          "${RUNNER_TEMP}/cosign" verify-attestation --certificate-identity "${identity}" --certificate-oidc-issuer "${issuer}" --type slsaprovenance1 "${subject}" > provenance-verification.txt
+          test "$(docker image inspect "${subject}" --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')" = "${SOURCE_SHA}"
+          "${RUNNER_TEMP}/cosign" verify --certificate-identity "${identity}" --certificate-oidc-issuer "${issuer}" "${subject}" > signature-reverification.txt
           docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-privileges:true "${subject}" python -c 'from app.main import app; assert app'
+          printf 'SOURCE_SHA=%s\nIMAGE_REFERENCE=%s\nIMAGE_DIGEST=%s\nSBOM_SHA256=%s\nADMISSION=READ_ONLY_VERIFIED\n' \
+            "${SOURCE_SHA}" "${subject}" "${digest}" "$(sha256sum sbom.cdx.json | cut -d' ' -f1)" > ADMISSION.env
 
-      - name: Seal release evidence
+      - name: Seal admission evidence
         run: |
           set -euo pipefail
-          printf 'SOURCE_SHA=%s\nIMAGE_REFERENCE=%s\nIMAGE_DIGEST=%s\nSBOM_SHA256=%s\n' \
-            "${SOURCE_SHA}" "${{ steps.publish.outputs.reference }}" \
-            "${{ steps.publish.outputs.digest }}" "$(sha256sum sbom.cdx.json | cut -d' ' -f1)" > RELEASE.env
-          sha256sum RELEASE.env sbom.cdx.json trivy.json grype-raw.json grype-vex.json \
-            provenance.json vex/openvex.json signature-verification.txt \
+          sha256sum ADMISSION.env sbom.cdx.json trivy.json grype-raw.json grype-vex.json \
+            vex/openvex.json signature-verification.txt signature-reverification.txt \
             sbom-verification.txt provenance-verification.txt > SHA256SUMS
           sha256sum -c SHA256SUMS
 
-      - name: Upload immutable evidence
+      - name: Upload immutable admission evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: exact-main-production-${{ inputs.source_sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          name: exact-main-production-admission-${{ inputs.source_sha }}-${{ github.run_id }}-${{ github.run_attempt }}
           if-no-files-found: error
           overwrite: false
           retention-days: 90
           path: |
-            RELEASE.env
+            ADMISSION.env
             SHA256SUMS
             sbom.cdx.json
             trivy.json
             grype-raw.json
             grype-vex.json
-            provenance.json
             vex/openvex.json
             signature-verification.txt
+            signature-reverification.txt
             sbom-verification.txt
             provenance-verification.txt

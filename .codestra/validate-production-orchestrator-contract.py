@@ -663,8 +663,8 @@ APPROVED_CONTROL_PLANE_WORKFLOW_SHA256: dict[str, dict[str, str]] = {
             "9e21c8a67466533112117d6cf671ad4"
         ),
         ".github/workflows/exact-main-production-release.yml": (
-            "65d14282ce8280f6124f808749c286e86"
-            "a966fd4f8f5b409662a2c6695419138"
+            "63430ace983ea22e92f2fe76b08bcd9cc"
+            "6188d110ebab31ed533faa192288010"
         ),
         ".github/workflows/lead-automation-n8n-source-v1.yml": (
             "6b0cb7126987c14757bd1f48667bf81d"
@@ -871,7 +871,7 @@ APPROVED_READ_ONLY_SCRIPT_INVOCATIONS: dict[
             frozenset({()}),
         ),
         "scripts/validate_middleware_authority_convergence.py": (
-            "07c3a1bd8780de9cf3d2f04f441c4d1423a781b2a4d0f5d24d0bd792b7daa1c7",
+            "fd1f54c2f85567aa1cf776b159cc16608041950152c41341eeada6bd2e666be8",
             frozenset({()}),
         ),
         "scripts/apply_portfolio_main_release_authorities.py": (
@@ -883,7 +883,7 @@ APPROVED_READ_ONLY_SCRIPT_INVOCATIONS: dict[
             frozenset({("--mode", "validate")}),
         ),
         "scripts/audit_release_endpoints.py": (
-            "636088666d9e0f605325073b7e06596192cc20247207ae1f0e4531ca4cbf8628",
+            "922655600ccaa1a0ba72fefd721bd6e370e4f0da430b7b4b0d858ed2826f067a",
             frozenset({()}),
         ),
         "scripts/apply_integration_main_release_authorities.py": (
@@ -1319,8 +1319,18 @@ def shell_tokens(script: str) -> list[str]:
     except ValueError:
         # Bash command substitutions and heredocs are richer than POSIX shlex.
         # A conservative token fallback keeps known runtime tools visible rather
-        # than treating an unsupported shell construct as safe.
-        return re.findall(r"[A-Za-z0-9_./@${}:+-]+", script)
+        # than treating an unsupported shell construct as safe, and it must keep
+        # every command boundary: a quoting failure in one command may not
+        # merge a later publish/sign command into the first one.
+        fallback: list[str] = []
+        for line in script.replace("\\\n", " ").split("\n"):
+            for segment in re.split(r"(\|\||&&|[;|&])", line):
+                if segment in {"||", "&&", ";", "|", "&"}:
+                    fallback.append(segment)
+                else:
+                    fallback.extend(re.findall(r"[A-Za-z0-9_./@${}:+-]+", segment))
+            fallback.append("\n")
+        return fallback
 
 
 def shell_separator_token(token: str) -> bool:
@@ -2793,11 +2803,33 @@ def repository_script_has_runtime_mutation(
     )
 
 
+DYNAMIC_INVOCATION_CHARACTERS = frozenset("$`*?[]<>|;&(){}~")
+
+
+def dynamic_invocation_token(token: str) -> bool:
+    """Reject any argv token whose value is not a literal reviewed string.
+
+    Read-only exemptions are keyed by an exact argument vector, so shell
+    expansion, command substitution, response-file indirection, globs and
+    redirections can never be part of an approved invocation.
+    """
+
+    if not token or token == "SUBSTITUTION" or token.isspace():
+        return True
+    if token.startswith("@"):
+        return True
+    if re.match(r"^\d*[<>]", token):
+        return True
+    return any(character in DYNAMIC_INVOCATION_CHARACTERS for character in token)
+
+
 def approved_read_only_script_invocation(
     target: str,
     arguments: list[str],
     working_directory: Path,
 ) -> bool:
+    if dynamic_invocation_token(target):
+        return False
     repository = os.environ.get("GITHUB_REPOSITORY")
     if not repository:
         repository = json.loads(CONTRACT_PATH.read_text(encoding="utf-8")).get(
@@ -2823,6 +2855,8 @@ def approved_read_only_script_invocation(
     for token in arguments:
         if token.isspace() or token in {"|", "||", "&&", ";", "&", "{", "}"}:
             break
+        if dynamic_invocation_token(token):
+            return False
         segment.append(token)
     return (
         tuple(segment) in allowed_arguments
@@ -4636,9 +4670,27 @@ def contains_image_publication(step: dict[str, Any]) -> bool:
     tokens = [executable_name(item).lower() for item in raw_tokens]
     for index in command_indexes(raw_tokens):
         name = tokens[index]
+        arguments = [token.lower() for token in raw_command_arguments(raw_tokens, index)]
+        if command_token_has_dynamic_executable(raw_tokens[index]) and (
+            "push" in arguments[:3]
+            or arguments[:1] in (["copy"], ["cp"], ["sync"], ["tag"], ["append"], ["mutate"])
+        ):
+            # `cmd=docker; "$cmd" push ...` cannot be proven publication-free.
+            return True
+        if name == "oras" and "push" in arguments[:2]:
+            return True
+        if name == "crane" and arguments[:1] in (
+            ["push"], ["copy"], ["cp"], ["tag"], ["append"], ["mutate"], ["index"],
+        ):
+            return True
+        if name == "skopeo" and arguments[:1] in (["copy"], ["sync"]):
+            return True
+        if name == "regctl" and any(
+            token in {"push", "copy", "put", "set"} for token in arguments[:3]
+        ):
+            return True
         if name not in {"docker", "podman"}:
             continue
-        arguments = [token.lower() for token in raw_command_arguments(raw_tokens, index)]
         if "push" in arguments[:4]:
             return True
         if arguments[:2] == ["buildx", "bake"]:
@@ -6779,7 +6831,10 @@ def validate(contract: dict[str, Any]) -> None:
             and value == signer_workflow
         ):
             require_reachable_signer_workflow(workflow, value)
-        if runtime_mutation_authority is False and workflow_has_runtime_mutation(workflow, value):
+        if runtime_mutation_authority is False and (
+            workflow_has_runtime_mutation(workflow, value)
+            or workflow_has_image_publication(workflow, value)
+        ):
             require_mutating_jobs_disabled(workflow, value)
     if runtime_mutation_authority is False:
         workflow_paths = sorted(
@@ -6791,7 +6846,9 @@ def validate(contract: dict[str, Any]) -> None:
         for path in workflow_paths:
             relative = path.relative_to(ROOT).as_posix()
             workflow = path.read_text(encoding="utf-8")
-            if workflow_has_runtime_mutation(workflow, relative):
+            if workflow_has_runtime_mutation(workflow, relative) or workflow_has_image_publication(
+                workflow, relative
+            ):
                 require_mutating_jobs_disabled(workflow, relative)
     if repository == "appolon1908-hue/scrapper":
         for path in workflow_paths:
@@ -9303,6 +9360,13 @@ APPROVED_NARROW_MUTATION_SHA256: dict[str, dict[str, str]] = {
             "4d4e71b5b13e40a1b1b35a3502c7d3d8"
             "d02f30c8692a398670c0cbb1ed9fc8c0"
         ),
+        # The single forward Middleware production publisher: builds, scans,
+        # signs and verifies one immutable image from the exact protected-main
+        # source after Middleware CI succeeded. Only these exact job bytes are
+        # authorized; any edit to the job needs a new trust generation.
+        ".github/workflows/release.yml:release": (
+            "98ca2eac8c3a83a1466cdb000c1537337b46cbe541027620439851faeab2e5ba"
+        ),
     },
 }
 
@@ -9325,8 +9389,13 @@ def require_mutating_jobs_disabled(workflow: str, path: str) -> None:
         path,
     )
     for job_name, job in workflow_jobs(workflow, path).items():
+        # Publishing a registry image is a runtime mutation in every repository
+        # without runtime-mutation authority, whatever the shell that does it.
+        publishes = any(
+            contains_image_publication(step) for step in workflow_steps(job, path)
+        )
         if approved_control_plane:
-            mutating = job_reusable_workflow_mutation(job, path) or any(
+            mutating = publishes or job_reusable_workflow_mutation(job, path) or any(
                 script_dependencies_have_runtime_mutation(
                     str(step.get("run", "")),
                     script_aliases,
@@ -9337,7 +9406,7 @@ def require_mutating_jobs_disabled(workflow: str, path: str) -> None:
                 for step in workflow_steps(job, path)
             )
         else:
-            mutating = job_executable_configuration_mutation(
+            mutating = publishes or job_executable_configuration_mutation(
                 job,
                 approved=approved_job_configuration,
             ) or job_reusable_workflow_mutation(job, path) or any(

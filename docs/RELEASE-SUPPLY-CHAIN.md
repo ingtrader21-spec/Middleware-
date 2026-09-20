@@ -17,6 +17,33 @@ ghcr.io/appolon1908-hue/codestra-middleware@sha256:<digest>
 The SHA/run tag is only a discovery aid. Staging and production must use the
 digest reference recorded in the signed manifest.
 
+### Single forward publisher
+
+`release.yml` is the only workflow that may build, push and sign a production
+Middleware image. Its `release` job is authorized as an exact narrow mutation in
+`.codestra/validate-production-orchestrator-contract.py`
+(`APPROVED_NARROW_MUTATION_SHA256`), so any edit to that job requires a new trust
+generation; it runs only for a successful `Middleware CI` on protected `main`
+of this repository (or a manual dispatch on `main`), refuses any source that is
+not the current protected head, and proves that the published image carries
+exactly one Alembic head, `0067_service_catalog_monitoring_state`. Every other
+workflow that names the image repository, publishes an image or signs anything
+carries one bounded role in `scripts/release_authority.py`
+(`SUPPORTING_WORKFLOW_ROLES`), enforced by `tests/test_release_authority.py`:
+
+| Workflow | Role |
+| --- | --- |
+| `exact-main-production-release.yml` | read-only admission verifier (was a second publisher; now holds no `packages: write` / `id-token: write`) |
+| `verify-middleware-release.yml` | read-only verifier of `release.yml` signatures and attestations |
+| `staging-candidate-build-sign.yml` | staging PR-candidate scope only; its publishing job is disabled until narrowly authorized |
+| `automated-production-promotion.yml` | read-only admission / promotion gate |
+| `security-owner-*-sign.yml`, `three-component-release-decision.yml`, `production-canary-authorization.yml` | blob signers for authority and decision documents |
+| `sign-gateway-*.yml`, `sign-rc*-openvex.yml` | historical signers guarded on the pre-transfer repository name |
+
+`sign-middleware-release.yml` (a duplicate signer under its own identity) was
+removed. Trust pins for all of this are derived, never hand-edited, by
+`scripts/derive_trust_pins.py`.
+
 ### Repository identity versus registry namespace
 
 The repository moved from `appolon1908-hue/Middleware-` to

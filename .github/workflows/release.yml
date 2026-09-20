@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: signed-middleware-release-${{ github.event.workflow_run.head_sha }}
+  group: signed-middleware-release-${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
   cancel-in-progress: false
 
 jobs:
@@ -91,8 +91,23 @@ jobs:
           retention-days: 90
   release:
     name: Build, scan, sign, and verify immutable image
-    # RUNTIME_MUTATION_DISABLED=true: image publication requires separate release authorization.
-    if: ${{ false }}
+    # The single forward Middleware production publisher. Its exact job bytes are
+    # authorized as a narrow mutation by the protected production validator; any
+    # change to this job requires a new trust generation.
+    if: >-
+      github.repository == 'ingtrader21-spec/Middleware-' &&
+      (
+        (
+          github.event_name == 'workflow_run' &&
+          github.event.workflow_run.conclusion == 'success' &&
+          github.event.workflow_run.head_branch == 'main' &&
+          github.event.workflow_run.head_repository.full_name == github.repository
+        ) ||
+        (
+          github.event_name == 'workflow_dispatch' &&
+          github.ref == 'refs/heads/main'
+        )
+      )
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
@@ -102,25 +117,36 @@ jobs:
     env:
       IMAGE_REPOSITORY: ghcr.io/appolon1908-hue/codestra-middleware
       COSIGN_YES: "true"
+      SOURCE_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+      EXPECTED_SCHEMA_HEAD: 0067_service_catalog_monitoring_state
 
     steps:
       - name: Check out the exact CI-accepted source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ env.SOURCE_SHA }}
           fetch-depth: 1
           persist-credentials: false
 
       - name: Prove release source and initialize immutable metadata
         id: metadata
         env:
-          EXPECTED_SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
+          EXPECTED_SOURCE_SHA: ${{ env.SOURCE_SHA }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -Eeuo pipefail
           test "$GITHUB_REPOSITORY" = "ingtrader21-spec/Middleware-"
           test "$GITHUB_REF" = "refs/heads/main"
+          [[ "$EXPECTED_SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
           test "$(git rev-parse HEAD)" = "$EXPECTED_SOURCE_SHA"
           test -z "$(git status --porcelain)"
+          # Only the current protected head may become a release candidate: a
+          # stale main SHA is rejected even when its CI was green.
+          protected_head="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq .object.sha)"
+          test "$protected_head" = "$EXPECTED_SOURCE_SHA"
+          # The exact source must have passed Middleware CI on protected main.
+          accepted_runs="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/middleware-ci.yml/runs?branch=main&event=push&status=success&head_sha=${EXPECTED_SOURCE_SHA}&per_page=1" --jq .total_count)"
+          test "$accepted_runs" -ge 1
           build_time="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
           printf 'RELEASE_SOURCE_SHA=%s\n' "$EXPECTED_SOURCE_SHA" >> "$GITHUB_ENV"
           printf 'RELEASE_GIT_TREE_ID=%s\n' "$(git rev-parse 'HEAD^{tree}')" >> "$GITHUB_ENV"
@@ -150,11 +176,11 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: >-
-            ghcr.io/appolon1908-hue/codestra-middleware:sha-${{ github.event.workflow_run.head_sha }}-run-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+            ghcr.io/appolon1908-hue/codestra-middleware:sha-${{ env.SOURCE_SHA }}-run-${{ github.run_id }}-attempt-${{ github.run_attempt }}
           build-args: |
             SOURCE_REPOSITORY=https://github.com/${{ github.repository }}
-            SOURCE_REVISION=${{ github.event.workflow_run.head_sha }}
-            SOURCE_VERSION=sha-${{ github.event.workflow_run.head_sha }}
+            SOURCE_REVISION=${{ env.SOURCE_SHA }}
+            SOURCE_VERSION=sha-${{ env.SOURCE_SHA }}
             BUILD_DATE=${{ steps.metadata.outputs.build_time }}
           provenance: mode=max
           sbom: true
@@ -177,6 +203,17 @@ jobs:
           printf 'reference=%s@%s\n' "$IMAGE_REPOSITORY" "$BUILT_IMAGE_DIGEST" >> "$GITHUB_OUTPUT"
           printf 'sbom=%s\n' "$RELEASE_EVIDENCE_DIR/middleware.spdx.json" >> "$GITHUB_OUTPUT"
           printf 'scan=%s\n' "$RELEASE_EVIDENCE_DIR/middleware.grype.json" >> "$GITHUB_OUTPUT"
+
+      - name: Prove the published image carries exactly one Alembic head
+        run: |
+          set -Eeuo pipefail
+          docker pull --platform linux/amd64 "$RELEASE_IMAGE_REFERENCE"
+          test "$(docker image inspect "$RELEASE_IMAGE_REFERENCE" --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')" = "$RELEASE_SOURCE_SHA"
+          test "$(docker image inspect "$RELEASE_IMAGE_REFERENCE" --format '{{index .Config.Labels "org.opencontainers.image.source"}}')" = "https://github.com/${GITHUB_REPOSITORY}"
+          heads_probe='from alembic.config import Config; from alembic.script import ScriptDirectory; c = Config(); c.set_main_option("script_location", "/app/migrations"); print(chr(10).join(sorted(ScriptDirectory.from_config(c).get_heads())))'
+          mapfile -t HEADS < <(docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-privileges:true "$RELEASE_IMAGE_REFERENCE" -c "$heads_probe")
+          test "${#HEADS[@]}" -eq 1
+          test "${HEADS[0]}" = "$EXPECTED_SCHEMA_HEAD"
 
       - name: Generate exact-image SPDX SBOM
         uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
@@ -294,7 +331,7 @@ jobs:
       - name: Preserve immutable release evidence
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: signed-middleware-release-${{ github.event.workflow_run.head_sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          name: signed-middleware-release-${{ env.SOURCE_SHA }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ steps.metadata.outputs.evidence_dir }}
           if-no-files-found: error
           retention-days: 90

@@ -73,7 +73,10 @@ env:
 
 jobs:
   build:
-    if: inputs.operation == 'build' && github.ref == 'refs/heads/main'
+    # RUNTIME_MUTATION_DISABLED=true: publishing a staging candidate image is a
+    # runtime mutation; it stays disabled until a narrow-mutation authorization
+    # pins these exact job bytes. Staging scope never becomes production authority.
+    if: ${{ false }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     permissions:

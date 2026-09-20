@@ -1,5 +1,11 @@
 # Middleware production runtime certification
 
+> **Status (2026-09-20):** the canonical Alembic head is now
+> `0067_service_catalog_monitoring_state` (`config/middleware-forward-release-authority.v1.json`,
+> `.github/workflows/release.yml`). References to `0057_platform_service_catalog` below
+> describe the signed evidence generation of 2026-09-08 and are retained as history; they
+> are not the current forward release or runtime requirement.
+
 This runbook defines the only repository-authorized path for certifying the
 Codestra Middleware runtime on Server 65 (`65.109.65.169`). It deploys an
 immutable, internal-only, read-only canary. It does not route public traffic or
