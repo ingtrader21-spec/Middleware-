@@ -13,6 +13,7 @@ from uuid import UUID
 import asyncpg
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from .db.connection import database_connection_authority
 from .canonical_contracts import validate_contract
 from .provider_canary import provider_evidence_digest
 
@@ -857,11 +858,13 @@ class PostgresCommandStore:
 
     @classmethod
     async def connect(cls, database_url: str) -> "PostgresCommandStore":
-        pool = await asyncpg.create_pool(
+        authority = database_connection_authority(
             database_url,
-            min_size=1,
-            max_size=10,
+            application_name="middleware-command-store",
             command_timeout=10,
+        )
+        pool = await asyncpg.create_pool(
+            **authority.asyncpg_pool_kwargs(min_size=1, max_size=10)
         )
         store = cls(pool)
         try:
