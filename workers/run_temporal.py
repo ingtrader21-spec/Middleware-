@@ -53,7 +53,9 @@ async def main() -> None:
     if settings.database_url is None:
         raise ConfigurationError("DATABASE_URL is required for the Temporal worker")
     client = await connect_temporal(settings)
-    command_store = await PostgresCommandStore.connect(settings.database_url)
+    command_store = await PostgresCommandStore.connect(
+        settings.database_url, environment=settings.app_env
+    )
     try:
         safe_activities = FailClosedWorkflowActivities()
         command_activities = build_command_activities(settings, command_store)
