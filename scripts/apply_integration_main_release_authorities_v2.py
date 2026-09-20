@@ -28,7 +28,7 @@ spec.loader.exec_module(BASE)
 
 EXPECTED_OWNER = "appolon1908-hue"
 EXPECTED_OWNER_ID = 275410064
-EXPECTED_REPOSITORY = "appolon1908-hue/Middleware-"
+EXPECTED_REPOSITORY = "ingtrader21-spec/Middleware-"
 EXPECTED_REPOSITORY_ID = 1347559071
 EXPECTED_ISSUE_NUMBER = 130
 EXPECTED_ISSUE_COMMAND = "/apply-integration-main-release-authority v1"
