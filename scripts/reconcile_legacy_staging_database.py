@@ -373,14 +373,14 @@ def main() -> int:
     archive: dict[str, Any]
     summary: dict[str, Any]
     with engine.connect() as conn:
-        archive = capture_legacy_evidence(conn)
-        counts_before = validate_legacy_state(conn)
-        write_json(
-            args.evidence_dir / "legacy-provider-route-before.json",
-            {**archive, "source_sha": source_sha, "counts_before": counts_before},
-        )
         tx = conn.begin()
         try:
+            archive = capture_legacy_evidence(conn)
+            counts_before = validate_legacy_state(conn)
+            write_json(
+                args.evidence_dir / "legacy-provider-route-before.json",
+                {**archive, "source_sha": source_sha, "counts_before": counts_before},
+            )
             bridge_and_upgrade(conn, root)
             summary = validate_canonical_state(conn, counts_before)
             tx.commit()
