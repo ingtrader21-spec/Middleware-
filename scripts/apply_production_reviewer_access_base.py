@@ -29,7 +29,7 @@ EXPECTED_REVIEWER = {
 }
 EXPECTED_REPOSITORIES = {
     "appolon1908-hue/codestra-production-platform",
-    "appolon1908-hue/Middleware-",
+    "ingtrader21-spec/Middleware-",
     "appolon1908-hue/Websocket-",
     "appolon1908-hue/Odoo",
     "appolon1908-hue/Caddy",
@@ -209,7 +209,7 @@ def execute(mode: str, confirmation: str) -> dict[str, Any]:
     require(mode in {"apply", "verify"}, "unsupported mode")
     if os.environ.get("GITHUB_ACTIONS") == "true":
         require(
-            os.environ.get("GITHUB_REPOSITORY") == "appolon1908-hue/Middleware-",
+            os.environ.get("GITHUB_REPOSITORY") == "ingtrader21-spec/Middleware-",
             "workflow repository drift",
         )
         require(os.environ.get("GITHUB_REF") == "refs/heads/main", "protected main required")
