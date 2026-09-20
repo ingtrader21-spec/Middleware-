@@ -152,7 +152,7 @@ def validate_decision(decision: dict[str, Any], request: dict[str, Any], audit: 
         raise ValidationError("authority reference mismatch")
     if decision["environment_name"] != "security-owner-signing":
         raise ValidationError("environment mismatch")
-    if decision["workflow_repository"] != "appolon1908-hue/Middleware-" or decision["workflow_path"] != ".github/workflows/security-owner-decision-sign.yml" or decision["workflow_ref"] != "refs/heads/main":
+    if decision["workflow_repository"] != "ingtrader21-spec/Middleware-" or decision["workflow_path"] != ".github/workflows/security-owner-decision-sign.yml" or decision["workflow_ref"] != "refs/heads/main":
         raise ValidationError("workflow identity mismatch")
     if audit.get("approver") != "kazan555" or audit.get("self_review") is not False or audit.get("bypass_used") is not False:
         raise ValidationError("invalid environment approval audit")
