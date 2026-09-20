@@ -18,6 +18,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from .db.connection import database_connection_authority
 from .automation_policy import (
     AutomationAuthorizationError,
     AutomationClientPolicy,
@@ -1160,11 +1161,13 @@ class PostgresAutomationStore:
 
     @classmethod
     async def connect(cls, database_url: str) -> "PostgresAutomationStore":
-        pool = await asyncpg.create_pool(
+        authority = database_connection_authority(
             database_url,
-            min_size=1,
-            max_size=10,
+            application_name="middleware-automation-store",
             command_timeout=10,
+        )
+        pool = await asyncpg.create_pool(
+            **authority.asyncpg_pool_kwargs(min_size=1, max_size=10)
         )
         store = cls(pool)
         try:
