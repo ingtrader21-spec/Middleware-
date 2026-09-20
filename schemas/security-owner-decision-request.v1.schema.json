@@ -21,7 +21,7 @@
     "decision_version": {"const": 1},
     "decision_status": {"const": "pending_security_owner_environment_approval"},
     "company": {"const": "Codestra LLC"},
-    "repository": {"const": "appolon1908-hue/Middleware-"},
+    "repository": {"const": "ingtrader21-spec/Middleware-"},
     "pr_number": {"type": "integer", "minimum": 1},
     "pr_head_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
     "image_repository": {"enum": [
@@ -45,8 +45,8 @@
     "authority_artifact": {"type": "string", "pattern": "^security-owner-authority-[1-9][0-9]*-[1-9][0-9]*$"},
     "oidc_issuer": {"const": "https://token.actions.githubusercontent.com"},
     "signer_identity": {"enum": [
-      "https://github.com/appolon1908-hue/Middleware-/.github/workflows/staging-candidate-build-sign.yml@refs/heads/main",
-      "https://github.com/appolon1908-hue/Middleware-/.github/workflows/release-component-candidate.yml@refs/heads/main"
+      "https://github.com/ingtrader21-spec/Middleware-/.github/workflows/staging-candidate-build-sign.yml@refs/heads/main",
+      "https://github.com/ingtrader21-spec/Middleware-/.github/workflows/release-component-candidate.yml@refs/heads/main"
     ]},
     "issued_utc": {"type": "string", "format": "date-time", "pattern": "Z$"},
     "expires_utc": {"type": "string", "format": "date-time", "pattern": "Z$"},

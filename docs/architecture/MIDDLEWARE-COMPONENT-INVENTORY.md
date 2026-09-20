@@ -479,7 +479,7 @@ Accessed through raw SQL or through the separate `app.email.models` / `app.db.re
 | `connector-runtime-api-ci.yml` | Connector Runtime API validation |
 | `connector-sdk-ci.yml` | Connector SDK v1 validation |
 | `connector-storage-ci.yml` | Connector storage v1 |
-| `exact-main-production-release.yml` | Exact main production release |
+| `exact-main-production-release.yml` | Exact main production release admission (read-only verifier) |
 | `identity-webhook-contract.yml` | Identity webhook contract |
 | `integrated-monitoring.yml` | Integrated monitoring API |
 | `integration-main-release-authorities.yml` | Apply integration protected-main authorities |
@@ -517,7 +517,6 @@ Accessed through raw SQL or through the separate `app.email.models` / `app.db.re
 | `sign-gateway-forensics-rc3.yml` | Sign gateway acknowledgement forensics RC3 |
 | `sign-gateway-schema-ack-rc2.yml` | Sign schema-aware acknowledgement gateway RC2 |
 | `sign-gateway-schema1-correlation-safety-rc1.yml` | Sign gateway schema1 correlation safety RC1 |
-| `sign-middleware-release.yml` | Sign middleware release |
 | `sign-rc3p-openvex.yml` | Sign RC3P OpenVEX |
 | `sign-rc4-lifecycle-openvex.yml` | Sign RC4 Lifecycle OpenVEX |
 | `source-lock-candidate-build.yml` | source-lock-candidate-build |

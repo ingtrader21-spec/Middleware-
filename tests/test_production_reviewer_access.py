@@ -42,8 +42,22 @@ class ProductionReviewerAccessTests(unittest.TestCase):
         self.assertEqual(self.config["reviewer"], MODULE.EXPECTED_REVIEWER)
 
     def test_every_repository_is_owner_scoped(self) -> None:
+        transferred = {"ingtrader21-spec/Middleware-": "ingtrader21-spec"}
+        self.assertEqual(MODULE.BASE.TRANSFERRED_REPOSITORY_OWNERS, transferred)
         for repository in MODULE.validate_config(self.config):
-            self.assertTrue(repository.startswith("appolon1908-hue/"))
+            owner = transferred.get(repository, "appolon1908-hue")
+            self.assertTrue(repository.startswith(f"{owner}/"))
+        self.assertEqual(
+            MODULE.EXPECTED_REPOSITORIES["ingtrader21-spec/Middleware-"], 1347559071
+        )
+
+    def test_transferred_repository_under_any_other_owner_fails(self) -> None:
+        broken = copy.deepcopy(self.config)
+        for row in broken["repositories"]:
+            if row["repository"] == "ingtrader21-spec/Middleware-":
+                row["repository"] = "appolon1908-hue/Middleware-"
+        with self.assertRaises(MODULE.AccessError):
+            MODULE.validate_config(broken)
 
     def test_foreign_or_unknown_repository_fails(self) -> None:
         broken = copy.deepcopy(self.config)

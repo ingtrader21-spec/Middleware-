@@ -27,7 +27,7 @@ concurrency:
 
 jobs:
   validate:
-    if: github.repository == 'appolon1908-hue/Middleware-' && github.ref == 'refs/heads/main'
+    if: github.repository == 'ingtrader21-spec/Middleware-' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: read

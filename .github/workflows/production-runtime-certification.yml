@@ -29,7 +29,7 @@ jobs:
       DEPLOY_HOST: 65.109.65.169
       DEPLOY_PORT: "22"
       DEPLOY_USER: middleware-deploy
-      SIGNER_IDENTITY: https://github.com/appolon1908-hue/Middleware-/.github/workflows/release.yml@refs/heads/main
+      SIGNER_IDENTITY: https://github.com/ingtrader21-spec/Middleware-/.github/workflows/release.yml@refs/heads/main
       OIDC_ISSUER: https://token.actions.githubusercontent.com
 
     steps:
@@ -47,7 +47,7 @@ jobs:
           EVENT_SHA: ${{ github.sha }}
         run: |
           set -Eeuo pipefail
-          test "$GITHUB_REPOSITORY" = "appolon1908-hue/Middleware-"
+          test "$GITHUB_REPOSITORY" = "ingtrader21-spec/Middleware-"
           test "$GITHUB_REF" = "refs/heads/main"
           test "$(git rev-parse HEAD)" = "$EVENT_SHA"
           test -z "$(git status --porcelain)"
@@ -174,7 +174,7 @@ jobs:
           path = Path(sys.argv[1])
           source_sha, release_run_id, output_path = sys.argv[2:]
           value = json.loads(path.read_text(encoding="utf-8"))
-          if value.get("schema_version") != "1.0" or value.get("repository") != "appolon1908-hue/Middleware-":
+          if value.get("schema_version") != "1.0" or value.get("repository") != "ingtrader21-spec/Middleware-":
               raise SystemExit("release manifest authority mismatch")
           if value.get("source", {}).get("git_sha") != source_sha or value.get("source", {}).get("ref") != "refs/heads/main":
               raise SystemExit("release source mismatch")

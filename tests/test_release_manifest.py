@@ -143,3 +143,91 @@ def test_manifest_rejects_noncanonical_serialization(tmp_path: Path) -> None:
     path.write_text(json.dumps(value, indent=2), encoding="utf-8")
     with pytest.raises(ReleaseManifestError, match="not canonical"):
         load_manifest(path)
+
+
+def test_manifest_names_the_current_repository_and_keeps_pinned_historical_releases(
+    tmp_path: Path,
+) -> None:
+    """New releases must name ingtrader21-spec/Middleware-. Releases signed before the
+    repository transfer keep appolon1908-hue/Middleware-, but only for the exact
+    source SHA / image digest pairs pinned in HISTORICAL_RELEASES; the same rule is
+    expressed by the JSON schema so both verifiers agree."""
+    from scripts.release_manifest import (
+        CERTIFICATE_IDENTITY,
+        HISTORICAL_CERTIFICATE_IDENTITY,
+        HISTORICAL_RELEASES,
+        HISTORICAL_REPOSITORY,
+        REPOSITORY,
+        expected_certificate_identity,
+    )
+
+    assert REPOSITORY == "ingtrader21-spec/Middleware-"
+    assert HISTORICAL_REPOSITORY == "appolon1908-hue/Middleware-"
+    assert CERTIFICATE_IDENTITY.startswith("https://github.com/ingtrader21-spec/Middleware-/")
+    assert HISTORICAL_CERTIFICATE_IDENTITY.startswith("https://github.com/appolon1908-hue/Middleware-/")
+    assert HISTORICAL_RELEASES, "the pinned pre-transfer releases must stay recorded"
+    schema = json.loads(
+        (ROOT / "contracts/release-manifest.v1.schema.json").read_text(encoding="utf-8")
+    )
+    validator = Draft202012Validator(schema, format_checker=FormatChecker())
+
+    value = manifest(tmp_path)
+    assert value["repository"] == REPOSITORY
+    assert value["build"]["workflow_identity"] == CERTIFICATE_IDENTITY
+    assert value["verification"]["certificate_identity"] == CERTIFICATE_IDENTITY
+    assert expected_certificate_identity(value) == CERTIFICATE_IDENTITY
+    validate_manifest(value)
+    validator.validate(value)
+
+    # A new release signed under the historical identity is rejected by both.
+    old_signer = deepcopy(value)
+    old_signer["build"]["workflow_identity"] = HISTORICAL_CERTIFICATE_IDENTITY
+    old_signer["verification"]["certificate_identity"] = HISTORICAL_CERTIFICATE_IDENTITY
+    with pytest.raises(ReleaseManifestError, match="workflow_identity"):
+        validate_manifest(old_signer)
+    assert list(validator.iter_errors(old_signer))
+
+    # A new release that still carries the pre-transfer name is rejected by both.
+    stale = deepcopy(value)
+    stale["repository"] = HISTORICAL_REPOSITORY
+    with pytest.raises(ReleaseManifestError, match="repository"):
+        validate_manifest(stale)
+    assert list(validator.iter_errors(stale))
+
+    # A pinned historical release keeps its name and verifies with both.
+    source_sha, image_digest = next(iter(HISTORICAL_RELEASES.items()))
+    historical = deepcopy(value)
+    historical["repository"] = HISTORICAL_REPOSITORY
+    historical["source"]["git_sha"] = source_sha
+    historical["image"]["digest"] = image_digest
+    historical["image"]["reference"] = value["image"]["repository"] + "@" + image_digest
+    historical["release_id"] = f"{source_sha[:12]}-{image_digest.split(':', 1)[1][:12]}"
+    historical["build"]["workflow_identity"] = HISTORICAL_CERTIFICATE_IDENTITY
+    historical["verification"]["certificate_identity"] = HISTORICAL_CERTIFICATE_IDENTITY
+    validate_manifest(historical)
+    validator.validate(historical)
+    assert expected_certificate_identity(historical) == HISTORICAL_CERTIFICATE_IDENTITY
+
+    # A pinned historical release cannot claim the current identity either.
+    relabelled = deepcopy(historical)
+    relabelled["verification"]["certificate_identity"] = CERTIFICATE_IDENTITY
+    with pytest.raises(ReleaseManifestError, match="certificate identity"):
+        validate_manifest(relabelled)
+    assert list(validator.iter_errors(relabelled))
+
+    # The historical name is bound to the pair: a different digest for that SHA fails.
+    mismatched = deepcopy(historical)
+    other_digest = "sha256:" + ("e" * 64)
+    mismatched["image"]["digest"] = other_digest
+    mismatched["image"]["reference"] = value["image"]["repository"] + "@" + other_digest
+    mismatched["release_id"] = f"{source_sha[:12]}-{'e' * 12}"
+    with pytest.raises(ReleaseManifestError, match="repository"):
+        validate_manifest(mismatched)
+    assert list(validator.iter_errors(mismatched))
+
+    # Any other repository name is rejected outright.
+    foreign = deepcopy(value)
+    foreign["repository"] = "someone-else/Middleware-"
+    with pytest.raises(ReleaseManifestError, match="repository"):
+        validate_manifest(foreign)
+    assert list(validator.iter_errors(foreign))

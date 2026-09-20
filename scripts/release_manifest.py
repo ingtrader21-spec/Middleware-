@@ -23,13 +23,31 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 SCHEMA_VERSION = "1.0"
 SERVICE = "middleware-api"
-REPOSITORY = "appolon1908-hue/Middleware-"
+REPOSITORY = "ingtrader21-spec/Middleware-"
+# Releases signed before the repository transfer (appolon1908-hue -> ingtrader21-spec)
+# carry the pre-transfer repository name. They remain verifiable evidence, but only for
+# the exact source SHA / image digest pairs recorded here; every other manifest must
+# name the current repository. The GHCR package namespace is unchanged by the transfer.
+HISTORICAL_REPOSITORY = "appolon1908-hue/Middleware-"
+HISTORICAL_RELEASES = {
+    "164969b4824fb4d2eb38b232bfb7abc18e33d8ac": "sha256:18017a1a40a7969495661446badd8b43d1d4153c2036d89b0fb3065469e27941",
+    "29b25cba8302cd15ef4d87b68f501da6347f2f17": "sha256:0f5a5b3b1c8166d6509b228541bee01533f5feb1dbef24ed2d241194ba610802",
+    "4668de7d7ddc6f98968c06b7dc02d7650ff5e88a": "sha256:41ae78d368b5e2db2e9fe9be50fd5041b3f1a07ae4837170a76a68889be565e6",
+    "b03b378f3a358de333e37cf6cc7a37668f004b4f": "sha256:dfdcfb92538242df9c9e81c27f15f9bd14b2cb840ea4c16d91dccc8f0eed7a3c",
+}
 SOURCE_REF = "refs/heads/main"
 IMAGE_REPOSITORY = "ghcr.io/appolon1908-hue/codestra-middleware"
 PLATFORMS = ["linux/amd64"]
 BASE_IMAGE = "python:3.14.7-slim-bookworm@sha256:82bc3c539b8813ada9d68c63b40158fa002f7f33de9bf3312a3dfdc0620dff56"
 WORKFLOW_PATH = ".github/workflows/release.yml"
 CERTIFICATE_IDENTITY = (
+    "https://github.com/ingtrader21-spec/Middleware-/"
+    ".github/workflows/release.yml@refs/heads/main"
+)
+# Sigstore identity under which the pinned pre-transfer releases were signed. It is
+# accepted only for those exact releases (see HISTORICAL_RELEASES); every new release
+# must be signed by the current repository's workflow identity.
+HISTORICAL_CERTIFICATE_IDENTITY = (
     "https://github.com/appolon1908-hue/Middleware-/"
     ".github/workflows/release.yml@refs/heads/main"
 )
@@ -280,6 +298,43 @@ def _expect_constant(value: object, expected: object, label: str) -> None:
         raise ReleaseManifestError(f"{label} is not canonical")
 
 
+def is_historical_release(source_sha: str, image_digest: str) -> bool:
+    """True only for the exact pre-transfer releases pinned in HISTORICAL_RELEASES."""
+    return HISTORICAL_RELEASES.get(source_sha) == image_digest
+
+
+def expected_certificate_identity(manifest: dict[str, Any]) -> str:
+    """The identity a manifest's signature must carry: the current workflow identity,
+    or the historical one for a pinned pre-transfer release only."""
+    source = manifest.get("source") if isinstance(manifest, dict) else None
+    image = manifest.get("image") if isinstance(manifest, dict) else None
+    if (
+        manifest.get("repository") == HISTORICAL_REPOSITORY
+        and isinstance(source, dict)
+        and isinstance(image, dict)
+        and is_historical_release(str(source.get("git_sha")), str(image.get("digest")))
+    ):
+        return HISTORICAL_CERTIFICATE_IDENTITY
+    return CERTIFICATE_IDENTITY
+
+
+def _expect_repository(value: object, source_sha: str, image_digest: str) -> None:
+    """The current repository is the only acceptable name for a release, except for
+    the pinned pre-transfer releases, whose evidence keeps its historical name."""
+    if value == REPOSITORY:
+        return
+    if value == HISTORICAL_REPOSITORY and is_historical_release(source_sha, image_digest):
+        return
+    raise ReleaseManifestError("repository is not canonical")
+
+
+def _expect_identity(value: object, historical: bool, label: str) -> None:
+    """A pinned historical release carries the historical identity and nothing else;
+    every other release carries the current identity."""
+    expected = HISTORICAL_CERTIFICATE_IDENTITY if historical else CERTIFICATE_IDENTITY
+    _expect_constant(value, expected, label)
+
+
 def validate_manifest(
     value: object,
     *,
@@ -305,7 +360,6 @@ def validate_manifest(
     )
     _expect_constant(root["schema_version"], SCHEMA_VERSION, "schema_version")
     _expect_constant(root["service"], SERVICE, "service")
-    _expect_constant(root["repository"], REPOSITORY, "repository")
 
     source = _expect_keys(root["source"], {"git_sha", "git_tree_id", "ref"}, "source")
     if not isinstance(source["git_sha"], str) or SHA40.fullmatch(source["git_sha"]) is None:
@@ -330,6 +384,7 @@ def validate_manifest(
         "image.reference",
     )
     _expect_constant(image["platforms"], PLATFORMS, "image.platforms")
+    _expect_repository(root["repository"], source["git_sha"], image["digest"])
     _expect_constant(image["base_image"], BASE_IMAGE, "image.base_image")
     if expected_image_digest is not None and image["digest"] != expected_image_digest.lower():
         raise ReleaseManifestError("manifest image digest does not match the expected release")
@@ -377,9 +432,8 @@ def validate_manifest(
         "build",
     )
     _expect_constant(build["workflow_path"], WORKFLOW_PATH, "build.workflow_path")
-    _expect_constant(
-        build["workflow_identity"], CERTIFICATE_IDENTITY, "build.workflow_identity"
-    )
+    historical = root["repository"] == HISTORICAL_REPOSITORY
+    _expect_identity(build["workflow_identity"], historical, "build.workflow_identity")
     if type(build["run_id"]) is not int or build["run_id"] < 1:
         raise ReleaseManifestError("build.run_id must be a positive integer")
     if type(build["run_attempt"]) is not int or build["run_attempt"] < 1:
@@ -433,9 +487,7 @@ def validate_manifest(
         "manifest signature",
     )
     _expect_constant(verification["oidc_issuer"], OIDC_ISSUER, "OIDC issuer")
-    _expect_constant(
-        verification["certificate_identity"], CERTIFICATE_IDENTITY, "certificate identity"
-    )
+    _expect_identity(verification["certificate_identity"], historical, "certificate identity")
     _expect_constant(
         verification["transparency_log_required"], True, "transparency log policy"
     )
@@ -496,7 +548,9 @@ def verify_workspace(
             raise ReleaseManifestError(f"release evidence digest mismatch: {key}")
 
 
-def verify_sigstore_bundle(manifest: Path, bundle: Path, cosign: str) -> None:
+def verify_sigstore_bundle(
+    manifest: Path, bundle: Path, cosign: str, identity: str = CERTIFICATE_IDENTITY
+) -> None:
     command = [
         cosign,
         "verify-blob",
@@ -504,7 +558,7 @@ def verify_sigstore_bundle(manifest: Path, bundle: Path, cosign: str) -> None:
         "--bundle",
         str(bundle),
         "--certificate-identity",
-        CERTIFICATE_IDENTITY,
+        identity,
         "--certificate-oidc-issuer",
         OIDC_ISSUER,
     ]
@@ -577,7 +631,12 @@ def main(argv: list[str] | None = None) -> int:
                 evidence_dir=args.manifest.resolve().parent,
             )
         if args.bundle is not None:
-            verify_sigstore_bundle(args.manifest, args.bundle, args.cosign)
+            verify_sigstore_bundle(
+                args.manifest,
+                args.bundle,
+                args.cosign,
+                identity=expected_certificate_identity(manifest),
+            )
         print(
             "SIGNED_RELEASE_MANIFEST=PASS "
             f"RELEASE_ID={manifest['release_id']} "

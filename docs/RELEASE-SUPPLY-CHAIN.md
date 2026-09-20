@@ -17,6 +17,53 @@ ghcr.io/appolon1908-hue/codestra-middleware@sha256:<digest>
 The SHA/run tag is only a discovery aid. Staging and production must use the
 digest reference recorded in the signed manifest.
 
+### Single forward publisher
+
+`release.yml` is the only workflow that may build, push and sign a production
+Middleware image. Its `release` job is authorized as an exact narrow mutation in
+`.codestra/validate-production-orchestrator-contract.py`
+(`APPROVED_NARROW_MUTATION_SHA256`), so any edit to that job requires a new trust
+generation; it runs only for a successful `Middleware CI` on protected `main`
+of this repository (or a manual dispatch on `main`), refuses any source that is
+not the current protected head, and proves that the published image carries
+exactly one Alembic head, `0067_service_catalog_monitoring_state`. Every other
+workflow that names the image repository, publishes an image or signs anything
+carries one bounded role in `scripts/release_authority.py`
+(`SUPPORTING_WORKFLOW_ROLES`), enforced by `tests/test_release_authority.py`:
+
+| Workflow | Role |
+| --- | --- |
+| `exact-main-production-release.yml` | read-only admission verifier (was a second publisher; now holds no `packages: write` / `id-token: write`) |
+| `verify-middleware-release.yml` | read-only verifier of `release.yml` signatures and attestations |
+| `staging-candidate-build-sign.yml` | staging PR-candidate scope only; its publishing job is disabled until narrowly authorized |
+| `automated-production-promotion.yml` | read-only admission / promotion gate |
+| `security-owner-*-sign.yml`, `three-component-release-decision.yml`, `production-canary-authorization.yml` | blob signers for authority and decision documents |
+| `sign-gateway-*.yml`, `sign-rc*-openvex.yml` | historical signers guarded on the pre-transfer repository name |
+
+`sign-middleware-release.yml` (a duplicate signer under its own identity) was
+removed. Trust pins for all of this are derived, never hand-edited, by
+`scripts/derive_trust_pins.py`.
+
+### Repository identity versus registry namespace
+
+The repository moved from `appolon1908-hue/Middleware-` to
+`ingtrader21-spec/Middleware-`; every current workflow guard, Sigstore
+certificate identity, provenance URI and OCI source label names the new
+repository. The GHCR package is a separate authority: user-owned packages do
+not move with a repository transfer, `ghcr.io/appolon1908-hue/codestra-middleware`
+still holds every published digest (public pull, verified 2026-09-19) and no
+`ghcr.io/ingtrader21-spec/codestra-middleware` package exists. The release and
+candidate workflows therefore keep publishing to, and the trust contracts keep
+pinning, the `appolon1908-hue` namespace until the package itself is migrated
+in a dedicated, reviewed change; that transitional ownership is intentional,
+not a leftover.
+
+Releases signed before the transfer keep their historical repository name and
+`release.yml` identity. They stay verifiable only for the exact source SHA and
+image digest pairs pinned in `scripts/release_manifest.py`
+(`HISTORICAL_RELEASES`) and `contracts/release-manifest.v1.schema.json`; every
+other manifest must carry the current repository and identity.
+
 ## Evidence created for every accepted build
 
 The release workflow:
@@ -39,7 +86,7 @@ No private signing key is stored in GitHub or in this repository. The required
 certificate identity is:
 
 ```text
-https://github.com/appolon1908-hue/Middleware-/.github/workflows/release.yml@refs/heads/main
+https://github.com/ingtrader21-spec/Middleware-/.github/workflows/release.yml@refs/heads/main
 ```
 
 The required OIDC issuer is `https://token.actions.githubusercontent.com`.
@@ -61,7 +108,7 @@ Then verify the registry signature independently:
 
 ```bash
 cosign verify \
-  --certificate-identity 'https://github.com/appolon1908-hue/Middleware-/.github/workflows/release.yml@refs/heads/main' \
+  --certificate-identity 'https://github.com/ingtrader21-spec/Middleware-/.github/workflows/release.yml@refs/heads/main' \
   --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
   ghcr.io/appolon1908-hue/codestra-middleware@sha256:<digest>
 ```

@@ -200,6 +200,11 @@
       "path": "tests/integration/test_platform_kernel_postgres.py",
       "gate": "RUNTIME_INTEGRATION_TESTS",
       "required_job": "Disposable PostgreSQL Redis integration"
+    },
+    {
+      "path": "tests/test_release_authority.py",
+      "gate": "GIT_METADATA+SYMLINK_SUPPORT",
+      "required_job": "docker-test-build"
     }
   ],
   "policy": {

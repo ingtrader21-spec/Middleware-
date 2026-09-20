@@ -1,7 +1,17 @@
 # Production release environment
 
-The `production-release` GitHub environment is a release-evidence gate. It
-does not authorize deployment or activation.
+Status (2026-09-20): the `production-release` environment is no longer on any
+forward release path. `.github/workflows/exact-main-production-release.yml`
+was converted into a read-only admission verifier that holds no
+`packages: write` and no `id-token: write`, cannot push, tag, sign or attest,
+and verifies that a candidate was built and signed by the single forward
+publisher, `.github/workflows/release.yml`. The configuration below is retained
+as the historical record of the environment while it gated the former second
+publisher; the environment may be deleted once the last historical run
+evidence is archived.
+
+The `production-release` GitHub environment was a release-evidence gate. It
+never authorized deployment or activation.
 
 Required configuration:
 

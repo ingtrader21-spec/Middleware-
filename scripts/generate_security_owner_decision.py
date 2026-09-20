@@ -22,7 +22,7 @@ def main() -> None:
     parser.add_argument("--image-repository")
     parser.add_argument(
         "--signer-identity",
-        default="https://github.com/appolon1908-hue/Middleware-/.github/workflows/staging-candidate-build-sign.yml@refs/heads/main",
+        default="https://github.com/ingtrader21-spec/Middleware-/.github/workflows/staging-candidate-build-sign.yml@refs/heads/main",
     )
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--run-attempt", required=True)
@@ -103,7 +103,7 @@ def main() -> None:
         "decision_version": 1,
         "decision_status": "pending_security_owner_environment_approval",
         "company": "Codestra LLC",
-        "repository": "appolon1908-hue/Middleware-",
+        "repository": "ingtrader21-spec/Middleware-",
         "pr_number": pr_number,
         "pr_head_sha": args.source_sha,
         "image_repository": args.image_repository,

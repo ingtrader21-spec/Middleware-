@@ -9,7 +9,7 @@
     "schema_version": {"const": "1.0"},
     "release_id": {"type": "string", "pattern": "^[0-9a-f]{12}-[0-9a-f]{12}$"},
     "service": {"const": "middleware-api"},
-    "repository": {"const": "appolon1908-hue/Middleware-"},
+    "repository": {"enum": ["ingtrader21-spec/Middleware-", "appolon1908-hue/Middleware-"]},
     "source": {
       "type": "object",
       "additionalProperties": false,
@@ -48,7 +48,7 @@
       "required": ["workflow_path", "workflow_identity", "run_id", "run_attempt", "built_at", "runner_image", "provenance"],
       "properties": {
         "workflow_path": {"const": ".github/workflows/release.yml"},
-        "workflow_identity": {"const": "https://github.com/appolon1908-hue/Middleware-/.github/workflows/release.yml@refs/heads/main"},
+        "workflow_identity": {"enum": ["https://github.com/ingtrader21-spec/Middleware-/.github/workflows/release.yml@refs/heads/main", "https://github.com/appolon1908-hue/Middleware-/.github/workflows/release.yml@refs/heads/main"]},
         "run_id": {"type": "integer", "minimum": 1},
         "run_attempt": {"type": "integer", "minimum": 1},
         "built_at": {"type": "string", "format": "date-time", "pattern": "Z$"},
@@ -81,7 +81,7 @@
         "image_signature": {"const": "sigstore-keyless"},
         "manifest_signature": {"const": "sigstore-keyless-bundle"},
         "oidc_issuer": {"const": "https://token.actions.githubusercontent.com"},
-        "certificate_identity": {"const": "https://github.com/appolon1908-hue/Middleware-/.github/workflows/release.yml@refs/heads/main"},
+        "certificate_identity": {"enum": ["https://github.com/ingtrader21-spec/Middleware-/.github/workflows/release.yml@refs/heads/main", "https://github.com/appolon1908-hue/Middleware-/.github/workflows/release.yml@refs/heads/main"]},
         "transparency_log_required": {"const": true},
         "vulnerability_policy": {"const": "fail-high-or-critical-with-fix"}
       }
@@ -94,6 +94,26 @@
         "staging_and_production_same_digest": {"const": true},
         "mutable_tags_authoritative": {"const": false}
       }
+    }
+  },
+  "if": {"properties": {"repository": {"const": "appolon1908-hue/Middleware-"}}},
+  "then": {
+    "$comment": "Pre-transfer releases keep their historical repository name and workflow identity only for these exact pinned source SHA / image digest pairs; every other manifest must name ingtrader21-spec/Middleware- and its workflow identity.",
+    "properties": {
+      "build": {"properties": {"workflow_identity": {"const": "https://github.com/appolon1908-hue/Middleware-/.github/workflows/release.yml@refs/heads/main"}}},
+      "verification": {"properties": {"certificate_identity": {"const": "https://github.com/appolon1908-hue/Middleware-/.github/workflows/release.yml@refs/heads/main"}}}
+    },
+    "anyOf": [
+      {"properties": {"source": {"properties": {"git_sha": {"const": "164969b4824fb4d2eb38b232bfb7abc18e33d8ac"}}}, "image": {"properties": {"digest": {"const": "sha256:18017a1a40a7969495661446badd8b43d1d4153c2036d89b0fb3065469e27941"}}}}},
+      {"properties": {"source": {"properties": {"git_sha": {"const": "29b25cba8302cd15ef4d87b68f501da6347f2f17"}}}, "image": {"properties": {"digest": {"const": "sha256:0f5a5b3b1c8166d6509b228541bee01533f5feb1dbef24ed2d241194ba610802"}}}}},
+      {"properties": {"source": {"properties": {"git_sha": {"const": "4668de7d7ddc6f98968c06b7dc02d7650ff5e88a"}}}, "image": {"properties": {"digest": {"const": "sha256:41ae78d368b5e2db2e9fe9be50fd5041b3f1a07ae4837170a76a68889be565e6"}}}}},
+      {"properties": {"source": {"properties": {"git_sha": {"const": "b03b378f3a358de333e37cf6cc7a37668f004b4f"}}}, "image": {"properties": {"digest": {"const": "sha256:dfdcfb92538242df9c9e81c27f15f9bd14b2cb840ea4c16d91dccc8f0eed7a3c"}}}}}
+    ]
+  },
+  "else": {
+    "properties": {
+      "build": {"properties": {"workflow_identity": {"const": "https://github.com/ingtrader21-spec/Middleware-/.github/workflows/release.yml@refs/heads/main"}}},
+      "verification": {"properties": {"certificate_identity": {"const": "https://github.com/ingtrader21-spec/Middleware-/.github/workflows/release.yml@refs/heads/main"}}}
     }
   },
   "$defs": {

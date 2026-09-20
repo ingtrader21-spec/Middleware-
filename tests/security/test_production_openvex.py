@@ -19,7 +19,7 @@ SPEC.loader.exec_module(module)
 ValidationError = module.ValidationError
 SHA = "4db1c245c1733e4abc7ea695d76862ffdc3fd698"
 DIGEST = "sha256:" + "a" * 64
-IDENTITY = "https://github.com/appolon1908-hue/Middleware-/.github/workflows/security-owner-decision-sign.yml@refs/heads/main"
+IDENTITY = "https://github.com/ingtrader21-spec/Middleware-/.github/workflows/security-owner-decision-sign.yml@refs/heads/main"
 ISSUER = "https://token.actions.githubusercontent.com"
 
 

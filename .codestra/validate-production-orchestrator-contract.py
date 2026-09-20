@@ -37,8 +37,7 @@ STANDARD_RELEASE_VALIDATOR_SECURITY_SHA256 = (
     "8d8f21260babfae5eaedbdd46472b1ec"
 )
 MIDDLEWARE_RELEASE_VALIDATOR_SECURITY_SHA256 = (
-    "d403a62826d4a4ceea1db68c6a1e5b5aa"
-    "996b03ef2b29eaf382cef4cb9d1dac9"
+    "63192fd83f7fc19fa624e2bf26d3b2ccc3941042e4e3c941ba378ff50581e565"
 )
 BACKEND_RELEASE_VALIDATOR_SECURITY_SHA256 = (
     "15dbaa6d571a1d1e72c09ca417cc9419"
@@ -62,8 +61,7 @@ EXPECTED_RELEASE_VALIDATOR_SECURITY_SHA256 = {
     "appolon1908-hue/Telnexa-web": STANDARD_RELEASE_VALIDATOR_SECURITY_SHA256,
 }
 MANUAL_RELEASE_INTENT_SHA256 = (
-    "2362835ba774c42766bb5da01d72b184"
-    "2d66ef7a63635971d15378a730e301b5"
+    "3053a509c4292f08495c0277e29879a60ca06de7fee94c44a2e26977e2441d51"
 )
 SCHEMA = "codestra.production-orchestrator-contract.v1"
 PHASES = ["plan", "staging", "canary", "production"]
@@ -482,8 +480,8 @@ APPROVED_COMPLEX_SCRIPT_SHA256: dict[str, dict[str, str]] = {
         ),
         "scripts/integration_ci.sh": "8d9327fd9ad51d6ba7243d051336f623a4f75d60c60e69fd012e65f598b12d4a",
         "scripts/validate_middleware_authority_convergence.py": (
-            "23679aee112625c778d7607187ea505c"
-            "a2f9f0983411143728d785d011298ae4"
+            "fd1f54c2f85567aa1cf776b159cc1660"
+            "8041950152c41341eeada6bd2e666be8"
         ),
         "scripts/validate-order-orchestration.py": (
             "a9d3688d3175661f54d86d113c8e03fa"
@@ -491,24 +489,24 @@ APPROVED_COMPLEX_SCRIPT_SHA256: dict[str, dict[str, str]] = {
         ),
         "scripts/nats_integration_ci.sh": "88d843c665cece68e0fb56a931c295ee10490446cad7b64d9f5356c1cbf7263d",
         "scripts/project_ci.sh": "12a529ea96f39baec5f1eeb287209dc9db355e5dca000cbbfd7494303501b2ae",
-        "scripts/release_manifest.py": "67d438833554baa448eabb34188ef3028d6e37088084be0a201e602282175d25",
+        "scripts/release_manifest.py": "b578c1a338935bfe56b502ec1078d0d3e846d1ef091826af318252d847226b62",
         "scripts/run_ci.sh": "64d7c92279dd442144c7e1f74c3e48f0ab5d5db105238a534dcf8ccd99e93138",
         "scripts/synthetic_acceptance_ci.sh": "087dac2c5371f2013fa0a8dd22ed4024409ab5015231fb8801c75cf3203e3a8a",
         "scripts/temporal_integration_ci.sh": "76a682cc1f5b15a0a3eb15a029d87206238dfe4a262eaf5fa2c79403f147d4d6",
         "scripts/verify_container_image.sh": (
-            "84207f2ec5d748aacf134b398e770fc9"
-            "d21e9d48a1c3a174cdf05864d75e4a61"
+            "86550c26b32862fefaf2cefdefa2db1e"
+            "73abcb702d28536816f9093df47c5ccd"
         ),
         "services/connector-runtime/scripts/test_postgres.sh": "b9b31391d7a04aa8b3362e182a43f880e46f9e85b4d2f5c3c66cb9a9fe88f867",
-        "tests/integration/campaign_extension_concurrency.py": "2b94e265c56031175663cd09cd9a71e9bd650c029178d2f535bcaa766643f611",
+        "tests/integration/campaign_extension_concurrency.py": "5699be2ee6b9af5a2aed7d39c68086bc09dc9764e8ed8ffb063ec20fd6aea86a",
         "tests/integration/campaign_identity_concurrency.py": "234d97cf48cf29f0ec26bd4cfd48f61d031f46e1250cee477088abb7a190be76",
         "tests/test_calling_api.py": (
-            "2b02e6c7c2b084362200db67cbf5c2f9"
-            "14b35ff00a16d18369dba96d3db1a78c"
+            "9e09c6fcda80a97ac2988f73a5be9ec6"
+            "caebd3d812220edba3ebfaf3e4b10902"
         ),
         "tests/test_calling_contract.py": (
-            "8e5456fbe0a07e8732b77e1f421d5113"
-            "f38cef37b87984daa008eccdad82ac09"
+            "b8e1f705cfc175348ba6455879f42f78"
+            "74e52948786f71fb4a9103e13bc072a7"
         ),
         "tests/test_calling_postgres.py": (
             "49891b89afde1955f66a411facb59fa19"
@@ -519,8 +517,8 @@ APPROVED_COMPLEX_SCRIPT_SHA256: dict[str, dict[str, str]] = {
             "05746161f11df7b2aa330d196bf8f1b3"
         ),
         "tests/test_vicidial_internal_call_adapter.py": (
-            "9bac8378d14c57a02a1b43b30b0b8d33"
-            "8b538cec3c036d3c500db57aaed6b417"
+            "7d15e3fbd540c8e129062e9b870cfa90"
+            "f965d8c98ef3a846b52188c39ab22f99"
         ),
         "tests/pairing/test_selected_server_b.py": (
             "2d30e63fef9c9621a2082418ac22ab8e"
@@ -657,16 +655,16 @@ APPROVED_COMPLEX_SCRIPT_DEPENDENCY_SCAN: dict[str, frozenset[str]] = {
 APPROVED_CONTROL_PLANE_WORKFLOW_SHA256: dict[str, dict[str, str]] = {
     "ingtrader21-spec/Middleware-": {
         ".github/workflows/portfolio-production-ruleset-apply.yml": (
-            "7cb2d9269f490623385689c712e520ae"
-            "33f7ce7fc1bf901f4005b8c22a6c76b8"
+            "faae12baf6e9be3b6321feca2c594fe9"
+            "418eb7bf06f22190619fcd10e127829c"
         ),
         ".github/workflows/portfolio-main-release-authorities.yml": (
             "393b612783e6daaf9105932e1f6e0b389"
             "9e21c8a67466533112117d6cf671ad4"
         ),
         ".github/workflows/exact-main-production-release.yml": (
-            "104527ac89e4dcf68309198105ecb4438"
-            "b0881d31e009e7d37b6f5a0e873ca80"
+            "63430ace983ea22e92f2fe76b08bcd9cc"
+            "6188d110ebab31ed533faa192288010"
         ),
         ".github/workflows/lead-automation-n8n-source-v1.yml": (
             "6b0cb7126987c14757bd1f48667bf81d"
@@ -677,12 +675,12 @@ APPROVED_CONTROL_PLANE_WORKFLOW_SHA256: dict[str, dict[str, str]] = {
             "518f2fb94379062e447a6636fea2f16"
         ),
         ".github/workflows/integration-main-release-authorities.yml": (
-            "43323ab7203be3317f700e099a01ca03f"
-            "b9828292754fc67bd681d1d410a53f3"
+            "910acf0149a0b9060544817a71577222a"
+            "3ff117c75ad334886170d903d594150"
         ),
         ".github/workflows/production-reviewer-access.yml": (
-            "9a1d239d64f3d198365097ea6812ac90"
-            "b09cc11dcfb9916a68dce810b7202103"
+            "fe8a41c98753e0a981a2673df0a7a324"
+            "394b93a7ac5290dd684e0ede090d58de"
         ),
         ".github/workflows/python-quality-baseline.yml": (
             "cb89cb69636dc79a6a03e5df98abeb798"
@@ -740,8 +738,8 @@ APPROVED_JOB_EXECUTABLE_CONFIGURATION_SHA256: dict[str, dict[str, str]] = {
         ".github/workflows/lead-automation-v1.yml": "9cdf5b9ce21f528bb8d0cb29b170586d212f5dfeb0e4ad237bb531a41bd89274",
         ".github/workflows/integrated-monitoring.yml": "a48fce82339f859f7d4c5b8a7e7f3fa6a0ed33bcbf7217232928629bc7c76fdf",
         ".github/workflows/odoo-calling-contract.yml": (
-            "0010271981bd5683a5c28af02ba24cb3d"
-            "0387c7920d1f2f59c6235166341e5b2"
+            "03d93c41717cf69ac764a9665eb42fb71"
+            "7d342aef6ff1fc52f8d050f7feb580d"
         ),
     },
     "appolon1908-hue/beyvra-backend": {
@@ -829,25 +827,25 @@ APPROVED_CONTROL_PLANE_DEPENDENCY_SHA256: dict[
                 "aed55e8e9334c50913b2e422ad771a7"
             ),
             "scripts/apply_integration_main_release_authorities_base.py": (
-                "71fd1f220797c12708da3d2e5f9efe25"
-                "2ad2933ae37852052e1e5b680ce3b75a"
+                "a55e6092984b0465c6159a4a77759d3b"
+            "ae01817e0bf6d37356937b60ec06d019"
             ),
             "scripts/apply_integration_main_release_authorities_v2.py": (
-                "ee67af637f8e96e531e507d71e8ff3a6"
-                "36d4d120fef134eee33a5ab3675e0edd"
+                "0ef82f4d9bab61826bdf7c4c22a37d62"
+            "8899ab19996f95d9555e4ef72f11e1e7"
             ),
         },
         ".github/workflows/production-reviewer-access.yml": {
             "config/production-reviewer-access.v1.json": (
-                "72e0b70ddbf8ff0365d2c4fc6da8e8e6"
-                "d4c7c4ef69865067317d3e9300d0e6ed"
+                "b914202e589174360b9c9d2c4f2d35ce"
+            "3d01f1188b68021b1402eb184ae7abd5"
             ),
             "scripts/apply_production_reviewer_access.py": (
-                "ebfa963f6a4b91df0d172b16fc281bc12e67581776982e6b5c2b7458ab68abf2"
+                "ca679a9caa29ef2d80d1e4cb87d3748805bc742a78729aacf95436af75529faa"
             ),
             "scripts/apply_production_reviewer_access_base.py": (
-                "22b5d7f425f949588ce29a6c3079c09f"
-                "950dfb46e31d3bfa54b0216f73b5a43d"
+                "a36d9cfe647f0ddd6ac396255d00ce6e"
+            "4a1676d133c5cf2d236060cac339d6e5"
             ),
         },
     },
@@ -873,7 +871,7 @@ APPROVED_READ_ONLY_SCRIPT_INVOCATIONS: dict[
             frozenset({()}),
         ),
         "scripts/validate_middleware_authority_convergence.py": (
-            "07c3a1bd8780de9cf3d2f04f441c4d1423a781b2a4d0f5d24d0bd792b7daa1c7",
+            "fd1f54c2f85567aa1cf776b159cc16608041950152c41341eeada6bd2e666be8",
             frozenset({()}),
         ),
         "scripts/apply_portfolio_main_release_authorities.py": (
@@ -885,7 +883,7 @@ APPROVED_READ_ONLY_SCRIPT_INVOCATIONS: dict[
             frozenset({("--mode", "validate")}),
         ),
         "scripts/audit_release_endpoints.py": (
-            "636088666d9e0f605325073b7e06596192cc20247207ae1f0e4531ca4cbf8628",
+            "922655600ccaa1a0ba72fefd721bd6e370e4f0da430b7b4b0d858ed2826f067a",
             frozenset({()}),
         ),
         "scripts/apply_integration_main_release_authorities.py": (
@@ -893,11 +891,11 @@ APPROVED_READ_ONLY_SCRIPT_INVOCATIONS: dict[
             frozenset({("--mode", "validate")}),
         ),
         "scripts/apply_integration_main_release_authorities_v2.py": (
-            "ee67af637f8e96e531e507d71e8ff3a636d4d120fef134eee33a5ab3675e0edd",
+            "0ef82f4d9bab61826bdf7c4c22a37d628899ab19996f95d9555e4ef72f11e1e7",
             frozenset({("--mode", "validate")}),
         ),
         "scripts/apply_production_reviewer_access.py": (
-            "ebfa963f6a4b91df0d172b16fc281bc12e67581776982e6b5c2b7458ab68abf2",
+            "ca679a9caa29ef2d80d1e4cb87d3748805bc742a78729aacf95436af75529faa",
             frozenset({("--mode", "validate")}),
         ),
         "scripts/apply_repository_governance.py": (
@@ -1321,8 +1319,18 @@ def shell_tokens(script: str) -> list[str]:
     except ValueError:
         # Bash command substitutions and heredocs are richer than POSIX shlex.
         # A conservative token fallback keeps known runtime tools visible rather
-        # than treating an unsupported shell construct as safe.
-        return re.findall(r"[A-Za-z0-9_./@${}:+-]+", script)
+        # than treating an unsupported shell construct as safe, and it must keep
+        # every command boundary: a quoting failure in one command may not
+        # merge a later publish/sign command into the first one.
+        fallback: list[str] = []
+        for line in script.replace("\\\n", " ").split("\n"):
+            for segment in re.split(r"(\|\||&&|[;|&])", line):
+                if segment in {"||", "&&", ";", "|", "&"}:
+                    fallback.append(segment)
+                else:
+                    fallback.extend(re.findall(r"[A-Za-z0-9_./@${}:+-]+", segment))
+            fallback.append("\n")
+        return fallback
 
 
 def shell_separator_token(token: str) -> bool:
@@ -2795,11 +2803,33 @@ def repository_script_has_runtime_mutation(
     )
 
 
+DYNAMIC_INVOCATION_CHARACTERS = frozenset("$`*?[]<>|;&(){}~")
+
+
+def dynamic_invocation_token(token: str) -> bool:
+    """Reject any argv token whose value is not a literal reviewed string.
+
+    Read-only exemptions are keyed by an exact argument vector, so shell
+    expansion, command substitution, response-file indirection, globs and
+    redirections can never be part of an approved invocation.
+    """
+
+    if not token or token == "SUBSTITUTION" or token.isspace():
+        return True
+    if token.startswith("@"):
+        return True
+    if re.match(r"^\d*[<>]", token):
+        return True
+    return any(character in DYNAMIC_INVOCATION_CHARACTERS for character in token)
+
+
 def approved_read_only_script_invocation(
     target: str,
     arguments: list[str],
     working_directory: Path,
 ) -> bool:
+    if dynamic_invocation_token(target):
+        return False
     repository = os.environ.get("GITHUB_REPOSITORY")
     if not repository:
         repository = json.loads(CONTRACT_PATH.read_text(encoding="utf-8")).get(
@@ -2815,16 +2845,34 @@ def approved_read_only_script_invocation(
     expected_hash, allowed_arguments = policy
     candidate = working_directory / normalized
     try:
+        root_lexical = ROOT.absolute()
+        root_resolved = ROOT.resolve(strict=True)
+        candidate_lexical = candidate.absolute()
+        candidate_lexical.relative_to(root_lexical)
+
+        current = candidate_lexical
+        while True:
+            if current.is_symlink():
+                return False
+            if current == root_lexical:
+                break
+            parent = current.parent
+            if parent == current:
+                return False
+            current = parent
+
         resolved = candidate.resolve(strict=True)
-        resolved.relative_to(ROOT.resolve())
+        resolved.relative_to(root_resolved)
     except (OSError, ValueError):
         return False
-    if not resolved.is_file() or resolved.is_symlink():
+    if resolved != candidate_lexical or not resolved.is_file():
         return False
     segment: list[str] = []
     for token in arguments:
         if token.isspace() or token in {"|", "||", "&&", ";", "&", "{", "}"}:
             break
+        if dynamic_invocation_token(token):
+            return False
         segment.append(token)
     return (
         tuple(segment) in allowed_arguments
@@ -4638,9 +4686,27 @@ def contains_image_publication(step: dict[str, Any]) -> bool:
     tokens = [executable_name(item).lower() for item in raw_tokens]
     for index in command_indexes(raw_tokens):
         name = tokens[index]
+        arguments = [token.lower() for token in raw_command_arguments(raw_tokens, index)]
+        if command_token_has_dynamic_executable(raw_tokens[index]) and (
+            "push" in arguments[:3]
+            or arguments[:1] in (["copy"], ["cp"], ["sync"], ["tag"], ["append"], ["mutate"])
+        ):
+            # `cmd=docker; "$cmd" push ...` cannot be proven publication-free.
+            return True
+        if name == "oras" and "push" in arguments[:2]:
+            return True
+        if name == "crane" and arguments[:1] in (
+            ["push"], ["copy"], ["cp"], ["tag"], ["append"], ["mutate"], ["index"],
+        ):
+            return True
+        if name == "skopeo" and arguments[:1] in (["copy"], ["sync"]):
+            return True
+        if name == "regctl" and any(
+            token in {"push", "copy", "put", "set"} for token in arguments[:3]
+        ):
+            return True
         if name not in {"docker", "podman"}:
             continue
-        arguments = [token.lower() for token in raw_command_arguments(raw_tokens, index)]
         if "push" in arguments[:4]:
             return True
         if arguments[:2] == ["buildx", "bake"]:
@@ -6781,7 +6847,10 @@ def validate(contract: dict[str, Any]) -> None:
             and value == signer_workflow
         ):
             require_reachable_signer_workflow(workflow, value)
-        if runtime_mutation_authority is False and workflow_has_runtime_mutation(workflow, value):
+        if runtime_mutation_authority is False and (
+            workflow_has_runtime_mutation(workflow, value)
+            or workflow_has_image_publication(workflow, value)
+        ):
             require_mutating_jobs_disabled(workflow, value)
     if runtime_mutation_authority is False:
         workflow_paths = sorted(
@@ -6793,7 +6862,9 @@ def validate(contract: dict[str, Any]) -> None:
         for path in workflow_paths:
             relative = path.relative_to(ROOT).as_posix()
             workflow = path.read_text(encoding="utf-8")
-            if workflow_has_runtime_mutation(workflow, relative):
+            if workflow_has_runtime_mutation(workflow, relative) or workflow_has_image_publication(
+                workflow, relative
+            ):
                 require_mutating_jobs_disabled(workflow, relative)
     if repository == "appolon1908-hue/scrapper":
         for path in workflow_paths:
@@ -9296,14 +9367,21 @@ APPROVED_NARROW_MUTATION_SHA256: dict[str, dict[str, str]] = {
         # Read-only release verification writes only runner-local evidence and
         # job outputs. Its workflow grants actions:read and contents:read only.
         ".github/workflows/automated-production-promotion.yml:verify-release": (
-            "f3606117148bb6207f8e738b267665cb"
-            "cd51ad6501c31c69c2e2ec34705bf15c"
+            "d95747c8989fcdf847f52cbc1cd2f5f7"
+            "d53e18c3f4772736f51038351e41d0c0"
         ),
         # The only external mutation is the required job posting its own exact
         # commit status through checks:write.
         ".github/workflows/required-ci.yml:test": (
             "4d4e71b5b13e40a1b1b35a3502c7d3d8"
             "d02f30c8692a398670c0cbb1ed9fc8c0"
+        ),
+        # The single forward Middleware production publisher: builds, scans,
+        # signs and verifies one immutable image from the exact protected-main
+        # source after Middleware CI succeeded. Only these exact job bytes are
+        # authorized; any edit to the job needs a new trust generation.
+        ".github/workflows/release.yml:release": (
+            "98ca2eac8c3a83a1466cdb000c1537337b46cbe541027620439851faeab2e5ba"
         ),
     },
 }
@@ -9327,8 +9405,13 @@ def require_mutating_jobs_disabled(workflow: str, path: str) -> None:
         path,
     )
     for job_name, job in workflow_jobs(workflow, path).items():
+        # Publishing a registry image is a runtime mutation in every repository
+        # without runtime-mutation authority, whatever the shell that does it.
+        publishes = any(
+            contains_image_publication(step) for step in workflow_steps(job, path)
+        )
         if approved_control_plane:
-            mutating = job_reusable_workflow_mutation(job, path) or any(
+            mutating = publishes or job_reusable_workflow_mutation(job, path) or any(
                 script_dependencies_have_runtime_mutation(
                     str(step.get("run", "")),
                     script_aliases,
@@ -9339,7 +9422,7 @@ def require_mutating_jobs_disabled(workflow: str, path: str) -> None:
                 for step in workflow_steps(job, path)
             )
         else:
-            mutating = job_executable_configuration_mutation(
+            mutating = publishes or job_executable_configuration_mutation(
                 job,
                 approved=approved_job_configuration,
             ) or job_reusable_workflow_mutation(job, path) or any(
