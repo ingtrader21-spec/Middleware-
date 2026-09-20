@@ -62,7 +62,7 @@ FROM verified-python AS builder
 ARG VCS_REF
 ARG BUILD_REVISION
 ARG BUILD_CREATED
-LABEL org.opencontainers.image.source="https://github.com/appolon1908-hue/Middleware-" \
+LABEL org.opencontainers.image.source="https://github.com/ingtrader21-spec/Middleware-" \
       org.opencontainers.image.revision="${VCS_REF}" \
       org.opencontainers.image.created="${BUILD_CREATED}" \
       io.codestra.build.revision="${BUILD_REVISION}" \
@@ -102,7 +102,7 @@ ARG BUILD_REVISION
 ARG BUILD_CREATED
 ARG IMAGE_VERSION
 ARG SOURCE_TREE_SHA256
-LABEL org.opencontainers.image.source="https://github.com/appolon1908-hue/Middleware-" \
+LABEL org.opencontainers.image.source="https://github.com/ingtrader21-spec/Middleware-" \
       org.opencontainers.image.revision="${VCS_REF}" \
       org.opencontainers.image.version="${IMAGE_VERSION}" \
       org.opencontainers.image.created="${BUILD_CREATED}" \
@@ -139,7 +139,7 @@ ARG VCS_REF
 ARG BUILD_REVISION
 LABEL org.opencontainers.image.title="Codestra Qwen Authentication Verifier" \
       org.opencontainers.image.description="Read-only private mTLS and HMAC authentication verifier" \
-      org.opencontainers.image.source="https://github.com/appolon1908-hue/Middleware-" \
+      org.opencontainers.image.source="https://github.com/ingtrader21-spec/Middleware-" \
       org.opencontainers.image.revision="${VCS_REF}" \
       org.opencontainers.image.version="1.0.0-rc1" \
       io.codestra.build.revision="${BUILD_REVISION}" \
