@@ -56,6 +56,7 @@ from app.communications import (
 )
 from app.core.bootstrap import SERVICE_INTEGRATION_API
 from app.core.config import Settings
+from app.db.connection import database_connection_authority, native_postgres_dsn
 from app.email_production_control import (
     EmailProductionControlService,
     MemoryEmailProductionPolicyStore,
@@ -100,11 +101,8 @@ class ReadinessReport:
 
 
 def _asyncpg_dsn(database_url: str) -> str:
-    """Return a DSN accepted by asyncpg without changing the configured URL."""
-    prefix = "postgresql+asyncpg://"
-    if database_url.startswith(prefix):
-        return "postgresql://" + database_url[len(prefix):]
-    return database_url
+    """Deprecated compatibility wrapper over the canonical DB authority."""
+    return native_postgres_dsn(database_url)
 
 
 @dataclass
@@ -341,12 +339,18 @@ def _memory_container(settings: Settings, tokens: TokenVerifier) -> RuntimeConta
     )
 
 
-async def _open_pool(database_url: str) -> asyncpg.Pool:
-    return await asyncpg.create_pool(
-        _asyncpg_dsn(database_url),
-        min_size=SHARED_POOL_MIN_SIZE,
-        max_size=SHARED_POOL_MAX_SIZE,
+async def _open_pool(settings: Settings, *, application_name: str) -> asyncpg.Pool:
+    authority = database_connection_authority(
+        settings.database_url,
+        environment=settings.app_env,
+        application_name=application_name,
         command_timeout=SHARED_POOL_COMMAND_TIMEOUT_SECONDS,
+    )
+    return await asyncpg.create_pool(
+        **authority.asyncpg_pool_kwargs(
+            min_size=SHARED_POOL_MIN_SIZE,
+            max_size=SHARED_POOL_MAX_SIZE,
+        )
     )
 
 
@@ -396,7 +400,7 @@ async def build_runtime_container(
     redis: Redis | None = None
     container: RuntimeContainer | None = None
     try:
-        pool = await _open_pool(settings.database_url)
+        pool = await _open_pool(settings, application_name=service_id)
         redis = await _open_redis(settings.redis_url) if role == "api" else None
 
         inbox = PostgresInboxStore(pool, owns_pool=False)
