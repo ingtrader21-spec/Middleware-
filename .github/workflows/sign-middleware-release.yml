@@ -67,7 +67,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "${GITHUB_REPOSITORY}" = "appolon1908-hue/Middleware-"
+          test "${GITHUB_REPOSITORY}" = "ingtrader21-spec/Middleware-"
           test "${GITHUB_REF}" = "refs/heads/main"
           test "${IMAGE_REPOSITORY}" = \
             "ghcr.io/appolon1908-hue/codestra-middleware"
