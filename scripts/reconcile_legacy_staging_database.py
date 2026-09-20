@@ -22,6 +22,7 @@ import argparse
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 from typing import Any
@@ -73,14 +74,49 @@ def _git_output(root: Path, *args: str) -> str:
     return result.stdout.strip()
 
 
-def verify_source(root: Path, expected_base_sha: str) -> str:
-    head = _git_output(root, "rev-parse", "HEAD")
-    subprocess.run(
-        ["git", "-C", str(root), "merge-base", "--is-ancestor", expected_base_sha, head],
-        check=True,
-        capture_output=True,
-        text=True,
-    )
+def _resolve_head_without_git(root: Path) -> str:
+    git_path = root / ".git"
+    if git_path.is_file():
+        value = git_path.read_text(encoding="utf-8").strip()
+        if not value.startswith("gitdir: "):
+            raise ReconcileError("unsupported .git pointer")
+        git_path = (root / value.removeprefix("gitdir: ").strip()).resolve()
+    head_text = (git_path / "HEAD").read_text(encoding="utf-8").strip()
+    if not head_text.startswith("ref: "):
+        return head_text
+    ref = head_text.removeprefix("ref: ").strip()
+    ref_path = git_path / ref
+    if ref_path.is_file():
+        return ref_path.read_text(encoding="utf-8").strip()
+    packed = git_path / "packed-refs"
+    if packed.is_file():
+        for line in packed.read_text(encoding="utf-8").splitlines():
+            if not line or line.startswith(("#", "^")):
+                continue
+            sha, name = line.split(" ", 1)
+            if name == ref:
+                return sha
+    raise ReconcileError(f"cannot resolve git ref: {ref}")
+
+
+def verify_source(
+    root: Path, expected_base_sha: str, expected_source_sha: str
+) -> str:
+    if shutil.which("git"):
+        head = _git_output(root, "rev-parse", "HEAD")
+    else:
+        head = _resolve_head_without_git(root)
+    if head != expected_source_sha:
+        raise ReconcileError(
+            f"source SHA mismatch: expected={expected_source_sha} actual={head}"
+        )
+    if shutil.which("git"):
+        subprocess.run(
+            ["git", "-C", str(root), "merge-base", "--is-ancestor", expected_base_sha, head],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
     return head
 
 
@@ -360,13 +396,16 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--execute", action="store_true")
     parser.add_argument("--expected-base-sha", required=True)
+    parser.add_argument("--expected-source-sha", required=True)
     parser.add_argument("--evidence-dir", type=Path, required=True)
     args = parser.parse_args()
     if not args.execute:
         raise ReconcileError("--execute is required")
 
     root = Path(__file__).resolve().parents[1]
-    source_sha = verify_source(root, args.expected_base_sha)
+    source_sha = verify_source(
+        root, args.expected_base_sha, args.expected_source_sha
+    )
     dsn = resolve_database_url()
     engine = create_engine(dsn, pool_pre_ping=True)
 
