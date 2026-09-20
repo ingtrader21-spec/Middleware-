@@ -12,6 +12,7 @@ import asyncpg
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from app.db.connection import database_connection_authority  # noqa: E402
 from app.storage import EventLedgerIntegrityError, PostgresInboxStore  # noqa: E402
 
 
@@ -19,11 +20,13 @@ async def verify(tenant_id: str | None) -> int:
     database_url = os.getenv("DATABASE_URL")
     if not database_url:
         raise SystemExit("DATABASE_URL is required")
-    pool = await asyncpg.create_pool(
+    authority = database_connection_authority(
         database_url,
-        min_size=1,
-        max_size=2,
+        application_name="middleware-event-ledger-verify",
         command_timeout=30,
+    )
+    pool = await asyncpg.create_pool(
+        **authority.asyncpg_pool_kwargs(min_size=1, max_size=2)
     )
     try:
         store = PostgresInboxStore(pool)
