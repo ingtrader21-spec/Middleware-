@@ -109,8 +109,13 @@ def database_connection_authority(
         raise DatabaseConnectionError("DATABASE_URL must use PostgreSQL")
     if not parsed.hostname or not parsed.path.strip("/") or parsed.fragment:
         raise DatabaseConnectionError("DATABASE_URL requires an explicit host and database")
-    if parsed.username is None:
-        raise DatabaseConnectionError("DATABASE_URL requires an explicit PostgreSQL user")
+    resolved_environment = (environment or os.environ.get("APP_ENV") or "development").lower()
+    if resolved_environment not in {"development", "test", "staging", "production"}:
+        raise DatabaseConnectionError("unsupported application environment")
+    if parsed.username is None and resolved_environment in {"staging", "production"}:
+        raise DatabaseConnectionError(
+            "staging/production DATABASE_URL requires an explicit PostgreSQL user"
+        )
 
     query_pairs = parse_qsl(parsed.query, keep_blank_values=True)
     query: dict[str, str] = {}
@@ -122,9 +127,6 @@ def database_connection_authority(
             raise DatabaseConnectionError("DATABASE_URL has conflicting duplicate options")
         query[lowered] = value
 
-    resolved_environment = (environment or os.environ.get("APP_ENV") or "development").lower()
-    if resolved_environment not in {"development", "test", "staging", "production"}:
-        raise DatabaseConnectionError("unsupported application environment")
     if not application_name or any(ch.isspace() for ch in application_name):
         raise DatabaseConnectionError("database application_name must be a non-empty token")
     if search_path != "public":
