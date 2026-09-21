@@ -374,7 +374,7 @@ EXPECTED_ARTIFACT_POLICIES: dict[
     "appolon1908-hue/Infustruction-repo": ((), False, False, False, None, None),
     "appolon1908-hue/Keycloak": ((), False, False, False, None, None),
     "ingtrader21-spec/Middleware-": (
-        ("ghcr.io/appolon1908-hue/codestra-middleware",),
+        ("ghcr.io/ingtrader21-spec/codestra-middleware",),
         True,
         True,
         True,
@@ -489,7 +489,7 @@ APPROVED_COMPLEX_SCRIPT_SHA256: dict[str, dict[str, str]] = {
         ),
         "scripts/nats_integration_ci.sh": "88d843c665cece68e0fb56a931c295ee10490446cad7b64d9f5356c1cbf7263d",
         "scripts/project_ci.sh": "12a529ea96f39baec5f1eeb287209dc9db355e5dca000cbbfd7494303501b2ae",
-        "scripts/release_manifest.py": "b578c1a338935bfe56b502ec1078d0d3e846d1ef091826af318252d847226b62",
+        "scripts/release_manifest.py": "e93efd297624edca35658eeec0c83e471149c3ce4fe713cf41a26e470f8eb8c2",
         "scripts/run_ci.sh": "64d7c92279dd442144c7e1f74c3e48f0ab5d5db105238a534dcf8ccd99e93138",
         "scripts/synthetic_acceptance_ci.sh": "087dac2c5371f2013fa0a8dd22ed4024409ab5015231fb8801c75cf3203e3a8a",
         "scripts/temporal_integration_ci.sh": "76a682cc1f5b15a0a3eb15a029d87206238dfe4a262eaf5fa2c79403f147d4d6",
@@ -663,8 +663,8 @@ APPROVED_CONTROL_PLANE_WORKFLOW_SHA256: dict[str, dict[str, str]] = {
             "9e21c8a67466533112117d6cf671ad4"
         ),
         ".github/workflows/exact-main-production-release.yml": (
-            "63430ace983ea22e92f2fe76b08bcd9cc"
-            "6188d110ebab31ed533faa192288010"
+            "5406ce4080316fb2e6e270b30a36e9b3e"
+            "1324e2997502c019b3a37df06f72c5c"
         ),
         ".github/workflows/lead-automation-n8n-source-v1.yml": (
             "6b0cb7126987c14757bd1f48667bf81d"
@@ -9381,7 +9381,7 @@ APPROVED_NARROW_MUTATION_SHA256: dict[str, dict[str, str]] = {
         # source after Middleware CI succeeded. Only these exact job bytes are
         # authorized; any edit to the job needs a new trust generation.
         ".github/workflows/release.yml:release": (
-            "98ca2eac8c3a83a1466cdb000c1537337b46cbe541027620439851faeab2e5ba"
+            "f27b3be9bdca2bb96ed171a4f23ed6842f01a27c6f4d85508afea3fe1f63c2db"
         ),
     },
 }

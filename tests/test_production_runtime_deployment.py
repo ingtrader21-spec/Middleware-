@@ -20,7 +20,7 @@ spec.loader.exec_module(validator)
 
 SOURCE_SHA = "a" * 40
 IMAGE_DIGEST = "sha256:" + "b" * 64
-IMAGE_REFERENCE = "ghcr.io/appolon1908-hue/codestra-middleware@" + IMAGE_DIGEST
+IMAGE_REFERENCE = "ghcr.io/ingtrader21-spec/codestra-middleware@" + IMAGE_DIGEST
 RELEASE_RUN_ID = "33774790093"
 RELEASE_ID = "a" * 12 + "-" + "b" * 12
 

@@ -19,12 +19,16 @@ DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
 ID = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 CONTAINER = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$")
 CANONICAL_REPOSITORY = "ingtrader21-spec/Middleware-"
-CANONICAL_IMAGE_REPOSITORY = "ghcr.io/appolon1908-hue/codestra-middleware"
+# Forward releases publish to the repository owner's package; every signed
+# image observed so far was published to the pre-transfer package and stays
+# referenced there by digest.
+CANONICAL_IMAGE_REPOSITORY = "ghcr.io/ingtrader21-spec/codestra-middleware"
+OBSERVED_IMAGE_REPOSITORY = "ghcr.io/appolon1908-hue/codestra-middleware"
 LEGACY_REPOSITORY = "Codestra-SRL/codestra-middleware"
 LEGACY_BACKUP_REPOSITORY = (
     "ghcr.io/appolon1908-hue/codestra-middleware-legacy"
 )
-CURRENT_SCHEMA_HEAD = "0057_platform_service_catalog"
+CURRENT_SCHEMA_HEAD = "0067_service_catalog_monitoring_state"
 PREDECESSOR_SCHEMA_HEAD = "0009_observability_incidents"
 PENDING_CANDIDATE_STATUS = "PENDING_EXACT_PROTECTED_MERGE_BUILD"
 
@@ -104,8 +108,8 @@ def _validate_signed_predecessor(
     _expect(_digest(digest), "predecessor image digest is invalid", errors)
     _expect(
         predecessor.get("imageReference")
-        == f"{CANONICAL_IMAGE_REPOSITORY}@{digest}",
-        "predecessor image reference must bind the canonical repository and digest",
+        == f"{OBSERVED_IMAGE_REPOSITORY}@{digest}",
+        "predecessor image reference must bind the observed repository and digest",
         errors,
     )
     _expect(
@@ -423,7 +427,7 @@ def validate_document(
         errors,
     )
     _expect(
-        snapshot_image.get("repository") == CANONICAL_IMAGE_REPOSITORY,
+        snapshot_image.get("repository") == OBSERVED_IMAGE_REPOSITORY,
         "snapshot image repository mismatch",
         errors,
     )
@@ -452,7 +456,7 @@ def validate_document(
     )
     _expect(
         snapshot_candidate.get("imageReference")
-        == f"{CANONICAL_IMAGE_REPOSITORY}@{candidate_digest}",
+        == f"{OBSERVED_IMAGE_REPOSITORY}@{candidate_digest}",
         "snapshot candidate image reference mismatch",
         errors,
     )

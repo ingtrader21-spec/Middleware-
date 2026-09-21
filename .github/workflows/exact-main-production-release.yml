@@ -39,7 +39,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  IMAGE_REPOSITORY: ghcr.io/appolon1908-hue/codestra-middleware
+  IMAGE_REPOSITORY: ghcr.io/ingtrader21-spec/codestra-middleware
   SOURCE_SHA: ${{ inputs.source_sha }}
   MERGED_PR_NUMBER: ${{ inputs.merged_pr_number }}
   AUTHORITY_RUN_ID: ${{ inputs.authority_run_id }}

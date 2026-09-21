@@ -25,7 +25,7 @@
     "pr_number": {"type": "integer", "minimum": 1},
     "pr_head_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
     "image_repository": {"enum": [
-      "ghcr.io/appolon1908-hue/codestra-middleware",
+      "ghcr.io/ingtrader21-spec/codestra-middleware",
       "ghcr.io/codestra-srl/codestra-agent-desktop",
       "ghcr.io/codestra-srl/codestra-websocket-gateway"
     ]},

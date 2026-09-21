@@ -51,7 +51,7 @@ def main() -> None:
     if manifest.get("image_digest") != args.image_digest:
         raise SystemExit("candidate manifest image digest mismatch")
     if args.image_repository is None:
-        args.image_repository = manifest.get("image_repository", "ghcr.io/appolon1908-hue/codestra-middleware")
+        args.image_repository = manifest.get("image_repository", "ghcr.io/ingtrader21-spec/codestra-middleware")
     if manifest.get("image_repository", args.image_repository) != args.image_repository:
         raise SystemExit("candidate manifest image repository mismatch")
     rows = list(csv.DictReader(args.matrix.open(newline="", encoding="utf-8")))

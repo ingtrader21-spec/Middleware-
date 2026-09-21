@@ -22,7 +22,7 @@ WORKFLOW_PATH = ROOT / ".github/workflows/production-runtime-certification.yml"
 SHA40 = re.compile(r"^[0-9a-f]{40}$")
 DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
 IMAGE_REFERENCE = re.compile(
-    r"^ghcr\.io/appolon1908-hue/codestra-middleware@sha256:[0-9a-f]{64}$"
+    r"^ghcr\.io/ingtrader21-spec/codestra-middleware@sha256:[0-9a-f]{64}$"
 )
 RELEASE_ID = re.compile(r"^[0-9a-f]{12}-[0-9a-f]{12}$")
 

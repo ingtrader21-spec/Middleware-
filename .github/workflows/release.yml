@@ -115,7 +115,7 @@ jobs:
       packages: write
       id-token: write
     env:
-      IMAGE_REPOSITORY: ghcr.io/appolon1908-hue/codestra-middleware
+      IMAGE_REPOSITORY: ghcr.io/ingtrader21-spec/codestra-middleware
       COSIGN_YES: "true"
       SOURCE_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
       EXPECTED_SCHEMA_HEAD: 0067_service_catalog_monitoring_state
@@ -176,7 +176,7 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: >-
-            ghcr.io/appolon1908-hue/codestra-middleware:sha-${{ env.SOURCE_SHA }}-run-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+            ghcr.io/ingtrader21-spec/codestra-middleware:sha-${{ env.SOURCE_SHA }}-run-${{ github.run_id }}-attempt-${{ github.run_attempt }}
           build-args: |
             SOURCE_REPOSITORY=https://github.com/${{ github.repository }}
             SOURCE_REVISION=${{ env.SOURCE_SHA }}

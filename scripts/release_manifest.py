@@ -25,9 +25,10 @@ SCHEMA_VERSION = "1.0"
 SERVICE = "middleware-api"
 REPOSITORY = "ingtrader21-spec/Middleware-"
 # Releases signed before the repository transfer (appolon1908-hue -> ingtrader21-spec)
-# carry the pre-transfer repository name. They remain verifiable evidence, but only for
-# the exact source SHA / image digest pairs recorded here; every other manifest must
-# name the current repository. The GHCR package namespace is unchanged by the transfer.
+# carry the pre-transfer repository name and were published to the pre-transfer GHCR
+# package. They remain verifiable evidence, but only for the exact source SHA / image
+# digest pairs recorded here; every other manifest must name the current repository
+# and the current image repository.
 HISTORICAL_REPOSITORY = "appolon1908-hue/Middleware-"
 HISTORICAL_RELEASES = {
     "164969b4824fb4d2eb38b232bfb7abc18e33d8ac": "sha256:18017a1a40a7969495661446badd8b43d1d4153c2036d89b0fb3065469e27941",
@@ -36,7 +37,12 @@ HISTORICAL_RELEASES = {
     "b03b378f3a358de333e37cf6cc7a37668f004b4f": "sha256:dfdcfb92538242df9c9e81c27f15f9bd14b2cb840ea4c16d91dccc8f0eed7a3c",
 }
 SOURCE_REF = "refs/heads/main"
-IMAGE_REPOSITORY = "ghcr.io/appolon1908-hue/codestra-middleware"
+# The GHCR package is owned by the repository owner: a GitHub Actions installation
+# token can only publish to its own owner's namespace, so the transferred repository
+# publishes to ingtrader21-spec. The pre-transfer package keeps the historical digests
+# and is accepted only for the pinned HISTORICAL_RELEASES.
+IMAGE_REPOSITORY = "ghcr.io/ingtrader21-spec/codestra-middleware"
+HISTORICAL_IMAGE_REPOSITORY = "ghcr.io/appolon1908-hue/codestra-middleware"
 PLATFORMS = ["linux/amd64"]
 BASE_IMAGE = "python:3.14.7-slim-bookworm@sha256:82bc3c539b8813ada9d68c63b40158fa002f7f33de9bf3312a3dfdc0620dff56"
 WORKFLOW_PATH = ".github/workflows/release.yml"
@@ -328,6 +334,19 @@ def _expect_repository(value: object, source_sha: str, image_digest: str) -> Non
     raise ReleaseManifestError("repository is not canonical")
 
 
+def _expect_image_repository(value: object, source_sha: str, image_digest: str) -> str:
+    """A pinned pre-transfer release lives in the pre-transfer package and nothing
+    else; every other release lives in the current package. Returns the expected
+    repository so the digest reference can be bound to it."""
+    expected = (
+        HISTORICAL_IMAGE_REPOSITORY
+        if is_historical_release(source_sha, image_digest)
+        else IMAGE_REPOSITORY
+    )
+    _expect_constant(value, expected, "image.repository")
+    return expected
+
+
 def _expect_identity(value: object, historical: bool, label: str) -> None:
     """A pinned historical release carries the historical identity and nothing else;
     every other release carries the current identity."""
@@ -375,12 +394,14 @@ def validate_manifest(
         {"repository", "digest", "reference", "platforms", "base_image"},
         "image",
     )
-    _expect_constant(image["repository"], IMAGE_REPOSITORY, "image.repository")
     if not isinstance(image["digest"], str) or DIGEST.fullmatch(image["digest"]) is None:
         raise ReleaseManifestError("image.digest must be an immutable sha256 digest")
+    image_repository = _expect_image_repository(
+        image["repository"], source["git_sha"], image["digest"]
+    )
     _expect_constant(
         image["reference"],
-        f"{IMAGE_REPOSITORY}@{image['digest']}",
+        f"{image_repository}@{image['digest']}",
         "image.reference",
     )
     _expect_constant(image["platforms"], PLATFORMS, "image.platforms")
