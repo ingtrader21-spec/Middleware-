@@ -34,6 +34,41 @@
       "production_activation_allowed": false
     },
     {
+      "profile_id": "codestra-middleware-staging-compose-v1",
+      "environment": "staging",
+      "database": {
+        "scheme": "postgresql",
+        "host": "postgres",
+        "port": 5432,
+        "name": "middleware_staging",
+        "username": "middleware_api",
+        "sslmode": "verify-full",
+        "sslrootcert": "/run/secrets/middleware-staging-db-ca.crt",
+        "sslcert": "/run/secrets/middleware-staging-db-client.crt",
+        "sslkey": "/run/secrets/middleware-staging-db-client.key"
+      },
+      "redis": {
+        "scheme": "redis",
+        "host": "redis",
+        "port": 6379,
+        "database": 0,
+        "username": ""
+      },
+      "nats": {
+        "host": "nats",
+        "port": 4222,
+        "stream": "CODESTRA_STAGING_EVENTS",
+        "subject_prefix": "codestra.staging.events"
+      },
+      "temporal": {
+        "address": "temporal:7233",
+        "namespace": "codestra-staging",
+        "task_queue": "codestra-staging-critical"
+      },
+      "secret_path_prefix": "/run/secrets/middleware-staging-",
+      "production_activation_allowed": false
+    },
+    {
       "profile_id": "codestra-middleware-production-v1",
       "environment": "production",
       "database": {
