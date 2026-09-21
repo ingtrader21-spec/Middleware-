@@ -30,7 +30,12 @@ WORKFLOWS = ROOT / ".github" / "workflows"
 
 CANONICAL_REPOSITORY = "ingtrader21-spec/Middleware-"
 PRE_TRANSFER_REPOSITORY = "appolon1908-hue/Middleware-"
-CANONICAL_IMAGE_REPOSITORY = "ghcr.io/appolon1908-hue/codestra-middleware"
+# The package lives in the repository owner's GHCR namespace: an Actions
+# installation token can only publish to its own owner. The pre-transfer package
+# keeps the historical digests and may only be named by digest-pinned historical
+# verification, never by a live publisher.
+CANONICAL_IMAGE_REPOSITORY = "ghcr.io/ingtrader21-spec/codestra-middleware"
+PRE_TRANSFER_IMAGE_REPOSITORY = "ghcr.io/appolon1908-hue/codestra-middleware"
 CANONICAL_RELEASE_WORKFLOW = ".github/workflows/release.yml"
 CANONICAL_SCHEMA_HEAD = "0067_service_catalog_monitoring_state"
 RETIRED_SCHEMA_HEADS = ("0059_integrated_monitoring",)
@@ -107,6 +112,7 @@ class JobAnalysis:
     signs_blob: bool
     creates_release_manifest: bool
     pre_transfer_identity: bool
+    pre_transfer_image: bool
 
 
 @dataclass
@@ -133,6 +139,7 @@ class WorkflowAnalysis:
     def touches_release_surface(self) -> bool:
         return any(
             job.targets_canonical_image
+            or job.pre_transfer_image
             or job.publishes_image
             or job.signs_image
             or job.signs_blob
@@ -230,6 +237,7 @@ def analyze_workflow(path: Path) -> WorkflowAnalysis:
                     MANIFEST_RUN.search(_run_text(s)) for s in steps
                 ),
                 pre_transfer_identity=PRE_TRANSFER_REPOSITORY in job_text,
+                pre_transfer_image=PRE_TRANSFER_IMAGE_REPOSITORY in job_text,
             )
         )
     return analysis
@@ -271,6 +279,7 @@ def check_bounded_role(analysis: WorkflowAnalysis, role: str) -> list[str]:
     signs_blob = any(job.signs_blob for job in live)
     manifest = any(job.creates_release_manifest for job in live)
     pre_transfer_live = any(job.pre_transfer_identity for job in live)
+    pre_transfer_image_live = any(job.pre_transfer_image for job in live)
 
     if role in {
         "READ_ONLY_VERIFIER",
@@ -283,12 +292,14 @@ def check_bounded_role(analysis: WorkflowAnalysis, role: str) -> list[str]:
         _require(not signs_image and not signs_blob, f"{path}: {role} signs", problems)
         _require(not manifest, f"{path}: {role} creates a release manifest", problems)
         if role == "HISTORICAL_ARTIFACT_VERIFIER":
-            # It may name the pre-transfer identity only as the expected label of
-            # an immutable, digest-pinned artifact built before the transfer.
+            # It may name the pre-transfer identity or the pre-transfer package
+            # only as the expected label of an immutable, digest-pinned artifact
+            # built before the transfer.
             text = (ROOT / path).read_text(encoding="utf-8")
             _require(
                 re.search(
-                    rf"{re.escape(CANONICAL_IMAGE_REPOSITORY)}@sha256:[0-9a-f]{{64}}",
+                    rf"(?:{re.escape(CANONICAL_IMAGE_REPOSITORY)}|"
+                    rf"{re.escape(PRE_TRANSFER_IMAGE_REPOSITORY)})@sha256:[0-9a-f]{{64}}",
                     text,
                 )
                 is not None,
@@ -377,6 +388,13 @@ def check_bounded_role(analysis: WorkflowAnalysis, role: str) -> list[str]:
             f"{path}: live job still names {PRE_TRANSFER_REPOSITORY}",
             problems,
         )
+        # A live job that names the pre-transfer package would publish to, or
+        # verify against, a namespace this repository's token cannot write.
+        _require(
+            not pre_transfer_image_live,
+            f"{path}: live job still names {PRE_TRANSFER_IMAGE_REPOSITORY}",
+            problems,
+        )
     return problems
 
 
@@ -388,6 +406,13 @@ def classify(analyses: dict[str, WorkflowAnalysis] | None = None) -> dict[str, A
     for path, analysis in analyses.items():
         if path == CANONICAL_RELEASE_WORKFLOW:
             roles[path] = "CANONICAL_PRODUCTION_PUBLISHER"
+            # The publisher may only ever publish to the canonical package; its
+            # disabled provenance-recovery job is the one place the pre-transfer
+            # package is still named, as an immutable digest pin.
+            if any(job.pre_transfer_image for job in analysis.live_jobs):
+                problems.append(
+                    f"{path}: live publisher job names {PRE_TRANSFER_IMAGE_REPOSITORY}"
+                )
             continue
         role = SUPPORTING_WORKFLOW_ROLES.get(path)
         if role is None:

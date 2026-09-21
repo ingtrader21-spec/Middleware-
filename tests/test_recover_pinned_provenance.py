@@ -12,10 +12,14 @@ from scripts.recover_pinned_provenance import (
     recover,
 )
 from scripts.release_manifest import (
+    HISTORICAL_CERTIFICATE_IDENTITY,
+    HISTORICAL_IMAGE_REPOSITORY,
+    HISTORICAL_REPOSITORY,
     ROOT,
     ReleaseManifestError,
     build_manifest,
     canonical_json,
+    validate_manifest,
 )
 
 
@@ -42,11 +46,28 @@ def original(tmp_path):
     report = tmp_path / "middleware.grype.json"
     sbom.write_text('{"spdxVersion":"SPDX-2.3"}\n')
     report.write_text('{"matches":[]}\n')
+    # Build a current-format manifest first, then explicitly project the exact
+    # pinned pre-transfer identity. build_manifest() intentionally creates only
+    # current releases; recovery tests must not add a production path for minting
+    # new historical manifests.
+    fixture_source = "f" * 40
     manifest = build_manifest(
-        root=ROOT, source_sha=SOURCE, git_tree_id="b" * 40,
+        root=ROOT, source_sha=fixture_source, git_tree_id="b" * 40,
         image_digest=DIGEST, built_at="2026-09-04T21:43:24Z",
         run_id=33922375053, run_attempt=1, sbom_path=sbom,
         vulnerability_report_path=report,
+    )
+    manifest["repository"] = HISTORICAL_REPOSITORY
+    manifest["source"]["git_sha"] = SOURCE
+    manifest["image"]["repository"] = HISTORICAL_IMAGE_REPOSITORY
+    manifest["image"]["reference"] = f"{HISTORICAL_IMAGE_REPOSITORY}@{DIGEST}"
+    manifest["build"]["workflow_identity"] = HISTORICAL_CERTIFICATE_IDENTITY
+    manifest["verification"]["certificate_identity"] = HISTORICAL_CERTIFICATE_IDENTITY
+    manifest["release_id"] = f"{SOURCE[:12]}-{DIGEST[7:19]}"
+    validate_manifest(
+        manifest,
+        expected_source_sha=SOURCE,
+        expected_image_digest=DIGEST,
     )
     (tmp_path / "release-manifest.v1.json").write_bytes(canonical_json(manifest))
     verification = tmp_path / "verified.json"

@@ -20,7 +20,7 @@ def documents():
         "name": "middleware-api",
         "source_repository": "https://github.com/ingtrader21-spec/Middleware-",
         "source_revision": "a" * 40,
-        "image_reference": "ghcr.io/appolon1908-hue/codestra-middleware@sha256:" + "b" * 64,
+        "image_reference": "ghcr.io/ingtrader21-spec/codestra-middleware@sha256:" + "b" * 64,
     }
     expected = {"schema_version": "1.0", "workloads": [workload]}
     observed = {"observed_at": NOW.isoformat(), "workloads": [

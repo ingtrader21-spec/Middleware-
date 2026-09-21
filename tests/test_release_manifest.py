@@ -148,21 +148,26 @@ def test_manifest_rejects_noncanonical_serialization(tmp_path: Path) -> None:
 def test_manifest_names_the_current_repository_and_keeps_pinned_historical_releases(
     tmp_path: Path,
 ) -> None:
-    """New releases must name ingtrader21-spec/Middleware-. Releases signed before the
-    repository transfer keep appolon1908-hue/Middleware-, but only for the exact
-    source SHA / image digest pairs pinned in HISTORICAL_RELEASES; the same rule is
-    expressed by the JSON schema so both verifiers agree."""
+    """New releases must name ingtrader21-spec/Middleware- and live in the
+    ghcr.io/ingtrader21-spec package. Releases signed before the repository transfer
+    keep appolon1908-hue/Middleware- and the ghcr.io/appolon1908-hue package, but only
+    for the exact source SHA / image digest pairs pinned in HISTORICAL_RELEASES; the
+    same rule is expressed by the JSON schema so both verifiers agree."""
     from scripts.release_manifest import (
         CERTIFICATE_IDENTITY,
         HISTORICAL_CERTIFICATE_IDENTITY,
+        HISTORICAL_IMAGE_REPOSITORY,
         HISTORICAL_RELEASES,
         HISTORICAL_REPOSITORY,
+        IMAGE_REPOSITORY,
         REPOSITORY,
         expected_certificate_identity,
     )
 
     assert REPOSITORY == "ingtrader21-spec/Middleware-"
     assert HISTORICAL_REPOSITORY == "appolon1908-hue/Middleware-"
+    assert IMAGE_REPOSITORY == "ghcr.io/ingtrader21-spec/codestra-middleware"
+    assert HISTORICAL_IMAGE_REPOSITORY == "ghcr.io/appolon1908-hue/codestra-middleware"
     assert CERTIFICATE_IDENTITY.startswith("https://github.com/ingtrader21-spec/Middleware-/")
     assert HISTORICAL_CERTIFICATE_IDENTITY.startswith("https://github.com/appolon1908-hue/Middleware-/")
     assert HISTORICAL_RELEASES, "the pinned pre-transfer releases must stay recorded"
@@ -173,11 +178,40 @@ def test_manifest_names_the_current_repository_and_keeps_pinned_historical_relea
 
     value = manifest(tmp_path)
     assert value["repository"] == REPOSITORY
+    assert value["image"]["repository"] == IMAGE_REPOSITORY
+    assert value["image"]["reference"] == f"{IMAGE_REPOSITORY}@{value['image']['digest']}"
     assert value["build"]["workflow_identity"] == CERTIFICATE_IDENTITY
     assert value["verification"]["certificate_identity"] == CERTIFICATE_IDENTITY
     assert expected_certificate_identity(value) == CERTIFICATE_IDENTITY
     validate_manifest(value)
     validator.validate(value)
+
+    # A new release published to the pre-transfer package is rejected by both: the
+    # transferred repository's Actions token cannot write that namespace, so such a
+    # manifest could only come from a bypass.
+    old_package = deepcopy(value)
+    old_package["image"]["repository"] = HISTORICAL_IMAGE_REPOSITORY
+    old_package["image"]["reference"] = f"{HISTORICAL_IMAGE_REPOSITORY}@{value['image']['digest']}"
+    with pytest.raises(ReleaseManifestError, match="image.repository"):
+        validate_manifest(old_package)
+    assert list(validator.iter_errors(old_package))
+
+    # A reference that does not bind the declared package is rejected by both.
+    detached = deepcopy(value)
+    detached["image"]["reference"] = f"{HISTORICAL_IMAGE_REPOSITORY}@{value['image']['digest']}"
+    with pytest.raises(ReleaseManifestError, match="image.reference"):
+        validate_manifest(detached)
+    assert list(validator.iter_errors(detached))
+
+    # Any other package is rejected outright by both.
+    foreign_package = deepcopy(value)
+    foreign_package["image"]["repository"] = "ghcr.io/someone-else/codestra-middleware"
+    foreign_package["image"]["reference"] = (
+        "ghcr.io/someone-else/codestra-middleware@" + value["image"]["digest"]
+    )
+    with pytest.raises(ReleaseManifestError, match="image.repository"):
+        validate_manifest(foreign_package)
+    assert list(validator.iter_errors(foreign_package))
 
     # A new release signed under the historical identity is rejected by both.
     old_signer = deepcopy(value)
@@ -194,13 +228,14 @@ def test_manifest_names_the_current_repository_and_keeps_pinned_historical_relea
         validate_manifest(stale)
     assert list(validator.iter_errors(stale))
 
-    # A pinned historical release keeps its name and verifies with both.
+    # A pinned historical release keeps its name and its package and verifies with both.
     source_sha, image_digest = next(iter(HISTORICAL_RELEASES.items()))
     historical = deepcopy(value)
     historical["repository"] = HISTORICAL_REPOSITORY
     historical["source"]["git_sha"] = source_sha
+    historical["image"]["repository"] = HISTORICAL_IMAGE_REPOSITORY
     historical["image"]["digest"] = image_digest
-    historical["image"]["reference"] = value["image"]["repository"] + "@" + image_digest
+    historical["image"]["reference"] = HISTORICAL_IMAGE_REPOSITORY + "@" + image_digest
     historical["release_id"] = f"{source_sha[:12]}-{image_digest.split(':', 1)[1][:12]}"
     historical["build"]["workflow_identity"] = HISTORICAL_CERTIFICATE_IDENTITY
     historical["verification"]["certificate_identity"] = HISTORICAL_CERTIFICATE_IDENTITY
@@ -215,11 +250,19 @@ def test_manifest_names_the_current_repository_and_keeps_pinned_historical_relea
         validate_manifest(relabelled)
     assert list(validator.iter_errors(relabelled))
 
+    # ... nor claim the current package: the pinned digests were never published there.
+    moved = deepcopy(historical)
+    moved["image"]["repository"] = IMAGE_REPOSITORY
+    moved["image"]["reference"] = IMAGE_REPOSITORY + "@" + image_digest
+    with pytest.raises(ReleaseManifestError, match="image.repository"):
+        validate_manifest(moved)
+    assert list(validator.iter_errors(moved))
+
     # The historical name is bound to the pair: a different digest for that SHA fails.
     mismatched = deepcopy(historical)
     other_digest = "sha256:" + ("e" * 64)
     mismatched["image"]["digest"] = other_digest
-    mismatched["image"]["reference"] = value["image"]["repository"] + "@" + other_digest
+    mismatched["image"]["reference"] = HISTORICAL_IMAGE_REPOSITORY + "@" + other_digest
     mismatched["release_id"] = f"{source_sha[:12]}-{'e' * 12}"
     with pytest.raises(ReleaseManifestError, match="repository"):
         validate_manifest(mismatched)

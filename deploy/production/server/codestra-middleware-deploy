@@ -88,7 +88,7 @@ done
 
 [[ "$(id -u)" -eq 0 ]] || fail "root_required"
 [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]] || fail "invalid_source_sha"
-[[ "$IMAGE_REFERENCE" =~ ^ghcr\.io/appolon1908-hue/codestra-middleware@sha256:[0-9a-f]{64}$ ]] || fail "invalid_image_reference"
+[[ "$IMAGE_REFERENCE" =~ ^ghcr\.io/ingtrader21-spec/codestra-middleware@sha256:[0-9a-f]{64}$ ]] || fail "invalid_image_reference"
 [[ "$RELEASE_RUN_ID" =~ ^[1-9][0-9]{5,19}$ ]] || fail "invalid_release_run_id"
 [[ "$RELEASE_ID" =~ ^[0-9a-f]{12}-[0-9a-f]{12}$ ]] || fail "invalid_release_id"
 [[ "$BUNDLE_SHA256" =~ ^sha256:[0-9a-f]{64}$ ]] || fail "invalid_bundle_sha256"

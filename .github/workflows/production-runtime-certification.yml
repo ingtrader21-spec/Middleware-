@@ -183,7 +183,7 @@ jobs:
           image_reference = value.get("image", {}).get("reference", "")
           image_digest = value.get("image", {}).get("digest", "")
           release_id = value.get("release_id", "")
-          if not re.fullmatch(r"ghcr\.io/appolon1908-hue/codestra-middleware@sha256:[0-9a-f]{64}", image_reference):
+          if not re.fullmatch(r"ghcr\.io/ingtrader21-spec/codestra-middleware@sha256:[0-9a-f]{64}", image_reference):
               raise SystemExit("release image reference invalid")
           if image_reference.rsplit("@", 1)[1] != image_digest:
               raise SystemExit("release digest mismatch")

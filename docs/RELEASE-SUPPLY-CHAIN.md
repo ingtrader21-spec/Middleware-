@@ -11,7 +11,7 @@ are not production releases.
 The workflow publishes exactly one `linux/amd64` image to:
 
 ```text
-ghcr.io/appolon1908-hue/codestra-middleware@sha256:<digest>
+ghcr.io/ingtrader21-spec/codestra-middleware@sha256:<digest>
 ```
 
 The SHA/run tag is only a discovery aid. Staging and production must use the
@@ -50,19 +50,27 @@ The repository moved from `appolon1908-hue/Middleware-` to
 `ingtrader21-spec/Middleware-`; every current workflow guard, Sigstore
 certificate identity, provenance URI and OCI source label names the new
 repository. The GHCR package is a separate authority: user-owned packages do
-not move with a repository transfer, `ghcr.io/appolon1908-hue/codestra-middleware`
-still holds every published digest (public pull, verified 2026-09-19) and no
-`ghcr.io/ingtrader21-spec/codestra-middleware` package exists. The release and
-candidate workflows therefore keep publishing to, and the trust contracts keep
-pinning, the `appolon1908-hue` namespace until the package itself is migrated
-in a dedicated, reviewed change; that transitional ownership is intentional,
-not a leftover.
+not move with a repository transfer, and a GitHub Actions installation token
+can only publish to its own owner's namespace. The first release run from the
+transferred repository (run 35528661211 on `2862af0a`) built the image and was
+then denied at `ghcr.io/appolon1908-hue/codestra-middleware` with
+`permission_denied: The requested installation does not exist`. The package
+authority therefore follows the repository owner:
 
-Releases signed before the transfer keep their historical repository name and
-`release.yml` identity. They stay verifiable only for the exact source SHA and
-image digest pairs pinned in `scripts/release_manifest.py`
+| Package | Role |
+| --- | --- |
+| `ghcr.io/ingtrader21-spec/codestra-middleware` | canonical: the single forward publisher, every verifier, the orchestrator contract's artifact policy, the forward release authority and the manifest verifier bind this package and nothing else |
+| `ghcr.io/appolon1908-hue/codestra-middleware` | historical: holds the pre-transfer digests (public pull); may be named only by digest-pinned historical verification (`HISTORICAL_ARTIFACT_VERIFIER`) and by the pinned pre-transfer manifests; a live job naming it is a release-authority problem |
+
+No personal access token, secret-based registry login, local `docker push` or
+unreviewed namespace is an acceptable substitute: publishing must stay bound to
+the workflow's own installation identity.
+
+Releases signed before the transfer keep their historical repository name,
+`release.yml` identity and package. They stay verifiable only for the exact
+source SHA and image digest pairs pinned in `scripts/release_manifest.py`
 (`HISTORICAL_RELEASES`) and `contracts/release-manifest.v1.schema.json`; every
-other manifest must carry the current repository and identity.
+other manifest must carry the current repository, identity and package.
 
 ## Evidence created for every accepted build
 
@@ -110,7 +118,7 @@ Then verify the registry signature independently:
 cosign verify \
   --certificate-identity 'https://github.com/ingtrader21-spec/Middleware-/.github/workflows/release.yml@refs/heads/main' \
   --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
-  ghcr.io/appolon1908-hue/codestra-middleware@sha256:<digest>
+  ghcr.io/ingtrader21-spec/codestra-middleware@sha256:<digest>
 ```
 
 Deployment must stop if the bundle, signer identity, source SHA, image digest,

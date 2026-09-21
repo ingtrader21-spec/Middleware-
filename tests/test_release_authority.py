@@ -117,6 +117,105 @@ def test_release_workflow_identities_are_current(analyses: dict) -> None:
         assert "exact-main-production-release.yml@" not in text
 
 
+# --- GHCR package authority ---------------------------------------------------
+
+
+CANONICAL_IMAGE_REPOSITORY = "ghcr.io/ingtrader21-spec/codestra-middleware"
+PRE_TRANSFER_IMAGE_REPOSITORY = "ghcr.io/appolon1908-hue/codestra-middleware"
+
+
+def test_canonical_package_is_owned_by_the_repository_owner() -> None:
+    """A GitHub Actions installation token can only publish to its own owner's GHCR
+    namespace (the 2862af0a release run was denied with "the requested installation
+    does not exist" against the pre-transfer package). The single forward publisher,
+    the orchestrator contract, the forward authority and the manifest verifier must
+    therefore all bind the repository owner's package, and nothing else."""
+    assert CANONICAL_IMAGE_REPOSITORY.split("/")[1] == REPOSITORY.split("/")[0]
+    assert authority.CANONICAL_IMAGE_REPOSITORY == CANONICAL_IMAGE_REPOSITORY
+    assert authority.PRE_TRANSFER_IMAGE_REPOSITORY == PRE_TRANSFER_IMAGE_REPOSITORY
+    assert authority.forward_authority()["artifactAuthority"]["imageRepository"] == (
+        CANONICAL_IMAGE_REPOSITORY
+    )
+    assert authority.orchestrator_contract()["artifact_policy"]["image_repositories"] == [
+        CANONICAL_IMAGE_REPOSITORY
+    ]
+    manifest = _load("release_manifest_under_test", "scripts/release_manifest.py")
+    assert manifest.IMAGE_REPOSITORY == CANONICAL_IMAGE_REPOSITORY
+    assert manifest.HISTORICAL_IMAGE_REPOSITORY == PRE_TRANSFER_IMAGE_REPOSITORY
+    text = RELEASE_WORKFLOW.read_text(encoding="utf-8")
+    live_release = text.split("\n  release:\n", 1)[1]
+    assert f"IMAGE_REPOSITORY: {CANONICAL_IMAGE_REPOSITORY}\n" in live_release
+    assert f"{CANONICAL_IMAGE_REPOSITORY}:sha-${{{{ env.SOURCE_SHA }}}}" in live_release
+    assert PRE_TRANSFER_IMAGE_REPOSITORY not in live_release
+
+
+def test_validator_artifact_policy_binds_the_canonical_package(validator: dict) -> None:
+    repositories = validator["EXPECTED_ARTIFACT_POLICIES"][REPOSITORY][0]
+    assert repositories == (CANONICAL_IMAGE_REPOSITORY,)
+
+
+def test_no_live_job_names_the_pre_transfer_package(analyses: dict) -> None:
+    """Only digest-pinned historical verification may still name the pre-transfer
+    package; a live publisher or verifier naming it could never succeed."""
+    for path, analysis in analyses.items():
+        role = authority.SUPPORTING_WORKFLOW_ROLES.get(path)
+        if role in {"HISTORICAL_SIGNER", "HISTORICAL_ARTIFACT_VERIFIER"}:
+            continue
+        for job in analysis.live_jobs:
+            assert not job.pre_transfer_image, (
+                f"{path}:{job.name} still names {PRE_TRANSFER_IMAGE_REPOSITORY}"
+            )
+
+
+def test_pre_transfer_package_is_a_bounded_release_surface(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Naming the pre-transfer package is release surface: an unlisted workflow that
+    does so is ambiguous, a live bounded job that does so is a problem, the canonical
+    publisher may never do so live, and a historical verifier may only pin it by
+    digest."""
+    workflows = tmp_path / ".github" / "workflows"
+    workflows.mkdir(parents=True)
+    probe = workflows / "probe-old-package.yml"
+    header = "name: probe\non: workflow_dispatch\njobs:\n  verify:\n    runs-on: ubuntu-24.04\n    steps:\n"
+    probe.write_text(
+        header + f"      - run: docker pull {PRE_TRANSFER_IMAGE_REPOSITORY}@sha256:{'a' * 64}\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(authority, "ROOT", tmp_path)
+    analysis = authority.analyze_workflow(probe)
+    job = analysis.jobs[0]
+    assert job.pre_transfer_image and not job.targets_canonical_image
+    assert analysis.touches_release_surface
+    unlisted = authority.classify({analysis.path: analysis})["problems"]
+    assert any("without an explicit bounded role" in problem for problem in unlisted)
+    live = authority.check_bounded_role(analysis, "READ_ONLY_VERIFIER")
+    assert any(PRE_TRANSFER_IMAGE_REPOSITORY in problem for problem in live)
+    assert authority.check_bounded_role(analysis, "HISTORICAL_ARTIFACT_VERIFIER") == []
+
+    probe.write_text(
+        header + f"      - run: docker pull {PRE_TRANSFER_IMAGE_REPOSITORY}:latest\n",
+        encoding="utf-8",
+    )
+    unpinned = authority.check_bounded_role(
+        authority.analyze_workflow(probe), "HISTORICAL_ARTIFACT_VERIFIER"
+    )
+    assert any("pin the artifact by digest" in problem for problem in unpinned)
+
+    publisher = workflows / "release.yml"
+    publisher.write_text(
+        header.replace("verify:", "release:")
+        + f"      - run: docker push {PRE_TRANSFER_IMAGE_REPOSITORY}:x\n",
+        encoding="utf-8",
+    )
+    rogue = authority.analyze_workflow(publisher)
+    rogue_problems = authority.classify({rogue.path: rogue})["problems"]
+    assert any(
+        f"live publisher job names {PRE_TRANSFER_IMAGE_REPOSITORY}" in problem
+        for problem in rogue_problems
+    )
+
+
 def test_release_schema_head_is_0067() -> None:
     text = RELEASE_WORKFLOW.read_text(encoding="utf-8")
     assert f"EXPECTED_SCHEMA_HEAD: {CANONICAL_SCHEMA_HEAD}" in text

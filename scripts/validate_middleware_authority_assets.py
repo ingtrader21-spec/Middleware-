@@ -26,7 +26,10 @@ OBSERVED_SIGNED_SCHEMA_HEAD = "0057_platform_service_catalog"
 PENDING_CANDIDATE_STATUS = "PENDING_EXACT_PROTECTED_MERGE_BUILD"
 DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
 SHA40 = re.compile(r"^[0-9a-f]{40}$")
-CANONICAL_IMAGE = "ghcr.io/appolon1908-hue/codestra-middleware"
+# Every observed signed release was published to the pre-transfer package;
+# forward releases publish to ghcr.io/ingtrader21-spec/codestra-middleware
+# (config/middleware-forward-release-authority.v1.json artifactAuthority).
+OBSERVED_SIGNED_IMAGE = "ghcr.io/appolon1908-hue/codestra-middleware"
 
 
 def _read(root: Path, relative: Path, errors: list[str]) -> str:
@@ -88,8 +91,8 @@ def _validate_observed_signed_evidence(
     digest = value.get("imageDigest")
     if not isinstance(digest, str) or DIGEST.fullmatch(digest) is None:
         errors.append(f"{label} image digest is malformed")
-    if value.get("imageReference") != f"{CANONICAL_IMAGE}@{digest}":
-        errors.append(f"{label} image reference is not canonical and digest-bound")
+    if value.get("imageReference") != f"{OBSERVED_SIGNED_IMAGE}@{digest}":
+        errors.append(f"{label} image reference is not observed-package and digest-bound")
     if value.get("schemaHead") != OBSERVED_SIGNED_SCHEMA_HEAD:
         errors.append(f"{label} schema head must be {OBSERVED_SIGNED_SCHEMA_HEAD}")
     for field in (

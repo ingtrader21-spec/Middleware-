@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import NoReturn
 
 COMPONENTS = {
-    "middleware": "ghcr.io/appolon1908-hue/codestra-middleware",
+    "middleware": "ghcr.io/ingtrader21-spec/codestra-middleware",
     "agent-desktop": "ghcr.io/codestra-srl/codestra-agent-desktop",
     "websocket-gateway": "ghcr.io/codestra-srl/codestra-websocket-gateway",
 }

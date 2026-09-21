@@ -63,7 +63,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  IMAGE_REPOSITORY: ghcr.io/appolon1908-hue/codestra-middleware
+  IMAGE_REPOSITORY: ghcr.io/ingtrader21-spec/codestra-middleware
   EXPECTED_REPOSITORY: ingtrader21-spec/Middleware-
   TRIVY_VERSION: v0.72.0
   TRIVY_SHA256: bbb64b9695866ce4a7a8f5c9592002c5961cab378577fa3f8a040df362b9b2ea
@@ -314,7 +314,7 @@ jobs:
             --arg digest "${digest_hex}" \
             --arg source "${SOURCE_SHA}" \
             --arg invocation "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/attempts/${GITHUB_RUN_ATTEMPT}" \
-            '{_type:"https://in-toto.io/Statement/v1",subject:[{name:"ghcr.io/appolon1908-hue/codestra-middleware",digest:{sha256:$digest}}],predicateType:"https://slsa.dev/provenance/v1",predicate:{buildDefinition:{buildType:"https://codestra.example/staging-candidate/v1",externalParameters:{source_sha:$source},resolvedDependencies:[{uri:"git+https://github.com/ingtrader21-spec/Middleware-",digest:{gitCommit:$source}}]},runDetails:{builder:{id:"https://github.com/ingtrader21-spec/Middleware-/.github/workflows/staging-candidate-build-sign.yml@refs/heads/main"},metadata:{invocationId:$invocation}}}}' \
+            '{_type:"https://in-toto.io/Statement/v1",subject:[{name:"ghcr.io/ingtrader21-spec/codestra-middleware",digest:{sha256:$digest}}],predicateType:"https://slsa.dev/provenance/v1",predicate:{buildDefinition:{buildType:"https://codestra.example/staging-candidate/v1",externalParameters:{source_sha:$source},resolvedDependencies:[{uri:"git+https://github.com/ingtrader21-spec/Middleware-",digest:{gitCommit:$source}}]},runDetails:{builder:{id:"https://github.com/ingtrader21-spec/Middleware-/.github/workflows/staging-candidate-build-sign.yml@refs/heads/main"},metadata:{invocationId:$invocation}}}}' \
             > provenance.json
           jq -n \
             --arg schema "https://codestra.internal/schemas/candidate-image-manifest.v1.json" \
@@ -375,7 +375,7 @@ jobs:
             '.repository == "ingtrader21-spec/Middleware-" and
              .pr_number == $pr_number and
              .head_sha == $source and
-             .image_repository == "ghcr.io/appolon1908-hue/codestra-middleware" and
+             .image_repository == "ghcr.io/ingtrader21-spec/codestra-middleware" and
              .image_digest == $digest' \
             candidate-image-manifest.json >/dev/null
           sha256sum -c SHA256SUMS

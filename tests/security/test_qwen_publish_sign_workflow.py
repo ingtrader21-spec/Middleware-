@@ -189,4 +189,5 @@ def test_multiple_verified_attestations_require_an_exact_predicate_match():
 
 def test_existing_middleware_signing_workflow_is_not_referenced_or_modified():
     assert "sign-middleware-release.yml" not in TEXT
+    assert "ghcr.io/ingtrader21-spec/codestra-middleware" not in TEXT
     assert "ghcr.io/appolon1908-hue/codestra-middleware" not in TEXT

@@ -160,7 +160,7 @@ jobs:
             evidence/authority/security-owner-authority.json
           for component in middleware agent-desktop websocket-gateway; do
             case "${component}" in
-              middleware) image=ghcr.io/appolon1908-hue/codestra-middleware; digest="${MIDDLEWARE_DIGEST}" ;;
+              middleware) image=ghcr.io/ingtrader21-spec/codestra-middleware; digest="${MIDDLEWARE_DIGEST}" ;;
               agent-desktop) image=ghcr.io/codestra-srl/codestra-agent-desktop; digest="${AGENT_DESKTOP_DIGEST}" ;;
               websocket-gateway) image=ghcr.io/codestra-srl/codestra-websocket-gateway; digest="${WEBSOCKET_GATEWAY_DIGEST}" ;;
             esac
