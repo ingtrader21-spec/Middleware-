@@ -184,7 +184,7 @@
       },
       "pins": {
         "middleware_source_sha": "2862af0aa97367b18cb360af69212abe4243a1ac",
-        "keycloak_source_sha": "45a487d71a516ae3039b00c250752897469ffe7a",
+        "keycloak_accepted_source_sha": "45a487d71a516ae3039b00c250752897469ffe7a",
         "middleware_contract_sha256": "9c32daecd4a15104c6f9ff60ce19c8f7e78707fb31d9fd9fcb55b1b8dfa3512b"
       }
     },
