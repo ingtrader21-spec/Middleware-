@@ -1,0 +1,34 @@
+{
+  "active_stale_pin_count": 1,
+  "active_stale_pin_count_before": 0,
+  "candidate_tree": "e56bba865b87062edb874198e76c843e3dbcc2cc",
+  "findings": [
+    {
+      "file": "release",
+      "have": "b81d33b520a7644948595dde3922494f02e7e84aac3bf99d0d518fae2167c546",
+      "key": "EXPECTED_REQUIRED_CHECK_SOURCE_CLOSURE_SHA256",
+      "want": "96701332522babe435f3f145294e657ca188bf4f034487cae6ec17cca06ff9c8"
+    }
+  ],
+  "launcher": {
+    "parity": true,
+    "required_successor": "15c35ad11c65b7605d44812e08d45493e31afdea678876b3a44a16d27c1c1a21",
+    "required_successor_fingerprint": "63192fd83f7fc19fa624e2bf26d3b2ccc3941042e4e3c941ba378ff50581e565",
+    "successor_fingerprint_in_tree": "63192fd83f7fc19fa624e2bf26d3b2ccc3941042e4e3c941ba378ff50581e565",
+    "successor_in_tree": "15c35ad11c65b7605d44812e08d45493e31afdea678876b3a44a16d27c1c1a21"
+  },
+  "leaf_pin_count": 50,
+  "read_only_script_pin_count": 9,
+  "release_security_fingerprint": "63192fd83f7fc19fa624e2bf26d3b2ccc3941042e4e3c941ba378ff50581e565",
+  "repository": "ingtrader21-spec/Middleware-",
+  "source_closure_sha256": "96701332522babe435f3f145294e657ca188bf4f034487cae6ec17cca06ff9c8",
+  "structural_exception": {
+    "pinned": "4bc320b1ae18cb4e0d97a1a3d571063837476f3bcafde2086100687d89ea7954",
+    "reason": "tracked Python source (launcher, gate test) embeds the validator digest, so a fresh discovery fingerprint would be a SHA-256 fixed point; the pin stays byte-identical to protected main and fails closed",
+    "table": "APPROVED_DEFAULT_TEST_DISCOVERY_SOURCE_SHA256"
+  },
+  "structural_exception_count": 1,
+  "unknown_trust_tables": 0,
+  "validator_sha256": "15c35ad11c65b7605d44812e08d45493e31afdea678876b3a44a16d27c1c1a21",
+  "workflow_pin_count": 18
+}
