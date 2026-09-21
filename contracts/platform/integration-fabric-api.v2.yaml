@@ -323,6 +323,490 @@ paths:
           description: Required durable dependency unavailable
       security:
       - bearerAuth: []
+  /internal/v1/database/health:
+    get:
+      tags:
+      - internal-database
+      summary: Health
+      operationId: health_internal_v1_database_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Response Health Internal V1 Database Health Get
+        '400':
+          description: Invalid canonical request
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+      security:
+      - bearerAuth: []
+  /internal/v1/database/readiness:
+    get:
+      tags:
+      - internal-database
+      summary: Readiness
+      operationId: readiness_internal_v1_database_readiness_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Response Readiness Internal V1 Database Readiness Get
+        '400':
+          description: Invalid canonical request
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+      security:
+      - bearerAuth: []
+  /internal/v1/database/status:
+    get:
+      tags:
+      - internal-database
+      summary: Status
+      operationId: status_internal_v1_database_status_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Response Status Internal V1 Database Status Get
+        '400':
+          description: Invalid canonical request
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+      security:
+      - bearerAuth: []
+  /internal/v1/database/schema:
+    get:
+      tags:
+      - internal-database
+      summary: Schema
+      operationId: schema_internal_v1_database_schema_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Response Schema Internal V1 Database Schema Get
+        '400':
+          description: Invalid canonical request
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+      security:
+      - bearerAuth: []
+  /internal/v1/database/migrations:
+    get:
+      tags:
+      - internal-database
+      summary: Migrations
+      operationId: migrations_internal_v1_database_migrations_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Response Migrations Internal V1 Database Migrations Get
+        '400':
+          description: Invalid canonical request
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+      security:
+      - bearerAuth: []
+  /internal/v1/database/migrations/verify:
+    post:
+      tags:
+      - internal-database
+      summary: Verify Migrations
+      operationId: verify_migrations_internal_v1_database_migrations_verify_post
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Response Verify Migrations Internal V1 Database Migrations
+                  Verify Post
+        '400':
+          description: Invalid canonical request
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+      security:
+      - bearerAuth: []
+  /internal/v1/database/pool:
+    get:
+      tags:
+      - internal-database
+      summary: Pool
+      operationId: pool_internal_v1_database_pool_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Response Pool Internal V1 Database Pool Get
+        '400':
+          description: Invalid canonical request
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+      security:
+      - bearerAuth: []
+  /internal/v1/database/security/tls:
+    get:
+      tags:
+      - internal-database
+      summary: Tls
+      operationId: tls_internal_v1_database_security_tls_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Response Tls Internal V1 Database Security Tls Get
+        '400':
+          description: Invalid canonical request
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+      security:
+      - bearerAuth: []
+  /internal/v1/database/security/certificates:
+    get:
+      tags:
+      - internal-database
+      summary: Certificates
+      operationId: certificates_internal_v1_database_security_certificates_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Response Certificates Internal V1 Database Security Certificates
+                  Get
+        '400':
+          description: Invalid canonical request
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+      security:
+      - bearerAuth: []
+  /internal/v1/database/security/rls:
+    get:
+      tags:
+      - internal-database
+      summary: Rls
+      operationId: rls_internal_v1_database_security_rls_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Response Rls Internal V1 Database Security Rls Get
+        '400':
+          description: Invalid canonical request
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+      security:
+      - bearerAuth: []
+  /internal/v1/database/performance:
+    get:
+      tags:
+      - internal-database
+      summary: Performance
+      operationId: performance_internal_v1_database_performance_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Response Performance Internal V1 Database Performance Get
+        '400':
+          description: Invalid canonical request
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+      security:
+      - bearerAuth: []
+  /internal/v1/database/locks:
+    get:
+      tags:
+      - internal-database
+      summary: Locks
+      operationId: locks_internal_v1_database_locks_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Response Locks Internal V1 Database Locks Get
+        '400':
+          description: Invalid canonical request
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+      security:
+      - bearerAuth: []
+  /internal/v1/database/capacity:
+    get:
+      tags:
+      - internal-database
+      summary: Capacity
+      operationId: capacity_internal_v1_database_capacity_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Response Capacity Internal V1 Database Capacity Get
+        '400':
+          description: Invalid canonical request
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+      security:
+      - bearerAuth: []
+  /internal/v1/database/backups:
+    get:
+      tags:
+      - internal-database
+      summary: Backups
+      operationId: backups_internal_v1_database_backups_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Response Backups Internal V1 Database Backups Get
+        '400':
+          description: Invalid canonical request
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+      security:
+      - bearerAuth: []
+  /internal/v1/database/backups/latest:
+    get:
+      tags:
+      - internal-database
+      summary: Latest Backup
+      operationId: latest_backup_internal_v1_database_backups_latest_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Response Latest Backup Internal V1 Database Backups Latest
+                  Get
+        '400':
+          description: Invalid canonical request
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+      security:
+      - bearerAuth: []
+  /internal/v1/database/restores/latest:
+    get:
+      tags:
+      - internal-database
+      summary: Latest Restore
+      operationId: latest_restore_internal_v1_database_restores_latest_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Response Latest Restore Internal V1 Database Restores Latest
+                  Get
+        '400':
+          description: Invalid canonical request
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+      security:
+      - bearerAuth: []
   /platform/v1/commands:
     post:
       tags:
