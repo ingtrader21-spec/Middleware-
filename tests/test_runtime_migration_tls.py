@@ -27,7 +27,10 @@ def test_tls_parameters_are_dsn_values_not_unsupported_driver_keywords(mode):
     assert keywords == {
         "dsn": native_dsn,
         "command_timeout": 30,
-        "server_settings": {\n            "search_path": "public",\n            "application_name": "codestra-middleware-migration",\n        },
+        "server_settings": {
+            "search_path": "public",
+            "application_name": "codestra-middleware-migration",
+        },
     }
     assert native_dsn == native
     assert "sslmode" not in keywords and "ssl" not in keywords
