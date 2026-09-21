@@ -43,7 +43,9 @@ never queries the database, never changes containers; works on the stopped API
 container because it only uses `docker inspect`/filesystem export):
 
 ```bash
-sudo env MIDDLEWARE_CONTAINER=codestra-middleware-staging-middleware-staging-1   MIGRATION_REVISION=0058_odoo_delivery_sources OUTPUT_DIR="$OUT/provenance-0058"   bash /srv/codestra-middleware/repository/scripts/collect_staging_migration_evidence.sh
+sudo env MIDDLEWARE_CONTAINER=codestra-middleware-staging-middleware-staging-1 \
+  MIGRATION_REVISION=0058_odoo_delivery_sources OUTPUT_DIR="$OUT/provenance-0058" \
+  bash /srv/codestra-middleware/repository/scripts/collect_staging_migration_evidence.sh
 ```
 
 ## 2. Exit cause of the ~11:20Z app-plane stop (P0.5, F-09)
