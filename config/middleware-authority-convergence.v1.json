@@ -469,7 +469,7 @@
   ],
   "convergencePolicy": {
     "singleForwardRepository": "ingtrader21-spec/Middleware-",
-    "singleForwardImageRepository": "ghcr.io/appolon1908-hue/codestra-middleware",
+    "singleForwardImageRepository": "ghcr.io/ingtrader21-spec/codestra-middleware",
     "legacyBackupImageRepository": "ghcr.io/appolon1908-hue/codestra-middleware-legacy",
     "blindWholeFleetReplacementAllowed": false,
     "legacyNewBuildsAllowed": false,

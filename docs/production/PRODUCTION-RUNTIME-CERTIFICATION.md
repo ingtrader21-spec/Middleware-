@@ -41,7 +41,7 @@ Before server access, the workflow requires:
    digest, release ID, migration head, SBOM, vulnerability report, and signer;
 6. Cosign verification of the image, SPDX attestation, and signed manifest;
 7. an exact digest reference under
-   `ghcr.io/appolon1908-hue/codestra-middleware`.
+   `ghcr.io/ingtrader21-spec/codestra-middleware`.
 
 ## Required GitHub production secrets
 

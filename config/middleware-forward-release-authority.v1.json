@@ -9,7 +9,7 @@
     "ruleset": "middleware-main-production-authority"
   },
   "artifactAuthority": {
-    "imageRepository": "ghcr.io/appolon1908-hue/codestra-middleware",
+    "imageRepository": "ghcr.io/ingtrader21-spec/codestra-middleware",
     "releaseWorkflow": ".github/workflows/release.yml",
     "releaseManifestSchema": "contracts/release-manifest.v1.schema.json",
     "requiredSchemaHead": "0067_service_catalog_monitoring_state",

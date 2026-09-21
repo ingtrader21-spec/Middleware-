@@ -426,7 +426,7 @@ services:
 The deployed value should resemble:
 
 ```text
-ghcr.io/appolon1908-hue/codestra-middleware@sha256:<digest>
+ghcr.io/ingtrader21-spec/codestra-middleware@sha256:<digest>
 ```
 
 Do not use `latest`, an unpinned branch tag, or an image rebuilt separately after staging acceptance.

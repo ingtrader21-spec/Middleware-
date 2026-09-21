@@ -19,8 +19,12 @@ and runtime profile.
 The only forward image repository is:
 
 ```text
-ghcr.io/appolon1908-hue/codestra-middleware
+ghcr.io/ingtrader21-spec/codestra-middleware
 ```
+
+The pre-transfer package `ghcr.io/appolon1908-hue/codestra-middleware` holds the
+historical signed digests and is never a forward publication target (see
+`docs/RELEASE-SUPPLY-CHAIN.md`, "Repository identity versus registry namespace").
 
 The current machine-readable authorities are:
 

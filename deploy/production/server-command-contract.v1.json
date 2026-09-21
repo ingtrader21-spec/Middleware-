@@ -6,7 +6,7 @@
     "compose_service": "middleware-api-canary",
     "environment": "production",
     "expected_host": "65.109.65.169",
-    "image_repository": "ghcr.io/appolon1908-hue/codestra-middleware",
+    "image_repository": "ghcr.io/ingtrader21-spec/codestra-middleware",
     "mode": "READ_ONLY_CANARY",
     "restricted_user": "middleware-deploy",
     "schema_head": "0067_service_catalog_monitoring_state",

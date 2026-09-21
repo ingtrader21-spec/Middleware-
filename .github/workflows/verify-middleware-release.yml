@@ -58,7 +58,7 @@ jobs:
           set -euo pipefail
           test "${GITHUB_REPOSITORY}" = "ingtrader21-spec/Middleware-"
           test "${IMAGE_REPOSITORY}" = \
-            "ghcr.io/appolon1908-hue/codestra-middleware"
+            "ghcr.io/ingtrader21-spec/codestra-middleware"
           [[ "${IMAGE_DIGEST}" =~ ^sha256:[0-9a-f]{64}$ ]]
           [[ "${SOURCE_COMMIT}" =~ ^[0-9a-f]{40}$ ]]
           [[ "${RELEASE_TAG}" =~ ^sha-[0-9a-f]{40}-run-[1-9][0-9]*-attempt-[1-9][0-9]*$ ]]
