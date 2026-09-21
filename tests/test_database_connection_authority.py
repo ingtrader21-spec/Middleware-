@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from app.core.config import Settings
+from app.core.config import ConfigurationError, Settings, WEBHOOK_PRODUCERS
 from app.db.connection import (
     DatabaseConnectionError,
     asyncpg_connection_kwargs,
@@ -168,9 +168,8 @@ def test_compose_staging_profile_locks_tls_and_topology() -> None:
         "IMAGE_DIGEST": "sha256:" + "b" * 64,
         "BUILD_TIME": "2026-09-21T11:16:00Z",
     }
-    settings = Settings.from_env(env)
-    assert settings.runtime_profile_id == "codestra-middleware-staging-compose-v1"
+    for producer in WEBHOOK_PRODUCERS:\n        name = "WEBHOOK_SECRET_" + producer.upper().replace("-", "_").replace(".", "_")\n        env[name] = "x" * 32\n    settings = Settings.from_env(env)\n    assert settings.runtime_profile_id == "codestra-middleware-staging-compose-v1"
     bad = dict(env)
     bad["DATABASE_URL"] = bad["DATABASE_URL"].replace("sslmode=verify-full", "sslmode=require")
-    with pytest.raises(Exception, match="DATABASE_URL"):
+    with pytest.raises(ConfigurationError, match="DATABASE_URL"):
         Settings.from_env(bad)
