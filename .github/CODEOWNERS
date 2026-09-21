@@ -2,7 +2,7 @@
 * @appolon1908-hue @kazan555
 
 # Appolon retains ownership of production packaging and release controls.
-/.github/workflows/ @appolon1908-hue
+/.github/workflows/ @appolon1908-hue @kazan555
 /app/ @appolon1908-hue
 /migrations/ @appolon1908-hue
 /contracts/ @appolon1908-hue
