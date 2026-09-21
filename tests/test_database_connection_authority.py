@@ -168,7 +168,11 @@ def test_compose_staging_profile_locks_tls_and_topology() -> None:
         "IMAGE_DIGEST": "sha256:" + "b" * 64,
         "BUILD_TIME": "2026-09-21T11:16:00Z",
     }
-    for producer in WEBHOOK_PRODUCERS:\n        name = "WEBHOOK_SECRET_" + producer.upper().replace("-", "_").replace(".", "_")\n        env[name] = "x" * 32\n    settings = Settings.from_env(env)\n    assert settings.runtime_profile_id == "codestra-middleware-staging-compose-v1"
+    for producer in WEBHOOK_PRODUCERS:
+        name = "WEBHOOK_SECRET_" + producer.upper().replace("-", "_").replace(".", "_")
+        env[name] = "x" * 32
+    settings = Settings.from_env(env)
+    assert settings.runtime_profile_id == "codestra-middleware-staging-compose-v1"
     bad = dict(env)
     bad["DATABASE_URL"] = bad["DATABASE_URL"].replace("sslmode=verify-full", "sslmode=require")
     with pytest.raises(ConfigurationError, match="DATABASE_URL"):
