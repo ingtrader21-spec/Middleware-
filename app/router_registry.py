@@ -39,6 +39,7 @@ from fastapi.responses import JSONResponse
 from fastapi.routing import APIRoute
 
 from app.api.internal.ai_jobs import router as internal_ai_jobs_router
+from app.api.internal.database import router as internal_database_router
 from app.api.internal.klyrow_events import router as klyrow_events_router
 from app.api.internal.klyrow_mail import router as klyrow_mail_router
 from app.api.internal.telnexa_events import router as telnexa_events_router
@@ -123,6 +124,9 @@ class DuplicateRouteError(RuntimeError):
 
 
 CANONICAL_ROUTERS: tuple[APIRouter, ...] = (
+    # Private read-only database operational evidence; explicit auth,
+    # edge-denied under /internal/*, and shared by every profile.
+    internal_database_router,
     # The V3 command kernel: the six /platform/v1 kernel routes, on every profile.
     platform_kernel_router,
     automation_v2_router,

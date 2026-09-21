@@ -1,0 +1,615 @@
+{
+  "info": {
+    "name": "Middleware V3 Database Certification Control",
+    "description": "PostgreSQL/private DB operational certification overlay for ingtrader21-spec/Middleware-. No raw SQL. Production-safe is read-only. Linear PAS-98; DB Program PAS-77.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "const env = pm.environment.get('environment') || 'local';",
+          "const allow = String(pm.environment.get('allow_database_mutations') || 'false').toLowerCase() === 'true';",
+          "const url = pm.request.url.toString();",
+          "if (env === 'production' && url.includes('{{db_private_base_url}}')) {",
+          "  if (pm.execution && pm.execution.skipRequest) pm.execution.skipRequest();",
+          "}",
+          "if (env === 'production' && ['POST','PUT','PATCH','DELETE'].includes(pm.request.method) && !allow) {",
+          "  throw new Error('PRODUCTION_DATABASE_MUTATION_GATED');",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "00 Health & Readiness",
+      "item": [
+        {
+          "name": "DB Health",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{db_read_token}}"
+              }
+            ],
+            "url": "{{db_private_base_url}}/internal/v1/database/health"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('DB health 200',()=>pm.response.to.have.status(200));",
+                  "const j=pm.response.json();",
+                  "pm.test('TLS active',()=>pm.expect(j.tls_active).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "DB Readiness",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{db_read_token}}"
+              }
+            ],
+            "url": "{{db_private_base_url}}/internal/v1/database/readiness"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('DB readiness 200',()=>pm.response.to.have.status(200));",
+                  "const j=pm.response.json();",
+                  "pm.test('ready true',()=>pm.expect(j.ready).to.eql(true));",
+                  "pm.test('head exact',()=>pm.expect(j.alembic_head).to.eql(pm.environment.get('expected_alembic_head')));",
+                  "pm.test('TLS required and active',()=>{pm.expect(j.tls_required).to.eql(true);pm.expect(j.tls_active).to.eql(true);});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01 Schema & Migration Authority",
+      "item": [
+        {
+          "name": "Schema",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{db_read_token}}"
+              }
+            ],
+            "url": "{{db_private_base_url}}/internal/v1/database/schema"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('schema 200',()=>pm.response.to.have.status(200));",
+                  "const j=pm.response.json();",
+                  "pm.test('single head',()=>pm.expect(j.head_count).to.eql(1));",
+                  "pm.test('exact head',()=>pm.expect(j.alembic_head).to.eql(pm.environment.get('expected_alembic_head')));",
+                  "pm.test('no drift',()=>pm.expect(j.drift_detected).to.eql(false));",
+                  "pm.test('runtime verified',()=>pm.expect(j.runtime_schema_verified).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Migration Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{db_read_token}}"
+              }
+            ],
+            "url": "{{db_private_base_url}}/internal/v1/database/migrations"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('migrations 200',()=>pm.response.to.have.status(200));",
+                  "const j=pm.response.json();",
+                  "pm.test('verified',()=>pm.expect(j.verified).to.eql(true));",
+                  "pm.test('apply unsupported',()=>pm.expect(j.apply_supported).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Migration Verify - Read Only",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{db_verify_token}}"
+              },
+              {
+                "key": "X-Correlation-ID",
+                "value": "{{$guid}}"
+              }
+            ],
+            "url": "{{db_private_base_url}}/internal/v1/database/migrations/verify"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('verify 200',()=>pm.response.to.have.status(200));",
+                  "const j=pm.response.json();",
+                  "pm.test('verified true',()=>pm.expect(j.verified).to.eql(true));",
+                  "pm.test('read only',()=>pm.expect(j.read_only).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Migration Apply Must Not Exist",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{db_read_token}}"
+              }
+            ],
+            "url": "{{db_private_base_url}}/internal/v1/database/migrations/apply"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('no HTTP migration apply',()=>pm.expect([404,405]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 Pool, TLS & Certificates",
+      "item": [
+        {
+          "name": "Pool",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{db_read_token}}"
+              }
+            ],
+            "url": "{{db_private_base_url}}/internal/v1/database/pool"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('pool 200',()=>pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TLS",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{db_read_token}}"
+              }
+            ],
+            "url": "{{db_private_base_url}}/internal/v1/database/security/tls"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TLS 200',()=>pm.response.to.have.status(200));",
+                  "const j=pm.response.json();",
+                  "pm.test('TLS required',()=>pm.expect(j.required).to.eql(true));",
+                  "pm.test('TLS active',()=>pm.expect(j.active).to.eql(true));",
+                  "pm.test('verify-full',()=>pm.expect(j.verification_mode).to.eql('verify-full'));",
+                  "pm.test('hostname verified',()=>pm.expect(j.hostname_verification).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Certificates",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{db_read_token}}"
+              }
+            ],
+            "url": "{{db_private_base_url}}/internal/v1/database/security/certificates"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('certificates 200',()=>pm.response.to.have.status(200));",
+                  "const j=pm.response.json();",
+                  "pm.test('no private key exposure',()=>pm.expect(j.private_key_exposed).to.eql(false));",
+                  "pm.test('no DSN exposure',()=>pm.expect(j.dsn_exposed).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "RLS Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{db_read_token}}"
+              }
+            ],
+            "url": "{{db_private_base_url}}/internal/v1/database/security/rls"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('RLS status 200',()=>pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 Operational Evidence",
+      "item": [
+        {
+          "name": "DB Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{db_read_token}}"
+              }
+            ],
+            "url": "{{db_private_base_url}}/internal/v1/database/status"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200',()=>pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Performance",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{db_read_token}}"
+              }
+            ],
+            "url": "{{db_private_base_url}}/internal/v1/database/performance"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('performance 200',()=>pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Locks",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{db_read_token}}"
+              }
+            ],
+            "url": "{{db_private_base_url}}/internal/v1/database/locks"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('locks 200',()=>pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Capacity",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{db_read_token}}"
+              }
+            ],
+            "url": "{{db_private_base_url}}/internal/v1/database/capacity"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('capacity 200',()=>pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04 Backup & Restore Evidence",
+      "item": [
+        {
+          "name": "Backups",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{db_read_token}}"
+              }
+            ],
+            "url": "{{db_private_base_url}}/internal/v1/database/backups"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('backups 200',()=>pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Latest Backup",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{db_read_token}}"
+              }
+            ],
+            "url": "{{db_private_base_url}}/internal/v1/database/backups/latest"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('latest backup 200',()=>pm.response.to.have.status(200));",
+                  "const j=pm.response.json();",
+                  "pm.test('backup evidence available',()=>pm.expect(j.available).to.eql(true));",
+                  "pm.test('backup verified',()=>pm.expect(j.verified).to.eql(true));",
+                  "pm.test('backup status PASS',()=>pm.expect(j.status).to.eql('PASS'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Latest Restore",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{db_read_token}}"
+              }
+            ],
+            "url": "{{db_private_base_url}}/internal/v1/database/restores/latest"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('latest restore 200',()=>pm.response.to.have.status(200));",
+                  "const j=pm.response.json();",
+                  "pm.test('restore evidence available',()=>pm.expect(j.available).to.eql(true));",
+                  "pm.test('restore verified',()=>pm.expect(j.verified).to.eql(true));",
+                  "pm.test('restore status PASS',()=>pm.expect(j.status).to.eql('PASS'));",
+                  "pm.test('restored head exact',()=>pm.expect(j.target_schema_head).to.eql(pm.environment.get('expected_alembic_head')));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "05 Public Exposure Negative Tests",
+      "item": [
+        {
+          "name": "Public DB Health Must Be Blocked",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/internal/v1/database/health",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{db_read_token}}",
+                "type": "text"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('private DB API not public',()=>pm.expect([401,403,404]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Public DB Schema Must Be Blocked",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/internal/v1/database/schema",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{db_read_token}}",
+                "type": "text"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('private schema not public',()=>pm.expect([401,403,404]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "06 Forbidden Raw SQL Surface",
+      "item": [
+        {
+          "name": "No Raw SQL Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{db_read_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "SELECT 1"
+            },
+            "url": "{{db_private_base_url}}/internal/v1/database/sql"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('raw SQL absent',()=>pm.expect([404,405]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "No Query Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{db_read_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": "{{db_private_base_url}}/internal/v1/database/query"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('raw query absent',()=>pm.expect([404,405]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
