@@ -23,17 +23,28 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from app.core.config import Settings, settings
+from app.db.connection import build_database_connection_authority
 
 
 def _build_engine(config: Settings, database_url: str | None = None) -> AsyncEngine:
-    return create_async_engine(
+    authority = build_database_connection_authority(
         database_url or config.database_url,
+        command_timeout_seconds=config.database_command_timeout_seconds,
+        application_name=(
+            "codestra-middleware/"
+            + (config.runtime_profile_id or config.app_env)
+        ),
+        secure_environment=config.app_env in {"staging", "production"},
+        validate_tls_files=config.app_env in {"staging", "production"},
+    )
+    return create_async_engine(
+        authority.sqlalchemy_url,
         pool_pre_ping=True,
         pool_size=config.database_pool_size,
         max_overflow=config.database_max_overflow,
         pool_timeout=config.database_pool_timeout_seconds,
         pool_recycle=config.database_pool_recycle_seconds,
-        connect_args={"command_timeout": config.database_command_timeout_seconds},
+        connect_args=authority.connect_args,
     )
 
 
