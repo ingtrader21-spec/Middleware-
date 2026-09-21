@@ -1541,6 +1541,11 @@ class Settings(BaseSettings):
             query = parse_qs(parsed.query, strict_parsing=True) if parsed.query else {}
         except ValueError as exc:
             raise ConfigurationError("DATABASE_URL is malformed") from exc
+        expected_query = {
+            key: [str(raw_profile[key])]
+            for key in ("sslmode", "sslrootcert", "sslcert", "sslkey")
+            if raw_profile.get(key)
+        }
         if (
             parsed.scheme != raw_profile["scheme"]
             or parsed.hostname != raw_profile["host"]
@@ -1548,8 +1553,7 @@ class Settings(BaseSettings):
             or unquote(parsed.path.lstrip("/")) != raw_profile["name"]
             or unquote(parsed.username or "") != raw_profile["username"]
             or not parsed.password
-            or query
-            != ({"sslmode": [raw_profile["sslmode"]]} if raw_profile.get("sslmode") else {})
+            or query != expected_query
             or parsed.params
             or parsed.fragment
         ):
