@@ -282,3 +282,35 @@ def test_chaos_a_persistence_failure_before_acceptance_is_never_a_202(stack: Sta
         assert response.status_code == 503
         assert response.json()["error"]["retryable"] is True
         assert stack.store._outbox == [] and stack.store._commands == {}
+
+
+def test_operational_catalog_surfaces_are_authenticated_and_secret_free(stack: Stack) -> None:
+    with TestClient(stack.app) as client:
+        assert client.get("/platform/v1/adapters").status_code == 401
+        auth = {"Authorization": f"Bearer {token()}"}
+        adapters = client.get("/platform/v1/adapters", headers=auth)
+        assert adapters.status_code == 200
+        rows = adapters.json()["items"]
+        assert {row["adapter_id"] for row in rows} >= {"test-syn", "odoo-fixture"}
+        assert client.get("/platform/v1/adapters/test-syn", headers=auth).status_code == 200
+
+        connectors = client.get("/platform/v1/connectors", headers=auth)
+        assert connectors.status_code == 200
+        connector_rows = connectors.json()["items"]
+        assert {row["connector_id"] for row in connector_rows} >= {"test-syn", "odoo-19"}
+        assert client.get("/platform/v1/connectors/test-syn", headers=auth).status_code == 200
+
+        rendered = adapters.text.lower() + connectors.text.lower()
+        for forbidden in ("client_secret", "private_key", "password", "bearer ", "hvs."):
+            assert forbidden not in rendered
+
+
+def test_dead_letter_and_reconciliation_surfaces_are_tenant_scoped(stack: Stack) -> None:
+    with TestClient(stack.app) as client:
+        auth = {"Authorization": f"Bearer {token()}"}
+        assert client.get("/platform/v1/dead-letters", headers=auth).json() == {"items": []}
+        assert client.get("/platform/v1/reconciliation", headers=auth).json() == {"items": []}
+        assert client.get("/platform/v1/dead-letters", headers={"Authorization": f"Bearer {token(tenants=(TENANT, 'tenant-b'))}"}).status_code == 400
+        assert client.get("/platform/v1/reconciliation", headers={"Authorization": f"Bearer {token(scope='platform.command')}"}).status_code == 401
+        assert client.get(f"/platform/v1/dead-letters/{uuid4()}", headers=auth).status_code == 404
+        assert client.get(f"/platform/v1/reconciliation/{uuid4()}", headers=auth).status_code == 404
