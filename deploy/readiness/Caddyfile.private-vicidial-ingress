@@ -33,6 +33,22 @@ middleware.internal.codestra.agency {
 				header_up X-Codestra-Client-Certificate-DER "{http.request.tls.client.certificate_der_base64}"
 			}
 		}
+		@telnexa_event_ingress {
+			remote_ip 10.40.0.4
+			method POST
+			path /api/v1/events/telnexa
+		}
+		handle @telnexa_event_ingress {
+			request_body {
+				max_size 1MB
+			}
+			reverse_proxy middleware-event-gateway:8095 {
+				header_up -X-Codestra-Verified-Source-IP
+				header_up -X-Codestra-Client-Certificate-DER
+				header_up X-Codestra-Verified-Source-IP "{http.request.remote.host}"
+				header_up X-Codestra-Client-Certificate-DER "{http.request.tls.client.certificate_der_base64}"
+			}
+		}
 		@server_b_event_ingress {
 			expression `{env.VICIDIAL_EVENT_INGRESS_ROUTING_ENABLED} == "true"`
 			remote_ip 10.40.0.2
