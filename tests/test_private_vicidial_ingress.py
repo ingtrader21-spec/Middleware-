@@ -18,13 +18,16 @@ def test_private_listener_is_bound_to_server_a_and_requires_mtls():
     assert "respond 403" in source
 
 
-def test_readiness_is_the_only_enabled_private_application_route():
+def test_private_listener_exposes_only_reviewed_readiness_and_telnexa_routes():
     source = PRIVATE.read_text()
     assert "/api/v1/readiness/server-a/challenge" in source
     assert "max_size 4KB" in source
     assert "{http.request.tls.client.certificate_der_base64}" in source
     assert "header_up -X-Codestra-Verified-Source-IP" in source
     assert "header_up -X-Codestra-Client-Certificate-DER" in source
+    assert "remote_ip 10.40.0.4" in source
+    assert "path /api/v1/events/telnexa" in source
+    assert "max_size 1MB" in source
 
 
 def test_event_ingress_is_configured_but_fail_closed():
@@ -45,8 +48,8 @@ def test_public_readiness_and_event_routes_are_denied():
 
 def test_proxy_never_trusts_client_identity_headers():
     source = PRIVATE.read_text()
-    assert source.count("header_up -X-Codestra-Verified-Source-IP") == 2
-    assert source.count("header_up -X-Codestra-Client-Certificate-DER") == 2
+    assert source.count("header_up -X-Codestra-Verified-Source-IP") == 3
+    assert source.count("header_up -X-Codestra-Client-Certificate-DER") == 3
     assert "X-Service-Identity" not in source
     assert "X-Codestra-Publisher-ID" not in source
 
@@ -65,3 +68,13 @@ def test_private_proxy_is_isolated_and_event_gate_stays_false():
     assert 'VICIDIAL_EVENT_INGRESS_ROUTING_ENABLED: "false"' in compose
     assert "networks: [middleware_edge]" in compose
     assert "codestra_backend" not in compose
+
+
+def test_telnexa_callback_is_private_exact_and_publicly_denied():
+    private = PRIVATE.read_text()
+    public = PUBLIC.read_text()
+    assert "remote_ip 10.40.0.4" in private
+    assert "path /api/v1/events/telnexa" in private
+    assert "method POST" in private
+    assert "max_size 1MB" in private
+    assert "/api/v1/events/telnexa" in public
