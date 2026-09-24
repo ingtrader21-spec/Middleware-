@@ -6,6 +6,7 @@
   "provider_kill_switches": {
     "ai-provider": false,
     "beyvra-nonfinancial": false,
+    "evolution-whatsapp": false,
     "klyrow-alert-email": false,
     "klyrow-email": false,
     "kyqra-crawler": false,
@@ -210,6 +211,21 @@
       ],
       "campaign_scoped": false,
       "synthetic_tenant_required": true
+    },
+    "WHATSAPP_DELIVERY": {
+      "classification": "external_effect",
+      "effect_flags": [
+        "ENABLE_EXTERNAL_DELIVERY",
+        "WHATSAPP_DELIVERY_ENABLED"
+      ],
+      "umbrella_controls": [
+        "EXTERNAL_DELIVERY_ENABLED"
+      ],
+      "environments": [
+        "staging",
+        "production"
+      ],
+      "campaign_scoped": true
     }
   },
   "limits": {
