@@ -64,6 +64,12 @@
       "github_repository_id": 1334764612
     },
     {
+      "component": "evolution-whatsapp",
+      "principal_repository": "ingtrader21-spec/Evolution-API",
+      "role": "whatsapp-evolution-transport-runtime",
+      "github_repository_id": 1384467115
+    },
+    {
       "component": "telnexa-web",
       "principal_repository": "appolon1908-hue/Telnexa-web",
       "role": "telnexa-public-website-onboarding",

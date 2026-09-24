@@ -152,6 +152,7 @@ EXPECTED_REPOSITORY_IDENTITIES = {
     "n8n": (1347560645, "appolon1908-hue/N8N"),
     "odoo": (1347522940, "appolon1908-hue/Odoo"),
     "telnexa-sms": (1334764612, "appolon1908-hue/telnexa"),
+    "evolution-whatsapp": (1384467115, "ingtrader21-spec/Evolution-API"),
     "telnexa-web": (1346958528, "appolon1908-hue/Telnexa-web"),
     "klyrow-email": (1334863061, "appolon1908-hue/klyrow.com"),
     "klyrow-web": (1346968526, "appolon1908-hue/klyrow-Website-"),
@@ -238,6 +239,14 @@ EXPECTED_SYSTEM_SECURITY_PROFILES = {
         "provider-adapter",
         "target-and-event-source",
         "telnexa-sms",
+    ),
+    "evolution-whatsapp": (
+        "whatsapp-evolution-transport-runtime",
+        "active",
+        "communications",
+        "provider-adapter",
+        "target-and-event-source",
+        "evolution-whatsapp",
     ),
     "telnexa-web": (
         "telnexa-public-website-onboarding",
@@ -503,6 +512,7 @@ EXPECTED_MIDDLEWARE_OWNED = (
 EXPECTED_CANONICAL_ADAPTER_OWNERS = {
     "ai-provider": "appolon1908-hue/Codestra-AI",
     "beyvra-nonfinancial": "appolon1908-hue/beyvra-backend",
+    "evolution-whatsapp": "ingtrader21-spec/Evolution-API",
     "klyrow-alert-email": "appolon1908-hue/klyrow.com",
     "klyrow-email": "appolon1908-hue/klyrow.com",
     "kyqra-crawler": "appolon1908-hue/kyqra-crawler",
@@ -534,6 +544,12 @@ EXPECTED_CANONICAL_ADAPTER_PROFILES = {
             "broker.",
             "provider.",
         ),
+    ),
+    "evolution-whatsapp": (
+        "core-communications",
+        "ingtrader21-spec/Evolution-API",
+        ("whatsapp.",),
+        (),
     ),
     "klyrow-alert-email": (
         "core-communications",
@@ -581,6 +597,12 @@ EXPECTED_CANONICAL_ADAPTER_PROFILES = {
     ),
 }
 EXPECTED_ADAPTER_BOUND_SYSTEMS = {
+    "evolution-whatsapp": (
+        "evolution-whatsapp",
+        "communications",
+        "provider-adapter",
+        "target-and-event-source",
+    ),
     "beyvra-backend": (
         "beyvra-nonfinancial",
         "financial-isolated",
@@ -631,6 +653,12 @@ EXPECTED_ADAPTER_BOUND_SYSTEMS = {
     ),
 }
 EXPECTED_CANONICAL_ADAPTER_OWNER_SECURITY = {
+    "evolution-whatsapp": (
+        "active",
+        "communications",
+        "provider-adapter",
+        "target-and-event-source",
+    ),
     "ai": ("active", "product-clients", "product-client", "caller"),
     "beyvra-backend": (
         "active",
