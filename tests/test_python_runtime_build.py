@@ -14,4 +14,4 @@ def test_python_31214_build_does_not_reverse_integrated_security_fixes() -> None
     assert "COPY security/python312" not in builder
     assert "curl=8.22.0-r0" in builder
     assert "unfiltered.replace" in builder
-    assert 'pyexpat.EXPAT_VERSION == "expat_2.8.4"' in builder
+    assert 'pyexpat.EXPAT_VERSION == "expat_2.8.5"' in builder
