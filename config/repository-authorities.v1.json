@@ -28,6 +28,12 @@
       "github_repository_id": 1347559071
     },
     {
+      "component": "djone",
+      "principal_repository": "ingtrader21-spec/DJONE",
+      "role": "native-dj-runtime-and-control-source",
+      "github_repository_id": 1382566617
+    },
+    {
       "component": "caddy",
       "principal_repository": "appolon1908-hue/Caddy",
       "role": "shared-edge-tls-reverse-proxy",

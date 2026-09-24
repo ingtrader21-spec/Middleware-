@@ -21,6 +21,7 @@ def validate() -> None:
     ownership = load("config/system-ownership.v2.json")
     capabilities = load("config/capabilities.v2.json")
     registry = load("config/adapter-registry.v2.json")
+    repository_authorities = load("config/repository-authorities.v1.json")
     command = load("contracts/platform/command-envelope.v1.schema.json")
     command_registry = load("connectors/generated/command-registry.v1.json")
     event = load("contracts/platform/event-envelope.v1.schema.json")
@@ -75,6 +76,11 @@ def validate() -> None:
             'integration fabric invariant failed: policy["unknown_outcome_requires_readback"] is True',
         )
 
+    authorized_repositories = {
+        entry["principal_repository"]
+        for entry in repository_authorities["authorities"]
+        if isinstance(entry.get("principal_repository"), str)
+    }
     adapter_prefixes: dict[str, set[str]] = {}
     for adapter in registry["adapters"]:
         adapter_id = adapter.get("id")
@@ -103,9 +109,8 @@ def validate() -> None:
         )
         adapter_prefixes[adapter_id] = set(command_prefixes)
         require(
-            adapter["repository"].startswith(("ingtrader21-spec/", "appolon1908-hue/")),
-            "integration fabric invariant failed: adapter repository is not "
-            "owned by a Codestra organization",
+            adapter["repository"] in authorized_repositories,
+            'integration fabric invariant failed: adapter["repository"] is not a governed principal repository',
         )
 
     for policy in command_registry["commands"]:
