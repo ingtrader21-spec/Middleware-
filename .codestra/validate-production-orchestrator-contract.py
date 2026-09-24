@@ -37,7 +37,7 @@ STANDARD_RELEASE_VALIDATOR_SECURITY_SHA256 = (
     "8d8f21260babfae5eaedbdd46472b1ec"
 )
 MIDDLEWARE_RELEASE_VALIDATOR_SECURITY_SHA256 = (
-    "63192fd83f7fc19fa624e2bf26d3b2ccc3941042e4e3c941ba378ff50581e565"
+    "d94351f6d39b406bb7fc3a5b9736e72ff987ef374e264c9844099a7551ce4192"
 )
 BACKEND_RELEASE_VALIDATOR_SECURITY_SHA256 = (
     "15dbaa6d571a1d1e72c09ca417cc9419"
@@ -671,8 +671,8 @@ APPROVED_CONTROL_PLANE_WORKFLOW_SHA256: dict[str, dict[str, str]] = {
             "50caaed769389cb30fc725766ea6bed6"
         ),
         ".github/workflows/middleware-ci.yml": (
-            "8cec813feb267b63f4f27807606237dbe"
-            "518f2fb94379062e447a6636fea2f16"
+            "9f4920a63522490f3f1688ec627a8078d"
+            "80427c0b5a0d08acacb80f65afd88ec"
         ),
         ".github/workflows/integration-main-release-authorities.yml": (
             "910acf0149a0b9060544817a71577222a"
