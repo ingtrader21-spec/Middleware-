@@ -89,6 +89,8 @@ def engine(profile: str = "test") -> CampaignRecyclingEngine:
 
 def delivery_event(**overrides):
     value = {
+        "schema_version": "1.0",
+        "automated_suspected": False,
         "event_id": "evt-mcr-00000001",
         "event_type": "open",
         "source": "klyrow",
@@ -112,6 +114,8 @@ def delivery_event(**overrides):
         },
     }
     value.update(overrides)
+    if value["event_type"] in {"soft_bounce", "hard_bounce"}:
+        value["bounce_class"] = "soft" if value["event_type"] == "soft_bounce" else "hard"
     return value
 
 
@@ -345,7 +349,7 @@ def test_recent_window_cap_over_by_two_waits_for_threshold_exposure() -> None:
     released = engine().evaluate(
         snapshot(exposures=exposures),
         [candidate(campaign_id="klyrow:cmp-new")],
-        now=result.next_eligible_at + timedelta(seconds=1),
+        now=result.next_eligible_at,
     )
     assert released.eligible is True
 
@@ -380,7 +384,7 @@ def test_channel_cap_over_by_two_waits_for_threshold_exposure() -> None:
     released = engine().evaluate(
         snapshot(exposures=exposures),
         [candidate(campaign_id="klyrow:cmp-new")],
-        now=result.next_eligible_at + timedelta(seconds=1),
+        now=result.next_eligible_at,
     )
     assert released.eligible is True
 
@@ -592,6 +596,57 @@ async def test_suppression_health_requires_atomic_suppression() -> None:
 
 
 @pytest.mark.asyncio
+async def test_delivery_health_cannot_create_global_suppression() -> None:
+    store = PostgresCampaignRecyclingStore(FakePool(FakeConn()))
+    with pytest.raises(CampaignRecyclingConflict, match="channel-scoped unsubscribe"):
+        await store.record_channel_health(
+            tenant_id="TEST_SYN_TENANT",
+            lead_id="100-L-00000001",
+            channel="email",
+            address_ref="addr-email-1",
+            state="unsubscribed",
+            source="klyrow_delivery_event",
+            reason_code="UNSUBSCRIBE",
+            occurred_at=NOW,
+            evidence_hash="d" * 64,
+            correlation_id="corr-health-global-block",
+            suppression_id=uuid4(),
+            suppression_scope="global",
+            suppression_reason="unsubscribe",
+            suppression_requested_by="svc-klyrow",
+        )
+
+
+@pytest.mark.asyncio
+async def test_stale_weaker_health_is_atomic_noop() -> None:
+    conn = FakeConn()
+    conn.fetchrow_results = [
+        {"state": "hard_bounce", "health_version": 4},
+        None,
+        {"health_version": 4},
+    ]
+    store = PostgresCampaignRecyclingStore(FakePool(conn))
+    version = await store.record_channel_health(
+        tenant_id="TEST_SYN_TENANT",
+        lead_id="100-L-00000001",
+        channel="email",
+        address_ref="addr-email-1",
+        state="valid",
+        source="klyrow_delivery_event",
+        reason_code="DELIVERY_CONFIRMED",
+        occurred_at=NOW - timedelta(days=1),
+        evidence_hash="d" * 64,
+        correlation_id="corr-health-stale-valid",
+    )
+    assert version == 4
+    upsert = next(
+        sql for kind, sql, _ in conn.executed if "INSERT INTO mcr_channel_health" in sql
+    )
+    assert "EXCLUDED.occurred_at < mcr_channel_health.occurred_at" in upsert
+    assert "END > CASE mcr_channel_health.state" in upsert
+
+
+@pytest.mark.asyncio
 async def test_channel_health_and_suppression_share_transaction() -> None:
     conn = FakeConn()
     conn.fetchrow_results = [None, {"health_version": 1}]
@@ -747,6 +802,30 @@ async def test_soft_bounce_escalation_unconfigured_policy_is_partial() -> None:
 
 
 @pytest.mark.asyncio
+async def test_delivery_event_requires_frozen_schema_version() -> None:
+    store = PostgresCampaignRecyclingStore(FakePool(FakeConn()))
+    event = delivery_event()
+    event.pop("schema_version")
+    with pytest.raises(CampaignRecyclingConflict, match="invalid normalized delivery event"):
+        await store.apply_delivery_event(
+            event,
+            policy=PolicyProfile.load("test"),
+            address_ref="addr-email-1",
+        )
+
+
+@pytest.mark.asyncio
+async def test_delivery_event_rejects_unknown_source() -> None:
+    store = PostgresCampaignRecyclingStore(FakePool(FakeConn()))
+    with pytest.raises(CampaignRecyclingConflict, match="invalid normalized delivery event"):
+        await store.apply_delivery_event(
+            delivery_event(source="unknown-provider"),
+            policy=PolicyProfile.load("test"),
+            address_ref="addr-email-1",
+        )
+
+
+@pytest.mark.asyncio
 async def test_delivery_event_health_effect_requires_address_ref() -> None:
     store = PostgresCampaignRecyclingStore(FakePool(FakeConn()))
     with pytest.raises(CampaignRecyclingConflict, match="address_ref"):
@@ -760,7 +839,7 @@ async def test_delivery_event_health_effect_requires_address_ref() -> None:
 @pytest.mark.asyncio
 async def test_delivery_event_source_channel_pair_fails_closed() -> None:
     store = PostgresCampaignRecyclingStore(FakePool(FakeConn()))
-    with pytest.raises(CampaignRecyclingConflict, match="Klyrow"):
+    with pytest.raises(CampaignRecyclingConflict, match="invalid normalized delivery event"):
         await store.apply_delivery_event(
             delivery_event(channel="sms"),
             policy=PolicyProfile.load("test"),
@@ -853,7 +932,7 @@ async def test_illegal_lifecycle_transition_fails_before_db() -> None:
 
 
 @pytest.mark.asyncio
-async def test_exposure_and_command_share_one_transaction_boundary() -> None:
+async def test_generic_command_authorization_cannot_bypass_mcr_execution_boundary() -> None:
     conn = FakeConn()
     conn.fetchrow_results = [
         {"exposure_id": uuid4()},
@@ -890,29 +969,28 @@ async def test_exposure_and_command_share_one_transaction_boundary() -> None:
         payload={"test": True},
     )
     store = PostgresCampaignRecyclingStore(pool)
-    created, operation = await store.reserve_exposure_and_command(
-        tenant_id="TEST_SYN_TENANT",
-        lead_id="100-L-00000001",
-        campaign_id="klyrow:cmp-a",
-        campaign_version=1,
-        channel="email",
-        touch_index=1,
-        exposure_id=uuid4(),
-        decision_id=uuid4(),
-        policy_version="mcr-policy-1.0.0",
-        sender_identity_id=UUID(SENDER),
-        idempotency_key=key,
-        command=command,
-        command_service=service,
-        authenticated_subject="svc-mcr",
-        authenticated_client_id="mcr-test",
-        reserved_at=NOW,
-    )
-    assert created is True
-    assert operation is not None
-    command_store.submit_on_connection.assert_awaited_once()
-    called_conn = command_store.submit_on_connection.await_args.args[0]
-    assert called_conn is conn
+    with pytest.raises(CampaignRecyclingConflict, match="PRODUCTION_NOT_AUTHORIZED"):
+        await store.reserve_exposure_and_command(
+            tenant_id="TEST_SYN_TENANT",
+            lead_id="100-L-00000001",
+            campaign_id="klyrow:cmp-a",
+            campaign_version=1,
+            channel="email",
+            touch_index=1,
+            exposure_id=uuid4(),
+            decision_id=uuid4(),
+            policy_version="mcr-policy-1.0.0",
+            sender_identity_id=UUID(SENDER),
+            idempotency_key=key,
+            command=command,
+            command_service=service,
+            authenticated_subject="svc-mcr",
+            authenticated_client_id="mcr-test",
+            reserved_at=NOW,
+        )
+    command_store.submit_on_connection.assert_not_awaited()
+    assert conn.executed == []
+
 
 
 def test_migration_is_single_successor_and_does_not_enable_effects() -> None:
