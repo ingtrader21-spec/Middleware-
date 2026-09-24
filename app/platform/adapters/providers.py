@@ -447,6 +447,7 @@ def provider_adapters(settings: Settings, *, http: httpx.AsyncClient | None) -> 
     from app.postly_social_adapter import PostlySocialAdapter, PostlySocialAdapterError
     from app.telnexa_provider_adapter import TelnexaProviderAdapterError, TelnexaSmsAdapter
     from app.vicidial_internal_call_adapter import VicidialInternalCallAdapter, VicidialInternalCallPreDispatchRejected
+    from app.platform.adapters.whatsapp import WhatsAppProviderAdapter
 
     def odoo() -> BaseAdapter:
         crm_bridge = None
@@ -472,6 +473,7 @@ def provider_adapters(settings: Settings, *, http: httpx.AsyncClient | None) -> 
 
     candidates: tuple[tuple[str, Callable[[], BaseAdapter]], ...] = (
         ("odoo-19", odoo),
+        ("evolution-whatsapp", lambda: WhatsAppProviderAdapter(settings)),
         (
             "klyrow-email",
             lambda: LegacyBridge(
