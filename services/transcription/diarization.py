@@ -1,0 +1,3 @@
+PRIMARY_IDENTITY = "asterisk_channel"
+FALLBACK_ENGINE = "nemo"
+FALLBACK_ENABLED_DEFAULT = False

@@ -1,0 +1,26 @@
+{
+  "gateway": {
+    "repository": "Codestra-SRL/telephony-event-gateway",
+    "pull_request": 3,
+    "approved_head": "e37811b73811e42757ad6a88be3a6b4b5a159f41",
+    "merge_commit": "1dd5fd1a4b3819726664fa4f15e17afdd3c4003d",
+    "image": "docker.io/codestra1980/telephony-event-gateway@sha256:c5cb68554ad14f1057bc9d65d5b466433980e550dfc307f004b38cef20936035",
+    "platform_manifest": "sha256:5512bfdd3451c278e27d9750c11878ee95ba6828cdcae0cf19bbe9d96ab80e66"
+  },
+  "patched_python": {
+    "image": "codestra/python@sha256:541d6acdaa39568e8e9ba2a12f707ce167a819e553025256c29918a9509fe0c2",
+    "version": "3.13.14",
+    "backports": {
+      "CVE-2026-11940": "771d12dda5140313db0ac550292987975651bbde",
+      "CVE-2026-15308": "7933f4bf7131aa4140750f9404f5de0aa2969ced",
+      "CVE-2026-11972": "3f031d431f80668e14f3bc066bbf4369cd9281b9"
+    }
+  },
+  "release_evidence": {
+    "root": "/opt/codestra/compose/telephony-gateway-schema-aware-ack-release-20260728",
+    "spdx_sha256": "bc7130489173fbb1bcf6744c2fd86f27e98b3de9ec8c555f8a60c8de22a6bcd6",
+    "cyclonedx_sha256": "4de6420abf121eb93532f8bf5b0a327588cf5e14f004a0a5601794ee26c65fdf",
+    "grype_sha256": "769fc3f4feb624ac5febfbdbd0b67db70e24accfc937cda07790ae00883e1e83",
+    "trivy_sha256": "f705bfa1ee9c3d27f255de4ee53a9406833f91b68f523a6f7989e31ea0421403"
+  }
+}

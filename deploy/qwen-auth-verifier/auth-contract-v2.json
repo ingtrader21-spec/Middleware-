@@ -1,0 +1,33 @@
+{
+  "contract_version": "2.0",
+  "method": "POST",
+  "path": "/internal/api/v1/ai/auth/verify",
+  "signature_version_header": "X-Signature-Version",
+  "signature_version": "v2",
+  "headers": {
+    "service_id": "X-Service-ID",
+    "hmac_key_id": "X-HMAC-Key-ID",
+    "timestamp": "X-Timestamp",
+    "nonce": "X-Nonce",
+    "body_digest": "X-Body-SHA256",
+    "request_id": "X-Request-ID",
+    "correlation_id": "X-Correlation-ID",
+    "worker_id": "X-Worker-ID",
+    "signature": "X-Signature"
+  },
+  "canonical_signing_fields": [
+    "uppercase_http_method",
+    "exact_path",
+    "unix_timestamp_seconds",
+    "nonce",
+    "lowercase_sha256_body_digest",
+    "request_id",
+    "correlation_id",
+    "worker_id"
+  ],
+  "canonical_separator": "newline",
+  "canonical_terminal_newline": false,
+  "signature_algorithm": "HMAC-SHA256",
+  "legacy_v1_accepted_during_migration": true,
+  "identity_selection": "exact_service_id_and_hmac_key_id_then_verified_certificate_binding"
+}

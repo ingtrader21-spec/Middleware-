@@ -1,0 +1,396 @@
+{
+  "schema_version": "2.2",
+  "status": "SOURCE_ONLY",
+  "issuer": "https://auth.codestra.co/realms/codestra",
+  "audience": "middleware-api",
+  "maximum_access_token_lifetime_seconds": 300,
+  "scope_resolution": "client_scopes_are_exact_no_implicit_union",
+  "authoritative_context": {
+    "tenant": "automation_job.tenant_id",
+    "actor": "automation_job.actor_context",
+    "workflow_family": "automation_job.workflow_family",
+    "workflow_version": "automation_job.workflow_version",
+    "caller_tenant_assertion_authoritative": false,
+    "caller_actor_assertion_authoritative": false
+  },
+  "clients": {
+    "n8n-platform-runtime": {
+      "workflow_families": ["platform.shared"],
+      "command_prefixes": [],
+      "scopes": [
+        "automation.job.claim",
+        "automation.job.read",
+        "automation.job.heartbeat",
+        "automation.job.step.write",
+        "automation.job.complete",
+        "automation.job.fail",
+        "automation.capability.read"
+      ]
+    },
+    "n8n-identity-automation": {
+      "workflow_families": ["identity", "provisioning"],
+      "command_prefixes": ["identity.", "provisioning."],
+      "scopes": [
+        "automation.job.claim",
+        "automation.job.read",
+        "automation.job.heartbeat",
+        "automation.job.step.write",
+        "automation.job.complete",
+        "automation.job.fail",
+        "automation.command.read",
+        "automation.command.identity",
+        "automation.approval.request",
+        "automation.approval.read",
+        "automation.capability.read"
+      ]
+    },
+    "n8n-crm-automation": {
+      "workflow_families": ["crm", "support"],
+      "command_prefixes": ["crm.", "support."],
+      "scopes": [
+        "automation.job.claim",
+        "automation.job.read",
+        "automation.job.heartbeat",
+        "automation.job.step.write",
+        "automation.job.complete",
+        "automation.job.fail",
+        "automation.command.read",
+        "automation.command.crm",
+        "automation.approval.request",
+        "automation.approval.read",
+        "automation.capability.read"
+      ]
+    },
+    "n8n-telephony-automation": {
+      "workflow_families": ["telephony"],
+      "command_prefixes": ["telephony."],
+      "scopes": [
+        "automation.job.claim",
+        "automation.job.read",
+        "automation.job.heartbeat",
+        "automation.job.step.write",
+        "automation.job.complete",
+        "automation.job.fail",
+        "automation.command.read",
+        "automation.command.telephony",
+        "automation.approval.request",
+        "automation.approval.read",
+        "automation.capability.read"
+      ]
+    },
+    "n8n-messaging-automation": {
+      "workflow_families": ["messaging.email", "messaging.sms"],
+      "command_prefixes": ["email.", "sms."],
+      "scopes": [
+        "automation.job.claim",
+        "automation.job.read",
+        "automation.job.heartbeat",
+        "automation.job.step.write",
+        "automation.job.complete",
+        "automation.job.fail",
+        "automation.command.read",
+        "automation.command.messaging",
+        "automation.approval.request",
+        "automation.approval.read",
+        "automation.capability.read"
+      ]
+    },
+    "n8n-social-automation": {
+      "workflow_families": ["social.postly"],
+      "command_prefixes": ["social."],
+      "scopes": [
+        "automation.job.claim",
+        "automation.job.read",
+        "automation.job.heartbeat",
+        "automation.job.step.write",
+        "automation.job.complete",
+        "automation.job.fail",
+        "automation.command.read",
+        "automation.command.social",
+        "automation.approval.request",
+        "automation.approval.read",
+        "automation.capability.read"
+      ]
+    },
+    "n8n-crawler-automation": {
+      "workflow_families": ["crawler.kyqra"],
+      "command_prefixes": ["crawler."],
+      "scopes": [
+        "automation.job.claim",
+        "automation.job.read",
+        "automation.job.heartbeat",
+        "automation.job.step.write",
+        "automation.job.complete",
+        "automation.job.fail",
+        "automation.command.read",
+        "automation.command.crawler",
+        "automation.approval.request",
+        "automation.approval.read",
+        "automation.capability.read"
+      ]
+    },
+    "n8n-product-automation": {
+      "workflow_families": [
+        "product.moneybee",
+        "product.breero",
+        "product.larim-a",
+        "product.freight",
+        "product.beyvra-nonfinancial",
+        "product.booked4seasons",
+        "product.trading-nonfinancial"
+      ],
+      "command_prefixes": [
+        "moneybee.",
+        "breero.",
+        "larim.",
+        "freight.",
+        "beyvra.operations.",
+        "booked4seasons.",
+        "trading.operations.",
+        "real-wallet.operations."
+      ],
+      "scopes": [
+        "automation.job.claim",
+        "automation.job.read",
+        "automation.job.heartbeat",
+        "automation.job.step.write",
+        "automation.job.complete",
+        "automation.job.fail",
+        "automation.command.read",
+        "automation.command.product",
+        "automation.approval.request",
+        "automation.approval.read",
+        "automation.capability.read"
+      ]
+    },
+    "n8n-privacy-automation": {
+      "workflow_families": ["privacy"],
+      "command_prefixes": ["privacy."],
+      "scopes": [
+        "automation.job.claim",
+        "automation.job.read",
+        "automation.job.heartbeat",
+        "automation.job.step.write",
+        "automation.job.complete",
+        "automation.job.fail",
+        "automation.command.read",
+        "automation.command.privacy",
+        "automation.approval.request",
+        "automation.approval.read",
+        "automation.capability.read"
+      ]
+    },
+    "n8n-operations-automation": {
+      "workflow_families": ["operations"],
+      "command_prefixes": [],
+      "scopes": [
+        "automation.job.claim",
+        "automation.job.read",
+        "automation.job.heartbeat",
+        "automation.job.step.write",
+        "automation.job.complete",
+        "automation.job.fail",
+        "automation.approval.request",
+        "automation.approval.read",
+        "automation.capability.read",
+        "automation.operations.reconcile",
+        "automation.dead-letter.read",
+        "automation.operations.replay.request"
+      ]
+    }
+  },
+  "operations": [
+    {
+      "method": "POST",
+      "path": "/v2/automation/jobs/claim",
+      "scope": "automation.job.claim",
+      "allowed_clients": "all_declared_clients",
+      "required_fields": ["job_id", "delivery_token", "workflow_key", "workflow_version", "execution_id"],
+      "constraints": ["job_client_family_match", "one_use_delivery_token", "atomic_lease_grant"]
+    },
+    {
+      "method": "GET",
+      "path": "/v2/automation/jobs/{job_id}",
+      "scope": "automation.job.read",
+      "allowed_clients": "job_family_client_only",
+      "constraints": ["tenant_from_job", "workflow_family_match"]
+    },
+    {
+      "method": "POST",
+      "path": "/v2/automation/jobs/{job_id}/heartbeat",
+      "scope": "automation.job.heartbeat",
+      "allowed_clients": "job_family_client_only",
+      "required_fields": ["lease_token", "execution_id"],
+      "constraints": ["active_lease_required", "stale_execution_denied"]
+    },
+    {
+      "method": "POST",
+      "path": "/v2/automation/jobs/{job_id}/steps",
+      "scope": "automation.job.step.write",
+      "allowed_clients": "job_family_client_only",
+      "required_fields": ["lease_token", "execution_id", "step_key", "step_state", "idempotency_key", "recorded_at"],
+      "constraints": ["active_lease_required", "step_idempotency", "safe_metadata_only"]
+    },
+    {
+      "method": "POST",
+      "path": "/v2/automation/jobs/{job_id}/complete",
+      "scope": "automation.job.complete",
+      "allowed_clients": "job_family_client_only",
+      "required_fields": ["lease_token", "execution_id", "result_code"],
+      "constraints": ["active_lease_required", "terminal_transition_serialized"]
+    },
+    {
+      "method": "POST",
+      "path": "/v2/automation/jobs/{job_id}/fail",
+      "scope": "automation.job.fail",
+      "allowed_clients": "job_family_client_only",
+      "required_fields": ["lease_token", "execution_id", "error_code", "retryable"],
+      "constraints": ["active_lease_required", "bounded_retry", "unknown_outcome_not_retryable_without_reconciliation"]
+    },
+    {
+      "method": "POST",
+      "path": "/v2/automation/commands",
+      "scope": "resolved_from_command_prefix",
+      "allowed_clients": "command_prefix_client_only",
+      "required_fields": [
+        "job_id",
+        "lease_token",
+        "execution_id",
+        "workflow_key",
+        "workflow_version",
+        "step_key",
+        "event_id",
+        "correlation_id",
+        "causation_id",
+        "idempotency_key",
+        "command_type",
+        "command_version",
+        "occurred_at",
+        "payload"
+      ],
+      "constraints": [
+        "active_lease_required",
+        "job_workflow_identity_match",
+        "command_prefix_scope_match",
+        "tenant_and_actor_derived_server_side",
+        "capability_rechecked_before_effect",
+        "exact_replay_returns_original",
+        "semantic_conflict_rejected"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v2/automation/commands/{command_id}",
+      "scope": "automation.command.read",
+      "allowed_clients": "command_family_client_only",
+      "constraints": ["tenant_from_command", "job_family_match"]
+    },
+    {
+      "method": "POST",
+      "path": "/v2/automation/approvals",
+      "scope": "automation.approval.request",
+      "allowed_clients": "job_family_client_only",
+      "required_fields": ["job_id", "approval_type", "summary", "expires_at", "idempotency_key"],
+      "constraints": ["approval_policy_allowlist", "requester_cannot_self_approve"]
+    },
+    {
+      "method": "GET",
+      "path": "/v2/automation/approvals/{approval_id}",
+      "scope": "automation.approval.read",
+      "allowed_clients": "approval_job_family_client_only",
+      "constraints": ["tenant_from_approval"]
+    },
+    {
+      "method": "POST",
+      "path": "/v2/automation/dead-letters/{dead_letter_id}/replay",
+      "scope": "automation.operations.replay.request",
+      "allowed_clients": ["n8n-operations-automation"],
+      "required_fields": [
+        "approval_id",
+        "idempotency_key",
+        "expected_version",
+        "original_effect_fingerprint",
+        "safe_replay_classification",
+        "replay_reason"
+      ],
+      "constraints": [
+        "protected_non_self_approval",
+        "dead_letter_version_match",
+        "original_fingerprint_match",
+        "safe_replay_classification_allowlist",
+        "capability_dead_letter_replay_enabled",
+        "original_tenant_preserved"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v2/automation/jobs/reconcile",
+      "scope": "automation.operations.reconcile",
+      "allowed_clients": ["n8n-operations-automation"],
+      "constraints": ["read_or_plan_by_default", "repair_requires_separate_policy"]
+    },
+    {
+      "method": "GET",
+      "path": "/v2/automation/capabilities/{capability}",
+      "scope": "automation.capability.read",
+      "allowed_clients": "all_declared_clients",
+      "constraints": ["safe_effective_state_only"]
+    }
+  ],
+  "command_families": [
+    {"prefix": "identity.", "scope": "automation.command.identity", "client": "n8n-identity-automation", "workflow_families": ["identity"]},
+    {"prefix": "provisioning.", "scope": "automation.command.identity", "client": "n8n-identity-automation", "workflow_families": ["provisioning"]},
+    {"prefix": "crm.", "scope": "automation.command.crm", "client": "n8n-crm-automation", "workflow_families": ["crm"]},
+    {"prefix": "support.", "scope": "automation.command.crm", "client": "n8n-crm-automation", "workflow_families": ["support"]},
+    {"prefix": "telephony.", "scope": "automation.command.telephony", "client": "n8n-telephony-automation", "workflow_families": ["telephony"]},
+    {"prefix": "email.", "scope": "automation.command.messaging", "client": "n8n-messaging-automation", "workflow_families": ["messaging.email"]},
+    {"prefix": "sms.", "scope": "automation.command.messaging", "client": "n8n-messaging-automation", "workflow_families": ["messaging.sms"]},
+    {"prefix": "social.", "scope": "automation.command.social", "client": "n8n-social-automation", "workflow_families": ["social.postly"]},
+    {"prefix": "crawler.", "scope": "automation.command.crawler", "client": "n8n-crawler-automation", "workflow_families": ["crawler.kyqra"]},
+    {"prefix": "moneybee.", "scope": "automation.command.product", "client": "n8n-product-automation", "workflow_families": ["product.moneybee"]},
+    {"prefix": "breero.", "scope": "automation.command.product", "client": "n8n-product-automation", "workflow_families": ["product.breero"]},
+    {"prefix": "larim.", "scope": "automation.command.product", "client": "n8n-product-automation", "workflow_families": ["product.larim-a"]},
+    {"prefix": "freight.", "scope": "automation.command.product", "client": "n8n-product-automation", "workflow_families": ["product.freight"]},
+    {"prefix": "beyvra.operations.", "scope": "automation.command.product", "client": "n8n-product-automation", "workflow_families": ["product.beyvra-nonfinancial"]},
+    {"prefix": "booked4seasons.", "scope": "automation.command.product", "client": "n8n-product-automation", "workflow_families": ["product.booked4seasons"]},
+    {"prefix": "trading.operations.", "scope": "automation.command.product", "client": "n8n-product-automation", "workflow_families": ["product.trading-nonfinancial"]},
+    {"prefix": "real-wallet.operations.", "scope": "automation.command.product", "client": "n8n-product-automation", "workflow_families": ["product.trading-nonfinancial"]},
+    {"prefix": "privacy.", "scope": "automation.command.privacy", "client": "n8n-privacy-automation", "workflow_families": ["privacy"]}
+  ],
+  "product_boundaries": {
+    "product.beyvra-nonfinancial": {
+      "backend_repository": "appolon1908-hue/beyvra-backend",
+      "frontend_repository": "appolon1908-hue/beyvra-frontend",
+      "frontend_is_automation_client": false,
+      "allowed_command_prefixes": ["beyvra.operations."],
+      "prohibited_prefixes": [
+        "trade.",
+        "order.",
+        "wallet.",
+        "ledger.",
+        "hold.",
+        "payment.",
+        "withdrawal.",
+        "deposit.",
+        "transfer.",
+        "custody.",
+        "chain.",
+        "broker.",
+        "provider."
+      ],
+      "financial_effects_allowed": false,
+      "demo_order_effects_allowed": false
+    }
+  },
+  "invariants": {
+    "generic_execute_scope_allowed": false,
+    "generic_command_scope_allowed": false,
+    "client_can_claim_other_family": false,
+    "caller_tenant_authoritative": false,
+    "caller_actor_authoritative": false,
+    "active_lease_required_for_steps_and_commands": true,
+    "public_provider_callbacks_to_n8n": false,
+    "workflow_activation_enables_capability": false,
+    "live_apply_authorized": false
+  }
+}

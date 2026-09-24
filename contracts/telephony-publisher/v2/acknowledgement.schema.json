@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://codestra.internal/contracts/telephony-publisher/2.0/acknowledgement.schema.json",
+  "title": "Codestra Durable Acknowledgement v2.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "event_id", "acknowledgement_id",
+               "receiver_timestamp", "status", "duplicate", "retryable",
+               "reason_code"],
+  "properties": {
+    "schema_version": {"const": "2.0"},
+    "event_id": {"type": "string", "format": "uuid"},
+    "acknowledgement_id": {"type": "string", "format": "uuid"},
+    "receiver_timestamp": {"type": "string", "format": "date-time"},
+    "status": {"enum": ["accepted", "duplicate", "rejected", "retry_later"]},
+    "duplicate": {"type": "boolean"},
+    "retryable": {"type": "boolean"},
+    "reason_code": {
+      "enum": ["durably_accepted", "already_accepted", "authentication_failed",
+               "authorization_failed", "schema_rejected", "policy_rejected",
+               "rate_limited", "downstream_unavailable", "permanent_rejection",
+               "retry_exhausted"]
+    },
+    "retry_after_seconds": {"type": ["integer", "null"], "minimum": 0, "maximum": 300}
+  }
+}

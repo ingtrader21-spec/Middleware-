@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "codestra.order.dead_letter.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "command_id", "order_id", "workflow_code", "reason_code", "reason", "retry_count", "correlation_id", "trace_id"],
+  "properties": {
+    "schema_version": {"const": "codestra.order.dead_letter.v1"},
+    "command_id": {"type": "string", "minLength": 1},
+    "order_id": {"type": "string", "minLength": 1},
+    "workflow_code": {"type": "string", "minLength": 1},
+    "reason_code": {"type": "string", "minLength": 1},
+    "reason": {"type": "string", "maxLength": 512},
+    "retry_count": {"type": "integer", "minimum": 0},
+    "correlation_id": {"type": "string", "minLength": 1},
+    "trace_id": {"type": "string", "minLength": 1}
+  }
+}

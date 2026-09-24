@@ -1,0 +1,38 @@
+# Verified auth.codestra.co routing reference for Server A (65.109.65.169).
+#
+# The live host Caddy route currently proxies to 127.0.0.1:18103. That loopback
+# port is owned by codestra-caddy-upstream-gateway, whose :18103 listener proxies
+# to the production Keycloak container codestra-identity-keycloak-1:8080.
+#
+# This reference intentionally does not bypass the upstream gateway and does not
+# route to the staging Keycloak container. No remote Keycloak IP is required.
+
+auth.codestra.co {
+	import security_headers
+
+	reverse_proxy 127.0.0.1:18103 {
+		# Keycloak's runtime gzip cache is read-only in this deployment.
+		header_up Accept-Encoding identity
+	}
+
+	log {
+		output file /var/log/caddy/access.log
+		format filter {
+			resp_headers>X-Auth-Request-Access-Token replace REDACTED
+		}
+	}
+}
+
+# Verified internal path:
+# 127.0.0.1:18103
+#   -> codestra-caddy-upstream-gateway:18103
+#   -> codestra-identity-keycloak-1:8080
+#
+# Acceptance evidence observed 2026-08-26:
+#   internal gateway discovery HTTP = 200
+#   public discovery HTTP = 200
+#   TLS verification result = 0
+#   issuer = https://auth.codestra.co/realms/codestra
+#
+# Do not change this route to auth.codestra.co:443, 49.12.145.107, or the staging
+# Keycloak service without a new reviewed topology change.

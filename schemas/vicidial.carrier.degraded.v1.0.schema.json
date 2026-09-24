@@ -1,0 +1,29 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "carrier_id": {
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Carrier Id",
+      "type": "string"
+    },
+    "observed_at": {
+      "format": "date-time",
+      "title": "Observed At",
+      "type": "string"
+    },
+    "reason_code": {
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Reason Code",
+      "type": "string"
+    }
+  },
+  "required": [
+    "carrier_id",
+    "observed_at",
+    "reason_code"
+  ],
+  "title": "CarrierState",
+  "type": "object"
+}

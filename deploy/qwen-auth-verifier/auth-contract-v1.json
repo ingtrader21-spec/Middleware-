@@ -1,0 +1,38 @@
+{
+  "contract_version": "1.0",
+  "method": "POST",
+  "path": "/internal/api/v1/ai/auth/verify",
+  "scope": "ai.auth.verify/read-only",
+  "headers": {
+    "service_id": "X-Service-ID",
+    "hmac_key_id": "X-HMAC-Key-ID",
+    "timestamp": "X-Timestamp",
+    "nonce": "X-Nonce",
+    "body_digest": "X-Body-SHA256",
+    "signature": "X-Signature",
+    "correlation_id": "X-Correlation-ID",
+    "trusted_client_certificate_der": "X-Codestra-Client-Certificate-DER"
+  },
+  "canonical_signing_fields": [
+    "uppercase_http_method",
+    "exact_path",
+    "service_id",
+    "unix_timestamp_seconds",
+    "nonce",
+    "lowercase_sha256_body_digest"
+  ],
+  "canonical_separator": "newline",
+  "canonical_terminal_newline": false,
+  "signature_algorithm": "HMAC-SHA256",
+  "signature_encoding": "lowercase_hex",
+  "timestamp_format": "unix_seconds_decimal_ascii",
+  "allowed_clock_skew_seconds": 300,
+  "nonce_format": "16_to_128_ASCII_characters_[A-Za-z0-9._~-]",
+  "body_digest_format": "lowercase_hex_SHA-256_of_exact_body_bytes",
+  "replay_protection": "durable_atomic_nonce_marker",
+  "response_fields": [
+    "authentication_status",
+    "correlation_id",
+    "server_timestamp"
+  ]
+}

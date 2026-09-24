@@ -1,0 +1,52 @@
+{
+  "server": "65.109.65.169",
+  "readback_date_utc": "2026-09-10",
+  "klyrow_callback": {
+    "private_address": "10.40.0.1",
+    "port": 18080,
+    "tls_verified": true,
+    "bearer_hmac_authenticated": true,
+    "validation_only_http": 422,
+    "active_upstream": "127.0.0.1:18180",
+    "active_service": "codestra-email-reseller-api-1",
+    "required_upstream": "127.0.0.1:18181",
+    "required_listener_present": false
+  },
+  "middleware": {
+    "klyrow_receiver_module_present": false,
+    "klyrow_mail_worker_present": false,
+    "required_hmac_file_present": false,
+    "required_mail_rpc_key_file_present": false
+  },
+  "odoo": {
+    "tls_health_http": 200,
+    "results_service_token_http": 200,
+    "results_delivery_enabled": false,
+    "mail_ingest_model_installed": true,
+    "mail_service_account_active": true,
+    "mail_module": "codestra_mail_inbox"
+  },
+  "validation": {
+    "caddy_native_adaptation": {
+      "configurations": [
+        {
+          "configured_peer": "127.0.0.1",
+          "method": "POST",
+          "path": "/jsonrpc",
+          "native_config_valid": true
+        },
+        {
+          "configured_peer": "10.254.41.8",
+          "method": "POST",
+          "path": "/jsonrpc",
+          "native_config_valid": true
+        }
+      ],
+      "runtime_changed": false
+    },
+    "business_events_submitted": 0,
+    "odoo_business_writes": 0,
+    "production_routes_changed": 0
+  },
+  "end_to_end_delivery_verified": false
+}

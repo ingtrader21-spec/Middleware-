@@ -1,0 +1,56 @@
+name: lead-automation-n8n-source-v1
+
+on:
+  pull_request:
+    paths:
+      - "deploy/n8n/lead-automation/**"
+      - ".github/workflows/lead-automation-n8n-source-v1.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  exact-head-gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install pinned test tooling
+        run: pip install --require-hashes -r requirements-test.lock
+      - name: Parse JSON and enforce source boundaries
+        run: python deploy/n8n/lead-automation/tests/check_workflow_source.py
+      - name: Run synthetic offline contract suite
+        run: pytest -q deploy/n8n/lead-automation/tests
+      - name: Import workflow in pinned isolated n8n
+        run: |
+          docker network create --internal lead-n8n-ci-isolated
+          trap 'docker network rm lead-n8n-ci-isolated >/dev/null' EXIT
+          docker run --rm \
+            --network lead-n8n-ci-isolated \
+            -e N8N_DIAGNOSTICS_ENABLED=false \
+            -e N8N_PERSONALIZATION_ENABLED=false \
+            -v "${PWD}/deploy/n8n/lead-automation:/source:ro" \
+            n8nio/n8n@sha256:11524034450080bd0032754892b23ff20be43d72cf320ce75640f7c5475fdca8 \
+            import:workflow --input=/source/lead-automation-generic-v1.json
+      - name: Static, secret, scope and rollback gates
+        run: |
+          ruff check deploy/n8n/lead-automation/tests
+          git diff --check "${{ github.event.pull_request.base.sha }}..HEAD"
+          ! git grep -Ei '(BEGIN (RSA|OPENSSH|EC) PRIVATE KEY|AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9]{20,})' -- deploy/n8n/lead-automation
+          if [[ "$GITHUB_HEAD_REF" != "migration/canonicalize-appolon-middleware-20260906" ]]; then
+            ! git diff "${{ github.event.pull_request.base.sha }}..HEAD" --name-only | grep -E 'recording|asterisk|vicidial'
+          fi
+          test -f deploy/n8n/lead-automation/ROLLBACK.md
+      - name: Dependency vulnerability gate
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        with:
+          scan-type: fs
+          scanners: vuln
+          severity: CRITICAL,HIGH
+          ignore-unfixed: false
+          exit-code: "1"

@@ -1,0 +1,45 @@
+services:
+  controller:
+    environment:
+      HTTPS_PROXY: http://elevenlabs-egress-gateway:8888
+      NO_PROXY: localhost,127.0.0.1,keycloak
+    networks:
+      elevenlabs_proxy: {}
+
+  elevenlabs-egress-gateway:
+    image: ${CODESTRA_MIDDLEWARE_IMAGE:?immutable middleware image required}
+    command: ["python", "-m", "app.entrypoints.elevenlabs_egress_gateway"]
+    restart: unless-stopped
+    networks:
+      elevenlabs_proxy: {}
+      elevenlabs_egress: {}
+    expose: ["8888"]
+    read_only: true
+    tmpfs:
+      - /tmp:size=8m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 64
+    mem_limit: 128m
+    cpus: 0.25
+    healthcheck:
+      test: ["CMD", "python", "-m", "app.entrypoints.elevenlabs_egress_gateway", "--check"]
+      interval: 30s
+      timeout: 15s
+      retries: 3
+
+networks:
+  elevenlabs_proxy:
+    internal: true
+    ipam:
+      config:
+        - subnet: 10.254.41.0/29
+          gateway: 10.254.41.1
+  elevenlabs_egress:
+    internal: false
+    ipam:
+      config:
+        - subnet: 10.254.41.8/29
+          gateway: 10.254.41.9

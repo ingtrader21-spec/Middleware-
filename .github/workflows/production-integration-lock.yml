@@ -1,0 +1,61 @@
+name: Production integration lock
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-integration-lock-${{ github.ref }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  validate:
+    name: production-integration-lock
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      EXPECTED_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Check out exact source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.EXPECTED_SHA }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Verify exact source identity
+        run: |
+          set -Eeuo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          test -z "$(git status --porcelain)"
+      - name: Validate the complete fail-closed production integration tuple
+        run: |
+          set -Eeuo pipefail
+          python3 -m py_compile \
+            scripts/validate_production_integration_lock.py \
+            tests/test_production_integration_lock.py
+          python3 -m unittest -v tests.test_production_integration_lock
+          python3 scripts/validate_production_integration_lock.py
+          python3 -m json.tool config/production-integration-lock.v1.json >/dev/null
+          git diff --check
+      - name: Upload secret-free lock evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: production-integration-lock-${{ env.EXPECTED_SHA }}
+          path: artifacts/production-integration-lock/
+          if-no-files-found: error
+          retention-days: 90
+      - name: Confirm activation remains blocked
+        run: |
+          echo 'FULL_INTEGRATION_SOURCE_LOCK=PASS'
+          echo 'PRODUCTION_ACTIVATED=NO'
+          echo 'EXTERNAL_EFFECTS_ENABLED=NONE'
+          echo 'CALLS_PLACED=0'

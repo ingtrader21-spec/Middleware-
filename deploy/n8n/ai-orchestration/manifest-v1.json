@@ -1,0 +1,14 @@
+{
+  "contract_version": "1.0",
+  "activation_permitted": false,
+  "credential_contract": "codestra-middleware-ai-service",
+  "forbidden_destinations": ["10.40.0.4", "127.0.0.1:4000", "127.0.0.1:11434"],
+  "workflows": [
+    "CdstSubmitAICommandV1.json",
+    "CdstPollAICommandV1.json",
+    "CdstRetrieveAIResultV1.json",
+    "CdstRequestAIApprovalV1.json",
+    "CdstHandleAIFailureV1.json",
+    "CdstNotifyAIDeadLetterV1.json"
+  ]
+}

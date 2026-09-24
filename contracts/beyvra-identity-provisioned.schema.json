@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.codestra.co/middleware/beyvra-identity-provisioned.schema.json",
+  "title": "Beyvra identity account provisioned source event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event_id",
+    "event_type",
+    "schema_version",
+    "occurred_at",
+    "correlation_id",
+    "causation_id",
+    "tenant_ref",
+    "payload"
+  ],
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "event_type": {
+      "const": "identity.account.provisioned"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "correlation_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "causation_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "uuid"
+    },
+    "tenant_ref": {
+      "const": "beyvra"
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "identity_ref",
+        "local_user_ref",
+        "roles",
+        "authority"
+      ],
+      "properties": {
+        "identity_ref": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "local_user_ref": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$"
+        },
+        "roles": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "User",
+              "Admin",
+              "Super Admin"
+            ]
+          }
+        },
+        "authority": {
+          "const": "keycloak"
+        }
+      }
+    }
+  }
+}

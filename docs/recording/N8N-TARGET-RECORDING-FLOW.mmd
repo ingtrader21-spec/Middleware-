@@ -1,0 +1,16 @@
+flowchart LR
+    A[VICIdial completed recording] --> B[Server B exporter]
+    B --> C[Middleware reservation API]
+    C --> D[Private object storage]
+    B --> E[Middleware completion API]
+    E --> F[Checksum and object verification]
+    F --> G[Odoo recording upsert]
+    G --> H[Middleware ODOO_LINKED state]
+    H --> I[Middleware outbox]
+    I -. inactive by default .-> J[n8n generic ingress]
+    J -. optional .-> K[Transcription or QA]
+    K -. result .-> L[Middleware automation-result]
+    L -. metadata status .-> G
+
+    R[Retention enforcement] --> D
+    H --> R

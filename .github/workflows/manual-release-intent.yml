@@ -1,0 +1,214 @@
+name: Manual protected release intent
+
+on:
+  workflow_dispatch:
+    inputs:
+      phase:
+        description: Normalized portfolio release phase
+        required: true
+        type: choice
+        options:
+          - plan
+          - staging
+          - canary
+          - production
+      source_sha:
+        description: Exact protected default-branch head SHA
+        required: true
+        type: string
+      release_id:
+        description: Portfolio release identifier
+        required: true
+        type: string
+      candidate_sha256:
+        description: Exact portfolio candidate file SHA-256
+        required: true
+        type: string
+      images_json:
+        description: JSON array of exact candidate image@sha256 identities
+        required: true
+        type: string
+      previous_images_json:
+        description: JSON array of exact rollback image@sha256 identities
+        required: true
+        type: string
+      prior_evidence_sha256:
+        description: Exact prior-phase evidence SHA-256, or 64 zeroes for plan
+        required: true
+        type: string
+      prior_evidence_run_id:
+        description: Exact prior-phase workflow run ID, or 0 for plan
+        required: true
+        type: string
+      confirmation:
+        description: Exact phase-specific confirmation
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  attestations: read
+  checks: read
+  contents: read
+  packages: read
+
+concurrency:
+  group: manual-release-intent-${{ inputs.phase }}-${{ inputs.release_id }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  verify:
+    name: release-intent / exact-head-policy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    outputs:
+      environment: ${{ steps.policy.outputs.environment }}
+      deployment_authority: ${{ steps.policy.outputs.deployment_authority }}
+      evidence_b64: ${{ steps.policy.outputs.evidence_b64 }}
+      evidence_sha256: ${{ steps.policy.outputs.evidence_sha256 }}
+    steps:
+      - name: Verify dispatched source is current protected head before checkout
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT_SHA: ${{ github.sha }}
+          REQUESTED_SOURCE_SHA: ${{ inputs.source_sha }}
+        run: |
+          set -Eeuo pipefail
+          test "$GITHUB_REF" = "refs/heads/main"
+          test "$EVENT_SHA" = "$REQUESTED_SOURCE_SHA"
+          branch="$(gh api "repos/${GITHUB_REPOSITORY}" --jq .default_branch)"
+          test "$branch" = "main"
+          head="$(gh api "repos/${GITHUB_REPOSITORY}/branches/${branch}" --jq .commit.sha)"
+          test "$head" = "$EVENT_SHA"
+
+      - name: Check out exact protected event source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Install pinned workflow parser
+        run: python3 -m pip install --disable-pip-version-check --no-input PyYAML==6.0.3
+
+      - name: Install pinned cosign for the canonical middleware verifier
+        if: ${{ github.repository == 'ingtrader21-spec/Middleware-' }}
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+        with:
+          cosign-release: v3.0.6
+
+      - name: Verify contract, exact branch head, checks, evidence chain, and artifacts
+        id: policy
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CODESTRA_ORCHESTRATOR_TOKEN: ${{ secrets.CODESTRA_ORCHESTRATOR_TOKEN }}
+          PHASE: ${{ inputs.phase }}
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          RELEASE_ID: ${{ inputs.release_id }}
+          CANDIDATE_SHA256: ${{ inputs.candidate_sha256 }}
+          IMAGES_JSON: ${{ inputs.images_json }}
+          PREVIOUS_IMAGES_JSON: ${{ inputs.previous_images_json }}
+          PRIOR_EVIDENCE_SHA256: ${{ inputs.prior_evidence_sha256 }}
+          PRIOR_EVIDENCE_RUN_ID: ${{ inputs.prior_evidence_run_id }}
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: python3 .codestra/validate-release-intent.py
+
+  plan-intent:
+    name: release-intent / plan
+    needs:
+      - verify
+    if: ${{ inputs.phase == 'plan' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Materialize verified plan intent
+        env:
+          EVIDENCE_B64: ${{ needs.verify.outputs.evidence_b64 }}
+          EXPECTED_SHA256: ${{ needs.verify.outputs.evidence_sha256 }}
+        run: |
+          set -Eeuo pipefail
+          umask 077
+          printf '%s' "$EVIDENCE_B64" | base64 --decode > "$RUNNER_TEMP/release-intent.json"
+          test "$(sha256sum "$RUNNER_TEMP/release-intent.json" | cut -d' ' -f1)" = "$EXPECTED_SHA256"
+          jq -e '.phase == "plan" and .prior_evidence_run_id == 0 and .protected_environment == null and .protected_environment_approved == false and .protected_environment_job_completed == false and .runtime_contacted == false and .production_changed == false and .external_effects_enabled == false and .status == "PASS"' "$RUNNER_TEMP/release-intent.json" >/dev/null
+
+      - name: Upload normalized release intent
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4.6.2
+        with:
+          name: codestra-release-intent-${{ inputs.phase }}-${{ inputs.source_sha }}
+          path: ${{ runner.temp }}/release-intent.json
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 6
+
+  protected-intent:
+    name: release-intent / protected-${{ inputs.phase }}
+    needs:
+      - verify
+    if: ${{ inputs.phase != 'plan' && needs.verify.outputs.deployment_authority == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment:
+      name: ${{ needs.verify.outputs.environment }}
+    steps:
+      - name: Check out exact source after environment approval
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Install pinned workflow parser
+        run: python3 -m pip install --disable-pip-version-check --no-input PyYAML==6.0.3
+
+      - name: Re-verify protected gates and candidate after environment approval
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CODESTRA_ORCHESTRATOR_TOKEN: ${{ secrets.CODESTRA_ORCHESTRATOR_TOKEN }}
+          PHASE: ${{ inputs.phase }}
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          RELEASE_ID: ${{ inputs.release_id }}
+          CANDIDATE_SHA256: ${{ inputs.candidate_sha256 }}
+          IMAGES_JSON: ${{ inputs.images_json }}
+          PREVIOUS_IMAGES_JSON: ${{ inputs.previous_images_json }}
+          PRIOR_EVIDENCE_SHA256: ${{ inputs.prior_evidence_sha256 }}
+          PRIOR_EVIDENCE_RUN_ID: ${{ inputs.prior_evidence_run_id }}
+          PREAPPROVAL_EVIDENCE_B64: ${{ needs.verify.outputs.evidence_b64 }}
+        run: python3 .codestra/validate-release-intent.py --recheck-protected-gates
+
+      - name: Materialize environment-gated intent
+        env:
+          EVIDENCE_B64: ${{ needs.verify.outputs.evidence_b64 }}
+          EXPECTED_SHA256: ${{ needs.verify.outputs.evidence_sha256 }}
+          EXPECTED_ENVIRONMENT: ${{ needs.verify.outputs.environment }}
+        run: |
+          set -Eeuo pipefail
+          umask 077
+          printf '%s' "$EVIDENCE_B64" | base64 --decode > "$RUNNER_TEMP/release-intent.pending.json"
+          test "$(sha256sum "$RUNNER_TEMP/release-intent.pending.json" | cut -d' ' -f1)" = "$EXPECTED_SHA256"
+          jq --arg environment "$EXPECTED_ENVIRONMENT" '
+            if .protected_environment != $environment
+               or .protected_environment_approved != false
+               or .protected_environment_job_completed != false
+               or .runtime_contacted != false
+               or .production_changed != false
+               or .external_effects_enabled != false
+               or .status != "PASS"
+            then error("release intent evidence mismatch")
+            else .protected_environment_job_completed = true
+            end
+          ' "$RUNNER_TEMP/release-intent.pending.json" > "$RUNNER_TEMP/release-intent.json"
+          jq -e '.protected_environment_approved == false and .protected_environment_job_completed == true and .runtime_contacted == false and .production_changed == false and .external_effects_enabled == false' "$RUNNER_TEMP/release-intent.json" >/dev/null
+
+      - name: Upload normalized protected release intent
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4.6.2
+        with:
+          name: codestra-release-intent-${{ inputs.phase }}-${{ inputs.source_sha }}
+          path: ${{ runner.temp }}/release-intent.json
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 6

@@ -1,0 +1,61 @@
+{
+  "schema_version": "codestra.production-orchestrator-contract.v1",
+  "repository": "ingtrader21-spec/Middleware-",
+  "repository_id": 1347559071,
+  "default_branch": "main",
+  "role": "canonical-middleware",
+  "release_intent_workflow": ".github/workflows/manual-release-intent.yml",
+  "deployment_authority": false,
+  "runtime_mutation_authority": false,
+  "require_verified_commit": true,
+  "required_check_app_id": 15368,
+  "required_checks": [
+    "orchestrator-contract",
+    "validate",
+    "connector-runtime-build",
+    "docker-test-build",
+    "docker-runtime-build",
+    "container-security",
+    "Disposable PostgreSQL Redis integration",
+    "Disposable NATS JetStream integration",
+    "Temporal critical workflow integration",
+    "Synthetic no-effect acceptance E2E"
+  ],
+  "supported_phases": [
+    "plan"
+  ],
+  "artifact_policy": {
+    "minimum_images": 1,
+    "maximum_images": 1,
+    "image_repositories": [
+      "ghcr.io/ingtrader21-spec/codestra-middleware"
+    ],
+    "require_digest": true,
+    "allow_rebuild_after_staging": false,
+    "allow_retag_after_staging": false,
+    "require_sbom": true,
+    "require_provenance": true,
+    "require_signature": true,
+    "attestation_verifier": "cosign",
+    "attestation_storage": "oci",
+    "signer_workflow": ".github/workflows/release.yml"
+  },
+  "environments": {},
+  "native_workflows": {
+    "signed_release": ".github/workflows/release.yml",
+    "runtime_certification": ".github/workflows/production-runtime-certification.yml"
+  },
+  "safety": {
+    "external_effects_default": false,
+    "live_email_delivery": false,
+    "live_sms_delivery": false,
+    "live_pstn_dialing": false,
+    "odoo_write": false,
+    "n8n_external_delivery": false,
+    "live_trading": false,
+    "payment_execution": false
+  },
+  "blockers": [
+    "Infustruction-repo remains the sole infrastructure runtime authority; this canonical Middleware repository supplies source and signed image evidence through plan-only intent."
+  ]
+}

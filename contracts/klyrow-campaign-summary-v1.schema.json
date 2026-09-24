@@ -1,0 +1,58 @@
+{
+  "$id": "https://contracts.codestra.co/klyrow/klyrow-campaign-summary-v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "audience_count": {
+      "minimum": 0,
+      "title": "Audience Count",
+      "type": "integer"
+    },
+    "campaign_id": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Campaign Id",
+      "type": "string"
+    },
+    "campaign_version": {
+      "minimum": 1,
+      "title": "Campaign Version",
+      "type": "integer"
+    },
+    "delivered_count": {
+      "minimum": 0,
+      "title": "Delivered Count",
+      "type": "integer"
+    },
+    "failed_count": {
+      "minimum": 0,
+      "title": "Failed Count",
+      "type": "integer"
+    },
+    "status": {
+      "enum": [
+        "COMPLETED",
+        "CANCELLED",
+        "FAILED"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "suppressed_count": {
+      "minimum": 0,
+      "title": "Suppressed Count",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "campaign_id",
+    "campaign_version",
+    "status",
+    "audience_count",
+    "delivered_count",
+    "suppressed_count",
+    "failed_count"
+  ],
+  "title": "CampaignSummaryData",
+  "type": "object"
+}

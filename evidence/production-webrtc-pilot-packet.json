@@ -1,0 +1,140 @@
+{
+  "schema_version": "production-webrtc-pilot-packet.v1",
+  "generated_at": "2026-08-20T08:25:00-04:00",
+  "safety": {
+    "pstn_dialing": "DISABLED",
+    "production_dialing": "DISABLED",
+    "calls_placed": 0,
+    "sip_register_performed": false,
+    "live_provider_dispatch": false,
+    "active_calls_pre": 0,
+    "active_channels_pre": 0
+  },
+  "campaign": {
+    "business_unit": null,
+    "campaign": null,
+    "campaign_id": null,
+    "environment": "production",
+    "status": "BLOCKED_BUSINESS_APPROVAL",
+    "registry_status": "PROPOSED_DISABLED",
+    "candidates": ["RLP100", "TRD200", "MOY300", "COD400", "SCP500", "MBL600", "FTP700", "CAL800"]
+  },
+  "agent": {
+    "name": null,
+    "keycloak_subject": null,
+    "keycloak_username": null,
+    "vicidial_user": null,
+    "extension": null,
+    "campaign": null,
+    "tenant": null,
+    "identity_binding": "BLOCKED_APPROVED_HUMAN_IDENTITY_REQUIRED",
+    "synthetic_identity_not_eligible": "synthetic.agent.test.syn.6101"
+  },
+  "supervisor": {"name": null, "assigned": "BLOCKED_HUMAN_APPROVAL_REQUIRED"},
+  "carrier": {
+    "name": null,
+    "trunk": null,
+    "account_active": "NOT_VERIFIED",
+    "trunk_config_present": "NOT_APPROVED_FOR_PILOT",
+    "production_authorization": "MISSING",
+    "authorization_reference": null
+  },
+  "caller_id": {
+    "value": null,
+    "provisioned": "FAIL_ZERO_CONFIG_MATCHES",
+    "ownership": "MISSING",
+    "authorized_for_campaign": "MISSING"
+  },
+  "destination": {
+    "value": "REDACTED_PRIVATE_DESTINATION",
+    "owner": null,
+    "country": "DO_INFERRED_NOT_VERIFIED",
+    "timezone": "America/Santo_Domingo_INFERRED_NOT_APPROVED",
+    "consent": "MISSING",
+    "consent_evidence_reference": null
+  },
+  "policies": {
+    "calling_hours": "MISSING_APPROVAL",
+    "timezone_enforcement": "NOT_CONFIGURED_FOR_APPROVED_PILOT",
+    "recording_enabled": null,
+    "recording_policy": "MISSING_APPROVAL",
+    "emergency_number_blocking": "BLOCKED_NO_APPROVED_PRODUCTION_ROUTE_POLICY",
+    "premium_number_blocking": "BLOCKED_NO_APPROVED_PRODUCTION_ROUTE_POLICY",
+    "prohibited_number_policy": "BLOCKED_NO_APPROVED_PRODUCTION_ROUTE_POLICY",
+    "international_calling": "DENIED_BY_CLOSED_GATE"
+  },
+  "pilot_controls": {
+    "allowlist": "MISSING_APPROVED_IDENTITIES_AND_POLICY",
+    "max_concurrent_calls": 1,
+    "max_call_attempts": 1,
+    "capacity_limit_deployed": false,
+    "window": null,
+    "window_approved": false,
+    "kill_switch": "PASS_CURRENTLY_ENGAGED"
+  },
+  "identity_security": {
+    "keycloak_canonical_issuer": "PASS",
+    "issuer": "https://auth.codestra.co/realms/codestra",
+    "subject_match": "BLOCKED_NO_APPROVED_AGENT",
+    "tenant_binding": "BLOCKED_NO_APPROVED_AGENT",
+    "business_unit_binding": "BLOCKED_NO_APPROVED_CAMPAIGN",
+    "campaign_binding": "BLOCKED_NO_APPROVED_CAMPAIGN",
+    "extension_binding": "BLOCKED_NO_APPROVED_AGENT"
+  },
+  "webrtc_security": {
+    "wss_dns": "PASS",
+    "wss_tls": "PASS",
+    "wss_upgrade": "PASS_FAIL_CLOSED_UNAUTHENTICATED",
+    "realtime": "PASS_STAGING",
+    "microphone_permission": "PASS_AUTOMATED_STAGING",
+    "microphone_stream_acquire": "PASS_AUTOMATED_STAGING",
+    "microphone_stream_release": "PASS_AUTOMATED_STAGING",
+    "sipjs_runtime": "PASS_STAGING",
+    "browser_secret_handling": "PASS",
+    "session_cleanup": "PASS",
+    "multi_tab_safety": "PASS",
+    "fail_closed": "PASS"
+  },
+  "release_security": {
+    "protected_source_sha": "9b817116ae6233af708d201f0233c1f707ee32b7",
+    "approved_artifact_digest": null,
+    "running_artifact_digest": "sha256:f56fac4943b9928c7ca82cbb19c876fcc8a7c1b1ec65563fa36bc9d767da80eb",
+    "running_digest_matches_approved": "BLOCKED_NO_APPROVED_DIGEST_EVIDENCE",
+    "security_gate": "BLOCKED",
+    "signature": "NOT_EVIDENCED_FOR_RUNNING_DIGEST",
+    "sbom_attestation": "NOT_EVIDENCED_FOR_RUNNING_DIGEST",
+    "provenance_attestation": "NOT_EVIDENCED_FOR_RUNNING_DIGEST"
+  },
+  "approvals": {
+    "supervisor": {"status": "MISSING"},
+    "telephony_owner": {"status": "MISSING"},
+    "security_owner": {"status": "MISSING"},
+    "compliance_owner": {"status": "MISSING"},
+    "business_owner": {"status": "MISSING"}
+  },
+  "human_approvals_required": [
+    "production_campaign_and_business_unit",
+    "pilot_agent_and_supervisor",
+    "telephony_owner_approval",
+    "security_owner_approval",
+    "compliance_owner_approval",
+    "business_owner_approval",
+    "carrier_production_authorization",
+    "caller_id_ownership_and_campaign_use",
+    "destination_owner_consent",
+    "calling_hours_recording_and_prohibited_destination_policy",
+    "pilot_window"
+  ],
+  "blockers": [
+    "NO_APPROVED_PRODUCTION_CAMPAIGN",
+    "NO_APPROVED_HUMAN_AGENT_OR_SUPERVISOR",
+    "NO_CARRIER_PRODUCTION_AUTHORIZATION",
+    "NO_CALLER_ID_OWNERSHIP_EVIDENCE",
+    "NO_DESTINATION_CONSENT_EVIDENCE",
+    "NO_NAMED_OWNER_APPROVALS",
+    "NO_APPROVED_PILOT_WINDOW",
+    "NO_RELEASE_ATTESTATION_BINDING_TO_RUNNING_DIGEST"
+  ],
+  "production_pilot_ready": "FAIL",
+  "final_status": "BLOCKED"
+}

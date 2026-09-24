@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://middleware.internal.codestra.agency/contracts/telnexa-delivery-event.v1.schema.json",
+  "title": "Telnexa delivery event",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "sms.message.delivered.v1",
+        "sms.message.failed.v1",
+        "sms.message.status.v1",
+        "sms.message.reconciled.v1"
+      ]
+    },
+    "event_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "timestamp": {
+      "oneOf": [
+        {"type": "string", "pattern": "^[0-9]{1,12}$"},
+        {"type": "integer", "minimum": 0}
+      ]
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "tenant_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "correlation_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "idempotency_key": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255
+    },
+    "message_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "provider_reference": {
+      "type": ["string", "null"],
+      "maxLength": 998
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "accepted",
+        "queued",
+        "dispatched",
+        "delivered",
+        "failed",
+        "cancelled",
+        "suppressed",
+        "expired",
+        "indeterminate"
+      ]
+    },
+    "provider_status": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120
+    },
+    "failure_code": {
+      "type": ["string", "null"],
+      "maxLength": 120
+    },
+    "failure_message": {
+      "type": ["string", "null"],
+      "maxLength": 2000
+    }
+  },
+  "required": [
+    "event_id",
+    "event_type",
+    "event_version",
+    "schema_version",
+    "timestamp",
+    "occurred_at",
+    "tenant_id",
+    "correlation_id",
+    "idempotency_key",
+    "message_id",
+    "status",
+    "provider_status"
+  ],
+  "allOf": [
+    {
+      "if": {"properties": {"event_type": {"const": "sms.message.delivered.v1"}}},
+      "then": {"properties": {"status": {"const": "delivered"}}}
+    },
+    {
+      "if": {"properties": {"event_type": {"const": "sms.message.failed.v1"}}},
+      "then": {"properties": {"status": {"const": "failed"}}}
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "name": "CdstPostizDraftUpdateV1",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "nodes": [
+    {
+      "id": "postiz-postizdraftupdate-trigger",
+      "name": "Middleware command",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "path": "postiz/command",
+        "httpMethod": "POST"
+      }
+    },
+    {
+      "id": "postiz-postizdraftupdate-callback",
+      "name": "Middleware callback",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        300,
+        0
+      ],
+      "parameters": {
+        "url": "={{$env.CODESTRA_MIDDLEWARE_BASE_URL}}/api/v1/integrations/postiz/commands",
+        "method": "POST",
+        "sendBody": true,
+        "jsonBody": "={{$json}}"
+      }
+    }
+  ],
+  "connections": {
+    "Middleware command": {
+      "main": [
+        [
+          {
+            "node": "Middleware callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "tags": [
+    {
+      "name": "offline-mock"
+    }
+  ]
+}

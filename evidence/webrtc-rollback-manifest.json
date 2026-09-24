@@ -1,0 +1,9 @@
+{
+  "rollback_source_sha": null,
+  "rollback_digest": null,
+  "artifact_file": null,
+  "config_backup": null,
+  "production_gate": false,
+  "authorization": "MISSING",
+  "note": "Populate only from signed approved deployment inventory; never infer a rollback target."
+}

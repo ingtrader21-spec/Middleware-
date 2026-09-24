@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.codestra.co/middleware/moneybee-account-provisioned.v1.schema.json",
+  "title": "MoneyBee account provisioned event",
+  "description": "MoneyBee-specific constraints expressed in the canonical Codestra Middleware event envelope.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "specversion",
+    "id",
+    "type",
+    "source",
+    "subject",
+    "time",
+    "tenant_id",
+    "correlation_id",
+    "causation_id",
+    "idempotency_key",
+    "schema_version",
+    "actor",
+    "data"
+  ],
+  "properties": {
+    "specversion": {"const": "1.0"},
+    "id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "type": {"const": "codestra.moneybee.account.provisioned"},
+    "source": {"const": "urn:codestra:moneybee-backend"},
+    "subject": {"type": "string", "pattern": "^moneybee-user:[0-9a-fA-F-]{36}$", "maxLength": 64},
+    "time": {"type": "string", "format": "date-time"},
+    "tenant_id": {"type": "string", "format": "uuid"},
+    "correlation_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "causation_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "idempotency_key": {"type": "string", "minLength": 8, "maxLength": 256},
+    "schema_version": {"const": 1},
+    "traceparent": {"type": "string", "minLength": 1, "maxLength": 256},
+    "actor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id"],
+      "properties": {
+        "type": {"const": "user"},
+        "id": {"type": "string", "pattern": "^keycloak:[^\\s]{1,150}$", "maxLength": 160}
+      }
+    },
+    "delivery_attempt": {"type": "integer", "minimum": 1},
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "user_id",
+        "organization_id",
+        "membership_type",
+        "email",
+        "email_verified"
+      ],
+      "properties": {
+        "user_id": {"type": "string", "format": "uuid"},
+        "organization_id": {"type": "string", "format": "uuid"},
+        "membership_type": {"const": "BORROWER"},
+        "email": {"type": "string", "format": "email", "maxLength": 320},
+        "email_verified": {"const": true},
+        "display_name": {"type": ["string", "null"], "maxLength": 255},
+        "marketing_consent": {"type": "boolean", "default": false}
+      }
+    }
+  }
+}

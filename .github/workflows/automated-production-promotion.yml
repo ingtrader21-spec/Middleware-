@@ -1,0 +1,114 @@
+name: Automated production promotion gate
+
+on:
+  workflow_run:
+    workflows: ["Signed Middleware Release"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: production-promotion-${{ github.event.workflow_run.head_sha }}
+  cancel-in-progress: false
+
+jobs:
+  verify-release:
+    name: Verify signed exact-main release
+    if: >-
+      github.event.workflow_run.event == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      source_sha: ${{ steps.manifest.outputs.source_sha }}
+      image_digest: ${{ steps.manifest.outputs.image_digest }}
+    steps:
+      - name: Check out the exact protected release source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Reject stale or unattributed release source
+        env:
+          EXPECTED_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -Eeuo pipefail
+          test "$GITHUB_REPOSITORY" = "ingtrader21-spec/Middleware-"
+          test "$GITHUB_REF" = "refs/heads/main"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          test -z "$(git status --porcelain)"
+
+      - name: Download exact release evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_RUN_ID: ${{ github.event.workflow_run.id }}
+          EXPECTED_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -Eeuo pipefail
+          artifact="signed-middleware-release-${EXPECTED_SHA}-${RELEASE_RUN_ID}-${{ github.event.workflow_run.run_attempt }}"
+          artifact_id="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${RELEASE_RUN_ID}/artifacts" --jq ".artifacts | map(select(.name == \"${artifact}\" and .expired == false)) | if length == 1 then .[0].id else error(\"exact release artifact missing or ambiguous\") end")"
+          mkdir -p "$RUNNER_TEMP/release-evidence"
+          gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${artifact_id}/zip" > "$RUNNER_TEMP/release-evidence.zip"
+          unzip -q "$RUNNER_TEMP/release-evidence.zip" -d "$RUNNER_TEMP/release-evidence"
+
+      - name: Install verified Cosign release
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+        with:
+          cosign-release: v3.0.6
+
+      - name: Verify signed manifest and promotion invariants
+        id: manifest
+        env:
+          EXPECTED_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -Eeuo pipefail
+          evidence="$RUNNER_TEMP/release-evidence"
+          manifest="$evidence/release-manifest.v1.json"
+          bundle="$evidence/release-manifest.v1.sigstore.json"
+          digest="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["image"]["digest"])' "$manifest")"
+          python3 scripts/release_manifest.py verify \
+            --manifest "$manifest" \
+            --bundle "$bundle" \
+            --expected-source-sha "$EXPECTED_SHA" \
+            --expected-image-digest "$digest"
+          python3 - "$manifest" <<'PY'
+          import json, sys
+          value = json.load(open(sys.argv[1]))
+          promotion = value["promotion"]
+          assert promotion["staging_and_production_same_digest"] is True
+          assert promotion["mutable_tags_authoritative"] is False
+          PY
+          printf 'source_sha=%s\n' "$EXPECTED_SHA" >> "$GITHUB_OUTPUT"
+          printf 'image_digest=%s\n' "$digest" >> "$GITHUB_OUTPUT"
+
+  production-read-only-admission:
+    name: Admit signed release to production read-only canary
+    # RUNTIME_MUTATION_DISABLED=true: production admission requires separate authorization.
+    if: ${{ false }}
+    needs: verify-release
+    environment: production
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Record fail-closed automated admission
+        env:
+          SOURCE_SHA: ${{ needs.verify-release.outputs.source_sha }}
+          IMAGE_DIGEST: ${{ needs.verify-release.outputs.image_digest }}
+        run: |
+          set -Eeuo pipefail
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+          {
+            echo 'PRODUCTION_READ_ONLY_CANARY_ADMISSION=PASS'
+            echo "SOURCE_SHA=${SOURCE_SHA}"
+            echo "IMAGE_DIGEST=${IMAGE_DIGEST}"
+            echo 'PRODUCTION_BUSINESS_WRITES_ENABLED=NO'
+            echo 'PRODUCTION_EXTERNAL_EFFECTS_ENABLED=NONE'
+          } >> "$GITHUB_STEP_SUMMARY"

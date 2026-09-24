@@ -1,0 +1,19 @@
+{
+  "title": "Codestra Approved Order Orchestration",
+  "schemaVersion": 39,
+  "tags": ["codestra", "orders", "n8n"],
+  "panels": [
+    {"title":"Order volume","type":"timeseries","targets":[{"expr":"sum(rate(codestra_orders_received_total[5m]))"}]},
+    {"title":"Completion rate","type":"timeseries","targets":[{"expr":"sum(rate(codestra_orders_completed_total[5m]))"}]},
+    {"title":"Failure rate","type":"timeseries","targets":[{"expr":"sum(rate(codestra_orders_failed_total[5m]))"}]},
+    {"title":"Retry and dead letter","type":"timeseries","targets":[{"expr":"sum(rate(codestra_orders_retried_total[5m]))"},{"expr":"sum(rate(codestra_orders_dead_lettered_total[5m]))"}]},
+    {"title":"Queue depth and delay","type":"timeseries","targets":[{"expr":"codestra_order_queue_depth"},{"expr":"histogram_quantile(0.95, sum(rate(codestra_order_queue_delay_seconds_bucket[5m])) by (le))"}]},
+    {"title":"Workflow duration","type":"timeseries","targets":[{"expr":"histogram_quantile(0.95, sum(rate(codestra_order_workflow_duration_seconds_bucket[5m])) by (le))"}]},
+    {"title":"Callbacks and reconciliation","type":"timeseries","targets":[{"expr":"sum(rate(codestra_order_callback_failure_total[5m]))"},{"expr":"sum(rate(codestra_order_reconciliation_mismatch_total[5m]))"}]},
+    {"title":"Workflow-code breakdown","type":"table","targets":[{"expr":"sum by (workflow_code) (rate(codestra_orders_received_total[5m]))"}]},
+    {"title":"Order-type breakdown","type":"table","targets":[{"expr":"sum by (order_type) (rate(codestra_orders_received_total[5m]))"}]},
+    {"title":"Organization breakdown","type":"table","targets":[{"expr":"sum by (organization_reference) (rate(codestra_orders_received_total[5m]))"}]}
+  ],
+  "templating": {"list": []},
+  "time": {"from": "now-6h", "to": "now"}
+}

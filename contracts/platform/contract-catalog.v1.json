@@ -1,0 +1,37 @@
+{
+  "schema_version": "1.0",
+  "canonical": {
+    "event": "contracts/platform/event-envelope.v1.schema.json",
+    "command": "contracts/platform/command-envelope.v1.schema.json",
+    "api": "contracts/platform/integration-fabric-api.v2.yaml"
+  },
+  "compatibility_aliases": {
+    "contracts/event-envelope.schema.json": "https://contracts.codestra.co/platform/event-envelope.v1.schema.json"
+  },
+  "specializations": [
+    {
+      "path": "contracts/lead-intake.schema.json",
+      "extends": "https://contracts.codestra.co/platform/event-envelope.v1.schema.json"
+    },
+    {
+      "path": "contracts/odoo-lead-command.schema.json",
+      "extends": "https://contracts.codestra.co/platform/command-envelope.v1.schema.json"
+    }
+  ],
+  "wire_projections": [
+    {
+      "path": "contracts/connectors/cloudevent.v1.schema.json",
+      "normalization_required": true
+    },
+    {
+      "path": "contracts/beyvra-identity-provisioned.schema.json",
+      "normalization_required": true
+    }
+  ],
+  "policy": {
+    "persist_only_canonical_envelopes": true,
+    "publish_only_canonical_envelopes": true,
+    "reject_legacy_canonical_shapes": true,
+    "wire_projections_are_not_durable_contracts": true
+  }
+}

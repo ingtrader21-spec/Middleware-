@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.codestra.internal/recording/recording-contract-v1.json",
+  "title": "Codestra Recording Contract v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "recording_uid",
+    "vicidial_recording_id",
+    "vicidial_call_id",
+    "asterisk_uniqueid",
+    "campaign_key",
+    "agent_key",
+    "started_at",
+    "duration_seconds",
+    "format",
+    "codec",
+    "channels",
+    "sample_rate_hz",
+    "file_size_bytes",
+    "sha256",
+    "environment",
+    "retention_class"
+  ],
+  "properties": {
+    "contract_version": {"const": "1.0"},
+    "recording_uid": {"type": "string", "pattern": "^REC-[0-9a-f]{32}$"},
+    "vicidial_recording_id": {"type": "string", "pattern": "^[0-9]+$"},
+    "vicidial_call_id": {"type": "string", "pattern": "^[A-Za-z0-9._:-]{1,128}$"},
+    "asterisk_uniqueid": {"type": "string", "pattern": "^[A-Za-z0-9._:-]{1,128}$"},
+    "campaign_key": {"type": "string", "pattern": "^[A-Za-z0-9_-]{1,64}$"},
+    "agent_key": {"type": "string", "pattern": "^[A-Za-z0-9_-]{1,64}$"},
+    "started_at": {"type": "string", "format": "date-time"},
+    "duration_seconds": {"type": "number", "minimum": 0},
+    "format": {"enum": ["mp3", "wav", "gsm"]},
+    "codec": {"type": "string", "pattern": "^[A-Za-z0-9._-]{1,32}$"},
+    "channels": {"type": "integer", "minimum": 1, "maximum": 2},
+    "sample_rate_hz": {"type": "integer", "minimum": 8000, "maximum": 192000},
+    "file_size_bytes": {"type": "integer", "minimum": 1},
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "environment": {"enum": ["staging", "production"]},
+    "retention_class": {
+      "enum": ["synthetic_test", "standard", "high_compliance", "legal_hold"]
+    }
+  }
+}

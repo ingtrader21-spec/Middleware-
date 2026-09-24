@@ -1,0 +1,7 @@
+{
+  "schema_version": "1.0",
+  "contract": "contracts/automation/n8n-control-plane.v2.json",
+  "mode": "strict_expected_gap",
+  "rule": "Every missing contract route must have exactly one active waiver. Implemented routes must not retain a waiver.",
+  "waivers": []
+}

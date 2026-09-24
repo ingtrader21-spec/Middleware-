@@ -1,0 +1,135 @@
+{
+  "schema": "codestra.private-proxy-recovery-observation.v1",
+  "host": "middleware",
+  "source_fix_pr": "https://github.com/appolon1908-hue/Middleware-/pull/202",
+  "initial_observation": {
+    "observed_at": "2026-09-09T17:47:48.801887+00:00",
+    "ssl_client_zombies": 32043,
+    "jit_allocated_virtual_bytes": 661925888,
+    "jit_limit": 528482304
+  },
+  "actions": [
+    {
+      "operation": "targeted_stateless_proxy_restart",
+      "started_at": "2026-09-09T17:54:19.856180+00:00",
+      "container": "/codestra-odoo-internal-proxy",
+      "container_id": "84f4b7338df34d0ee8a76b4a9ed916de5cc3756648a6053e851e97aa79beec05",
+      "restart_exit_code": 0,
+      "running": true,
+      "same_image": true,
+      "configuration_unchanged": true,
+      "configuration_sha256": "ad8fd7cd84547c007d5a44cf0f3adb1f740fc7cd9918d7065dac841199ef5716",
+      "previous_pid": 3708804,
+      "current_pid": 1269483,
+      "same_networks": true,
+      "persistent_config_fix_applied": false
+    },
+    {
+      "operation": "targeted_stateless_proxy_restart",
+      "started_at": "2026-09-09T17:55:52.866851+00:00",
+      "container": "/codestra-n8n-internal-proxy",
+      "container_id": "2e15d59d9d9cd6eaec032b8807d87228bbfa4a10d2fb0147a1ed124d5ac46b38",
+      "restart_exit_code": 0,
+      "running": true,
+      "same_image": true,
+      "configuration_unchanged": false,
+      "configuration_sha256": "454643981f6b81d903d366837b06f56d36e36aead373002139ea28c520b61da3",
+      "previous_pid": 3708411,
+      "current_pid": 1331787,
+      "same_networks": true,
+      "persistent_config_fix_applied": false,
+      "configuration_order_difference_resolved": true
+    }
+  ],
+  "after": {
+    "observed_at": "2026-09-09T18:01:23.298583+00:00",
+    "health": [
+      {
+        "container": "codestra-odoo-internal-proxy",
+        "running": true,
+        "health": "healthy",
+        "last_check": "2026-09-09T14:00:57.517978456-04:00",
+        "last_exit": 0,
+        "seccomp_error": false
+      },
+      {
+        "container": "codestra-n8n-internal-proxy",
+        "running": true,
+        "health": "healthy",
+        "last_check": "2026-09-09T14:01:00.171810429-04:00",
+        "last_exit": 0,
+        "seccomp_error": false
+      },
+      {
+        "container": "codestra-appolon-middleware-integration-api-1",
+        "running": true,
+        "health": "healthy",
+        "last_check": "2026-09-09T14:01:18.555623211-04:00",
+        "last_exit": 0,
+        "seccomp_error": false
+      },
+      {
+        "container": "codestra-kong-kong-gateway-1",
+        "running": true,
+        "health": "healthy",
+        "last_check": "2026-09-09T14:01:13.527118711-04:00",
+        "last_exit": 0,
+        "seccomp_error": false
+      },
+      {
+        "container": "codestra-caddy-upstream-gateway",
+        "running": true,
+        "health": "healthy",
+        "last_check": "2026-09-09T14:01:17.185468485-04:00",
+        "last_exit": 0,
+        "seccomp_error": false
+      },
+      {
+        "container": "codestra-n8n-1",
+        "running": true,
+        "health": "healthy",
+        "last_check": "2026-09-09T14:00:56.598811042-04:00",
+        "last_exit": 0,
+        "seccomp_error": false
+      },
+      {
+        "container": "codestra-odoo-1",
+        "running": true,
+        "health": "healthy",
+        "last_check": "2026-09-09T14:01:13.645197904-04:00",
+        "last_exit": 0,
+        "seccomp_error": false
+      },
+      {
+        "container": "codestra-redis-1",
+        "running": true,
+        "health": "healthy",
+        "last_check": "2026-09-09T14:01:14.429414014-04:00",
+        "last_exit": 0,
+        "seccomp_error": false
+      }
+    ],
+    "ssl_client_zombies": 25,
+    "jit_allocated_virtual_bytes": 6189056,
+    "jit_allocation_regions": 557,
+    "jit_limit": 528482304,
+    "integrity": [
+      {
+        "path": "/usr/local/sbin/codestra-production-operator",
+        "sha256": "9ddaeb6df45514688f66db7ea9f8e86f93e6876b7eb90e6460f9ce251bad26a0",
+        "git_blob": "4455fc21a97fe961ae2793a71ec4e546acb97866"
+      },
+      {
+        "path": "/opt/codestra/operations/backup/check-backup-state.sh",
+        "sha256": "15b6f7ed57485fe256463a154b32f8d13390ada99e9674c0e5f02226b261532c",
+        "git_blob": "8dcacada4db8491fb85f709e8ac12029d729c116"
+      }
+    ],
+    "installed_manifest_exit_code": 0,
+    "installed_manifest_failures": []
+  },
+  "persistent_init_fix_applied": false,
+  "production_certification": "NOT_COMPLETED",
+  "protected_backup_validation": "NOT_EXECUTED_AUTO_REVIEW_REJECTED",
+  "security_policy_changed": false
+}

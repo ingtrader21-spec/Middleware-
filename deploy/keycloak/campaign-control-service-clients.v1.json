@@ -1,0 +1,301 @@
+{
+  "schema_version": 1,
+  "description": "Keycloak desired state for the Middleware/Odoo/n8n campaign-control separation. Least privilege per direction; applied by the Keycloak desired-state job, never by Middleware at runtime. Scope names are pinned to contracts/odoo/campaign-control.v1.json and deploy/public-api-route-contract.json.",
+  "forbidden_grants": [
+    {
+      "client_id": "codestra-middleware-odoo-results",
+      "scope": "odoo.campaign.control.write",
+      "reason": "Odoo is authoritative for desired state; Middleware only reports actual state."
+    }
+  ],
+  "environments": {
+    "staging": {
+      "issuer": "https://auth-staging.codestra.co/realms/codestra",
+      "clients": [
+        {
+          "client_id": "codestra-middleware-odoo-results",
+          "direction": "middleware_to_odoo",
+          "service_accounts_enabled": true,
+          "interactive_flows_enabled": false,
+          "audience": "codestra-odoo-integration",
+          "scopes": [
+            "odoo.integration.results.write",
+            "odoo.integration.automation_results.write",
+            "odoo.integration.provider_activities.write",
+            "odoo.campaign.control.read",
+            "odoo.campaign.actual_state.write"
+          ],
+          "organizations": [
+            "TEST_SYN_TENANT"
+          ],
+          "business_units": [
+            "TEST_SYN"
+          ],
+          "campaigns": [
+            "TEST_SYN"
+          ],
+          "credential_reference_id": "secret://staging/odoo-results-client",
+          "rotation_days": 30,
+          "revocable": true,
+          "token_lifetime_seconds": 300,
+          "full_scope_allowed": false
+        },
+        {
+          "client_id": "test-syn-n8n-submit",
+          "direction": "n8n_to_middleware",
+          "service_accounts_enabled": true,
+          "interactive_flows_enabled": false,
+          "token_lifetime_seconds": 300,
+          "full_scope_allowed": false,
+          "rotation_days": 30,
+          "revocable": true,
+          "audience": "middleware-api",
+          "scopes": [
+            "n8n.results.submit"
+          ],
+          "organizations": [
+            "TEST_SYN_TENANT"
+          ],
+          "business_units": [
+            "TEST_SYN"
+          ],
+          "campaigns": [
+            "TEST_SYN"
+          ],
+          "credential_reference_id": "secret://staging/keycloak/test-syn-n8n-submit"
+        },
+        {
+          "client_id": "test-syn-n8n-read",
+          "direction": "n8n_to_middleware",
+          "service_accounts_enabled": true,
+          "interactive_flows_enabled": false,
+          "token_lifetime_seconds": 300,
+          "full_scope_allowed": false,
+          "rotation_days": 30,
+          "revocable": true,
+          "audience": "middleware-api",
+          "scopes": [
+            "n8n.results.read"
+          ],
+          "organizations": [
+            "TEST_SYN_TENANT"
+          ],
+          "business_units": [
+            "TEST_SYN"
+          ],
+          "campaigns": [
+            "TEST_SYN"
+          ],
+          "credential_reference_id": "secret://staging/keycloak/test-syn-n8n-read"
+        },
+        {
+          "client_id": "test-syn-odoo-reader",
+          "direction": "caller_to_middleware",
+          "service_accounts_enabled": true,
+          "interactive_flows_enabled": false,
+          "token_lifetime_seconds": 300,
+          "full_scope_allowed": false,
+          "rotation_days": 30,
+          "revocable": true,
+          "audience": "middleware-api",
+          "scopes": [
+            "odoo.campaigns.read"
+          ],
+          "organizations": [
+            "TEST_SYN_TENANT"
+          ],
+          "business_units": [
+            "TEST_SYN"
+          ],
+          "campaigns": [
+            "TEST_SYN"
+          ],
+          "credential_reference_id": "secret://staging/keycloak/test-syn-odoo-reader"
+        },
+        {
+          "client_id": "test-syn-wrong-audience",
+          "direction": "certification_negative",
+          "service_accounts_enabled": true,
+          "interactive_flows_enabled": false,
+          "token_lifetime_seconds": 300,
+          "full_scope_allowed": false,
+          "rotation_days": 30,
+          "revocable": true,
+          "audience": "test-syn-wrong-audience",
+          "scopes": [],
+          "organizations": [
+            "TEST_SYN_TENANT"
+          ],
+          "business_units": [
+            "TEST_SYN"
+          ],
+          "campaigns": [
+            "TEST_SYN"
+          ],
+          "credential_reference_id": "secret://staging/keycloak/test-syn-wrong-audience",
+          "purpose": "must be rejected on audience before any scope or tenant check"
+        },
+        {
+          "client_id": "test-syn-wrong-tenant",
+          "direction": "certification_negative",
+          "service_accounts_enabled": true,
+          "interactive_flows_enabled": false,
+          "token_lifetime_seconds": 300,
+          "full_scope_allowed": false,
+          "rotation_days": 30,
+          "revocable": true,
+          "audience": "middleware-api",
+          "scopes": [
+            "n8n.results.read",
+            "odoo.campaigns.read"
+          ],
+          "organizations": [
+            "TEST_SYN_OTHER_TENANT"
+          ],
+          "business_units": [
+            "TEST_SYN_OTHER"
+          ],
+          "campaigns": [
+            "TEST_SYN_OTHER"
+          ],
+          "credential_reference_id": "secret://staging/keycloak/test-syn-wrong-tenant",
+          "purpose": "valid azp, wrong tenant/business unit/campaign claims: proves cross-tenant denial is indistinguishable from a missing record",
+          "token_claims": {
+            "tenant_id": "TEST_SYN_OTHER_TENANT",
+            "business_units": [
+              "TEST_SYN_OTHER"
+            ],
+            "campaigns": [
+              "TEST_SYN_OTHER"
+            ]
+          }
+        }
+      ],
+      "audience_note": "Certification identities use the canonical middleware-api audience; no compatibility audience is accepted.",
+      "token_claims": {
+        "environment": "staging",
+        "tenant_id": "TEST_SYN_TENANT",
+        "business_units": [
+          "TEST_SYN"
+        ],
+        "campaigns": [
+          "TEST_SYN"
+        ],
+        "azp": "<client_id>",
+        "scope": "only the assigned ingress scope(s)",
+        "jti": "present"
+      },
+      "middleware_settings": {
+        "N8N_SERVICE_ISSUER": "https://auth-staging.codestra.co/realms/codestra",
+        "N8N_SERVICE_AUDIENCE": "middleware-api",
+        "N8N_CAMPAIGN_SERVICE_CLIENT_IDS": "test-syn-n8n-submit,test-syn-n8n-read,test-syn-wrong-tenant",
+        "KEYCLOAK_ISSUER": "https://auth-staging.codestra.co/realms/codestra",
+        "KEYCLOAK_AUDIENCE": "middleware-api",
+        "ODOO_CAMPAIGN_READER_CLIENT_IDS": "test-syn-odoo-reader,test-syn-wrong-tenant",
+        "ENVIRONMENT": "staging",
+        "note": "The negative identity test-syn-wrong-tenant must pass azp so the cross-tenant matrix rows are denied by claims (indistinguishable 404), not by a 401 at azp."
+      }
+    },
+    "production": {
+      "issuer": "https://auth.codestra.co/realms/codestra",
+      "activation": "not authorized; write scopes are declared but the registry routes stay kill-switched until the activation revision",
+      "clients": [
+        {
+          "client_id": "codestra-middleware-odoo-results",
+          "direction": "middleware_to_odoo",
+          "service_accounts_enabled": true,
+          "interactive_flows_enabled": false,
+          "audience": "codestra-odoo",
+          "scopes": [
+            "odoo.integration.results.write",
+            "odoo.integration.automation_results.write",
+            "odoo.integration.provider_activities.write",
+            "odoo.campaign.control.read",
+            "odoo.campaign.actual_state.write"
+          ],
+          "organizations": [
+            "ORG-CODESTRA"
+          ],
+          "business_units": [
+            "MOY",
+            "COD",
+            "MBL",
+            "SCP",
+            "SRP"
+          ],
+          "campaigns": [
+            "MOY-SHIPPER-OUT",
+            "COD-WEB-OUT",
+            "MBL-NEW-LOAN-OUT",
+            "SCP-PRODUCT-OUT",
+            "SRP-STUDENT-OUT"
+          ],
+          "credential_reference_id": "secret://production/odoo-results-client",
+          "rotation_days": 30,
+          "revocable": true
+        },
+        {
+          "client_id": "codestra-n8n-campaign-crm-production",
+          "direction": "n8n_to_middleware",
+          "service_accounts_enabled": true,
+          "interactive_flows_enabled": false,
+          "audience": "middleware-api",
+          "scopes": [
+            "n8n.results.submit",
+            "n8n.results.read"
+          ],
+          "organizations": [
+            "ORG-CODESTRA"
+          ],
+          "business_units": [
+            "MOY",
+            "COD",
+            "MBL",
+            "SCP",
+            "SRP"
+          ],
+          "campaigns": [
+            "MOY-SHIPPER-OUT",
+            "COD-WEB-OUT",
+            "MBL-NEW-LOAN-OUT",
+            "SCP-PRODUCT-OUT",
+            "SRP-STUDENT-OUT"
+          ],
+          "credential_reference_id": "secret://codestra/production/keycloak/codestra-n8n-campaign-crm-production",
+          "rotation_days": 30,
+          "revocable": true
+        },
+        {
+          "client_id": "codestra-odoo-campaign-reader-production",
+          "direction": "caller_to_middleware",
+          "service_accounts_enabled": true,
+          "interactive_flows_enabled": false,
+          "audience": "middleware-api",
+          "scopes": [
+            "odoo.campaigns.read"
+          ],
+          "organizations": [
+            "ORG-CODESTRA"
+          ],
+          "business_units": [
+            "MOY",
+            "COD",
+            "MBL",
+            "SCP",
+            "SRP"
+          ],
+          "campaigns": [
+            "MOY-SHIPPER-OUT",
+            "COD-WEB-OUT",
+            "MBL-NEW-LOAN-OUT",
+            "SCP-PRODUCT-OUT",
+            "SRP-STUDENT-OUT"
+          ],
+          "credential_reference_id": "secret://codestra/production/keycloak/codestra-odoo-campaign-reader-production",
+          "rotation_days": 30,
+          "revocable": true
+        }
+      ]
+    }
+  }
+}

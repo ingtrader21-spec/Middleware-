@@ -1,0 +1,448 @@
+name: Certify Middleware production read-only canary
+
+on:
+  issue_comment:
+    types:
+      - created
+
+permissions:
+  actions: read
+  contents: read
+  issues: write
+  packages: read
+
+concurrency:
+  group: middleware-middleware-runtime-certification
+  cancel-in-progress: false
+
+jobs:
+  certify:
+    # RUNTIME_MUTATION_DISABLED=true
+    # Infustruction-repo is the sole infrastructure runtime authority.
+    if: ${{ false }}
+    name: Deploy and certify exact immutable production canary
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    environment: middleware-runtime-certification
+
+    env:
+      DEPLOY_HOST: 65.109.65.169
+      DEPLOY_PORT: "22"
+      DEPLOY_USER: middleware-deploy
+      SIGNER_IDENTITY: https://github.com/ingtrader21-spec/Middleware-/.github/workflows/release.yml@refs/heads/main
+      OIDC_ISSUER: https://token.actions.githubusercontent.com
+
+    steps:
+      - name: Check out exact default-branch event SHA
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify immutable source and owner command
+        id: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT_SHA: ${{ github.sha }}
+        run: |
+          set -Eeuo pipefail
+          test "$GITHUB_REPOSITORY" = "ingtrader21-spec/Middleware-"
+          test "$GITHUB_REF" = "refs/heads/main"
+          test "$(git rev-parse HEAD)" = "$EVENT_SHA"
+          test -z "$(git status --porcelain)"
+          main_json="$(gh api "/repos/$GITHUB_REPOSITORY/commits/main")"
+          main_sha="$(jq -r '.sha' <<<"$main_json")"
+          verified="$(jq -r '.commit.verification.verified' <<<"$main_json")"
+          test "$main_sha" = "$EVENT_SHA"
+          test "$verified" = "true"
+          printf 'source_sha=%s\n' "$main_sha" >> "$GITHUB_OUTPUT"
+          printf 'SOURCE_SHA=%s\n' "$main_sha"
+
+      - name: Validate repository deployment contract
+        run: |
+          set -Eeuo pipefail
+          python3 scripts/validate_production_runtime_deployment.py source
+          bash -n deploy/production/server/codestra-middleware-deploy
+          bash -n deploy/production/server/codestra-middleware-backup
+          bash -n deploy/production/server/install-restricted-command.sh
+
+      - name: Resolve successful signed release and production admission
+        id: release_run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_SHA: ${{ steps.source.outputs.source_sha }}
+        run: |
+          set -Eeuo pipefail
+          find_successful_run() {
+            local workflow="$1"
+            local output=""
+            local attempt json
+            for attempt in $(seq 1 60); do
+              json="$(gh api "/repos/$GITHUB_REPOSITORY/actions/workflows/$workflow/runs?branch=main&per_page=100")"
+              output="$(
+                jq -r --arg sha "$SOURCE_SHA" '
+                  [.workflow_runs[] | select(.head_sha == $sha and .status == "completed" and .conclusion == "success")]
+                  | sort_by(.run_number)
+                  | last
+                  | .id // empty
+                ' <<<"$json"
+              )"
+              if [[ "$output" =~ ^[1-9][0-9]+$ ]]; then
+                printf '%s' "$output"
+                return 0
+              fi
+              sleep 15
+            done
+            return 1
+          }
+
+          release_run_id="$(find_successful_run release.yml)" || {
+            printf 'SIGNED_RELEASE_NOT_FOUND source=%s\n' "$SOURCE_SHA" > "$RUNNER_TEMP/production-certification-failure.txt"
+            exit 1
+          }
+          promotion_run_id="$(find_successful_run automated-production-promotion.yml)" || {
+            printf 'PRODUCTION_ADMISSION_NOT_FOUND source=%s\n' "$SOURCE_SHA" > "$RUNNER_TEMP/production-certification-failure.txt"
+            exit 1
+          }
+          printf 'release_run_id=%s\n' "$release_run_id" >> "$GITHUB_OUTPUT"
+          printf 'promotion_run_id=%s\n' "$promotion_run_id" >> "$GITHUB_OUTPUT"
+          printf 'SIGNED_RELEASE_RUN_ID=%s\n' "$release_run_id"
+          printf 'PRODUCTION_ADMISSION_RUN_ID=%s\n' "$promotion_run_id"
+
+      - name: Download and bind exact signed release evidence
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_SHA: ${{ steps.source.outputs.source_sha }}
+          RELEASE_RUN_ID: ${{ steps.release_run.outputs.release_run_id }}
+        run: |
+          set -Eeuo pipefail
+          release_dir="$RUNNER_TEMP/signed-release"
+          archive="$RUNNER_TEMP/signed-release.zip"
+          mkdir -p "$release_dir"
+          artifacts_json="$(gh api "/repos/$GITHUB_REPOSITORY/actions/runs/$RELEASE_RUN_ID/artifacts")"
+          archive_url="$(
+            jq -r --arg sha "$SOURCE_SHA" '
+              [.artifacts[] | select(.expired == false and (.name | startswith("signed-middleware-release-" + $sha + "-")))]
+              | sort_by(.created_at)
+              | last
+              | .archive_download_url // empty
+            ' <<<"$artifacts_json"
+          )"
+          test -n "$archive_url"
+          curl --fail --location --silent --show-error \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header "Accept: application/vnd.github+json" \
+            --header "X-GitHub-Api-Version: 2026-03-10" \
+            "$archive_url" > "$archive"
+          test -s "$archive"
+          python3 - "$archive" "$release_dir" <<'PY'
+          from pathlib import Path, PurePosixPath
+          import stat
+          import sys
+          import zipfile
+
+          archive = Path(sys.argv[1])
+          destination = Path(sys.argv[2]).resolve()
+          with zipfile.ZipFile(archive) as bundle:
+              members = bundle.infolist()
+              if not members or len(members) > 10000:
+                  raise SystemExit("release archive member count invalid")
+              for member in members:
+                  relative = PurePosixPath(member.filename)
+                  if relative.is_absolute() or ".." in relative.parts:
+                      raise SystemExit("release archive path invalid")
+                  mode = member.external_attr >> 16
+                  if stat.S_ISLNK(mode):
+                      raise SystemExit("release archive symlink forbidden")
+                  target = (destination / Path(*relative.parts)).resolve()
+                  if destination != target and destination not in target.parents:
+                      raise SystemExit("release archive path escapes destination")
+              bundle.extractall(destination)
+          PY
+          manifest="$(find "$release_dir" -type f -name release-manifest.v1.json -print -quit)"
+          bundle="$(find "$release_dir" -type f -name release-manifest.v1.sigstore.json -print -quit)"
+          test -f "$manifest"
+          test -f "$bundle"
+          python3 - "$manifest" "$SOURCE_SHA" "$RELEASE_RUN_ID" "$GITHUB_OUTPUT" <<'PY'
+          from pathlib import Path
+          import json
+          import re
+          import sys
+
+          path = Path(sys.argv[1])
+          source_sha, release_run_id, output_path = sys.argv[2:]
+          value = json.loads(path.read_text(encoding="utf-8"))
+          if value.get("schema_version") != "1.0" or value.get("repository") != "ingtrader21-spec/Middleware-":
+              raise SystemExit("release manifest authority mismatch")
+          if value.get("source", {}).get("git_sha") != source_sha or value.get("source", {}).get("ref") != "refs/heads/main":
+              raise SystemExit("release source mismatch")
+          if str(value.get("build", {}).get("run_id")) != release_run_id:
+              raise SystemExit("release run mismatch")
+          image_reference = value.get("image", {}).get("reference", "")
+          image_digest = value.get("image", {}).get("digest", "")
+          release_id = value.get("release_id", "")
+          if not re.fullmatch(r"ghcr\.io/ingtrader21-spec/codestra-middleware@sha256:[0-9a-f]{64}", image_reference):
+              raise SystemExit("release image reference invalid")
+          if image_reference.rsplit("@", 1)[1] != image_digest:
+              raise SystemExit("release digest mismatch")
+          if not re.fullmatch(r"[0-9a-f]{12}-[0-9a-f]{12}", release_id):
+              raise SystemExit("release id invalid")
+          if value.get("runtime", {}).get("schema_or_migration_head") != "0067_service_catalog_monitoring_state":
+              raise SystemExit("release schema head mismatch")
+          if value.get("runtime", {}).get("external_effects_default") != "disabled":
+              raise SystemExit("release effect default mismatch")
+          if value.get("promotion", {}) != {"mutable_tags_authoritative": False, "staging_and_production_same_digest": True}:
+              raise SystemExit("release promotion contract mismatch")
+          with Path(output_path).open("a", encoding="utf-8") as handle:
+              handle.write(f"manifest={path}\n")
+              handle.write(f"bundle={next(path.parent.glob('release-manifest.v1.sigstore.json'))}\n")
+              handle.write(f"release_dir={path.parent}\n")
+              handle.write(f"image_reference={image_reference}\n")
+              handle.write(f"image_digest={image_digest}\n")
+              handle.write(f"release_id={release_id}\n")
+          PY
+
+      - name: Install verified Cosign release
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+        with:
+          cosign-release: v3.0.6
+
+      - name: Verify image, SBOM attestation, and signed release manifest
+        env:
+          GH_TOKEN: ${{ github.token }}
+          IMAGE_REFERENCE: ${{ steps.release.outputs.image_reference }}
+          MANIFEST: ${{ steps.release.outputs.manifest }}
+          MANIFEST_BUNDLE: ${{ steps.release.outputs.bundle }}
+        run: |
+          set -Eeuo pipefail
+          printf '%s' "$GH_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin >/dev/null
+          cosign verify \
+            --certificate-identity "$SIGNER_IDENTITY" \
+            --certificate-oidc-issuer "$OIDC_ISSUER" \
+            "$IMAGE_REFERENCE" >/dev/null
+          cosign verify-attestation \
+            --type spdxjson \
+            --certificate-identity "$SIGNER_IDENTITY" \
+            --certificate-oidc-issuer "$OIDC_ISSUER" \
+            "$IMAGE_REFERENCE" >/dev/null
+          cosign verify-blob \
+            --bundle "$MANIFEST_BUNDLE" \
+            --certificate-identity "$SIGNER_IDENTITY" \
+            --certificate-oidc-issuer "$OIDC_ISSUER" \
+            "$MANIFEST" >/dev/null
+          docker logout ghcr.io >/dev/null 2>&1 || true
+          printf 'SIGNED_RELEASE_VERIFICATION=PASS\n'
+
+      - name: Build immutable deployment bundle
+        id: bundle
+        env:
+          RELEASE_DIR: ${{ steps.release.outputs.release_dir }}
+        run: |
+          set -Eeuo pipefail
+          root="$RUNNER_TEMP/deployment-bundle"
+          archive="$RUNNER_TEMP/middleware-production-bundle.tar.gz"
+          mkdir -p "$root/release" "$root/deployment"
+          cp -a "$RELEASE_DIR"/. "$root/release/"
+          cp -a deploy/production/. "$root/deployment/"
+          tar --format=posix -C "$root" -czf "$archive" release deployment
+          bundle_sha256="sha256:$(sha256sum "$archive" | awk '{print $1}')"
+          controller_sha256="sha256:$(sha256sum deploy/production/server/codestra-middleware-deploy | awk '{print $1}')"
+          printf 'archive=%s\n' "$archive" >> "$GITHUB_OUTPUT"
+          printf 'bundle_sha256=%s\n' "$bundle_sha256" >> "$GITHUB_OUTPUT"
+          printf 'controller_sha256=%s\n' "$controller_sha256" >> "$GITHUB_OUTPUT"
+          printf 'DEPLOYMENT_BUNDLE_SHA256=%s\n' "$bundle_sha256"
+          printf 'CONTROLLER_SHA256=%s\n' "$controller_sha256"
+
+      - name: Configure strict Server 65 SSH identity
+        id: ssh
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.MIDDLEWARE_DEPLOY_SSH_KEY || secrets.SERVER_65_SSH_PRIVATE_KEY || secrets.SSH_PRIVATE_KEY }}
+          DEPLOY_HOST_KEY: ${{ secrets.MIDDLEWARE_DEPLOY_HOST_KEY || secrets.SERVER_65_SSH_HOST_KEY || secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          set -Eeuo pipefail
+          missing=()
+          [[ -n "$DEPLOY_SSH_KEY" ]] || missing+=(MIDDLEWARE_DEPLOY_SSH_KEY)
+          [[ -n "$DEPLOY_HOST_KEY" ]] || missing+=(MIDDLEWARE_DEPLOY_HOST_KEY)
+          if [[ "${#missing[@]}" -ne 0 ]]; then
+            printf 'MISSING_DEPLOYMENT_SECRETS=%s\n' "$(IFS=,; echo "${missing[*]}")" | tee "$RUNNER_TEMP/production-certification-failure.txt"
+            exit 1
+          fi
+          ssh_dir="$RUNNER_TEMP/ssh"
+          mkdir -m 0700 "$ssh_dir"
+          key_file="$ssh_dir/id"
+          known_hosts="$ssh_dir/known_hosts"
+          printf '%s\n' "$DEPLOY_SSH_KEY" > "$key_file"
+          printf '%s\n' "$DEPLOY_HOST_KEY" > "$known_hosts"
+          chmod 0600 "$key_file" "$known_hosts"
+          ssh-keygen -y -f "$key_file" >/dev/null
+          grep -Eq '^(65\.109\.65\.169|\[65\.109\.65\.169\]:22)[[:space:]]+(ssh-ed25519|ecdsa-sha2-nistp256|rsa-sha2-512|ssh-rsa)[[:space:]]+' "$known_hosts"
+          printf 'key_file=%s\n' "$key_file" >> "$GITHUB_OUTPUT"
+          printf 'known_hosts=%s\n' "$known_hosts" >> "$GITHUB_OUTPUT"
+
+      - name: Upload bundle and invoke restricted root controller
+        id: server
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_SHA: ${{ steps.source.outputs.source_sha }}
+          IMAGE_REFERENCE: ${{ steps.release.outputs.image_reference }}
+          RELEASE_RUN_ID: ${{ steps.release_run.outputs.release_run_id }}
+          RELEASE_ID: ${{ steps.release.outputs.release_id }}
+          BUNDLE_ARCHIVE: ${{ steps.bundle.outputs.archive }}
+          BUNDLE_SHA256: ${{ steps.bundle.outputs.bundle_sha256 }}
+          CONTROLLER_SHA256: ${{ steps.bundle.outputs.controller_sha256 }}
+          SSH_KEY_FILE: ${{ steps.ssh.outputs.key_file }}
+          KNOWN_HOSTS_FILE: ${{ steps.ssh.outputs.known_hosts }}
+        run: |
+          set -Eeuo pipefail
+          ssh_options=(
+            -i "$SSH_KEY_FILE"
+            -p "$DEPLOY_PORT"
+            -o BatchMode=yes
+            -o IdentitiesOnly=yes
+            -o StrictHostKeyChecking=yes
+            -o "UserKnownHostsFile=$KNOWN_HOSTS_FILE"
+            -o ConnectTimeout=15
+            -o ServerAliveInterval=15
+            -o ServerAliveCountMax=3
+          )
+          scp_options=(
+            -i "$SSH_KEY_FILE"
+            -P "$DEPLOY_PORT"
+            -o BatchMode=yes
+            -o IdentitiesOnly=yes
+            -o StrictHostKeyChecking=yes
+            -o "UserKnownHostsFile=$KNOWN_HOSTS_FILE"
+            -o ConnectTimeout=15
+          )
+          remote="$DEPLOY_USER@$DEPLOY_HOST"
+          bundle_name="middleware-production-$RELEASE_ID-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.tar.gz"
+          remote_bundle="/home/middleware-deploy/incoming/$bundle_name"
+          ssh "${ssh_options[@]}" "$remote" \
+            'set -eu; test "$(id -un)" = middleware-deploy; install -d -m 0700 "$HOME/incoming"; command -v sudo >/dev/null'
+          scp "${scp_options[@]}" "$BUNDLE_ARCHIVE" "$remote:$remote_bundle"
+          ssh "${ssh_options[@]}" "$remote" "chmod 0600 '$remote_bundle'"
+
+          response_file="$RUNNER_TEMP/server-response.txt"
+          stderr_file="$RUNNER_TEMP/server-stderr.txt"
+          set +e
+          printf '%s' "$GH_TOKEN" | ssh "${ssh_options[@]}" "$remote" \
+            "sudo -n /usr/local/sbin/codestra-middleware-deploy \
+              --source-sha '$SOURCE_SHA' \
+              --image-reference '$IMAGE_REFERENCE' \
+              --release-run-id '$RELEASE_RUN_ID' \
+              --release-id '$RELEASE_ID' \
+              --bundle-path '$remote_bundle' \
+              --bundle-sha256 '$BUNDLE_SHA256' \
+              --controller-sha256 '$CONTROLLER_SHA256' \
+              --mode READ_ONLY_CANARY \
+              --registry-token-stdin" \
+            >"$response_file" 2>"$stderr_file"
+          remote_exit=$?
+          set -e
+          ssh "${ssh_options[@]}" "$remote" "rm -f '$remote_bundle'" || true
+          if [[ "$remote_exit" -ne 0 ]]; then
+            {
+              printf 'REMOTE_DEPLOYMENT_EXIT=%s\n' "$remote_exit"
+              grep -E '^(DEPLOYMENT_STATUS|FAILURE_STAGE|FAILURE_REASON)=' "$stderr_file" || true
+            } | tee "$RUNNER_TEMP/production-certification-failure.txt"
+            exit "$remote_exit"
+          fi
+
+          python3 scripts/validate_production_runtime_deployment.py response \
+            --file "$response_file" \
+            --source-sha "$SOURCE_SHA" \
+            --image-reference "$IMAGE_REFERENCE" \
+            --release-run-id "$RELEASE_RUN_ID" \
+            --release-id "$RELEASE_ID"
+          evidence_remote="$(awk -F= '$1=="EVIDENCE_BUNDLE_PATH"{sub(/^[^=]*=/, ""); print}' "$response_file")"
+          evidence_sha256="$(awk -F= '$1=="EVIDENCE_BUNDLE_SHA256"{sub(/^[^=]*=/, ""); print}' "$response_file")"
+          [[ "$evidence_remote" == /home/middleware-deploy/incoming/* && "$evidence_remote" != *".."* ]]
+          [[ "$evidence_sha256" =~ ^sha256:[0-9a-f]{64}$ ]]
+          evidence_local="$RUNNER_TEMP/middleware-production-certification.tar.gz"
+          scp "${scp_options[@]}" "$remote:$evidence_remote" "$evidence_local"
+          ssh "${ssh_options[@]}" "$remote" "rm -f '$evidence_remote'" || true
+          python3 scripts/validate_production_runtime_deployment.py evidence \
+            --archive "$evidence_local" \
+            --sha256 "$evidence_sha256" \
+            --source-sha "$SOURCE_SHA" \
+            --image-reference "$IMAGE_REFERENCE" \
+            --release-run-id "$RELEASE_RUN_ID" \
+            --release-id "$RELEASE_ID"
+          printf 'response_file=%s\n' "$response_file" >> "$GITHUB_OUTPUT"
+          printf 'evidence_local=%s\n' "$evidence_local" >> "$GITHUB_OUTPUT"
+          printf 'evidence_sha256=%s\n' "$evidence_sha256" >> "$GITHUB_OUTPUT"
+
+      - name: Preserve production certification evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: middleware-production-certification-${{ steps.release.outputs.release_id }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ steps.server.outputs.response_file }}
+            ${{ steps.server.outputs.evidence_local }}
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+
+      - name: Publish GO evidence and close production change
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_SHA: ${{ steps.source.outputs.source_sha }}
+          IMAGE_REFERENCE: ${{ steps.release.outputs.image_reference }}
+          RELEASE_RUN_ID: ${{ steps.release_run.outputs.release_run_id }}
+          RELEASE_ID: ${{ steps.release.outputs.release_id }}
+          PROMOTION_RUN_ID: ${{ steps.release_run.outputs.promotion_run_id }}
+          EVIDENCE_SHA256: ${{ steps.server.outputs.evidence_sha256 }}
+        run: |
+          set -Eeuo pipefail
+          cat > "$RUNNER_TEMP/production-go.md" <<EOF
+          ## Middleware production runtime certification — GO
+
+          - Exact source SHA: \`$SOURCE_SHA\`
+          - Exact immutable image: \`$IMAGE_REFERENCE\`
+          - Signed release run: \`$RELEASE_RUN_ID\`
+          - Production-admission run: \`$PROMOTION_RUN_ID\`
+          - Release ID: \`$RELEASE_ID\`
+          - Certification workflow run: \`$GITHUB_RUN_ID\`
+          - Evidence bundle SHA-256: \`$EVIDENCE_SHA256\`
+          - Backup and isolated restore rehearsal: \`PASS\`
+          - Migration head: \`0067_service_catalog_monitoring_state\`
+          - Health, readiness, version, and capabilities: \`PASS\`
+          - Read-only observation: \`PASS\`
+          - Rollback rehearsal and candidate re-deploy: \`PASS\`
+          - Business-data integrity: \`PASS\`
+          - Gateway exposure: \`NONE\`
+          - External effects enabled: \`NONE\`
+          - Calls placed: \`0\`
+
+          **Final decision: \`GO — IMMUTABLE READ-ONLY PRODUCTION CANARY CERTIFIED\`.**
+
+          Full web/API traffic and live external effects remain separate explicitly authorized changes.
+          EOF
+          gh issue comment 118 --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/production-go.md"
+          gh issue close 118 --repo "$GITHUB_REPOSITORY" --reason completed
+
+      - name: Publish fail-closed production blocker
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          details="No non-secret failure detail was emitted. Review workflow run $GITHUB_RUN_ID."
+          if [[ -s "$RUNNER_TEMP/production-certification-failure.txt" ]]; then
+            details="$(head -n 20 "$RUNNER_TEMP/production-certification-failure.txt")"
+          fi
+          {
+            printf '## Middleware production runtime certification — NO-GO\n\n'
+            printf -- '- Workflow run: `%s`\n' "$GITHUB_RUN_ID"
+            printf -- '- Source SHA: `%s`\n' "$GITHUB_SHA"
+            printf -- '- Result: `FAIL_CLOSED`\n\n'
+            printf '```text\n%s\n```\n\n' "$details"
+            printf 'No full traffic, external delivery, Odoo write, n8n delivery, SMS, email, PSTN, social, advertising, crawler, or AI effect was enabled.\n'
+          } > "$RUNNER_TEMP/production-no-go.md"
+          gh issue comment 118 --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/production-no-go.md"
+
+      - name: Remove transient SSH material
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/ssh"

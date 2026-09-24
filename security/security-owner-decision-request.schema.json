@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://codestra.example/security/security-owner-decision-request.schema.json",
+  "title": "Codestra isolated-staging security-owner decision request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "request_type", "repository", "pr_number", "pr_head_sha",
+    "middleware_main_sha", "odoo_main_sha", "created_at_utc",
+    "requested_expiration_utc", "approved_scope", "image_manifest_sha256",
+    "image_digests", "vulnerability_findings", "compensating_controls",
+    "odoo_isolation_evidence", "middleware_isolation_evidence", "limitations",
+    "negative_authorizations", "revocation_conditions"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "request_type": {"const": "security_owner_staging_preparation"},
+    "repository": {"const": "Codestra-SRL/codestra-middleware"},
+    "pr_number": {"type": "integer", "minimum": 1},
+    "pr_head_sha": {"$ref": "#/$defs/gitSha"},
+    "middleware_main_sha": {"$ref": "#/$defs/gitSha"},
+    "odoo_main_sha": {"$ref": "#/$defs/gitSha"},
+    "created_at_utc": {"$ref": "#/$defs/timestamp"},
+    "requested_expiration_utc": {"$ref": "#/$defs/timestamp"},
+    "approved_scope": {"const": "server_a_isolated_staging"},
+    "image_manifest_sha256": {"$ref": "#/$defs/sha256"},
+    "image_digests": {
+      "type": "object", "minProperties": 1, "additionalProperties": {"$ref": "#/$defs/digest"}
+    },
+    "vulnerability_findings": {"type": "array", "items": {"type": "object"}},
+    "compensating_controls": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "odoo_isolation_evidence": {"$ref": "#/$defs/evidence"},
+    "middleware_isolation_evidence": {"$ref": "#/$defs/evidence"},
+    "limitations": {"type": "array", "items": {"type": "string"}},
+    "negative_authorizations": {"$ref": "#/$defs/negativeAuthorizations"},
+    "revocation_conditions": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}
+  },
+  "$defs": {
+    "gitSha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "timestamp": {"type": "string", "format": "date-time"},
+    "evidence": {
+      "type": "object", "additionalProperties": false, "required": ["gate", "sha256"],
+      "properties": {"gate": {"const": "PASS"}, "sha256": {"$ref": "#/$defs/sha256"}}
+    },
+    "negativeAuthorizations": {
+      "type": "object", "additionalProperties": false,
+      "required": ["production_deployment_gate", "production_activation_gate", "server_b_access_gate", "customer_data_gate", "telephony_access_gate", "recording_access_gate", "public_ingress_gate", "n8n_activation_gate", "n8n_binding_gate"],
+      "properties": {
+        "production_deployment_gate": {"const": "blocked"},
+        "production_activation_gate": {"const": "blocked"},
+        "server_b_access_gate": {"const": "blocked"},
+        "customer_data_gate": {"const": "blocked"},
+        "telephony_access_gate": {"const": "blocked"},
+        "recording_access_gate": {"const": "blocked"},
+        "public_ingress_gate": {"const": "blocked"},
+        "n8n_activation_gate": {"const": "blocked"},
+        "n8n_binding_gate": {"const": "blocked"}
+      }
+    }
+  }
+}

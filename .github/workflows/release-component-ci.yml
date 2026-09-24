@@ -1,0 +1,120 @@
+name: Release component matrix CI
+
+on:
+  pull_request:
+    paths:
+      - "Dockerfile"
+      - "requirements*.lock"
+      - "app/**"
+      - "tests/**"
+      - "scripts/audit_release_endpoints.py"
+      - "deploy/public-api-route-contract.json"
+      - "deploy/compose.runtime.yaml"
+      - "agent_desktop/**"
+      - "websocket_gateway/**"
+      - ".github/workflows/release-component-*.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-component-ci-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: validate (${{ matrix.component }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        component: [middleware, agent-desktop, websocket-gateway]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Prove immutable clean checkout
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          ! git status --porcelain | grep .
+          git diff --check
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        if: matrix.component != 'agent-desktop'
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        if: matrix.component == 'agent-desktop'
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: agent_desktop/package-lock.json
+      - name: Validate middleware
+        if: matrix.component == 'middleware'
+        run: |
+          set -euo pipefail
+          test -s requirements.lock
+          test -s requirements-test.lock
+          docker build --target test --tag codestra-middleware-test:${GITHUB_SHA} .
+          docker run --rm --entrypoint python codestra-middleware-test:${GITHUB_SHA} \
+            scripts/audit_release_endpoints.py
+          docker run --rm --entrypoint pytest codestra-middleware-test:${GITHUB_SHA} -q tests/test_webphone.py tests/test_agent_realtime.py tests/test_realtime.py
+          docker build --target runtime --tag codestra-middleware:${GITHUB_SHA} .
+      - name: Validate Agent Desktop
+        if: matrix.component == 'agent-desktop'
+        working-directory: agent_desktop
+        run: |
+          set -euo pipefail
+          test -s package-lock.json
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run typecheck
+          npm test
+          npm run build
+          npx playwright install --with-deps chromium firefox webkit
+          npm run test:browser
+          docker build --build-arg VCS_REF=${GITHUB_SHA} --tag codestra-agent-desktop:${GITHUB_SHA} .
+      - name: Validate WebSocket Gateway
+        if: matrix.component == 'websocket-gateway'
+        run: |
+          set -euo pipefail
+          test -s websocket_gateway/requirements.lock
+          python -m pip install --require-hashes -r websocket_gateway/requirements.lock
+          python -m pip install pytest==9.0.2
+          python -m compileall -q websocket_gateway
+          python -m pytest -q websocket_gateway/test_migrations.py websocket_gateway/test_gateway.py
+          docker build --build-arg VCS_REF=${GITHUB_SHA} --tag codestra-websocket-gateway:${GITHUB_SHA} websocket_gateway
+
+  source-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Secret scan
+        env:
+          GITLEAKS_VERSION: 8.30.1
+          GITLEAKS_ARCHIVE_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            --output "${RUNNER_TEMP}/gitleaks.tar.gz"
+          echo "${GITLEAKS_ARCHIVE_SHA256}  ${RUNNER_TEMP}/gitleaks.tar.gz" | sha256sum --check --strict
+          tar -xzf "${RUNNER_TEMP}/gitleaks.tar.gz" -C "${RUNNER_TEMP}" gitleaks
+          "${RUNNER_TEMP}/gitleaks" dir . --redact --no-banner --exit-code 1 --verbose
+      - name: Validate release workflow syntax and component ownership
+        run: |
+          set -euo pipefail
+          python3 -m pip install --disable-pip-version-check PyYAML==6.0.3
+          python3 - <<'PY'
+          import pathlib, yaml
+          for path in pathlib.Path('.github/workflows').glob('release-component-*.yml'):
+              yaml.safe_load(path.read_text())
+          text = pathlib.Path('.github/workflows/release-component-candidate.yml').read_text()
+          for component in ('middleware', 'agent-desktop', 'websocket-gateway'):
+              assert component in text
+          PY

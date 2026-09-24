@@ -1,0 +1,34 @@
+{
+  "schema_version": "1.0",
+  "enabled": false,
+  "environment": "staging",
+  "middleware_base_url": "https://middleware-staging.example.invalid",
+  "token_file": ".secrets/provider-canary-middleware-token",
+  "tenant_id": "00000000-0000-4000-8000-000000000000",
+  "requested_by": "staging-provider-canary",
+  "approval_reference": "CHANGE-ME-APPROVAL",
+  "poll_interval_seconds": 2,
+  "timeout_seconds": 300,
+  "canaries": {
+    "email": {
+      "payload_file": ".secrets/provider-canary-email.json",
+      "destination_pointer": "/to",
+      "approved_destination_reference": "CHANGE-ME-EMAIL"
+    },
+    "sms": {
+      "payload_file": ".secrets/provider-canary-sms.json",
+      "destination_pointer": "/destination",
+      "approved_destination_reference": "CHANGE-ME-SMS"
+    },
+    "voice": {
+      "payload_file": ".secrets/provider-canary-voice.json",
+      "destination_pointer": "/destination",
+      "approved_destination_reference": "CHANGE-ME-VOICE"
+    },
+    "social": {
+      "payload_file": ".secrets/provider-canary-social.json",
+      "destination_pointer": "/account_reference",
+      "approved_destination_reference": "CHANGE-ME-SOCIAL"
+    }
+  }
+}

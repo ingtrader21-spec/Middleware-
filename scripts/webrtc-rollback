@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+MANIFEST="${1:-$ROOT/evidence/webrtc-rollback-manifest.json}"
+ACTION="${2:-validate}"
+test -f "$MANIFEST"
+jq -e '.production_gate == false and .rollback_digest and .artifact_file and .config_backup' "$MANIFEST" >/dev/null
+ARTIFACT="$(jq -r .artifact_file "$MANIFEST")"
+EXPECTED="$(jq -r .rollback_digest "$MANIFEST")"
+CONFIG="$(jq -r .config_backup "$MANIFEST")"
+test -f "$ARTIFACT"; test -e "$CONFIG"
+ACTUAL="sha256:$(sha256sum "$ARTIFACT" | cut -d' ' -f1)"
+test "$ACTUAL" = "$EXPECTED"
+if [[ "$ACTION" != "--execute-authorized" ]]; then
+  echo ROLLBACK_DIGEST=PASS
+  echo ROLLBACK_CONFIG=PASS
+  echo PRODUCTION_GATE=DISABLED
+  echo ROLLBACK_PERFORMED=NO
+  exit 0
+fi
+echo "Refusing activation: this package validates rollback inputs but production deployment requires a separately approved operator workflow." >&2
+exit 2

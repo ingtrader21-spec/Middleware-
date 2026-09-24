@@ -1,0 +1,28 @@
+{
+  "hmac_contract_version": 2,
+  "signature_version": "HMAC-V2",
+  "algorithm": "HMAC-SHA256",
+  "signature_encoding": "lowercase hexadecimal",
+  "canonical_separator": "newline",
+  "terminal_newline": false,
+  "canonical_field_order": [
+    "signature_version",
+    "http_method",
+    "request_path",
+    "timestamp",
+    "nonce",
+    "service_identity",
+    "service_audience",
+    "environment",
+    "authorization_scope",
+    "idempotency_key",
+    "sha256_request_body"
+  ],
+  "callback_method": "POST",
+  "callback_path": "/api/v1/lead-automation/results",
+  "callback_scope": "lead-automation.results.write",
+  "service_identity": "codestra-n8n-lead-automation",
+  "service_audience": "codestra-middleware-lead-automation",
+  "callback_auth_source_head": "04fa56f4c8bb8caea3e5281816a2986bcb47ba05",
+  "runtime_secret_reference": "LEAD_AUTOMATION_CALLBACK_HMAC_SECRET"
+}

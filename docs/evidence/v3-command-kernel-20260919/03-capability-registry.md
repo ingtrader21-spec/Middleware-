@@ -1,0 +1,7 @@
+# 03 — Capability registry
+
+One registry: `CommandPolicyRegistry` over `connectors/generated/command-registry.v1.json` (prefix → connector id, capability, readback) and `config/capabilities.v2.json` (every external-effect capability `false`). Runtime extensions (`app/platform/runtime.command_policies`): `automation.workflow.` → `n8n-automation` / `N8N_WORKFLOW_DISPATCH` (false, all environments) and `test.syn.` → `test-syn` / `TEST_SYN_EXECUTE` (true; development/test/staging/preproduction only — never production).
+
+Provider-blind command families: `crm.*` → odoo-19 (Odoo adapter), `email.*` → klyrow-email, `sms.*` → telnexa-sms, `telephony.*`/`telephony-internal.*` → vicidial-restricted, `social.*` → postly-social, `crawler.*` → kyqra-crawler, `provisioning.*` → provisioning-service, `automation.workflow.*` → n8n-automation, `test.syn.*` → test-syn. The public body may omit target/capability. Provider replacement = registering a different adapter for the connector id; no Caddy/Kong change.
+
+Adapter registry invariants (app/platform/registry.py, tests/test_platform_kernel.py): duplicate ids refused; an adapter must own ≥1 prefix; one owner per prefix; readback support required where the registry demands it; an enabled capability without a ready adapter fails readiness (`adapter_registry`, `platform_adapters` components). COMMAND_WITH_ZERO_OWNER (enabled) = 0, COMMAND_WITH_MULTIPLE_OWNERS = 0.

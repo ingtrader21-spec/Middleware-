@@ -1,0 +1,34 @@
+{
+  "schema_version": "1.0.0",
+  "security_owner": {
+    "name": "Evelin Appolon",
+    "github_login": "kazan555",
+    "github_user_id": 77101516
+  },
+  "decision": "APPROVED",
+  "signed": false,
+  "authenticated_decision_url": "https://github.com/Codestra-SRL/codestra-middleware/pull/103#pullrequestreview-4859776583",
+  "decision_timestamp": "2026-08-04T23:30:59Z",
+  "repository": "Codestra-SRL/codestra-middleware",
+  "pull_request": 103,
+  "reviewed_pr_head": "68dd9585e766f27a97a51329cf08f1f355445026",
+  "image_digest": "sha256:cc7e2457fdd69fdd1bf766831f8f86396495b47e377e86b2d9df1d4fb5432390",
+  "sbom_sha256": "1c97030914f94412bfba5d6a0178d96d26f2cc04339de3679008bd9d76868138",
+  "decision_package": {
+    "url": "https://github.com/Codestra-SRL/codestra-middleware/pull/103#issuecomment-5185499704",
+    "sha256": "9ef990def5e742ad561bcb7b93b27d8765d6400196b24d679b24442c954df75f"
+  },
+  "scanner_reports": {
+    "grype_sha256": "597699eaa4ab2971215065142b7b4bafba2e6566659d1ab8e72924f6f32099c6",
+    "trivy_sha256": "6c7e09d20a3405b0cb1a54bb4ce09854bf6f1162c1aed97eaf8bb40ab8318994",
+    "semgrep_sha256": "1a72567719a12ba5d49ce50812386290462920c27c0be13eda21f7b08ee5c880",
+    "gitleaks_sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+  },
+  "findings": {
+    "fixed": ["CVE-2026-11940", "CVE-2026-11972", "CVE-2026-15308", "CVE-2026-3644", "CVE-2026-4224", "CVE-2026-6100", "CVE-2026-9669", "CVE-2026-4786", "CVE-2026-7210"],
+    "not_affected": ["CVE-2026-3298"],
+    "affected": [],
+    "under_investigation": []
+  },
+  "final_vex_sha256": "2437e123ca8f6b6a27425ead83cba8526b4dd35fab1f2a755fe84be2e3e87e0a"
+}

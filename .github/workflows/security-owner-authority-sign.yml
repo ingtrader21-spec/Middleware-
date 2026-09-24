@@ -1,0 +1,188 @@
+name: Sign Security Owner authority
+
+on:
+  workflow_dispatch:
+    inputs:
+      authority_kind:
+        description: Authority contract to sign
+        required: true
+        default: staging
+        type: choice
+        options:
+          - staging
+          - production
+      authority_document_sha256:
+        description: Exact SHA-256 of the protected-main authority document
+        required: false
+        type: string
+      production_source_sha:
+        description: Exact protected-main middleware source SHA
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-owner-authority-${{ inputs.authority_kind }}-${{ inputs.authority_document_sha256 || inputs.production_source_sha }}
+  cancel-in-progress: false
+
+env:
+  COSIGN_VERSION: v3.1.2
+  COSIGN_SHA256: f7622ed3cf22e55e1ae6377c080979ff77a22da9981c11df222a2e444991e7cf
+
+jobs:
+  sign-authority:
+    if: inputs.authority_kind == 'staging' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: security-owner-authority
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Check out exact protected-main workflow revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Validate exact authority contract
+        env:
+          AUTHORITY_SHA256: ${{ inputs.authority_document_sha256 }}
+        run: |
+          set -euo pipefail
+          test "${GITHUB_REPOSITORY}" = "ingtrader21-spec/Middleware-"
+          test "${GITHUB_REF}" = refs/heads/main
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          [[ "${AUTHORITY_SHA256}" =~ ^[0-9a-f]{64}$ ]]
+          echo "${AUTHORITY_SHA256}  security/governance/security-owner-authority.json" | sha256sum -c -
+          python3 scripts/validate_security_owner_authority.py \
+            --authority security/governance/security-owner-authority.json \
+            --expected-sha256 "${AUTHORITY_SHA256}"
+
+      - name: Install checksum-pinned Cosign
+        run: |
+          set -euo pipefail
+          curl --fail --location --proto '=https' --tlsv1.2 \
+            --output "${RUNNER_TEMP}/cosign" \
+            "https://github.com/sigstore/cosign/releases/download/${COSIGN_VERSION}/cosign-linux-amd64"
+          echo "${COSIGN_SHA256}  ${RUNNER_TEMP}/cosign" | sha256sum -c -
+          chmod 0755 "${RUNNER_TEMP}/cosign"
+
+      - name: Sign and independently verify authority
+        run: |
+          set -euo pipefail
+          identity="https://github.com/ingtrader21-spec/Middleware-/.github/workflows/security-owner-authority-sign.yml@refs/heads/main"
+          issuer="https://token.actions.githubusercontent.com"
+          cp security/governance/security-owner-authority.json security-owner-authority.json
+          "${RUNNER_TEMP}/cosign" sign-blob --yes \
+            --bundle security-owner-authority.sigstore.json \
+            security-owner-authority.json
+          "${RUNNER_TEMP}/cosign" verify-blob \
+            --bundle security-owner-authority.sigstore.json \
+            --certificate-identity "${identity}" \
+            --certificate-oidc-issuer "${issuer}" \
+            security-owner-authority.json
+          sha256sum security-owner-authority.json security-owner-authority.sigstore.json \
+            > authority-signing-SHA256SUMS
+
+      - name: Upload exact signed authority artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: security-owner-authority-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          overwrite: false
+          retention-days: 90
+          path: |
+            security-owner-authority.json
+            security-owner-authority.sigstore.json
+            authority-signing-SHA256SUMS
+
+  sign-production-authority:
+    if: inputs.authority_kind == 'production' && github.repository == 'ingtrader21-spec/Middleware-' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: security-owner-authority
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+    env:
+      SOURCE_SHA: ${{ inputs.production_source_sha }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Check out protected main authority producer
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate exact protected source
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          [[ "${SOURCE_SHA}" =~ ^[0-9a-f]{40}$ ]]
+          git merge-base --is-ancestor "${SOURCE_SHA}" "${GITHUB_SHA}"
+
+      - name: Audit independent Security Owner approval and create authority
+        run: |
+          set -euo pipefail
+          gh api "repos/${GITHUB_REPOSITORY}/environments/security-owner-authority" > environment.json
+          jq -e '
+            .can_admins_bypass == false and
+            any(.protection_rules[]?;
+              .type == "required_reviewers" and .prevent_self_review == true)
+          ' environment.json >/dev/null
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/approvals" > approvals.json
+          jq -ce --arg actor "${GITHUB_ACTOR}" '
+            [.[] | select(.state == "approved" and .user.login != $actor and
+              any(.environments[]?; .name == "security-owner-authority"))] |
+            if length == 1 then .[0] else error("one independent approval required") end
+          ' approvals.json > approval.json
+          approver="$(jq -er .user.login approval.json)"
+          approver_user_id="$(jq -er '.user.id | tostring' approval.json)"
+          approval_record="run:${GITHUB_RUN_ID}:environment:security-owner-authority:approver:${approver}:user:${approver_user_id}"
+          python3 scripts/generate_production_security_owner_authority.py \
+            --source-sha "${SOURCE_SHA}" --approver "${approver}" \
+            --approval-record "${approval_record}" --output security-owner-authority.json
+          python3 scripts/validate_production_security_owner_authority.py \
+            --authority security-owner-authority.json --source-sha "${SOURCE_SHA}"
+
+      - name: Install checksum-pinned Cosign
+        run: |
+          set -euo pipefail
+          curl --fail --location --proto '=https' --tlsv1.2 \
+            --output "${RUNNER_TEMP}/cosign" \
+            "https://github.com/sigstore/cosign/releases/download/${COSIGN_VERSION}/cosign-linux-amd64"
+          echo "${COSIGN_SHA256}  ${RUNNER_TEMP}/cosign" | sha256sum -c -
+          chmod 0755 "${RUNNER_TEMP}/cosign"
+
+      - name: Sign and independently verify production authority
+        run: |
+          set -euo pipefail
+          identity="https://github.com/ingtrader21-spec/Middleware-/.github/workflows/security-owner-authority-sign.yml@refs/heads/main"
+          issuer="https://token.actions.githubusercontent.com"
+          "${RUNNER_TEMP}/cosign" sign-blob --yes \
+            --bundle security-owner-authority.sigstore.json security-owner-authority.json
+          "${RUNNER_TEMP}/cosign" verify-blob \
+            --bundle security-owner-authority.sigstore.json \
+            --certificate-identity "${identity}" \
+            --certificate-oidc-issuer "${issuer}" security-owner-authority.json
+          sha256sum security-owner-authority.json security-owner-authority.sigstore.json \
+            > authority-signing-SHA256SUMS
+          sha256sum --check --strict authority-signing-SHA256SUMS
+
+      - name: Upload exact signed production authority artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: security-owner-authority-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          overwrite: false
+          retention-days: 90
+          path: |
+            security-owner-authority.json
+            security-owner-authority.sigstore.json
+            authority-signing-SHA256SUMS

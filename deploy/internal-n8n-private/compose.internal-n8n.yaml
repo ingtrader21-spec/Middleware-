@@ -1,0 +1,45 @@
+services:
+  n8n-internal-proxy:
+    image: codestra/caddy:2.11.4-hardened-20260723
+    container_name: codestra-n8n-internal-proxy
+    restart: unless-stopped
+    init: true
+    pids_limit: 256
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    expose:
+      - "443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - /etc/codestra/pki/internal-integration/n8n.crt:/run/secrets/n8n_internal_tls_cert:ro
+      - /etc/codestra/pki/internal-integration/n8n.key:/run/secrets/n8n_internal_tls_key:ro
+      - /etc/codestra/pki/internal-integration/ca.crt:/run/secrets/internal_integration_ca:ro
+    tmpfs:
+      - /config:mode=0700
+      - /data:mode=0700
+      - /tmp:mode=0700
+    networks:
+      codestra-internal-integration:
+        aliases:
+          - n8n.internal.codestra.agency
+      codestra_backend: {}
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          SSL_CERT_FILE=/run/secrets/internal_integration_ca
+          wget -q --spider https://n8n.internal.codestra.agency/healthz
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  codestra-internal-integration:
+    external: true
+    name: codestra-internal-integration
+  codestra_backend:
+    external: true
+    name: codestra_backend

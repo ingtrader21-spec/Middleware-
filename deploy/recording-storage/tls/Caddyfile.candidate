@@ -1,0 +1,20 @@
+# Candidate only. This is not the live Caddyfile.
+api.staging.internal.codestra.agency {
+	tls {
+		client_auth {
+			mode require_and_verify
+			trust_pool file {
+				pem_file /run/secrets/recording_client_ca.pem
+			}
+		}
+	}
+
+	@allowed {
+		remote_ip private_ranges
+		path /health/live /health/ready /.well-known/codestra-service /api/v1/recordings/*
+	}
+	handle @allowed {
+		reverse_proxy middleware:8095
+	}
+	respond 404
+}

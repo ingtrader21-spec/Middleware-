@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools==83.0.0", "wheel==0.46.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "codestra-middleware-connector-sdk"
+version = "1.0.0"
+description = "Codestra Middleware connector SDK"
+requires-python = ">=3.12,<3.15"
+dependencies = []
+
+[tool.setuptools.packages.find]
+include = ["middleware", "middleware.*"]

@@ -1,0 +1,506 @@
+name: Middleware CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: middleware-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  source-head-validation:
+    # RUNTIME_MUTATION_DISABLED=true
+    if: github.event_name == 'pull_request'
+    name: Validate middleware source head
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out exact source head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify exact source head identity
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          printf 'VALIDATED_SOURCE_SHA=%s\n' "$EXPECTED_SHA"
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - name: Run fail-closed source-head validation
+        run: bash scripts/run_ci.sh
+
+  merge-result-validation:
+    if: github.event_name == 'pull_request'
+    name: Validate middleware merge result
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out exact merge result
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify exact merge-result identity
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          printf 'VALIDATED_MERGE_SHA=%s\n' "$EXPECTED_SHA"
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Run fail-closed merge-result validation
+        run: bash scripts/run_ci.sh
+
+  main-validation:
+    if: github.event_name == 'push'
+    name: Validate middleware main push
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out exact pushed SHA
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify exact pushed SHA identity
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          printf 'VALIDATED_PUSH_SHA=%s\n' "$EXPECTED_SHA"
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Run fail-closed main validation
+        run: bash scripts/run_ci.sh
+
+  docker-runtime-build:
+    name: docker-runtime-build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Build exact-source runtime image
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          set -Eeuo pipefail
+          build_time="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          docker build \
+            --file Dockerfile.runtime \
+            --target runtime \
+            --build-arg "SOURCE_REVISION=$SOURCE_SHA" \
+            --build-arg "SOURCE_VERSION=ci-$SOURCE_SHA" \
+            --build-arg "BUILD_DATE=$build_time" \
+            --tag "codestra-middleware-ci:$SOURCE_SHA" \
+            .
+
+      - name: Verify non-root runtime, OCI labels, and secret-free layers
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          bash scripts/verify_container_image.sh \
+            "codestra-middleware-ci:$SOURCE_SHA" \
+            "$SOURCE_SHA" \
+            "ci-$SOURCE_SHA"
+
+      - name: Prove packaged runtime can construct the application
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          set -Eeuo pipefail
+          docker run --rm \
+            --entrypoint python \
+            --env APP_ENV=test \
+            --env ALLOW_IN_MEMORY_STORAGE=true \
+            "codestra-middleware-ci:$SOURCE_SHA" \
+            -c "from app.commands import CommandPolicyRegistry; from app.main import create_app; assert CommandPolicyRegistry.load().policies; assert create_app().title == 'Codestra Middleware API'; print('RUNTIME_IMAGE_SMOKE=PASS')"
+
+      - name: Prove the image contains its authorized migration bundle
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          set -Eeuo pipefail
+          docker run --rm --network none \
+            --entrypoint python \
+            "codestra-middleware-ci:$SOURCE_SHA" \
+            -c "from pathlib import Path; from scripts.production_migration_authority import validate_authority; from scripts.migrate_runtime import migration_sets; validate_authority(Path('/app')); assert migration_sets(); print('RUNTIME_MIGRATION_BUNDLE=PASS')"
+
+  docker-test-build:
+    name: docker-test-build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Build actual test target without cache
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          set -Eeuo pipefail
+          docker build --no-cache \
+            --file Dockerfile.runtime \
+            --target test \
+            --build-arg "SOURCE_REVISION=$SOURCE_SHA" \
+            --build-arg "SOURCE_VERSION=ci-$SOURCE_SHA" \
+            --build-arg "BUILD_DATE=1970-01-01T00:00:00Z" \
+            --build-arg "GIT_TREE_ID=$(git rev-parse 'HEAD^{tree}')" \
+            --tag "codestra-middleware-test-ci:$SOURCE_SHA" \
+            .
+          docker run --rm "codestra-middleware-test-ci:$SOURCE_SHA"
+
+      - name: Rebuild test target and enforce OpenSSL policy
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          set -Eeuo pipefail
+          docker build \
+            --file Dockerfile.runtime \
+            --target test \
+            --build-arg "SOURCE_REVISION=$SOURCE_SHA" \
+            --build-arg "SOURCE_VERSION=ci-$SOURCE_SHA" \
+            --build-arg "BUILD_DATE=1970-01-01T00:00:00Z" \
+            --build-arg "GIT_TREE_ID=$(git rev-parse 'HEAD^{tree}')" \
+            --tag "codestra-middleware-test-rebuild-ci:$SOURCE_SHA" \
+            .
+          test "$(docker run --rm --entrypoint openssl "codestra-middleware-test-rebuild-ci:$SOURCE_SHA" version | awk '{print $2}')" = "3.0.20"
+
+  connector-runtime-build:
+    name: connector-runtime-build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Build independent connector runtime
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          set -Eeuo pipefail
+          docker build \
+            --file Dockerfile.runtime \
+            --target connector-runtime \
+            --build-arg "SOURCE_REVISION=$SOURCE_SHA" \
+            --build-arg "SOURCE_VERSION=ci-$SOURCE_SHA" \
+            --build-arg "BUILD_DATE=1970-01-01T00:00:00Z" \
+            --tag "codestra-connector-runtime-ci:$SOURCE_SHA" \
+            .
+          bash scripts/verify_container_image.sh \
+            "codestra-connector-runtime-ci:$SOURCE_SHA" \
+            "$SOURCE_SHA" \
+            "ci-$SOURCE_SHA"
+          docker run --rm --entrypoint python \
+            "codestra-connector-runtime-ci:$SOURCE_SHA" \
+            -c "import codestra_connector_runtime; import middleware.connector_sdk; print('CONNECTOR_RUNTIME_IMPORT=PASS')"
+
+  container-security:
+    name: container-security
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Build production image for scanning
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          docker build \
+            --file Dockerfile.runtime \
+            --target runtime \
+            --build-arg "SOURCE_REVISION=$SOURCE_SHA" \
+            --build-arg "SOURCE_VERSION=ci-$SOURCE_SHA" \
+            --build-arg "BUILD_DATE=1970-01-01T00:00:00Z" \
+            --tag "codestra-middleware-security-ci:$SOURCE_SHA" \
+            .
+          docker build \
+            --file Dockerfile.runtime \
+            --target connector-runtime \
+            --build-arg "SOURCE_REVISION=$SOURCE_SHA" \
+            --build-arg "SOURCE_VERSION=ci-$SOURCE_SHA" \
+            --build-arg "BUILD_DATE=1970-01-01T00:00:00Z" \
+            --tag "codestra-connector-security-ci:$SOURCE_SHA" \
+            .
+
+      - name: Generate SPDX SBOM
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        with:
+          image: codestra-middleware-security-ci:${{ github.sha }}
+          format: spdx-json
+          output-file: middleware.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+
+      - name: Reject fixable high or critical vulnerabilities
+        uses: anchore/scan-action@e1165082ffb1fe366ebaf02d8526e7c4989ea9d2 # v7.4.0
+        with:
+          sbom: middleware.spdx.json
+          fail-build: true
+          severity-cutoff: high
+          only-fixed: true
+          output-format: table
+
+      - name: Generate Connector Runtime SPDX SBOM
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        with:
+          image: codestra-connector-security-ci:${{ github.sha }}
+          format: spdx-json
+          output-file: connector-runtime.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+
+      - name: Reject Connector Runtime fixable high or critical vulnerabilities
+        uses: anchore/scan-action@e1165082ffb1fe366ebaf02d8526e7c4989ea9d2 # v7.4.0
+        with:
+          sbom: connector-runtime.spdx.json
+          fail-build: true
+          severity-cutoff: high
+          only-fixed: true
+          output-format: table
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: middleware-runtime-sbom-${{ github.sha }}
+          path: |
+            middleware.spdx.json
+            connector-runtime.spdx.json
+          if-no-files-found: error
+
+  runtime-integration:
+    name: Disposable PostgreSQL Redis integration
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685 # 16-alpine
+        env:
+          POSTGRES_USER: middleware
+          POSTGRES_PASSWORD: middleware_ci_only
+          POSTGRES_DB: middleware_test_runtime
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U middleware -d middleware_test_runtime"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+      redis:
+        image: redis@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf # 7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - name: Run disposable integration suite
+        env:
+          RUNTIME_INTEGRATION_TESTS: "1"
+          RUNTIME_INTEGRATION_ALLOW_DISPOSABLE: "YES"
+          DATABASE_URL: postgresql://middleware:middleware_ci_only@127.0.0.1:5432/middleware_test_runtime
+          REDIS_URL: redis://127.0.0.1:6379/15
+        run: bash scripts/integration_ci.sh
+
+  nats-jetstream-integration:
+    name: Disposable NATS JetStream integration
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - name: Exercise isolated JetStream delivery and recovery
+        run: bash scripts/nats_integration_ci.sh
+
+  temporal-workflow-integration:
+    name: Temporal critical workflow integration
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - name: Exercise critical Temporal workflows
+        run: bash scripts/temporal_integration_ci.sh
+
+  synthetic-acceptance-e2e:
+    name: Synthetic no-effect acceptance E2E
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685 # 16-alpine
+        env:
+          POSTGRES_USER: middleware
+          POSTGRES_PASSWORD: middleware_ci_only
+          POSTGRES_DB: middleware_test_synthetic
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U middleware -d middleware_test_synthetic"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+      redis:
+        image: redis@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf # 7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - name: Run the combined no-effect acceptance journey
+        env:
+          RUNTIME_INTEGRATION_TESTS: "1"
+          RUNTIME_INTEGRATION_ALLOW_DISPOSABLE: "YES"
+          DATABASE_URL: postgresql://middleware:middleware_ci_only@127.0.0.1:5432/middleware_test_synthetic
+          REDIS_URL: redis://127.0.0.1:6379/15
+        run: bash scripts/synthetic_acceptance_ci.sh
+
+  required-validation:
+    name: validate
+    if: always()
+    needs:
+      - source-head-validation
+      - merge-result-validation
+      - main-validation
+      - docker-runtime-build
+      - docker-test-build
+      - connector-runtime-build
+      - container-security
+      - runtime-integration
+      - nats-jetstream-integration
+      - temporal-workflow-integration
+      - synthetic-acceptance-e2e
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require every event-applicable production gate
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          SOURCE_HEAD: ${{ needs.source-head-validation.result }}
+          MERGE_RESULT: ${{ needs.merge-result-validation.result }}
+          MAIN_RESULT: ${{ needs.main-validation.result }}
+          DOCKER_RUNTIME: ${{ needs.docker-runtime-build.result }}
+          DOCKER_TEST: ${{ needs.docker-test-build.result }}
+          CONNECTOR_RUNTIME: ${{ needs.connector-runtime-build.result }}
+          CONTAINER_SECURITY: ${{ needs.container-security.result }}
+          POSTGRES_REDIS: ${{ needs.runtime-integration.result }}
+          NATS: ${{ needs.nats-jetstream-integration.result }}
+          TEMPORAL: ${{ needs.temporal-workflow-integration.result }}
+          SYNTHETIC: ${{ needs.synthetic-acceptance-e2e.result }}
+        run: |
+          set -Eeuo pipefail
+          for result in \
+            "$DOCKER_RUNTIME" "$DOCKER_TEST" "$CONNECTOR_RUNTIME" \
+            "$CONTAINER_SECURITY" "$POSTGRES_REDIS" "$NATS" \
+            "$TEMPORAL" "$SYNTHETIC"; do
+            test "$result" = success
+          done
+          if test "$EVENT_NAME" = pull_request; then
+            test "$SOURCE_HEAD" = success
+            test "$MERGE_RESULT" = success
+            test "$MAIN_RESULT" = skipped
+          else
+            test "$SOURCE_HEAD" = skipped
+            test "$MERGE_RESULT" = skipped
+            test "$MAIN_RESULT" = success
+          fi

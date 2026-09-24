@@ -1,0 +1,205 @@
+name: Python quality baseline
+
+on:
+  pull_request:
+    paths:
+      - "**/*.py"
+      - "requirements-quality.in"
+      - "requirements-quality.txt"
+      - "mypy.ini"
+      - "services/connector-runtime/mypy.ini"
+      - ".github/workflows/python-quality-baseline.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "**/*.py"
+      - "requirements-quality.in"
+      - "requirements-quality.txt"
+      - "mypy.ini"
+      - "services/connector-runtime/mypy.ini"
+      - ".github/workflows/python-quality-baseline.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: python-quality-baseline-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ruff-baseline:
+    name: Ruff baseline (report only)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out exact source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Prove exact source identity
+        env:
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD_SHA"
+          test -z "$(git status --porcelain)"
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - name: Install hash-locked quality tools
+        run: python3 -m pip install --require-hashes -r requirements-quality.txt
+      - name: Measure Ruff baseline without enforcing it
+        shell: bash
+        run: |
+          set +e
+          ruff check . --output-format=concise 2>&1 | tee /tmp/ruff-baseline.txt
+          status=${PIPESTATUS[0]}
+          set -e
+
+          findings=$(grep -Ec ':[0-9]+:[0-9]+:' /tmp/ruff-baseline.txt || true)
+          {
+            echo "## Ruff baseline"
+            echo
+            echo "- Exact source: \`${GITHUB_SHA}\`"
+            echo "- Exit status: \`${status}\`"
+            echo "- Reported finding lines: \`${findings}\`"
+            echo "- Enforcement: \`REPORT_ONLY\`"
+            echo
+            echo '```text'
+            sed -n '1,200p' /tmp/ruff-baseline.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$status" -gt 1 ]; then
+            echo "Ruff failed to execute correctly (status=$status)" >&2
+            exit "$status"
+          fi
+          if [ "$status" -eq 1 ]; then
+            echo "::warning title=Ruff baseline::Ruff findings remain; remediation is tracked by issue #109."
+          fi
+
+  mypy-core-baseline:
+    name: mypy core baseline (report only)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out exact source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Prove exact source identity
+        env:
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD_SHA"
+          test -z "$(git status --porcelain)"
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - name: Install hash-locked core and quality dependencies
+        run: |
+          python3 -m venv /tmp/codestra-core-quality
+          /tmp/codestra-core-quality/bin/pip install \
+            --require-hashes \
+            -r requirements-test.txt \
+            -r requirements-quality.txt
+      - name: Measure core mypy baseline without enforcing it
+        shell: bash
+        run: |
+          set +e
+          /tmp/codestra-core-quality/bin/mypy --config-file mypy.ini . \
+            2>&1 | tee /tmp/mypy-core-baseline.txt
+          status=${PIPESTATUS[0]}
+          set -e
+
+          findings=$(grep -Ec ' error: ' /tmp/mypy-core-baseline.txt || true)
+          {
+            echo "## mypy core baseline"
+            echo
+            echo "- Exact source: \`${GITHUB_SHA}\`"
+            echo "- Exit status: \`${status}\`"
+            echo "- Reported error lines: \`${findings}\`"
+            echo "- Enforcement: \`REPORT_ONLY\`"
+            echo
+            echo '```text'
+            sed -n '1,200p' /tmp/mypy-core-baseline.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$status" -gt 1 ]; then
+            echo "mypy core failed to execute correctly (status=$status)" >&2
+            exit "$status"
+          fi
+          if [ "$status" -eq 1 ]; then
+            echo "::warning title=mypy core baseline::Type findings remain; remediation is tracked by issue #109."
+          fi
+
+  mypy-connector-baseline:
+    name: mypy Connector Runtime baseline (report only)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out exact source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Prove exact source identity
+        env:
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD_SHA"
+          test -z "$(git status --porcelain)"
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - name: Install hash-locked Connector Runtime and quality dependencies
+        run: |
+          python3 -m venv /tmp/codestra-connector-quality
+          /tmp/codestra-connector-quality/bin/pip install \
+            --require-hashes \
+            -r requirements-connector-runtime.txt \
+            -r requirements-quality.txt
+      - name: Measure Connector Runtime mypy baseline without enforcing it
+        shell: bash
+        run: |
+          set +e
+          MYPYPATH=services/connector-runtime/src:. \
+            /tmp/codestra-connector-quality/bin/mypy \
+            --config-file services/connector-runtime/mypy.ini \
+            services/connector-runtime/src \
+            services/connector-runtime/tests \
+            2>&1 | tee /tmp/mypy-connector-baseline.txt
+          status=${PIPESTATUS[0]}
+          set -e
+
+          findings=$(grep -Ec ' error: ' /tmp/mypy-connector-baseline.txt || true)
+          {
+            echo "## mypy Connector Runtime baseline"
+            echo
+            echo "- Exact source: \`${GITHUB_SHA}\`"
+            echo "- Exit status: \`${status}\`"
+            echo "- Reported error lines: \`${findings}\`"
+            echo "- Enforcement: \`REPORT_ONLY\`"
+            echo
+            echo '```text'
+            sed -n '1,200p' /tmp/mypy-connector-baseline.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$status" -gt 1 ]; then
+            echo "mypy Connector Runtime failed to execute correctly (status=$status)" >&2
+            exit "$status"
+          fi
+          if [ "$status" -eq 1 ]; then
+            echo "::warning title=mypy Connector Runtime baseline::Type findings remain; remediation is tracked by issue #109."
+          fi

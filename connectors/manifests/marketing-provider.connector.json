@@ -1,0 +1,74 @@
+{
+  "$schema": "https://contracts.codestra.co/connectors/connector-manifest.v1.schema.json",
+  "manifest_version": "1.0",
+  "connector_id": "marketing-provider",
+  "display_name": "Codestra Marketing Provider Gateway",
+  "version": "1.0.0",
+  "cell": "core-communications",
+  "repository": "appolon1908-hue/Codestra-Marketing-",
+  "enabled_by_default": false,
+  "direct_n8n_access": false,
+  "runtime_binding": {
+    "status": "UNVERIFIED_TEMPLATE_ONLY",
+    "base_url": "https://marketing-provider.internal.invalid",
+    "health_path": "/health",
+    "operation_path_template": "/v1/operations/{operation_id}/status"
+  },
+  "authentication": {
+    "type": "oauth2-plus-mtls",
+    "audience": "marketing-provider-adapter",
+    "scopes": [
+      "marketing.provider.dispatch",
+      "marketing.provider.status.read"
+    ],
+    "secret_references": [
+      "CONNECTOR_MARKETING_PROVIDER_CLIENT_SECRET",
+      "CONNECTOR_MARKETING_PROVIDER_MTLS_CERT"
+    ]
+  },
+  "commands": [
+    {
+      "prefix": "marketing.",
+      "required_capability": "LIVE_ADVERTISING",
+      "timeout_seconds": 30,
+      "readback_required": true,
+      "retry_policy": {
+        "maximum_attempts": 3,
+        "initial_backoff_seconds": 2,
+        "maximum_backoff_seconds": 60,
+        "jitter_ratio": 0.2,
+        "unknown_outcome_requires_readback": true
+      }
+    }
+  ],
+  "events": [
+    {
+      "event_type": "marketing.campaign.activated.v1",
+      "direction": "inbound"
+    },
+    {
+      "event_type": "marketing.campaign.failed.v1",
+      "direction": "inbound"
+    }
+  ],
+  "webhooks": [],
+  "forbidden_command_prefixes": [],
+  "forbidden_payload_keys": [
+    "access_token",
+    "client_secret",
+    "password",
+    "private_key",
+    "provider_token",
+    "refresh_token"
+  ],
+  "workflow_families": [
+    "marketing.campaign"
+  ],
+  "metadata": {
+    "source_only": true,
+    "runtime_activation_authorized": false,
+    "owner": "codestra-marketing",
+    "external_effect_flag": "LIVE_ADVERTISING_ENABLED",
+    "callback_contract_status": "PENDING_REVIEWED_IDENTITY_AND_EVENT_CONTRACT"
+  }
+}

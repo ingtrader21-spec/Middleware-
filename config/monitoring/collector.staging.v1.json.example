@@ -1,0 +1,46 @@
+{
+  "$comment": "Read-only monitoring collector profile for staging. Copy outside the checkout, replace <...> hosts with the private service names of the staging monitoring network, and never add secret values: token_file paths point at 0600 files populated by the OpenBao agent from the secret references in Codestra-OpenBao/config/secret-references.v1.json.",
+  "environment": "staging",
+  "source_deployment": "monitoring-collector-staging",
+  "tenant": "codestra",
+  "middleware": {
+    "base_url": "http://middleware-integration-api:8095",
+    "token_file": "/run/secrets/monitoring_collector_token",
+    "ca_file": null
+  },
+  "timeout_seconds": 5,
+  "state_dir": "/var/lib/codestra-monitoring-collector",
+  "components": [
+    {"component": "prometheus", "service_id": "prometheus", "base_url": "http://prometheus:9090", "expected_endpoint": "prometheus:9090", "authentication": "network-private", "contract_sha": "<Codestra-Prometheus exact SHA>"},
+    {"component": "alertmanager", "service_id": "alertmanager", "base_url": "http://alertmanager:9093", "expected_endpoint": "alertmanager:9093", "authentication": "network-private", "contract_sha": "<Codestra-Alertmanager exact SHA>"},
+    {"component": "grafana", "service_id": "grafana", "base_url": "http://grafana:3000", "token_file": "/run/secrets/grafana_collector_readonly_token", "expected_endpoint": "grafana:3000", "authentication": "service-account-token-readonly", "contract_sha": "<Codestra-Grafana- exact SHA>"},
+    {"component": "loki", "service_id": "loki", "base_url": "http://loki:3100", "tenant_header": "codestra-staging", "expected_endpoint": "loki:3100", "authentication": "network-private+tenant-header", "contract_sha": "<Codestra-Loki exact SHA>"},
+    {"component": "tempo", "service_id": "tempo", "base_url": "http://tempo:3200", "expected_endpoint": "tempo:3200", "authentication": "network-private", "contract_sha": "<Codestra-Tempo exact SHA>"},
+    {"component": "alloy", "service_id": "alloy", "base_url": "http://alloy:12345", "expected_endpoint": "alloy:12345", "authentication": "network-private", "contract_sha": "<Codestra-Alloy exact SHA>"},
+    {"component": "otel-gateway", "service_id": "otel-gateway", "base_url": "http://otel-gateway:13133", "expected_endpoint": "otel-gateway:8888", "authentication": "network-private", "contract_sha": "<Codestra-Telemetry exact SHA>"},
+    {"component": "openbao", "service_id": "openbao", "base_url": "https://bao.codestra.media", "ca_file": "/etc/ssl/certs/ca-certificates.crt", "expected_endpoint": "openbao:8200", "authentication": "oauth2-monitoring-readonly+mtls (scrape); health unauthenticated GET", "contract_sha": "<Codestra-OpenBao exact SHA>"},
+    {"component": "node-exporter", "service_id": "node-exporter", "base_url": "http://node-exporter:9100", "expected_endpoint": "node-exporter:9100", "authentication": "network-private", "contract_sha": "<Codestra-Node-Exporter exact SHA>"},
+    {"component": "cadvisor", "service_id": "cadvisor", "base_url": "http://cadvisor:8080", "expected_endpoint": "cadvisor:8080", "authentication": "network-private", "contract_sha": "<Codestra-cAdvisor exact SHA>"},
+    {"component": "redis-exporter", "service_id": "redis-exporter", "base_url": "http://redis-exporter:9121", "expected_endpoint": "redis-exporter:9121", "authentication": "network-private; upstream creds via OpenBao", "contract_sha": "<Codestra-Redis-Exporter exact SHA>"},
+    {"component": "postgres-exporter", "service_id": "postgres-exporter", "base_url": "http://postgres-exporter:9187", "expected_endpoint": "postgres-exporter:9187", "authentication": "network-private; upstream creds via OpenBao", "contract_sha": "<Codestra-Postgres-Exporter exact SHA>"},
+    {"component": "blackbox", "service_id": "blackbox-exporter", "base_url": "http://blackbox-exporter:9115", "expected_endpoint": "blackbox-exporter:9115", "authentication": "network-private", "contract_sha": "<Codestra-Blackbox-Exporter exact SHA>"}
+  ],
+  "service_components": {
+    "prometheus": ["prometheus"],
+    "alertmanager": ["alertmanager"],
+    "grafana": ["grafana"],
+    "loki": ["loki"],
+    "tempo": ["tempo"],
+    "alloy": ["alloy"],
+    "otel-gateway": ["otel-gateway"],
+    "openbao": ["openbao"],
+    "node-exporter": ["node-exporter"],
+    "cadvisor": ["cadvisor"],
+    "redis-exporter": ["redis-exporter"],
+    "postgres-exporter": ["postgres-exporter"],
+    "blackbox-exporter": ["blackbox"]
+  },
+  "version_endpoints": {
+    "middleware-integration-api": "http://middleware-integration-api:8095/version"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.codestra.co/middleware/event-envelope.schema.json",
+  "title": "Deprecated compatibility reference to the canonical event envelope",
+  "$ref": "https://contracts.codestra.co/platform/event-envelope.v1.schema.json"
+}

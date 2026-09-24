@@ -1,0 +1,1281 @@
+{
+  "schema_version": "codestra.workflow.registry.v1",
+  "workflow_count": 51,
+  "workflows": [
+    {
+      "workflow_code": "CDST-ORDER-ORDER-INTAKE-VALIDATE-V1",
+      "workflow_name": "CdstOrderIntakeValidateV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstOrderIntakeValidateV1",
+      "provider_system": "order",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "order"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.order.command.v1",
+      "result_schema": "codestra.order.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "order_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-ORDER-ORDER-ROUTER-V1",
+      "workflow_name": "CdstOrderRouterV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstOrderRouterV1",
+      "provider_system": "order",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "order"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.order.command.v1",
+      "result_schema": "codestra.order.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "order_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-ORDER-ORDER-SHIPPING-V1",
+      "workflow_name": "CdstOrderShippingV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstOrderShippingV1",
+      "provider_system": "order",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "order"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.order.command.v1",
+      "result_schema": "codestra.order.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "order_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-ORDER-ORDER-FULFILLMENT-V1",
+      "workflow_name": "CdstOrderFulfillmentV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstOrderFulfillmentV1",
+      "provider_system": "order",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "order"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.order.command.v1",
+      "result_schema": "codestra.order.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "order_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-ORDER-ORDER-CUSTOMER-SETUP-V1",
+      "workflow_name": "CdstOrderCustomerSetupV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstOrderCustomerSetupV1",
+      "provider_system": "order",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "order"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.order.command.v1",
+      "result_schema": "codestra.order.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "order_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-ORDER-ORDER-SOCIAL-CAMPAIGN-V1",
+      "workflow_name": "CdstOrderSocialCampaignV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstOrderSocialCampaignV1",
+      "provider_system": "order",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "order"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.order.command.v1",
+      "result_schema": "codestra.order.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "order_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-ORDER-ORDER-CALLBACK-V1",
+      "workflow_name": "CdstOrderCallbackV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstOrderCallbackV1",
+      "provider_system": "order",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "order"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.order.command.v1",
+      "result_schema": "codestra.order.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "order_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-ORDER-ORDER-EXECUTE-V1",
+      "workflow_name": "CdstOrderExecuteV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstOrderExecuteV1",
+      "provider_system": "order",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "order"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.order.command.v1",
+      "result_schema": "codestra.order.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "order_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-ORDER-ORDER-SOCIAL-DRAFT-V1",
+      "workflow_name": "CdstOrderSocialDraftV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstOrderSocialDraftV1",
+      "provider_system": "order",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "order"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.order.command.v1",
+      "result_schema": "codestra.order.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "order_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-ORDER-ORDER-INTERNAL-REPORT-V1",
+      "workflow_name": "CdstOrderInternalReportV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstOrderInternalReportV1",
+      "provider_system": "order",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "order"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.order.command.v1",
+      "result_schema": "codestra.order.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "order_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-ORDER-ORDER-DEAD-LETTER-V1",
+      "workflow_name": "CdstOrderDeadLetterV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstOrderDeadLetterV1",
+      "provider_system": "order",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "order"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.order.command.v1",
+      "result_schema": "codestra.order.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "order_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-ORDER-ORDER-RESULT-V1",
+      "workflow_name": "CdstOrderResultV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstOrderResultV1",
+      "provider_system": "order",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "order"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.order.command.v1",
+      "result_schema": "codestra.order.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "order_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-ORDER-ORDER-FAILURE-V1",
+      "workflow_name": "CdstOrderFailureV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstOrderFailureV1",
+      "provider_system": "order",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "order"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.order.command.v1",
+      "result_schema": "codestra.order.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "order_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-ORDER-ORDER-RECONCILIATION-V1",
+      "workflow_name": "CdstOrderReconciliationV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstOrderReconciliationV1",
+      "provider_system": "order",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "order"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.order.command.v1",
+      "result_schema": "codestra.order.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "order_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-QWEN-QWEN-TASK-ROUTER-V1",
+      "workflow_name": "CdstQwenTaskRouterV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstQwenTaskRouterV1",
+      "provider_system": "qwen",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "ai_task"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.qwen.command.v1",
+      "result_schema": "codestra.qwen.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "qwen_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-QWEN-QWEN-LEAD-ANALYSIS-V1",
+      "workflow_name": "CdstQwenLeadAnalysisV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstQwenLeadAnalysisV1",
+      "provider_system": "qwen",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "ai_task"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.qwen.command.v1",
+      "result_schema": "codestra.qwen.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "qwen_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-QWEN-QWEN-CALL-SUMMARY-V1",
+      "workflow_name": "CdstQwenCallSummaryV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstQwenCallSummaryV1",
+      "provider_system": "qwen",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "ai_task"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.qwen.command.v1",
+      "result_schema": "codestra.qwen.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "qwen_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-QWEN-QWEN-DISPOSITION-SUGGESTION-V1",
+      "workflow_name": "CdstQwenDispositionSuggestionV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstQwenDispositionSuggestionV1",
+      "provider_system": "qwen",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "ai_task"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.qwen.command.v1",
+      "result_schema": "codestra.qwen.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "qwen_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-QWEN-QWEN-NEXT-BEST-ACTION-V1",
+      "workflow_name": "CdstQwenNextBestActionV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstQwenNextBestActionV1",
+      "provider_system": "qwen",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "ai_task"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.qwen.command.v1",
+      "result_schema": "codestra.qwen.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "qwen_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-QWEN-QWEN-UPSELL-RECOMMENDATION-V1",
+      "workflow_name": "CdstQwenUpsellRecommendationV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstQwenUpsellRecommendationV1",
+      "provider_system": "qwen",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "ai_task"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.qwen.command.v1",
+      "result_schema": "codestra.qwen.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "qwen_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-QWEN-QWEN-QUALITY-REVIEW-V1",
+      "workflow_name": "CdstQwenQualityReviewV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstQwenQualityReviewV1",
+      "provider_system": "qwen",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "ai_task"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.qwen.command.v1",
+      "result_schema": "codestra.qwen.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "qwen_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-QWEN-QWEN-CAMPAIGN-DRAFT-V1",
+      "workflow_name": "CdstQwenCampaignDraftV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstQwenCampaignDraftV1",
+      "provider_system": "qwen",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "ai_task"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.qwen.command.v1",
+      "result_schema": "codestra.qwen.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "qwen_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-QWEN-QWEN-DOCUMENT-GENERATION-V1",
+      "workflow_name": "CdstQwenDocumentGenerationV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstQwenDocumentGenerationV1",
+      "provider_system": "qwen",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "ai_task"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.qwen.command.v1",
+      "result_schema": "codestra.qwen.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "qwen_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-QWEN-QWEN-FAILURE-V1",
+      "workflow_name": "CdstQwenFailureV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstQwenFailureV1",
+      "provider_system": "qwen",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "ai_task"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.qwen.command.v1",
+      "result_schema": "codestra.qwen.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "qwen_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-QWEN-QWEN-RECONCILIATION-V1",
+      "workflow_name": "CdstQwenReconciliationV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstQwenReconciliationV1",
+      "provider_system": "qwen",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "ai_task"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.qwen.command.v1",
+      "result_schema": "codestra.qwen.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "qwen_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-VICIDIAL-VICIDIAL-COMMAND-ROUTER-V1",
+      "workflow_name": "CdstVicidialCommandRouterV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstVicidialCommandRouterV1",
+      "provider_system": "vicidial",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "vicidial_command"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.vicidial.command.v1",
+      "result_schema": "codestra.vicidial.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "vicidial_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-VICIDIAL-VICIDIAL-AGENT-PROVISION-V1",
+      "workflow_name": "CdstVicidialAgentProvisionV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstVicidialAgentProvisionV1",
+      "provider_system": "vicidial",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "vicidial_command"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.vicidial.command.v1",
+      "result_schema": "codestra.vicidial.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "vicidial_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-VICIDIAL-VICIDIAL-EXTENSION-MAPPING-V1",
+      "workflow_name": "CdstVicidialExtensionMappingV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstVicidialExtensionMappingV1",
+      "provider_system": "vicidial",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "vicidial_command"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.vicidial.command.v1",
+      "result_schema": "codestra.vicidial.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "vicidial_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-VICIDIAL-VICIDIAL-CAMPAIGN-SYNC-V1",
+      "workflow_name": "CdstVicidialCampaignSyncV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstVicidialCampaignSyncV1",
+      "provider_system": "vicidial",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "vicidial_command"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.vicidial.command.v1",
+      "result_schema": "codestra.vicidial.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "vicidial_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-VICIDIAL-VICIDIAL-LIST-SYNC-V1",
+      "workflow_name": "CdstVicidialListSyncV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstVicidialListSyncV1",
+      "provider_system": "vicidial",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "vicidial_command"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.vicidial.command.v1",
+      "result_schema": "codestra.vicidial.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "vicidial_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-VICIDIAL-VICIDIAL-LEAD-DELIVERY-V1",
+      "workflow_name": "CdstVicidialLeadDeliveryV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstVicidialLeadDeliveryV1",
+      "provider_system": "vicidial",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "vicidial_command"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.vicidial.command.v1",
+      "result_schema": "codestra.vicidial.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "vicidial_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-VICIDIAL-VICIDIAL-CALLBACK-SCHEDULE-V1",
+      "workflow_name": "CdstVicidialCallbackScheduleV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstVicidialCallbackScheduleV1",
+      "provider_system": "vicidial",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "vicidial_command"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.vicidial.command.v1",
+      "result_schema": "codestra.vicidial.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "vicidial_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-VICIDIAL-VICIDIAL-MANUAL-CALL-V1",
+      "workflow_name": "CdstVicidialManualCallV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstVicidialManualCallV1",
+      "provider_system": "vicidial",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "vicidial_command"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.vicidial.command.v1",
+      "result_schema": "codestra.vicidial.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "vicidial_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-VICIDIAL-VICIDIAL-PREVIEW-CALL-V1",
+      "workflow_name": "CdstVicidialPreviewCallV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstVicidialPreviewCallV1",
+      "provider_system": "vicidial",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "vicidial_command"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.vicidial.command.v1",
+      "result_schema": "codestra.vicidial.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "vicidial_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-VICIDIAL-VICIDIAL-CALL-RESULT-V1",
+      "workflow_name": "CdstVicidialCallResultV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstVicidialCallResultV1",
+      "provider_system": "vicidial",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "vicidial_command"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.vicidial.command.v1",
+      "result_schema": "codestra.vicidial.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "vicidial_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-VICIDIAL-VICIDIAL-RECORDING-SYNC-V1",
+      "workflow_name": "CdstVicidialRecordingSyncV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstVicidialRecordingSyncV1",
+      "provider_system": "vicidial",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "vicidial_command"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.vicidial.command.v1",
+      "result_schema": "codestra.vicidial.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "vicidial_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-VICIDIAL-VICIDIAL-AGENT-STATE-SYNC-V1",
+      "workflow_name": "CdstVicidialAgentStateSyncV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstVicidialAgentStateSyncV1",
+      "provider_system": "vicidial",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "vicidial_command"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.vicidial.command.v1",
+      "result_schema": "codestra.vicidial.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "vicidial_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-VICIDIAL-VICIDIAL-FAILURE-V1",
+      "workflow_name": "CdstVicidialFailureV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstVicidialFailureV1",
+      "provider_system": "vicidial",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "vicidial_command"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.vicidial.command.v1",
+      "result_schema": "codestra.vicidial.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "vicidial_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-VICIDIAL-VICIDIAL-RECONCILIATION-V1",
+      "workflow_name": "CdstVicidialReconciliationV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstVicidialReconciliationV1",
+      "provider_system": "vicidial",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "vicidial_command"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.vicidial.command.v1",
+      "result_schema": "codestra.vicidial.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "vicidial_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-POSTIZ-POSTIZ-COMMAND-ROUTER-V1",
+      "workflow_name": "CdstPostizCommandRouterV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstPostizCommandRouterV1",
+      "provider_system": "postiz",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "postiz_command"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.postiz.command.v1",
+      "result_schema": "codestra.postiz.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "postiz_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-POSTIZ-POSTIZ-CHANNEL-DISCOVERY-V1",
+      "workflow_name": "CdstPostizChannelDiscoveryV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstPostizChannelDiscoveryV1",
+      "provider_system": "postiz",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "postiz_command"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.postiz.command.v1",
+      "result_schema": "codestra.postiz.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "postiz_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-POSTIZ-POSTIZ-MEDIA-UPLOAD-V1",
+      "workflow_name": "CdstPostizMediaUploadV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstPostizMediaUploadV1",
+      "provider_system": "postiz",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "postiz_command"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.postiz.command.v1",
+      "result_schema": "codestra.postiz.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "postiz_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-POSTIZ-POSTIZ-DRAFT-CREATE-V1",
+      "workflow_name": "CdstPostizDraftCreateV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstPostizDraftCreateV1",
+      "provider_system": "postiz",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "postiz_command"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.postiz.command.v1",
+      "result_schema": "codestra.postiz.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "postiz_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-POSTIZ-POSTIZ-DRAFT-UPDATE-V1",
+      "workflow_name": "CdstPostizDraftUpdateV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstPostizDraftUpdateV1",
+      "provider_system": "postiz",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "postiz_command"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.postiz.command.v1",
+      "result_schema": "codestra.postiz.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "postiz_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-POSTIZ-POSTIZ-SCHEDULE-V1",
+      "workflow_name": "CdstPostizScheduleV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstPostizScheduleV1",
+      "provider_system": "postiz",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "postiz_command"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.postiz.command.v1",
+      "result_schema": "codestra.postiz.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "postiz_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-POSTIZ-POSTIZ-APPROVAL-V1",
+      "workflow_name": "CdstPostizApprovalV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstPostizApprovalV1",
+      "provider_system": "postiz",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "postiz_command"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.postiz.command.v1",
+      "result_schema": "codestra.postiz.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "postiz_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-POSTIZ-POSTIZ-CANCEL-V1",
+      "workflow_name": "CdstPostizCancelV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstPostizCancelV1",
+      "provider_system": "postiz",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "postiz_command"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.postiz.command.v1",
+      "result_schema": "codestra.postiz.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "postiz_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-POSTIZ-POSTIZ-RESULT-SYNC-V1",
+      "workflow_name": "CdstPostizResultSyncV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstPostizResultSyncV1",
+      "provider_system": "postiz",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "postiz_command"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.postiz.command.v1",
+      "result_schema": "codestra.postiz.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "postiz_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-POSTIZ-POSTIZ-ANALYTICS-SYNC-V1",
+      "workflow_name": "CdstPostizAnalyticsSyncV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstPostizAnalyticsSyncV1",
+      "provider_system": "postiz",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "postiz_command"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.postiz.command.v1",
+      "result_schema": "codestra.postiz.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "postiz_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-POSTIZ-POSTIZ-FAILURE-V1",
+      "workflow_name": "CdstPostizFailureV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstPostizFailureV1",
+      "provider_system": "postiz",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "postiz_command"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.postiz.command.v1",
+      "result_schema": "codestra.postiz.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "postiz_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-POSTIZ-POSTIZ-RECONCILIATION-V1",
+      "workflow_name": "CdstPostizReconciliationV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstPostizReconciliationV1",
+      "provider_system": "postiz",
+      "allowed_source_systems": [
+        "middleware"
+      ],
+      "allowed_command_types": [
+        "postiz_command"
+      ],
+      "allowed_actions": [
+        "execute"
+      ],
+      "payload_schema": "codestra.postiz.command.v1",
+      "result_schema": "codestra.postiz.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 3,
+      "retry_policy": "temporary_provider_failure",
+      "concurrency_limit": 8,
+      "feature_flag": "postiz_execution_enabled",
+      "active": false,
+      "production_authorized": false
+    }
+  ]
+}

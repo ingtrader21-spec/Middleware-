@@ -1,0 +1,155 @@
+{
+  "schemaVersion": 1,
+  "architecture": [
+    "application_or_n8n",
+    "kong",
+    "middleware_api",
+    "durable_outbox",
+    "approved_provider_adapter"
+  ],
+  "authority": {
+    "issuer": "https://auth.codestra.co/realms/codestra",
+    "audience": "middleware-api",
+    "grantType": "client_credentials",
+    "fullScopeAllowed": false,
+    "wildcardScopesAllowed": false,
+    "directProviderCallsAllowed": false,
+    "sharedProviderKeysAllowed": false
+  },
+  "operations": [
+    {
+      "id": "ai.inference.request",
+      "caller": "codestra-ai",
+      "scope": "ai.inference.request",
+      "route": "/api/v1/control/ai/inference-requests",
+      "externalEffect": true,
+      "durability": "transactional_outbox",
+      "providerClass": "ai",
+      "commandType": "ai.inference.request.v1",
+      "target": "ai-provider",
+      "capability": "EXTERNAL_MODEL_CALLS"
+    },
+    {
+      "id": "communication.email.request",
+      "caller": "codestra-communication",
+      "scope": "communication.email.request",
+      "route": "/api/v1/control/communications/email",
+      "externalEffect": true,
+      "durability": "transactional_outbox",
+      "providerClass": "email",
+      "commandType": "email.message.send.v1",
+      "target": "klyrow-email",
+      "capability": "EMAIL_DELIVERY"
+    },
+    {
+      "id": "communication.sms.request",
+      "caller": "codestra-communication",
+      "scope": "communication.sms.request",
+      "route": "/api/v1/control/communications/sms",
+      "externalEffect": true,
+      "durability": "transactional_outbox",
+      "providerClass": "sms",
+      "commandType": "sms.message.submit.v1",
+      "target": "telnexa-sms",
+      "capability": "SMS_DELIVERY"
+    },
+    {
+      "id": "marketing.campaign.request",
+      "caller": "codestra-marketing",
+      "scope": "marketing.campaign.request",
+      "route": "/api/v1/control/marketing/campaigns",
+      "externalEffect": true,
+      "durability": "transactional_outbox",
+      "providerClass": "advertising",
+      "commandType": "marketing.campaign.activate.v1",
+      "target": "marketing-provider",
+      "capability": "LIVE_ADVERTISING"
+    },
+    {
+      "id": "odoo.event.publish",
+      "caller": "odoo-integration",
+      "scope": "odoo.events.publish",
+      "route": "/api/v1/odoo/events",
+      "externalEffect": false,
+      "durability": "durable_inbox",
+      "providerClass": "none",
+      "commandType": null,
+      "target": null,
+      "capability": null
+    },
+    {
+      "id": "social.publish.request",
+      "caller": "codestra-social",
+      "scope": "social.publish.request",
+      "route": "/api/v1/control/social/publications",
+      "externalEffect": true,
+      "durability": "transactional_outbox",
+      "providerClass": "social",
+      "commandType": "social.publication.publish.v1",
+      "target": "postly-social",
+      "capability": "SOCIAL_PUBLISH"
+    }
+  ],
+  "providerAdapters": [
+    {
+      "providerClass": "advertising",
+      "adapterClientId": "marketing-provider-adapter",
+      "workerClientId": "middleware-worker",
+      "dispatchScope": "marketing.provider.dispatch",
+      "readbackScopes": [
+        "marketing.provider.status.read"
+      ],
+      "safetyFlag": "LIVE_ADVERTISING_ENABLED"
+    },
+    {
+      "providerClass": "ai",
+      "adapterClientId": "ai-provider-adapter",
+      "workerClientId": "middleware-worker",
+      "dispatchScope": "ai.provider.dispatch",
+      "readbackScopes": [
+        "ai.provider.status.read"
+      ],
+      "safetyFlag": "EXTERNAL_MODEL_CALLS_ENABLED"
+    },
+    {
+      "providerClass": "email",
+      "adapterClientId": "klyrow-gateway",
+      "workerClientId": "middleware-worker",
+      "dispatchScope": "email.send",
+      "readbackScopes": [
+        "email.status.read"
+      ],
+      "safetyFlag": "LIVE_EMAIL_DELIVERY"
+    },
+    {
+      "providerClass": "sms",
+      "adapterClientId": "telnexa-gateway",
+      "workerClientId": "middleware-worker",
+      "dispatchScope": "sms.send",
+      "readbackScopes": [
+        "sms.status.read"
+      ],
+      "safetyFlag": "LIVE_SMS_DELIVERY"
+    },
+    {
+      "providerClass": "social",
+      "adapterClientId": "postly-adapter",
+      "workerClientId": "middleware-worker",
+      "dispatchScope": "social.publish",
+      "readbackScopes": [
+        "social.status.read"
+      ],
+      "safetyFlag": "SOCIAL_PUBLISHING_ENABLED"
+    }
+  ],
+  "requiredEvidence": [
+    "authenticated_caller",
+    "authorized_operation",
+    "correlation_id",
+    "durable_inbox_or_outbox_id",
+    "idempotency_key",
+    "provider_policy_decision",
+    "sanitized_safety_readback",
+    "tenant_context"
+  ]
+}

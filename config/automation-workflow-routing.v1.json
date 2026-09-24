@@ -1,0 +1,61 @@
+{
+  "schema_version": "1.0",
+  "status": "SOURCE_ONLY_DISABLED",
+  "authority": "ingtrader21-spec/Middleware-",
+  "default_activation": "DISABLED",
+  "dispatch_model": "durable-outbox-plus-atomic-claim",
+  "routes": [
+    {
+      "event_type": "codestra.email.message.delivered",
+      "workflow_key": "klyrow.email.delivery-reconcile.v1",
+      "workflow_family": "messaging.email",
+      "workflow_version": 1,
+      "client_id": "n8n-messaging-automation",
+      "max_attempts": 3,
+      "external_effect": false
+    },
+    {
+      "event_type": "codestra.email.message.bounced",
+      "workflow_key": "klyrow.email.delivery-reconcile.v1",
+      "workflow_family": "messaging.email",
+      "workflow_version": 1,
+      "client_id": "n8n-messaging-automation",
+      "max_attempts": 3,
+      "external_effect": false
+    },
+    {
+      "event_type": "codestra.email.message.complained",
+      "workflow_key": "klyrow.email.delivery-reconcile.v1",
+      "workflow_family": "messaging.email",
+      "workflow_version": 1,
+      "client_id": "n8n-messaging-automation",
+      "max_attempts": 3,
+      "external_effect": false
+    },
+    {
+      "event_type": "codestra.sms.message.delivered",
+      "workflow_key": "telnexa.sms.delivery-reconcile.v1",
+      "workflow_family": "messaging.sms",
+      "workflow_version": 1,
+      "client_id": "n8n-messaging-automation",
+      "max_attempts": 3,
+      "external_effect": false
+    },
+    {
+      "event_type": "codestra.sms.message.failed",
+      "workflow_key": "telnexa.sms.delivery-reconcile.v1",
+      "workflow_family": "messaging.sms",
+      "workflow_version": 1,
+      "client_id": "n8n-messaging-automation",
+      "max_attempts": 3,
+      "external_effect": false
+    }
+  ],
+  "safety": {
+    "all_first_release_workflows_non_effectful": true,
+    "workflows_active": false,
+    "external_effects_enabled": false,
+    "direct_provider_access": false,
+    "production_activation_authorized": false
+  }
+}

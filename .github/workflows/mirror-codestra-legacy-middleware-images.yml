@@ -1,0 +1,249 @@
+name: Mirror Codestra-SRL Middleware Rollback Images
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: middleware-legacy-image-mirror-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    # RUNTIME_MUTATION_DISABLED=true: legacy rollback image mirroring requires a separate reviewed activation before running.
+    if: ${{ false }}
+    name: Validate authority record and build exact mirror plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - name: Require an exact protected-main manual dispatch
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test "$GITHUB_REPOSITORY" = "appolon1908-hue/Middleware-"
+          test "$GITHUB_EVENT_NAME" = "workflow_dispatch"
+          test "$GITHUB_REF" = "refs/heads/main"
+          test "$GITHUB_SHA" = "${{ github.sha }}"
+
+      - name: Check out exact workflow source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify exact checkout and fail-closed convergence record
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain)"
+          python3 scripts/validate_middleware_authority_convergence.py
+
+      - name: Produce mirror matrix from the reviewed catalog
+        id: plan
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          matrix="$(python3 - <<'PY'
+          from __future__ import annotations
+          import json
+          from pathlib import Path
+
+          value = json.loads(
+              Path("config/middleware-authority-convergence.v1.json").read_text(
+                  encoding="utf-8"
+              )
+          )
+          include = []
+          for family in value["runtimeImageFamilies"]:
+              backup = family["backup"]
+              if backup["method"] != "registry-preserve-digest":
+                  continue
+              include.append(
+                  {
+                      "family": family["id"],
+                      "source": family["runtimeReference"],
+                      "expected_digest": family["digest"],
+                      "destination_tag": backup["destinationTag"],
+                      "destination_digest": backup["destinationDigestReference"],
+                  }
+              )
+          if len(include) != 4:
+              raise SystemExit(
+                  f"reviewed catalog must produce exactly four mirrors, got {len(include)}"
+              )
+          print(json.dumps({"include": include}, separators=(",", ":")))
+          PY
+          )"
+          printf 'matrix=%s\n' "$matrix" >>"$GITHUB_OUTPUT"
+          printf '%s\n' "$matrix" | python3 -m json.tool
+
+  mirror:
+    name: Mirror ${{ matrix.family }} without rebuilding
+    # RUNTIME_MUTATION_DISABLED=true
+    # Repository-only preparation does not authorize writes to either registry.
+    if: ${{ false }}
+    needs: plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    env:
+      SOURCE_AUTH_FILE: /tmp/codestra-source-auth.json
+      DESTINATION_AUTH_FILE: /tmp/appolon-destination-auth.json
+      CODESTRA_GHCR_TOKEN: ${{ secrets.CODESTRA_GHCR_TOKEN }}
+      CODESTRA_GHCR_USER: ${{ secrets.CODESTRA_GHCR_USER }}
+    steps:
+      - name: Install exact-copy tooling
+        run: |
+          set -Eeuo pipefail
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends skopeo
+
+      - name: Authenticate the appolon backup package
+        shell: bash
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -Eeuo pipefail
+          printf '%s' "$GHCR_TOKEN" |
+            skopeo login \
+              --authfile "$DESTINATION_AUTH_FILE" \
+              ghcr.io \
+              --username "$GITHUB_ACTOR" \
+              --password-stdin
+
+      - name: Resolve Codestra-SRL source access without exposing credentials
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          if skopeo inspect --raw "docker://${{ matrix.source }}" \
+              >"$RUNNER_TEMP/source-manifest.json" \
+              2>"$RUNNER_TEMP/source-inspect.err"; then
+            echo "SOURCE_AUTH=anonymous" >>"$GITHUB_ENV"
+            exit 0
+          fi
+
+          if [[ -z "$CODESTRA_GHCR_TOKEN" ]]; then
+            cat "$RUNNER_TEMP/source-inspect.err" >&2
+            echo "::error::Codestra-SRL GHCR is private. Add CODESTRA_GHCR_TOKEN with read:packages access to the legacy package, then dispatch this workflow from protected main." >&2
+            exit 78
+          fi
+
+          source_user="${CODESTRA_GHCR_USER:-appolon1908-hue}"
+          printf '%s' "$CODESTRA_GHCR_TOKEN" |
+            skopeo login \
+              --authfile "$SOURCE_AUTH_FILE" \
+              ghcr.io \
+              --username "$source_user" \
+              --password-stdin
+          skopeo inspect \
+            --authfile "$SOURCE_AUTH_FILE" \
+            --raw "docker://${{ matrix.source }}" \
+            >"$RUNNER_TEMP/source-manifest.json"
+          echo "SOURCE_AUTH=credential" >>"$GITHUB_ENV"
+
+      - name: Copy the exact OCI manifest and layers
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          args=(
+            --all
+            --preserve-digests
+            --dest-authfile "$DESTINATION_AUTH_FILE"
+          )
+          if [[ "$SOURCE_AUTH" == "credential" ]]; then
+            args+=(--src-authfile "$SOURCE_AUTH_FILE")
+          fi
+          skopeo copy "${args[@]}" \
+            "docker://${{ matrix.source }}" \
+            "docker://${{ matrix.destination_tag }}"
+
+      - name: Verify the destination is byte-identical by manifest digest
+        id: verify
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          actual_digest="$(
+            skopeo inspect \
+              --authfile "$DESTINATION_AUTH_FILE" \
+              --format '{{.Digest}}' \
+              "docker://${{ matrix.destination_tag }}"
+          )"
+          [[ "$actual_digest" == "${{ matrix.expected_digest }}" ]] || {
+            echo "::error::Digest mismatch: expected ${{ matrix.expected_digest }}, got ${actual_digest}" >&2
+            exit 1
+          }
+
+          skopeo inspect \
+            --authfile "$DESTINATION_AUTH_FILE" \
+            --raw "docker://${{ matrix.destination_tag }}" \
+            >"$RUNNER_TEMP/destination-manifest.json"
+          source_manifest_sha="sha256:$(sha256sum "$RUNNER_TEMP/source-manifest.json" | awk '{print $1}')"
+          destination_manifest_sha="sha256:$(sha256sum "$RUNNER_TEMP/destination-manifest.json" | awk '{print $1}')"
+          [[ "$source_manifest_sha" == "$destination_manifest_sha" ]] || {
+            echo "::error::Raw source and destination manifests differ" >&2
+            exit 1
+          }
+          printf 'actual_digest=%s\n' "$actual_digest" >>"$GITHUB_OUTPUT"
+          printf 'raw_manifest_sha256=%s\n' "$source_manifest_sha" >>"$GITHUB_OUTPUT"
+
+      - name: Produce secret-free mirror evidence
+        shell: bash
+        env:
+          ACTUAL_DIGEST: ${{ steps.verify.outputs.actual_digest }}
+          RAW_MANIFEST_SHA256: ${{ steps.verify.outputs.raw_manifest_sha256 }}
+        run: |
+          set -Eeuo pipefail
+          evidence="$RUNNER_TEMP/evidence/${{ matrix.family }}"
+          mkdir -p "$evidence"
+          python3 - "$evidence/mirror-evidence.json" <<'PY'
+          from __future__ import annotations
+          from datetime import UTC, datetime
+          import json
+          import os
+          from pathlib import Path
+          import sys
+
+          value = {
+              "schema_version": 1,
+              "generated_at": datetime.now(UTC).isoformat(),
+              "family": "${{ matrix.family }}",
+              "source": "${{ matrix.source }}",
+              "expected_digest": "${{ matrix.expected_digest }}",
+              "destination_tag": "${{ matrix.destination_tag }}",
+              "destination_digest_reference": "${{ matrix.destination_digest }}",
+              "actual_digest": os.environ["ACTUAL_DIGEST"],
+              "raw_manifest_sha256": os.environ["RAW_MANIFEST_SHA256"],
+              "rebuilt": False,
+              "server_a_mutated": False,
+              "runtime_promoted": False,
+              "codestra_source_retained": True,
+              "verification": "PASS",
+              "workflow_run_id": int(os.environ["GITHUB_RUN_ID"]),
+              "workflow_run_attempt": int(os.environ["GITHUB_RUN_ATTEMPT"]),
+              "workflow_source_sha": os.environ["GITHUB_SHA"],
+              "workflow_source_ref": os.environ["GITHUB_REF"],
+          }
+          Path(sys.argv[1]).write_text(
+              json.dumps(value, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          PY
+          cp "$RUNNER_TEMP/source-manifest.json" "$evidence/source-manifest.json"
+          cp "$RUNNER_TEMP/destination-manifest.json" "$evidence/destination-manifest.json"
+
+      - name: Preserve exact mirror evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: middleware-legacy-mirror-${{ matrix.family }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/evidence/${{ matrix.family }}/
+          if-no-files-found: error
+          retention-days: 90

@@ -1,0 +1,22 @@
+{
+  "contract_version": "1.0",
+  "source_repository": "appolon1908-hue/Middleware-",
+  "source_pull_request": 65,
+  "source_head_sha": "da215762375614aa617bf838f9e4974ac2ad7c68",
+  "callback_auth_source_head": "04fa56f4c8bb8caea3e5281816a2986bcb47ba05",
+  "odoo_source_pull_request": 13,
+  "odoo_source_head": "384d175eb32bc87f34b9c736453db44c2d151b1a",
+  "schema_files": [
+    {"schema_filename":"business-loan-lead-v1.json","schema_sha256":"66019c7ec42b81eb0b7aef7530e2fa1d0ced6ae8ea6a124a47f4380e0108fb00"},
+    {"schema_filename":"farming-lead-v1.json","schema_sha256":"7daeb9d24bd4dc2a62ffd671c216f6f72e6d67d5b73ead9d562f40a9deda1858"},
+    {"schema_filename":"fundraising-lead-v1.json","schema_sha256":"a5691583ab046e66fbcd4dff249d5cd732f6b1d60c7261e72d4cf820d219e4ff"},
+    {"schema_filename":"lead-automation-result-v1.json","schema_sha256":"26054b796e1c254f7ddc5dc4ebeac8be3e44c11e544f1eda32a62d0fbf6bfad8"},
+    {"schema_filename":"lead-automation-status-v1.json","schema_sha256":"194eb7a0185686393f7a80db433ccaf0f3a3aa526520f68592ce4e91b1cd937f"},
+    {"schema_filename":"lead-event-v1.json","schema_sha256":"f88d674e8599f2a44ef083fd3681477ce3fddb397d33eb8d7627fd4529cb431c"},
+    {"schema_filename":"real-estate-lead-v1.json","schema_sha256":"a59d979468406bbc98bdfc518fa449aef050e2d4e3bf58b2475067c84c49d3f0"},
+    {"schema_filename":"senior-citizen-products-lead-v1.json","schema_sha256":"3995a74bf27d7b78ab884b2522a3dfb2723c9dd380dec0516c6be953251db151"},
+    {"schema_filename":"trading-ai-lead-v1.json","schema_sha256":"d02c9639a989ff55dcf1fccd64e70d93d209656bf53417e13cbce2c0043d3dd4"},
+    {"schema_filename":"transportation-logistics-lead-v1.json","schema_sha256":"fc73616b80e55c543f5a041c6a6cb4ca7673426e62a82c301d23df2c2a0acab6"},
+    {"schema_filename":"web-mobile-ai-lead-v1.json","schema_sha256":"7893519ddfdbdf5ef3f82998b8305de7244fca7a98dd2b600b76fda88cb78d13"}
+  ]
+}

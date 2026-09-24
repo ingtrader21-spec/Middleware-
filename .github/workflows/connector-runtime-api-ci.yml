@@ -1,0 +1,91 @@
+name: Connector Runtime API validation
+
+on:
+  pull_request:
+    paths:
+      - "services/connector-runtime/**"
+      - "middleware/connector_sdk/**"
+      - "connectors/**"
+      - "contracts/connectors/**"
+      - ".github/workflows/connector-runtime-api-ci.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "services/connector-runtime/**"
+      - "middleware/connector_sdk/**"
+      - "connectors/**"
+      - "contracts/connectors/**"
+      - ".github/workflows/connector-runtime-api-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: connector-runtime-api-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  api-and-postgresql:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres@sha256:ef257d85f76e48da1c64832459b59fcaba1a4dac97bf5d7450c77753542eee94
+        env:
+          POSTGRES_USER: connector_admin
+          POSTGRES_PASSWORD: connector_admin_test_password
+          POSTGRES_DB: connector_runtime_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U connector_admin -d connector_runtime_test"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+    env:
+      DATABASE_URL: postgresql+psycopg://connector_admin:connector_admin_test_password@127.0.0.1:5432/connector_runtime_test
+      ADMIN_DATABASE_URL: postgresql+psycopg://connector_admin:connector_admin_test_password@127.0.0.1:5432/connector_runtime_test
+      PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/services/connector-runtime/src
+    steps:
+      - name: Check out exact source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Prove exact source identity
+        env:
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD_SHA"
+          test -z "$(git status --porcelain)"
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - name: Install locked runtime and test dependencies
+        run: python -m pip install --disable-pip-version-check ./services/connector-runtime[test]
+      - name: Reject whitespace and compile source
+        run: |
+          git diff --check
+          python -m compileall -q services/connector-runtime/src services/connector-runtime/tests
+      - name: Upgrade PostgreSQL to current head
+        working-directory: services/connector-runtime
+        run: alembic upgrade head
+      - name: Verify current migration head
+        working-directory: services/connector-runtime
+        run: |
+          test "$(alembic current | awk '{print $1}')" = "20260828_0004"
+      - name: Run Connector Runtime API and storage tests
+        working-directory: services/connector-runtime
+        run: pytest -q -m 'postgres or not postgres'
+      - name: Exercise downgrade and repeat upgrade
+        working-directory: services/connector-runtime
+        run: |
+          alembic downgrade 20260828_0001
+          alembic upgrade head
+          test "$(alembic current | awk '{print $1}')" = "20260828_0004"
+      - name: Re-run API integration after migration replay
+        working-directory: services/connector-runtime
+        run: pytest -q tests/test_management_api.py

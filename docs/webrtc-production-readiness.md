@@ -1,0 +1,11 @@
+# WebRTC production readiness
+
+Technical readiness is **77.9%**, and overall readiness is **74%**. The 99% target is not yet met, so technical deployment readiness is `FAIL`; pilot activation remains `BLOCKED`. PSTN and production dialing remain disabled, with no call or SIP registration authorized or performed.
+
+The completed work includes a default-deny production policy engine, emergency/premium/prohibited/international controls, destination-local calling hours, consent and recording gates, exact allowlists, one-call/one-attempt capacity, kill-switch precedence, privacy-preserving audit decisions, monitoring and alert definitions, config drift/preflight/deployment tooling, cross-browser validation, an inactive signed release archive, CycloneDX SBOM, and provenance. Unit/security/realtime tests passed 31/31, desktop tests 39/39, and browser tests 26 passed with one explicit WebKit platform limitation.
+
+The release cannot yet be described as built from protected source because the new implementation is an uncommitted working tree over commit `9b817116ae6233af708d201f0233c1f707ee32b7`. Trivy crashed inside its downloaded database engine, so container/OS high and critical results are unproved. Production DNS and Server B SSH became unavailable during final checks, preventing production WSS reconfirmation, active-call reconfirmation, inactive-slot deployment, and production-equivalent load/soak evidence. No signed current deployment inventory or tested production backup reference was available for an exact rollback restoration.
+
+The campaign registry contains RLP100, TRD200, MOY300, COD400, SCP500, MBL600, FTP700, and CAL800; all remain proposed and disabled with production activation false. No authoritative eligible human agent or supervisor records were available, so those matrices are intentionally empty. Human approvals are recorded only as missing scoped entries in the approval manifest.
+
+Exact next technical actions: commit the reviewed changes through the protected branch workflow; rerun container/OS scans with a repaired clean Trivy database; restore production management connectivity and run the non-telephony WSS, realtime load/soak, browser resource, and inactive-candidate checks; then bind and test current/rollback digests and backups. None of these actions requires SIP registration or a PSTN call.

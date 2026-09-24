@@ -1,0 +1,17 @@
+@qwen_worker_api {
+	remote_ip 10.40.0.4
+	method GET POST
+	path /internal/api/v1/ai/worker/*
+}
+handle @qwen_worker_api {
+	reverse_proxy middleware:8095 {
+		header_up -X-Codestra-Client-Certificate-DER
+		header_up -X-Codestra-Client-Certificate
+		header_up X-Codestra-Client-Certificate-DER "{http.request.tls.client.certificate_der_base64}"
+		header_up -X-Codestra-Source-IP
+		header_up -X-Client-Certificate-Serial
+		header_up -X-Client-SPIFFE-ID
+		header_up -X-Service-Scopes
+		header_up X-Codestra-Source-IP "{http.request.remote.host}"
+	}
+}

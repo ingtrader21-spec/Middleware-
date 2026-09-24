@@ -1,0 +1,34 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "agent_id": {
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Agent Id",
+      "type": "string"
+    },
+    "changed_at": {
+      "format": "date-time",
+      "title": "Changed At",
+      "type": "string"
+    },
+    "state": {
+      "enum": [
+        "available",
+        "busy",
+        "pause",
+        "after_call_work",
+        "offline"
+      ],
+      "title": "State",
+      "type": "string"
+    }
+  },
+  "required": [
+    "agent_id",
+    "state",
+    "changed_at"
+  ],
+  "title": "AgentState",
+  "type": "object"
+}

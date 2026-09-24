@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "schema_version": "1.0",
+  "contract_id": "codestra.automation-command-envelope-authority",
+  "status": "ACCEPTED",
+  "accepted_on": "2026-09-04",
+  "authority_repository": "ingtrader21-spec/Middleware-",
+  "canonical_api": "/v2/automation/*",
+  "identity": {
+    "issuer": "https://auth.codestra.co/realms/codestra",
+    "audience": "middleware-api",
+    "token_preserved_through_kong": true,
+    "middleware_revalidates_token": true,
+    "generic_execute_scope_allowed": false,
+    "generic_command_scope_allowed": false
+  },
+  "context_authority": {
+    "durable_job_is_authoritative": true,
+    "body_fields_are_durable_assertions": [
+      "tenant_id",
+      "correlation_id",
+      "idempotency_key"
+    ],
+    "exact_header_mirrors": {
+      "tenant_id": "X-Tenant-ID",
+      "correlation_id": "X-Correlation-ID",
+      "idempotency_key": "Idempotency-Key"
+    },
+    "transport_only_headers": ["X-Request-ID", "traceparent"],
+    "mismatch_result": "409 automation_conflict",
+    "gateway_may_rewrite_mirrored_values": false,
+    "caller_tenant_is_authoritative": false,
+    "caller_actor_is_authoritative": false
+  },
+  "command_identity": {
+    "type_field": "command_type",
+    "type_versioning": "UNVERSIONED",
+    "type_pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)+$",
+    "type_suffix_version_prohibited": true,
+    "version_field": "command_version",
+    "version_format": "semantic-version-string",
+    "current_version": "1.0",
+    "provider_compatibility_mapping_allowed": true,
+    "provider_compatibility_example": {
+      "canonical_type": "email.message.send",
+      "canonical_version": "1.0",
+      "provider_legacy_command": "email.message.send.v1"
+    }
+  },
+  "lease_binding": {
+    "active_lease_required_for_steps_and_commands": true,
+    "command_bound_to": [
+      "tenant_id",
+      "job_id",
+      "workflow_key",
+      "workflow_version",
+      "execution_id",
+      "step_key",
+      "event_id",
+      "causation_id",
+      "idempotency_key"
+    ],
+    "stale_execution_denied": true,
+    "unknown_outcome_requires_readback": true,
+    "blind_retry_prohibited": true
+  },
+  "consumers": [
+    "appolon1908-hue/N8N",
+    "appolon1908-hue/Keycloak",
+    "appolon1908-hue/Kong",
+    "appolon1908-hue/Caddy",
+    "appolon1908-hue/klyrow.com",
+    "appolon1908-hue/Odoo"
+  ],
+  "activation": {
+    "source_acceptance_authorizes_runtime": false,
+    "workflow_activation_authorized": false,
+    "external_effects_authorized": false,
+    "production_promotion_authorized": false
+  }
+}

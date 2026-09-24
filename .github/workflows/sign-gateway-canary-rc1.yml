@@ -1,0 +1,137 @@
+name: Sign bounded canary gateway RC1
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: sign-gateway-canary-rc1
+  cancel-in-progress: false
+
+jobs:
+  sign:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: security-release
+    timeout-minutes: 15
+    env:
+      IMAGE: docker.io/codestra1980/telephony-event-gateway@sha256:bbfa5e05ce9dd33d3ebc7f5475ee1810e47e5eaecd29adac0aa24c5252958266
+      EXPECTED_IDENTITY: https://github.com/appolon1908-hue/Middleware-/.github/workflows/sign-gateway-canary-rc1.yml@refs/heads/main
+      EXPECTED_ISSUER: https://token.actions.githubusercontent.com
+    steps:
+      - name: Check out immutable workflow revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify immutable security bindings
+        shell: bash
+        working-directory: security/vex/gateway-canary-rc1
+        run: |
+          set -euo pipefail
+          test "${GITHUB_REPOSITORY}" = "appolon1908-hue/Middleware-"
+          test "${GITHUB_REF}" = "refs/heads/main"
+          test "$(git -C ../../.. rev-parse --is-shallow-repository)" = "false"
+          ! grep -nE '<[^>]+>|NOT_PROVIDED|PLACEHOLDER|PENDING_HUMAN_APPROVAL' \
+            security-owner-decision.md openvex.json candidate-provenance.json
+          grep -qx 'Decision: APPROVED_FIXED_BACKPORT' security-owner-decision.md
+          sha256sum -c openvex.json.sha256
+          sha256sum -c candidate-provenance.json.sha256
+          test "$(jq '.statements | length' openvex.json)" = "3"
+          test "$(jq '[.statements[].vulnerability.name] | unique | length' openvex.json)" = "3"
+          test "$(jq '[.statements[] | select(.status == "fixed")] | length' openvex.json)" = "3"
+          test "$(jq '[.statements[].products[0]["@id"] | select(contains("sha256%3Abbfa5e05ce9dd33d3ebc7f5475ee1810e47e5eaecd29adac0aa24c5252958266"))] | length' openvex.json)" = "3"
+          test "$(jq -r '.gateway.image' candidate-provenance.json)" = "${IMAGE}"
+          test "$(jq -r '.gateway.merge_commit' candidate-provenance.json)" = \
+            "360da1382bef3e2e6d766195ef6b1a19956756a9"
+
+      - name: Verify immutable image is readable
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker buildx imagetools inspect "${IMAGE}" > registry-image-inspect.txt
+          grep -q 'Digest:.*sha256:bbfa5e05ce9dd33d3ebc7f5475ee1810e47e5eaecd29adac0aa24c5252958266' \
+            registry-image-inspect.txt
+
+      - name: Install checksum-pinned cosign
+        shell: bash
+        env:
+          COSIGN_VERSION: v3.1.2
+          COSIGN_SHA256: f7622ed3cf22e55e1ae6377c080979ff77a22da9981c11df222a2e444991e7cf
+        run: |
+          set -euo pipefail
+          url="https://github.com/sigstore/cosign/releases/download/${COSIGN_VERSION}/cosign-linux-amd64"
+          curl --fail --location --proto '=https' --tlsv1.2 \
+            --output "${RUNNER_TEMP}/cosign" "${url}"
+          echo "${COSIGN_SHA256}  ${RUNNER_TEMP}/cosign" | sha256sum -c -
+          install -m 0755 "${RUNNER_TEMP}/cosign" "${RUNNER_TEMP}/bin-cosign"
+          "${RUNNER_TEMP}/bin-cosign" version | tee cosign-version.txt
+
+      - name: Keyless sign exact image identity and OpenVEX
+        shell: bash
+        run: |
+          set -euo pipefail
+          "${RUNNER_TEMP}/bin-cosign" generate "${IMAGE}" \
+            > gateway-canary-rc1-image.payload.json
+          test "$(jq -r '.critical.image["docker-manifest-digest"]' \
+            gateway-canary-rc1-image.payload.json)" = \
+            "sha256:bbfa5e05ce9dd33d3ebc7f5475ee1810e47e5eaecd29adac0aa24c5252958266"
+          test "$(jq -r '.critical.identity["docker-reference"]' \
+            gateway-canary-rc1-image.payload.json)" = \
+            "index.docker.io/codestra1980/telephony-event-gateway"
+          "${RUNNER_TEMP}/bin-cosign" sign-blob --yes \
+            --bundle gateway-canary-rc1-image.sigstore.json \
+            gateway-canary-rc1-image.payload.json
+          cp security/vex/gateway-canary-rc1/openvex.json \
+            gateway-canary-rc1-openvex.unsigned.json
+          "${RUNNER_TEMP}/bin-cosign" sign-blob --yes \
+            --bundle gateway-canary-rc1-openvex.sigstore.json \
+            gateway-canary-rc1-openvex.unsigned.json
+
+      - name: Independently verify identities, issuer, and transparency bundles
+        shell: bash
+        run: |
+          set -euo pipefail
+          "${RUNNER_TEMP}/bin-cosign" verify-blob \
+            --bundle gateway-canary-rc1-image.sigstore.json \
+            --certificate-identity "${EXPECTED_IDENTITY}" \
+            --certificate-oidc-issuer "${EXPECTED_ISSUER}" \
+            gateway-canary-rc1-image.payload.json \
+            | tee gateway-canary-rc1-image.verification.txt
+          test "$(jq -r '.critical.image["docker-manifest-digest"]' \
+            gateway-canary-rc1-image.payload.json)" = \
+            "sha256:bbfa5e05ce9dd33d3ebc7f5475ee1810e47e5eaecd29adac0aa24c5252958266"
+          test "$(jq -r '.critical.identity["docker-reference"]' \
+            gateway-canary-rc1-image.payload.json)" = \
+            "index.docker.io/codestra1980/telephony-event-gateway"
+          "${RUNNER_TEMP}/bin-cosign" verify-blob \
+            --bundle gateway-canary-rc1-openvex.sigstore.json \
+            --certificate-identity "${EXPECTED_IDENTITY}" \
+            --certificate-oidc-issuer "${EXPECTED_ISSUER}" \
+            gateway-canary-rc1-openvex.unsigned.json \
+            | tee gateway-canary-rc1-openvex.verification.txt
+          sha256sum gateway-canary-rc1-* cosign-version.txt \
+            registry-image-inspect.txt > gateway-canary-rc1-signed-artifacts.sha256
+
+      - name: Upload immutable run-scoped signing evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: gateway-canary-rc1-sigstore-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          overwrite: false
+          retention-days: 90
+          path: |
+            gateway-canary-rc1-image.sigstore.json
+            gateway-canary-rc1-image.payload.json
+            gateway-canary-rc1-image.verification.txt
+            gateway-canary-rc1-openvex.unsigned.json
+            gateway-canary-rc1-openvex.sigstore.json
+            gateway-canary-rc1-openvex.verification.txt
+            gateway-canary-rc1-signed-artifacts.sha256
+            registry-image-inspect.txt
+            cosign-version.txt

@@ -1,0 +1,26 @@
+version: 1
+events:
+  - marketing.lead.captured
+  - marketing.campaign.created
+  - marketing.campaign.approval_requested
+  - marketing.campaign.approved
+  - marketing.campaign.synced
+  - marketing.conversion.recorded
+  - communication.message.accepted
+  - communication.message.delivered
+  - communication.message.failed
+  - communication.consent.changed
+  - social.post.created
+  - social.post.approved
+  - social.post.scheduled
+  - social.post.reconciled
+  - crm.lead.upserted
+  - crm.opportunity.won
+  - crm.opportunity.lost
+rules:
+  tenant_id_required: true
+  correlation_id_required: true
+  idempotency_required_for_commands: true
+  durable_outbox_required_for_state_changes: true
+  provider_webhooks_require_signature_verification: true
+  live_provider_writes_default: false

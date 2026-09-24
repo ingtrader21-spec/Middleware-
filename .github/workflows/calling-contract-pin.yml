@@ -1,0 +1,46 @@
+name: calling-contract-pin
+
+on:
+  pull_request:
+    paths:
+      - ".codestra/calling-contract.lock.json"
+      - ".github/workflows/calling-contract-pin.yml"
+      - "scripts/validate_calling_contract_pin.py"
+      - "scripts/project_ci.sh"
+  push:
+    branches: ["main"]
+    paths:
+      - ".codestra/calling-contract.lock.json"
+      - ".github/workflows/calling-contract-pin.yml"
+      - "scripts/validate_calling_contract_pin.py"
+      - "scripts/project_ci.sh"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      EXPECTED_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Check out exact source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.EXPECTED_SHA }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify exact checkout
+        run: |
+          set -Eeuo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          test -z "$(git status --porcelain)"
+
+      - name: Enforce issue 257 contract and fail-closed default
+        run: |
+          set -Eeuo pipefail
+          python3 scripts/validate_calling_contract_pin.py
+          python3 scripts/validate_calling_contract_pin.py --self-test
+          git diff --check

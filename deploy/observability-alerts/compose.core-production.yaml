@@ -1,0 +1,83 @@
+name: codestra-middleware-observability-alerts
+
+services:
+  observability-alert-api:
+    image: ${MIDDLEWARE_IMAGE:?set exact registry/repository@sha256:<digest>}
+    command:
+      - uvicorn
+      - app.observability_alerts:create_app
+      - --factory
+      - --host=0.0.0.0
+      - --port=8080
+      - --workers=2
+      - --proxy-headers
+      - --forwarded-allow-ips=10.40.0.4
+    env_file:
+      - ${OBSERVABILITY_ALERT_ENV_FILE:?OpenBao-rendered environment file is required}
+    user: "65532:65532"
+    init: true
+    read_only: true
+    restart: unless-stopped
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    mem_limit: 512m
+    cpus: 1.0
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=32m
+    expose:
+      - "8080"
+    secrets:
+      - source: klyrow_alert_oidc_client_secret
+        target: klyrow-alert-oidc-client-secret
+      - source: klyrow_alert_ca
+        target: klyrow-alert-ca
+      - source: klyrow_alert_client_cert
+        target: klyrow-alert-client-cert
+      - source: klyrow_alert_client_key
+        target: klyrow-alert-client-key
+    networks:
+      middleware_backend:
+        aliases: [middleware-observability-alerts]
+      observability_ingress: {}
+      provider_private: {}
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - >-
+          import urllib.request;
+          urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3).read()
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    labels:
+      com.codestra.service: middleware-observability-alerts
+      com.codestra.environment: production
+      com.codestra.source.repository: ingtrader21-spec/Middleware-
+      com.codestra.source.sha: ${MIDDLEWARE_SOURCE_SHA:?exact protected source SHA required}
+      com.codestra.image.digest: ${MIDDLEWARE_IMAGE_DIGEST:?exact image digest required}
+
+networks:
+  middleware_backend:
+    external: true
+    name: codestra-middleware-production-backend
+  observability_ingress:
+    external: true
+    name: codestra-observability-private
+  provider_private:
+    external: true
+    name: codestra-provider-private
+
+secrets:
+  klyrow_alert_oidc_client_secret:
+    file: ${KLYROW_ALERT_OIDC_CLIENT_SECRET_SOURCE_FILE:?OpenBao-rendered secret source file required}
+  klyrow_alert_ca:
+    file: ${KLYROW_ALERT_MTLS_CA_SOURCE_FILE:?OpenBao-rendered CA source file required}
+  klyrow_alert_client_cert:
+    file: ${KLYROW_ALERT_MTLS_CERT_SOURCE_FILE:?OpenBao-rendered client certificate source file required}
+  klyrow_alert_client_key:
+    file: ${KLYROW_ALERT_MTLS_KEY_SOURCE_FILE:?OpenBao-rendered client key source file required}

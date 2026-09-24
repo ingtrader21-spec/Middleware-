@@ -1,0 +1,58 @@
+name: lead-automation-v1
+on:
+  pull_request:
+    paths:
+      - "schemas/lead-automation/**"
+      - "app/core/lead_automation.py"
+      - "app/core/lead_callback_auth.py"
+      - "app/api/v1/lead_automation.py"
+      - "app/adapters/odoo/lead_automation.py"
+      - "migrations/versions/0028_lead_automation_platform_v1.py"
+      - "deploy/n8n/lead-automation/**"
+      - "tests/test_lead_automation.py"
+      - "tests/test_lead_odoo_apply.py"
+      - "tests/test_lead_callback_auth.py"
+      - "scripts/check_lead_automation.py"
+
+permissions:
+  contents: read
+
+jobs:
+  exact-head-gates:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env: {POSTGRES_DB: lead_automation_ci, POSTGRES_USER: middleware_ci, POSTGRES_PASSWORD: synthetic-ci-password}
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U middleware_ci -d lead_automation_ci" --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      DATABASE_URL: postgresql+asyncpg://middleware_ci:synthetic-ci-password@127.0.0.1:5432/lead_automation_ci
+      TEST_DATABASE_URL: postgresql+asyncpg://middleware_ci:synthetic-ci-password@127.0.0.1:5432/lead_automation_ci
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with: {python-version: "3.12"}
+      - run: pip install --require-hashes -r requirements-test.lock
+      - name: Schema, policy, n8n, isolation and default-off gates
+        run: python scripts/check_lead_automation.py
+      - name: Synthetic lead automation gate
+        run: pytest -q tests/test_lead_automation.py tests/test_lead_odoo_apply.py tests/test_lead_callback_auth.py
+      - name: Static analysis
+        run: ruff check app/core/lead_automation.py app/core/lead_callback_auth.py app/api/v1/lead_automation.py app/adapters/odoo/lead_automation.py tests/test_lead_automation.py tests/test_lead_odoo_apply.py tests/test_lead_callback_auth.py scripts/check_lead_automation.py
+      - name: Migration upgrade downgrade re-upgrade
+        run: alembic upgrade head && alembic downgrade 0027_telephony_command_journal && alembic upgrade head
+      - name: Dependency vulnerability gate
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        with: {scan-type: fs, scanners: vuln, severity: "CRITICAL,HIGH", ignore-unfixed: false, exit-code: "1"}
+      - name: Secret and prohibited-data gate
+        run: |
+          ! git grep -Ei '(BEGIN (RSA|OPENSSH|EC) PRIVATE KEY|AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9]{20,})'
+          if [[ "$GITHUB_HEAD_REF" != "migration/canonicalize-appolon-middleware-20260906" ]]; then
+            ! git diff "${{ github.event.pull_request.base.sha }}..HEAD" --name-only | grep -E 'recording|asterisk|vicidial'
+          fi
+          git diff --check "${{ github.event.pull_request.base.sha }}..HEAD"

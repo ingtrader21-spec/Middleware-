@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "environment": "production",
+  "clients": [
+    {
+      "client_id": "codestra-middleware-production",
+      "service_accounts_enabled": true,
+      "interactive_flows_enabled": false,
+      "audience": "codestra-n8n-production",
+      "scopes": ["n8n.events.submit"],
+      "business_units": ["BU-400-COD"],
+      "campaigns": ["CMP-400-COD"],
+      "event_types": ["reconciliation.run"],
+      "credential_reference_id": "secret://codestra/production/keycloak/codestra-middleware-production",
+      "rotation_days": 30,
+      "revocable": true
+    },
+    {
+      "client_id": "codestra-n8n-production",
+      "service_accounts_enabled": true,
+      "interactive_flows_enabled": false,
+      "audience": "codestra-middleware",
+      "scopes": [
+        "n8n.executions.register",
+        "n8n.executions.acknowledge",
+        "n8n.deliveries.read-own"
+      ],
+      "business_units": ["BU-400-COD"],
+      "campaigns": ["CMP-400-COD"],
+      "event_types": ["reconciliation.run"],
+      "credential_reference_id": "secret://codestra/production/keycloak/codestra-n8n-production",
+      "rotation_days": 30,
+      "revocable": true
+    },
+    {
+      "client_id": "codestra-middleware-odoo-results",
+      "service_accounts_enabled": true,
+      "interactive_flows_enabled": false,
+      "audience": "codestra-odoo",
+      "scopes": ["odoo.integration.results.write"],
+      "business_units": ["BU-400-COD"],
+      "campaigns": ["CMP-400-COD"],
+      "credential_reference_id": "secret://codestra/production/keycloak/codestra-middleware-odoo-results",
+      "rotation_days": 30,
+      "revocable": true
+    }
+  ]
+}

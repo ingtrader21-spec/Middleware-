@@ -1,0 +1,29 @@
+{
+  "version": "1.0",
+  "default": "deny",
+  "transport": {
+    "tls_minimum": "1.3",
+    "mutual_tls_required": true,
+    "private_network_only": true,
+    "allowed_server_a_addresses": ["10.40.0.1"],
+    "allowed_server_b_addresses": ["10.40.0.2"]
+  },
+  "identity": {
+    "issuer_allowlist_required": true,
+    "audience": "codestra-server-b-private-adapters",
+    "short_lived_tokens_required": true,
+    "certificate_identity_binding_required": true
+  },
+  "authorization": {
+    "business_unit_claim_required": true,
+    "role_claim_required": true,
+    "operation_allowlist_required": true,
+    "test_only_required": true,
+    "production_eligible_required": false
+  },
+  "logging": {
+    "authorization_headers": false,
+    "certificate_private_material": false,
+    "raw_credentials": false
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "applied_at": {
+      "format": "date-time",
+      "title": "Applied At",
+      "type": "string"
+    },
+    "call_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_.:-]+$",
+      "title": "Call Id",
+      "type": "string"
+    },
+    "disposition_code": {
+      "maxLength": 32,
+      "minLength": 1,
+      "pattern": "^[A-Z0-9_-]+$",
+      "title": "Disposition Code",
+      "type": "string"
+    }
+  },
+  "required": [
+    "call_id",
+    "disposition_code",
+    "applied_at"
+  ],
+  "title": "DispositionApplied",
+  "type": "object"
+}

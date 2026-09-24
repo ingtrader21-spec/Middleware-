@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools==83.0.0", "wheel==0.46.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "codestra-connector-runtime"
+version = "1.0.0"
+description = "Production runtime for the Codestra Connector SDK"
+requires-python = ">=3.12,<3.15"
+dependencies = [
+  "alembic==1.18.4",
+  "fastapi==0.141.1",
+  "httpx==0.28.1",
+  "psycopg[binary]==3.3.3",
+  "pydantic==2.13.4",
+  "pydantic-settings==2.14.2",
+  "PyJWT[crypto]==2.13.0",
+  "SQLAlchemy==2.0.50",
+  "structlog==26.1.0",
+  "uvicorn[standard]==0.48.0",
+]
+
+[project.optional-dependencies]
+test = [
+  "pytest==9.1.1",
+  "pytest-asyncio==1.4.0",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+addopts = "-ra --strict-markers --strict-config"
+testpaths = ["tests"]
+markers = ["postgres: requires a disposable PostgreSQL instance"]

@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.codestra.internal/recording/recording-status-v1.json",
+  "title": "Recording Status v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "recording_uid", "state", "checksum_verified", "odoo_linked"],
+  "properties": {
+    "contract_version": {"const": "1.0"},
+    "recording_uid": {"type": "string", "pattern": "^REC-[0-9a-f]{32}$"},
+    "state": {
+      "enum": [
+        "RESERVATION_CREATED",
+        "UPLOADING",
+        "UPLOADED",
+        "SERVER_VERIFIED",
+        "ODOO_LINKED",
+        "QUARANTINED",
+        "FAILED"
+      ]
+    },
+    "checksum_verified": {"type": "boolean"},
+    "odoo_linked": {"type": "boolean"},
+    "failure_code": {"type": ["string", "null"], "pattern": "^[A-Z0-9_]{1,64}$"}
+  }
+}

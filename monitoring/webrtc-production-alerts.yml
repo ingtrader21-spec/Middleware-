@@ -1,0 +1,14 @@
+groups:
+  - name: codestra-webrtc-production
+    rules:
+      - {alert: WebRTCKeycloakDown, expr: 'probe_success{job="keycloak"} == 0', for: 2m}
+      - {alert: WebRTCProvisioningDown, expr: 'probe_success{job="webphone-provisioning"} == 0', for: 2m}
+      - {alert: WebSocketGatewayDown, expr: 'probe_success{job="websocket-gateway"} == 0', for: 2m}
+      - {alert: CarrierTrunkUnavailable, expr: 'codestra_sip_trunk_available == 0', for: 1m}
+      - {alert: UnexpectedSIPRegistration, expr: 'codestra_sip_registrations > 0 and codestra_pstn_gate_enabled == 0', for: 0m}
+      - {alert: UnexpectedActiveCalls, expr: 'codestra_active_calls > 0 and codestra_pstn_gate_enabled == 0', for: 0m}
+      - {alert: TelephonyPolicyUnavailable, expr: 'codestra_telephony_policy_ready == 0', for: 0m}
+      - {alert: ProductionGateChanged, expr: 'changes(codestra_pstn_gate_enabled[5m]) > 0', for: 0m}
+      - {alert: WebRTCArtifactDigestMismatch, expr: 'codestra_webrtc_artifact_drift != 0', for: 0m}
+      - {alert: WebRTCTLSExpiry, expr: 'probe_ssl_earliest_cert_expiry - time() < 1209600', for: 5m}
+      - {alert: HighWebRTCFailureRate, expr: 'rate(codestra_webrtc_errors_total[5m]) > 0.05', for: 10m}

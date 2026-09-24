@@ -1,0 +1,73 @@
+name: Apply repository governance
+
+on:
+  issue_comment:
+    types:
+      - created
+
+permissions:
+  contents: read
+
+concurrency:
+  group: middleware-repository-governance-apply
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    # RUNTIME_MUTATION_DISABLED=true: live repository administration is outside release preparation.
+    if: ${{ false }}
+    name: Apply and verify repository governance
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out the exact default-branch event SHA
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify immutable source identity
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        run: |
+          set -Eeuo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          test -z "$(git status --porcelain)"
+          printf 'GOVERNANCE_SOURCE_SHA=%s\n' "$EXPECTED_SHA"
+
+      - name: Validate encoded policy before mutation
+        run: |
+          set -Eeuo pipefail
+          python3 scripts/validate_repository_governance.py
+          python3 scripts/apply_repository_governance.py
+
+      - name: Apply live GitHub repository settings
+        env:
+          CODESTRA_REPOSITORY_ADMIN_TOKEN: ${{ secrets.CODESTRA_REPOSITORY_ADMIN_TOKEN }}
+        run: |
+          set -Eeuo pipefail
+          python3 scripts/apply_repository_governance.py --apply
+
+      - name: Independently verify the live ruleset
+        env:
+          CODESTRA_REPOSITORY_ADMIN_TOKEN: ${{ secrets.CODESTRA_REPOSITORY_ADMIN_TOKEN }}
+        run: |
+          set -Eeuo pipefail
+          python3 scripts/validate_repository_governance.py --live
+          python3 scripts/apply_repository_governance.py --verify-live
+
+      - name: Publish non-secret evidence summary
+        env:
+          GOVERNANCE_SHA: ${{ github.sha }}
+        run: |
+          {
+            printf '## Middleware repository governance applied\n\n'
+            printf -- '- Exact source SHA: `%s`\n' "$GOVERNANCE_SHA"
+            printf -- '- Main protected: `YES`\n'
+            printf -- '- Ruleset: `middleware-main-production-authority`\n'
+            printf -- '- Required checks: `11`\n'
+            printf -- '- Environments: `staging`, `production`\n'
+            printf -- '- Runtime/deployment/live-write changes: `NONE`\n'
+          } >> "$GITHUB_STEP_SUMMARY"

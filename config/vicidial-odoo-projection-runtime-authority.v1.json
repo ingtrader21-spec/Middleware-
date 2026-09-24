@@ -1,0 +1,30 @@
+{
+  "schema_version": "1.0",
+  "kind": "vicidial-odoo-projection-runtime-authority",
+  "profiles": {
+    "codestra-middleware-staging-v1": {
+      "environment": "staging",
+      "mode": "synthetic-only",
+      "odoo_origin": "https://odoo-staging.internal.codestra",
+      "hmac_secret_path_prefix": "/run/secrets/middleware-staging-vicidial-odoo-"
+    },
+    "codestra-middleware-production-v1": {
+      "environment": "production",
+      "mode": "blocked-pending-protected-authority",
+      "odoo_origin": null,
+      "hmac_secret_path_prefix": null
+    },
+    "codestra-middleware-production-compose-v1": {
+      "environment": "production",
+      "mode": "blocked-pending-protected-authority",
+      "odoo_origin": null,
+      "hmac_secret_path_prefix": null
+    }
+  },
+  "safety_boundary": {
+    "runtime_activation_authorized_by_this_file": false,
+    "production_dialing_authorized_by_this_file": false,
+    "external_effects_authorized_by_this_file": false,
+    "calls_placed_expected": 0
+  }
+}

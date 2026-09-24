@@ -1,0 +1,8 @@
+{
+  "current_orchestrator_sha256": "4be8302e9c383b1da8a9afc7e25c371910ae963ed9a40d5bcf9a4091ab818d76",
+  "proposed_orchestrator_sha256": "dd932416dac9fd0fe8c9e2a03a7c20ab4eb0ace1bc8d4d72c57d9818055a28a6",
+  "current_convergence_pin_sha256": "23679aee112625c778d7607187ea505ca2f9f0983411143728d785d011298ae4",
+  "reviewed_convergence_source_sha256": "07c3a1bd8780de9cf3d2f04f441c4d1423a781b2a4d0f5d24d0bd792b7daa1c7",
+  "release_validator_sha256": "97f3891f1d638141780a1c2e5772f7cb7c51dcae44325299777605ee92097497",
+  "active_policy_changed": false
+}

@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.codestra.agency/lead-automation/lead-odoo-apply-v1.json",
+  "title": "Lead Odoo Apply V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version", "automation_event_id", "idempotency_key", "environment",
+    "business_unit_key", "campaign_key", "automation_action", "policy_version",
+    "correlation_id", "attributes_schema_key", "attributes", "consent_snapshot",
+    "workflow_execution_id", "result_code"
+  ],
+  "properties": {
+    "contract_version": {"const": "1.0"},
+    "automation_event_id": {"type": "string", "pattern": "^LAE-[A-Za-z0-9_-]{8,64}$", "maxLength": 68},
+    "idempotency_key": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+    "environment": {"enum": ["test", "staging", "production"]},
+    "business_unit_key": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{1,62}$", "maxLength": 63},
+    "campaign_key": {"type": "string", "pattern": "^[A-Z0-9][A-Z0-9_-]{1,63}$", "maxLength": 64},
+    "automation_action": {"enum": ["CREATE_LEAD", "UPDATE_ALLOWLISTED_FIELDS", "ASSIGN_AUTHORIZED_TEAM", "ASSIGN_AUTHORIZED_USER", "CHANGE_AUTHORIZED_STAGE", "CREATE_INTERNAL_CALLBACK_ACTIVITY"]},
+    "policy_version": {"type": "string", "pattern": "^[A-Za-z0-9._-]{1,32}$"},
+    "correlation_id": {"type": "string", "format": "uuid", "maxLength": 36},
+    "attributes_schema_key": {"enum": ["transportation-logistics-lead-v1", "web-mobile-ai-lead-v1", "senior-citizen-products-lead-v1", "business-loan-lead-v1", "real-estate-lead-v1", "fundraising-lead-v1", "trading-ai-lead-v1", "farming-lead-v1"]},
+    "attributes": {"type": "object", "maxProperties": 6},
+    "consent_snapshot": {
+      "type": "object", "additionalProperties": false,
+      "required": ["consent_status", "consent_purpose", "consent_source", "consent_updated_at", "dnc_status", "dnc_updated_at", "jurisdiction", "source_system"],
+      "properties": {
+        "consent_status": {"enum": ["granted", "denied", "expired", "unknown"]},
+        "consent_purpose": {"type": "string", "pattern": "^[A-Z0-9_-]{1,32}$"},
+        "consent_source": {"enum": ["odoo", "documented_external_registry"]},
+        "consent_updated_at": {"type": "string", "format": "date-time", "maxLength": 35},
+        "dnc_status": {"type": "boolean"},
+        "dnc_updated_at": {"type": "string", "format": "date-time", "maxLength": 35},
+        "jurisdiction": {"type": "string", "pattern": "^[A-Z]{2,8}$"},
+        "source_system": {"const": "odoo"}
+      }
+    },
+    "workflow_execution_id": {"type": "string", "pattern": "^N8N-[A-Za-z0-9_-]{8,64}$", "maxLength": 68},
+    "result_code": {"type": "string", "pattern": "^[A-Z0-9_]{1,48}$"},
+    "lead_uid": {"type": "string", "pattern": "^LEAD-[A-Za-z0-9_-]{8,64}$", "maxLength": 69},
+    "source_reference": {"type": "string", "pattern": "^SRC-[A-Za-z0-9_-]{8,64}$", "maxLength": 68}
+  },
+  "allOf": [
+    {"if": {"properties": {"attributes_schema_key": {"const": "transportation-logistics-lead-v1"}}, "required": ["attributes_schema_key"]}, "then": {"properties": {"attributes": {"$ref": "transportation-logistics-lead-v1.json"}}}},
+    {"if": {"properties": {"attributes_schema_key": {"const": "web-mobile-ai-lead-v1"}}, "required": ["attributes_schema_key"]}, "then": {"properties": {"attributes": {"$ref": "web-mobile-ai-lead-v1.json"}}}},
+    {"if": {"properties": {"attributes_schema_key": {"const": "senior-citizen-products-lead-v1"}}, "required": ["attributes_schema_key"]}, "then": {"properties": {"attributes": {"$ref": "senior-citizen-products-lead-v1.json"}}}},
+    {"if": {"properties": {"attributes_schema_key": {"const": "business-loan-lead-v1"}}, "required": ["attributes_schema_key"]}, "then": {"properties": {"attributes": {"$ref": "business-loan-lead-v1.json"}}}},
+    {"if": {"properties": {"attributes_schema_key": {"const": "real-estate-lead-v1"}}, "required": ["attributes_schema_key"]}, "then": {"properties": {"attributes": {"$ref": "real-estate-lead-v1.json"}}}},
+    {"if": {"properties": {"attributes_schema_key": {"const": "fundraising-lead-v1"}}, "required": ["attributes_schema_key"]}, "then": {"properties": {"attributes": {"$ref": "fundraising-lead-v1.json"}}}},
+    {"if": {"properties": {"attributes_schema_key": {"const": "trading-ai-lead-v1"}}, "required": ["attributes_schema_key"]}, "then": {"properties": {"attributes": {"$ref": "trading-ai-lead-v1.json"}}}},
+    {"if": {"properties": {"attributes_schema_key": {"const": "farming-lead-v1"}}, "required": ["attributes_schema_key"]}, "then": {"properties": {"attributes": {"$ref": "farming-lead-v1.json"}}}}
+  ]
+}

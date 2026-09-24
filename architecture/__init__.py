@@ -1,0 +1,1 @@
+"""Codestra middleware architecture data."""

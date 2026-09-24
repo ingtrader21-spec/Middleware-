@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.codestra.co/platform/service.v1.schema.json",
+  "title": "Codestra Service Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {"const": "platform.codestra.co/v1"},
+    "kind": {"const": "Service"},
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {"name": {"type": "string", "pattern": "^[a-z][a-z0-9-]{1,62}$"}}
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["owner", "repository", "tenantMode", "type", "runtime", "environments", "ingress", "contracts", "telemetry", "dependencies", "integration", "safety", "secrets", "dataClassification", "sloProfile", "alertProfile"],
+      "properties": {
+        "owner": {"type": "string", "minLength": 2},
+        "repository": {"type": "string", "pattern": "^(?:ingtrader21-spec|appolon1908-hue)/[A-Za-z0-9._-]+$"},
+        "tenantMode": {"enum": ["single-tenant", "multi-tenant", "platform"]},
+        "type": {"enum": ["api", "website", "worker", "adapter", "scheduled-job", "websocket"]},
+        "runtime": {
+          "type": "object", "additionalProperties": false,
+          "required": ["kind", "port", "imageMustUseDigest"],
+          "properties": {
+            "kind": {"enum": ["container", "static", "function"]},
+            "port": {"type": "integer", "minimum": 1, "maximum": 65535},
+            "imageMustUseDigest": {"const": true}
+          }
+        },
+        "environments": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["development", "test", "staging", "production"]}},
+        "ingress": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["edge", "authentication", "gateway"],
+          "properties": {
+            "hostname": {"type": "string", "minLength": 3},
+            "edge": {"const": "caddy"},
+            "authentication": {"enum": ["keycloak", "service-account", "none"]},
+            "gateway": {"const": "kong"}
+          }
+        },
+        "contracts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["liveness", "readiness", "dependencies", "metrics", "version", "capabilities", "openapi"],
+          "properties": {
+            "liveness": {"const": "/health/live"}, "readiness": {"const": "/health/ready"},
+            "dependencies": {"const": "/health/dependencies"}, "metrics": {"const": "/metrics"},
+            "version": {"const": "/version"}, "capabilities": {"const": "/capabilities"},
+            "openapi": {"const": "/openapi.json"}
+          }
+        },
+        "telemetry": {
+          "type": "object", "additionalProperties": false,
+          "required": ["metrics", "logs", "traces"],
+          "properties": {"metrics": {"type": "boolean"}, "logs": {"type": "boolean"}, "traces": {"type": "boolean"}}
+        },
+        "dependencies": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-z][a-z0-9-]{1,62}$"}},
+        "integration": {
+          "type": "object", "additionalProperties": false,
+          "required": ["authority", "directOdooDatabaseAccess"],
+          "properties": {
+            "authority": {"const": "middleware"},
+            "directOdooDatabaseAccess": {"const": false}
+          }
+        },
+        "safety": {
+          "type": "object", "additionalProperties": false,
+          "required": ["liveEmailDelivery", "liveSmsDelivery", "livePstnDialing"],
+          "properties": {
+            "liveEmailDelivery": {"const": false},
+            "liveSmsDelivery": {"const": false},
+            "livePstnDialing": {"const": false}
+          }
+        },
+        "secrets": {
+          "type": "array", "items": {
+            "type": "object", "additionalProperties": false, "required": ["name", "openbaoRole"],
+            "properties": {"name": {"type": "string", "minLength": 1}, "openbaoRole": {"type": "string", "minLength": 1}}
+          }
+        },
+        "dataClassification": {"enum": ["public", "internal", "confidential", "restricted"]},
+        "sloProfile": {"type": "string", "minLength": 2},
+        "alertProfile": {"type": "string", "minLength": 2}
+      }
+    }
+  }
+}

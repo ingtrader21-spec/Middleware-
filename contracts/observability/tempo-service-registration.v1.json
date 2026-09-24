@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "service_id": "tempo",
+  "repository": "appolon1908-hue/Codestra-Tempo",
+  "owner": "observability",
+  "environments": [
+    "staging",
+    "production"
+  ],
+  "dependencies": [
+    "prometheus",
+    "grafana",
+    "object-storage",
+    "memcached"
+  ],
+  "required_signals": [
+    "traces"
+  ],
+  "required_components": [
+    "tempo",
+    "alloy",
+    "prometheus"
+  ],
+  "native_api": {
+    "health": "/ready",
+    "readiness": "/ready",
+    "metrics": "/metrics",
+    "trace_by_id": "/api/traces/{trace_id}",
+    "otlp_grpc": "4317",
+    "otlp_http": "4318"
+  },
+  "backend_binding": {
+    "backend": "tempo",
+    "tenant_header": "X-Scope-OrgID",
+    "transport": "private_mtls",
+    "query_proxy": "middleware-approved-query-only"
+  },
+  "observation_sources": {
+    "alloy": {
+      "client": "alloy",
+      "environments": [
+        "staging",
+        "production"
+      ]
+    },
+    "prometheus": {
+      "client": "prometheus",
+      "environments": [
+        "staging",
+        "production"
+      ]
+    }
+  },
+  "production_activation": false,
+  "runtime_coverage": "unverified"
+}

@@ -1,0 +1,66 @@
+name: Connector SDK v1 validation
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+    paths:
+      - "middleware/connector_sdk/**"
+      - "connectors/**"
+      - "contracts/connectors/**"
+      - "contracts/connector.schema.json"
+      - "config/connectors/**"
+      - "docs/connectors/**"
+      - "scripts/generate_connector_artifacts.py"
+      - "scripts/scaffold_connector.py"
+      - "scripts/validate_connector_sdk.py"
+      - "scripts/validate_connector_contracts.py"
+      - "tests/test_connector_sdk*.py"
+      - ".github/workflows/connector-sdk-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: connector-sdk-v1-validation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out exact source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Prove exact source identity
+        env:
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD_SHA"
+          test -z "$(git status --porcelain)"
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+      - name: Install pinned validation dependencies
+        run: python3 -m pip install --require-hashes -r requirements-test.txt
+      - name: Reject whitespace errors
+        run: git diff --check
+      - name: Compile SDK
+        run: >-
+          python3 -m compileall -q
+          middleware/connector_sdk
+          scripts/generate_connector_artifacts.py
+          scripts/scaffold_connector.py
+          scripts/validate_connector_sdk.py
+          tests
+      - name: Validate manifests, generated source, API, storage, and standards
+        run: |
+          python3 scripts/generate_connector_artifacts.py --check
+          python3 scripts/validate_connector_sdk.py
+      - name: Validate isolated connector contracts
+        run: python3 scripts/validate_connector_contracts.py
+      - name: Run Connector SDK regression and review tests
+        run: python3 -m unittest discover -v -s tests -p 'test_connector_sdk*.py'

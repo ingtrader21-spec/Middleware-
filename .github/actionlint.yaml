@@ -1,0 +1,10 @@
+paths:
+  .github/workflows/mirror-codestra-legacy-middleware-images.yml:
+    ignore:
+      - 'constant expression "false" in condition'
+  .github/workflows/publish-sign-qwen-auth-verifier.yml:
+    ignore:
+      - 'constant expression "false" in condition'
+  .github/workflows/staging-intake-e2e-no-effect.yml:
+    ignore:
+      - 'constant expression "false" in condition'

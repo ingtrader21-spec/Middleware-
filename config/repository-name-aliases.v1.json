@@ -1,0 +1,45 @@
+{
+  "schema_version": "1.0",
+  "status": "PREPARED_NOT_RENAMED",
+  "identity_key": "github_repository_id",
+  "documentation_authority": "appolon1908-hue/documentaions:repository-name-migration.v1.json",
+  "historical_evidence_immutable": true,
+  "mappings": [
+    {
+      "github_repository_id": 1221155447,
+      "current_repository": "appolon1908-hue/Frontend-Resturant-",
+      "target_repository_after_cutover": "appolon1908-hue/restaurant-frontend",
+      "status": "PREPARED_NOT_RENAMED"
+    },
+    {
+      "github_repository_id": 1343761049,
+      "current_repository": "appolon1908-hue/transportaion-Frontend",
+      "target_repository_after_cutover": "appolon1908-hue/freight-platform-frontend",
+      "status": "PREPARED_NOT_RENAMED"
+    },
+    {
+      "github_repository_id": 1343962199,
+      "current_repository": "appolon1908-hue/LARIM-A-Fornt-end",
+      "target_repository_after_cutover": "appolon1908-hue/LARIM-A-Frontend",
+      "status": "PREPARED_NOT_RENAMED"
+    },
+    {
+      "github_repository_id": 1351353723,
+      "current_repository": "appolon1908-hue/Codesrea-Social-",
+      "target_repository_after_cutover": "appolon1908-hue/Codestra-Social-Control-Plane",
+      "status": "PREPARED_NOT_RENAMED"
+    },
+    {
+      "github_repository_id": 1350724356,
+      "current_repository": "appolon1908-hue/documentaions",
+      "target_repository_after_cutover": "appolon1908-hue/Codestra-Documentation",
+      "status": "PREPARED_NOT_RENAMED"
+    },
+    {
+      "github_repository_id": 1350724865,
+      "current_repository": "appolon1908-hue/Infustruction-repo",
+      "target_repository_after_cutover": "appolon1908-hue/Codestra-Infrastructure",
+      "status": "PREPARED_NOT_RENAMED"
+    }
+  ]
+}

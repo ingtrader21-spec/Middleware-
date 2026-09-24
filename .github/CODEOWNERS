@@ -1,0 +1,33 @@
+# Middleware source and repository policy authority
+* @appolon1908-hue @kazan555
+
+# Appolon retains ownership of production packaging and release controls.
+/.github/workflows/ @appolon1908-hue
+/app/ @appolon1908-hue
+/migrations/ @appolon1908-hue
+/contracts/ @appolon1908-hue
+/config/ @appolon1908-hue
+/Dockerfile.runtime @appolon1908-hue
+/requirements-*.txt @appolon1908-hue
+
+# Isolated-staging security governance
+/.github/workflows/security-owner-decision-*.yml @kazan555
+/security/ @kazan555
+/scripts/security/ @kazan555
+/tests/security/ @kazan555
+/docs/security/ @kazan555
+/SECURITY.md @kazan555
+
+# Production validator trust and the policy that enforces this ownership.
+# These paths require independent security-owner review on protected main.
+/.github/CODEOWNERS @kazan555
+/.github/workflows/manual-release-intent.yml @kazan555
+/.github/workflows/production-orchestrator-contract.yml @kazan555
+/.github/workflows/trusted-production-orchestrator-gate.yml @kazan555
+/.codestra/production-orchestrator-contract.v1.json @kazan555
+/.codestra/run-trusted-production-orchestrator.py @kazan555
+/.codestra/validate-production-orchestrator-contract.py @kazan555
+/.codestra/validate-release-intent.py @kazan555
+/config/repository-governance.v1.json @kazan555
+/scripts/apply_repository_governance.py @kazan555
+/scripts/validate_repository_governance.py @kazan555

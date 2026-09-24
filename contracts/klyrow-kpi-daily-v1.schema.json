@@ -1,0 +1,47 @@
+{
+  "$id": "https://contracts.codestra.co/klyrow/klyrow-kpi-daily-v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "accepted": {
+      "minimum": 0,
+      "title": "Accepted",
+      "type": "integer"
+    },
+    "bounced": {
+      "minimum": 0,
+      "title": "Bounced",
+      "type": "integer"
+    },
+    "complained": {
+      "minimum": 0,
+      "title": "Complained",
+      "type": "integer"
+    },
+    "date": {
+      "format": "date",
+      "title": "Date",
+      "type": "string"
+    },
+    "delivered": {
+      "minimum": 0,
+      "title": "Delivered",
+      "type": "integer"
+    },
+    "snapshot_at": {
+      "format": "date-time",
+      "title": "Snapshot At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "date",
+    "accepted",
+    "delivered",
+    "bounced",
+    "complained",
+    "snapshot_at"
+  ],
+  "title": "DailyKpiData",
+  "type": "object"
+}

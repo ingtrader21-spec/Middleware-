@@ -1,0 +1,108 @@
+name: Sign RC3P OpenVEX
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: sign-rc3p-openvex
+  cancel-in-progress: false
+
+jobs:
+  sign:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: security-release
+    timeout-minutes: 15
+    steps:
+      - name: Check out immutable workflow revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify approved repository, ref, and reviewed source ancestry
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${GITHUB_REPOSITORY}" = "appolon1908-hue/Middleware-"
+          test "${GITHUB_REF}" = "refs/heads/main"
+          test "$(git rev-parse --is-shallow-repository)" = "false"
+          git cat-file -e \
+            419650868659efa3589dcda29c1615c27b71f493^{commit}
+          git merge-base --is-ancestor \
+            419650868659efa3589dcda29c1615c27b71f493 \
+            "${GITHUB_SHA}"
+
+      - name: Verify unsigned OpenVEX checksum
+        working-directory: security/vex/rc3p
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum -c openvex.json.sha256
+          test "$(sha256sum openvex.json | cut -d' ' -f1)" = \
+            "eed2f59523e87385abe2743c438ddb45d00c37bf7926923791ba8da245ae5a2e"
+
+      - name: Install checksum-pinned cosign
+        shell: bash
+        env:
+          COSIGN_VERSION: v3.1.2
+          COSIGN_SHA256: f7622ed3cf22e55e1ae6377c080979ff77a22da9981c11df222a2e444991e7cf
+        run: |
+          set -euo pipefail
+          url="https://github.com/sigstore/cosign/releases/download/${COSIGN_VERSION}/cosign-linux-amd64"
+          curl --fail --location --proto '=https' --tlsv1.2 \
+            --output "${RUNNER_TEMP}/cosign" "${url}"
+          echo "${COSIGN_SHA256}  ${RUNNER_TEMP}/cosign" | sha256sum -c -
+          install -m 0755 "${RUNNER_TEMP}/cosign" "${RUNNER_TEMP}/bin-cosign"
+          "${RUNNER_TEMP}/bin-cosign" version | tee cosign-version.txt
+
+      - name: Keyless sign exact OpenVEX blob
+        shell: bash
+        env:
+          COSIGN_EXPERIMENTAL: "1"
+        run: |
+          set -euo pipefail
+          cp security/vex/rc3p/openvex.json rc3p-openvex.unsigned.json
+          "${RUNNER_TEMP}/bin-cosign" sign-blob \
+            --yes \
+            --bundle rc3p-openvex.sigstore.json \
+            rc3p-openvex.unsigned.json
+
+      - name: Independently verify identity, issuer, and transparency bundle
+        shell: bash
+        env:
+          EXPECTED_IDENTITY: https://github.com/appolon1908-hue/Middleware-/.github/workflows/sign-rc3p-openvex.yml@refs/heads/main
+          EXPECTED_ISSUER: https://token.actions.githubusercontent.com
+        run: |
+          set -euo pipefail
+          "${RUNNER_TEMP}/bin-cosign" verify-blob \
+            --bundle rc3p-openvex.sigstore.json \
+            --certificate-identity "${EXPECTED_IDENTITY}" \
+            --certificate-oidc-issuer "${EXPECTED_ISSUER}" \
+            rc3p-openvex.unsigned.json \
+            | tee rc3p-openvex.verification.txt
+          sha256sum \
+            rc3p-openvex.unsigned.json \
+            rc3p-openvex.sigstore.json \
+            rc3p-openvex.verification.txt \
+            cosign-version.txt \
+            > rc3p-signed-artifacts.sha256
+
+      - name: Upload immutable run-scoped signing evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rc3p-openvex-sigstore-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          overwrite: false
+          retention-days: 90
+          path: |
+            rc3p-openvex.unsigned.json
+            rc3p-openvex.sigstore.json
+            rc3p-openvex.verification.txt
+            rc3p-signed-artifacts.sha256
+            cosign-version.txt

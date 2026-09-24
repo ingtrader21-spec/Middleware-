@@ -1,0 +1,3 @@
+# 08 — Worker leases
+
+Lease = middleware_outbox.lease_owner/lease_until (claim bounds attempts; complete/fail/quarantine require the owner); fencing = middleware_command_attempts.attempt_number (`transition(expected_attempt=N)` refuses when a newer attempt exists) and middleware_commands.resource_version for operator mutations. Proofs (memory + PostgreSQL): two workers one command → exactly one claim and one effect; stale attempt fencing rejects a late finalization; expired lease after crash-before-adapter → reclaim and execute once; crash during/after adapter request → readback first, never a resend; crash after ack before state update → repaired by readback; crash after commit → no duplicate effect.

@@ -1,0 +1,35 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://evidence.codestra.invalid/gateway-schema-ack-rc2/vex/c5cb68554ad14f10",
+  "author": "Codestra security release governance",
+  "role": "Security-owner reviewed fixed-backport assertion",
+  "timestamp": "2026-07-28T15:38:47Z",
+  "last_updated": "2026-07-28T15:38:47Z",
+  "version": 1,
+  "statements": [
+    {
+      "vulnerability": {"name": "CVE-2026-11940"},
+      "products": [{"@id": "pkg:oci/telephony-event-gateway@sha256%3Ac5cb68554ad14f1057bc9d65d5b466433980e550dfc307f004b38cef20936035?repository_url=index.docker.io%2Fcodestra1980", "subcomponents": [{"@id": "pkg:generic/python@3.13.14"}]}],
+      "status": "fixed",
+      "timestamp": "2026-07-28T15:38:47Z",
+      "action_statement": "Official CPython 3.13 backport 771d12dda5140313db0ac550292987975651bbde is present in the inherited patched Python base and its security regression test passed.",
+      "status_notes": "decision_reference=security/vex/gateway-schema-ack-rc2/security-owner-decision.md; patched_python=codestra/python@sha256:541d6acdaa39568e8e9ba2a12f707ce167a819e553025256c29918a9509fe0c2; impact=version-only scanner match; action=replace with next suitable official patched Python release"
+    },
+    {
+      "vulnerability": {"name": "CVE-2026-15308"},
+      "products": [{"@id": "pkg:oci/telephony-event-gateway@sha256%3Ac5cb68554ad14f1057bc9d65d5b466433980e550dfc307f004b38cef20936035?repository_url=index.docker.io%2Fcodestra1980", "subcomponents": [{"@id": "pkg:generic/python@3.13.14"}]}],
+      "status": "fixed",
+      "timestamp": "2026-07-28T15:38:47Z",
+      "action_statement": "Official CPython 3.13 backport 7933f4bf7131aa4140750f9404f5de0aa2969ced is present in the inherited patched Python base and its security regression test passed.",
+      "status_notes": "decision_reference=security/vex/gateway-schema-ack-rc2/security-owner-decision.md; patched_python=codestra/python@sha256:541d6acdaa39568e8e9ba2a12f707ce167a819e553025256c29918a9509fe0c2; impact=version-only scanner match; action=replace with next suitable official patched Python release"
+    },
+    {
+      "vulnerability": {"name": "CVE-2026-11972"},
+      "products": [{"@id": "pkg:oci/telephony-event-gateway@sha256%3Ac5cb68554ad14f1057bc9d65d5b466433980e550dfc307f004b38cef20936035?repository_url=index.docker.io%2Fcodestra1980", "subcomponents": [{"@id": "pkg:generic/python@3.13.14"}]}],
+      "status": "fixed",
+      "timestamp": "2026-07-28T15:38:47Z",
+      "action_statement": "Official CPython 3.13 backport 3f031d431f80668e14f3bc066bbf4369cd9281b9 is present in the inherited patched Python base and its security regression test passed.",
+      "status_notes": "decision_reference=security/vex/gateway-schema-ack-rc2/security-owner-decision.md; patched_python=codestra/python@sha256:541d6acdaa39568e8e9ba2a12f707ce167a819e553025256c29918a9509fe0c2; impact=version-only scanner match; action=replace with next suitable official patched Python release"
+    }
+  ]
+}

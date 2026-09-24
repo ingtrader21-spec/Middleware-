@@ -1,0 +1,40 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "call_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_.:-]+$",
+      "title": "Call Id",
+      "type": "string"
+    },
+    "completed_at": {
+      "format": "date-time",
+      "title": "Completed At",
+      "type": "string"
+    },
+    "target_type": {
+      "enum": [
+        "agent",
+        "queue",
+        "external"
+      ],
+      "title": "Target Type",
+      "type": "string"
+    },
+    "transfer_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Transfer Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "call_id",
+    "transfer_id",
+    "completed_at",
+    "target_type"
+  ],
+  "title": "TransferCompleted",
+  "type": "object"
+}

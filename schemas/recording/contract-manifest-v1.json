@@ -1,0 +1,14 @@
+{
+  "contract_version": "1.0",
+  "source_repository": "Codestra-SRL/telephony-event-gateway",
+  "source_pull_request": 20,
+  "source_head": "ae92b95240a5ff638837121bc2773545bfbf6fdc",
+  "schemas": {
+    "recording-contract-v1.json": "f5698ede15d3e6be9810998b1da344ce08ee29f6141818c2597d3b7671eb66da",
+    "recording-reservation-v1.json": "1176e9bfaeae15b34739324b44294aab4bae36b0713aeca5943a0741111bc661",
+    "recording-completion-v1.json": "0aa790576328a0a248d0584805cd97817114a5179aac982b9e54f580e29d39ca",
+    "recording-status-v1.json": "a8cf03cff517b58eeef602ad9cc9ab7a58fdfb54a7410f4b9b13bf4d1521fa98",
+    "recording-event-v1.json": "756c3bd753d17d3721e8438e51749290530db57a4229f673f988d21e4d15c220",
+    "recording-n8n-event-v1.json": "d5bfe5a1c9c85feabff650ac20b2927f8e7f4a5c0744e158e3f4bf78e6392433"
+  }
+}

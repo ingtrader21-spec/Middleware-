@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "legal_entity": "Codestra SRL",
+  "effective_date": "2026-07-28",
+  "authority_evidence": {
+    "type": "CORPORATE_GOVERNANCE_ROLE_ASSIGNMENT_RESOLUTION",
+    "reference": "CODESTRA-GOV-RES-2026-001",
+    "sha256": "749ca481ba19cd85054ed96414764889169480151ffac8fa7a64f07e8b8ebf02",
+    "signature_method": "typed_signature_at_signer_direction",
+    "certificate_based_signature": false
+  },
+  "authorized_assigner": {
+    "full_name": "Ralph Appolon",
+    "corporate_role": "Authorized Representative",
+    "github_login": "appolon1908-hue"
+  },
+  "role_overlap": {
+    "release_owner_security_owner": true,
+    "authorized_by": "CODESTRA-GOV-RES-2026-001",
+    "independent_code_review_required": true,
+    "separate_role_decisions_required": true
+  },
+  "roles": {
+    "organization_owner": ["appolon1908-hue"],
+    "release_owner": ["appolon1908-hue"],
+    "security_owner": ["appolon1908-hue"],
+    "compliance_owner": ["appolon1908-hue"],
+    "operations_owner": ["appolon1908-hue"],
+    "rollback_approver": ["appolon1908-hue"]
+  },
+  "operating_hours": {
+    "timezone": "America/New_York",
+    "start": "09:00",
+    "end": "17:00"
+  }
+}

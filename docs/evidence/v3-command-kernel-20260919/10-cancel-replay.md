@@ -1,0 +1,5 @@
+# 10 — Cancel and replay
+
+Cancel (`POST …/cancel`, platform.command, expected_version + reason, Idempotency-Key): persisted → cancelled; queued → cancelled unless a live lease exists (→ reconciliation_required); dispatching/accepted/readback_pending → reconciliation_required (never pretend); terminal → 409; repeated request with the same key → the original response; stale version → 409. Outbox intents of a cancelled operation are cancelled and never claimed.
+
+Replay (`POST …/replay`, platform.command.replay + realm role platform-operator, enforced by Middleware from the verified token): REPROCESS = the ledger's reconcile mutation (readback-only, no new effect; only for unknown-outcome states); REEXECUTE = a new governed operation (new command id, new idempotency key required, fresh policy + safety, adapter must advertise safe_reexecution) allowed only from failed/dead_lettered/cancelled; an operation in reconciliation_required is refused ("reconcile first"). Replay linkage (`replay_mode`, `replay_of`) in the new operation's first audit row.

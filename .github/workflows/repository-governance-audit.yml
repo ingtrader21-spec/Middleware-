@@ -1,0 +1,43 @@
+name: Repository governance audit
+
+on:
+  workflow_dispatch:
+    inputs:
+      live:
+        description: Compare encoded policy to live GitHub settings
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  governance-audit:
+    name: Repository governance policy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out exact selected ref
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - name: Validate encoded source policy
+        run: python3 scripts/validate_repository_governance.py
+
+      - name: Compare live repository settings
+        if: inputs.live
+        env:
+          CODESTRA_REPOSITORY_ADMIN_TOKEN: ${{ secrets.CODESTRA_REPOSITORY_ADMIN_TOKEN }}
+        run: |
+          set -Eeuo pipefail
+          python3 scripts/validate_repository_governance.py --live
+          python3 scripts/apply_repository_governance.py --verify-live

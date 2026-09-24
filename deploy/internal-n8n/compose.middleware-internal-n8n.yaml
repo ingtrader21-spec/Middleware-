@@ -1,0 +1,47 @@
+services:
+  middleware-integration-api:
+    networks:
+      - codestra-internal-integration
+    secrets:
+      - middleware_n8n_client_secret
+      - odoo_results_client_secret
+      - n8n_internal_ca
+    environment:
+      N8N_PRODUCTION_TARGET_URL: https://n8n.internal.codestra.agency/webhook/codestra/v1/events
+      MIDDLEWARE_N8N_CLIENT_ID: codestra-middleware-production
+      MIDDLEWARE_N8N_CLIENT_SECRET_FILE: /run/secrets/middleware_n8n_client_secret
+      ODOO_RESULTS_CLIENT_ID: codestra-middleware-odoo-results
+      ODOO_RESULTS_CLIENT_SECRET_FILE: /run/secrets/odoo_results_client_secret
+      N8N_TARGET_CA_FILE: /run/secrets/n8n_internal_ca
+      N8N_RUNTIME_HEALTH_URL: http://n8n:5678/healthz
+      SEND_EVENTS: "false"
+      BROAD_EVENT_DELIVERY_ENABLED: "false"
+      PRODUCTION_N8N_ENABLED: "false"
+      N8N_PRODUCTION_WORKFLOWS_ENABLED: "false"
+      ENABLE_EXTERNAL_DELIVERY: "false"
+
+  middleware-odoo-result-worker:
+    networks:
+      - codestra-internal-integration
+    secrets:
+      - odoo_results_client_secret
+      - n8n_internal_ca
+    environment:
+      SERVICE_NAME: middleware-odoo-result-worker
+      QUEUE_NAME: odoo-results
+      ODOO_RESULT_DELIVERY_ENABLED: "false"
+      ODOO_RESULTS_CLIENT_ID: codestra-middleware-odoo-results
+      ODOO_RESULTS_CLIENT_SECRET_FILE: /run/secrets/odoo_results_client_secret
+
+networks:
+  codestra-internal-integration:
+    name: codestra-internal-integration
+    external: true
+
+secrets:
+  n8n_internal_ca:
+    external: true
+  middleware_n8n_client_secret:
+    external: true
+  odoo_results_client_secret:
+    external: true

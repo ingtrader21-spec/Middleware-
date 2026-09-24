@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://middleware.codestra.co/contracts/connector.schema.json",
+  "title": "Middleware connector contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "id", "workstream", "repository", "role", "transport", "authentication", "runtime", "deployment_evidence"],
+  "properties": {
+    "version": {"const": 1},
+    "id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+    "workstream": {"type": "string", "pattern": "^(integration|platform|site)/[a-z0-9][a-z0-9-]*$"},
+    "repository": {"type": "string", "pattern": "^(?:ingtrader21-spec|appolon1908-hue)/[A-Za-z0-9._-]+$"},
+    "role": {"enum": ["frontend", "backend", "identity", "gateway", "erp", "social-site", "social-adapter"]},
+    "transport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocol", "base_url_env", "health_path"],
+      "properties": {
+        "protocol": {"enum": ["https", "oidc", "internal_https"]},
+        "base_url_env": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]*_BASE_URL$"},
+        "health_path": {"type": "string", "pattern": "^/"}
+      }
+    },
+    "authentication": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "keycloak_client_id", "secret_env"],
+      "properties": {
+        "method": {"enum": ["oidc_client_credentials", "oidc_authorization_code", "oidc_jwks"]},
+        "keycloak_client_id": {"type": "string", "pattern": "^middleware-[a-z0-9-]+$"},
+        "secret_env": {"type": ["string", "null"], "pattern": "^[A-Z][A-Z0-9_]*_CLIENT_SECRET$"}
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled_by_default", "external_effects_enabled", "status"],
+      "properties": {
+        "enabled_by_default": {"const": false},
+        "external_effects_enabled": {"const": false},
+        "status": {"const": "runtime_unconfirmed"}
+      }
+    },
+    "deployment_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["deployed", "verified_commit", "verified_at", "notes"],
+      "properties": {
+        "deployed": {"const": false},
+        "verified_commit": {"type": "null"},
+        "verified_at": {"type": "null"},
+        "notes": {"const": "Configuration contract only; no live deployment performed."}
+      }
+    }
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "$id": "https://contracts.codestra.co/klyrow/klyrow-domain-status-v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "domain": {
+      "maxLength": 253,
+      "minLength": 1,
+      "title": "Domain",
+      "type": "string"
+    },
+    "domain_id": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Domain Id",
+      "type": "string"
+    },
+    "status": {
+      "maxLength": 50,
+      "minLength": 1,
+      "title": "Status",
+      "type": "string"
+    },
+    "verified_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Verified At"
+    }
+  },
+  "required": [
+    "domain_id",
+    "domain",
+    "status"
+  ],
+  "title": "DomainStatusData",
+  "type": "object"
+}

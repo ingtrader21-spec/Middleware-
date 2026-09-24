@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://codestra.internal/schemas/three-component-production-release-decision.v1.json",
+  "title": "Codestra three-component production release decision",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema", "schema_version", "decision", "created_at", "expires_at",
+    "artifact_source_sha", "m05_workflow_sha", "authority_run_id",
+    "authority_artifact_sha256", "authority_identity", "candidate_run_id",
+    "candidate_run_attempt", "signing_run_id", "signing_run_attempt",
+    "components", "critical_findings_total", "high_findings_total",
+    "accepted_exceptions", "synthetic_only", "customer_calls_allowed",
+    "pstn_calls_allowed", "live_sms_allowed", "live_email_allowed",
+    "deployment_scope"
+  ],
+  "properties": {
+    "$schema": {"const": "https://codestra.internal/schemas/three-component-production-release-decision.v1.json"},
+    "schema_version": {"const": "codestra.three-component-production-release-decision.v1"},
+    "decision": {"const": "PASS"},
+    "created_at": {"type": "string", "format": "date-time"},
+    "expires_at": {"type": "string", "format": "date-time"},
+    "artifact_source_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "m05_workflow_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "authority_run_id": {"type": "integer", "minimum": 1},
+    "authority_artifact_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "authority_identity": {"type": "string", "const": "https://github.com/kazan555"},
+    "candidate_run_id": {"type": "integer", "minimum": 1},
+    "candidate_run_attempt": {"type": "integer", "minimum": 1},
+    "signing_run_id": {"type": "integer", "minimum": 1},
+    "signing_run_attempt": {"type": "integer", "minimum": 1},
+    "components": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["middleware", "agent-desktop", "websocket-gateway"],
+      "properties": {
+        "middleware": {"$ref": "#/$defs/component"},
+        "agent-desktop": {"$ref": "#/$defs/component"},
+        "websocket-gateway": {"$ref": "#/$defs/component"}
+      }
+    },
+    "critical_findings_total": {"const": 0},
+    "high_findings_total": {"type": "integer", "minimum": 0},
+    "accepted_exceptions": {"type": "array", "items": {"type": "object"}},
+    "synthetic_only": {"const": true},
+    "customer_calls_allowed": {"const": false},
+    "pstn_calls_allowed": {"const": false},
+    "live_sms_allowed": {"const": false},
+    "live_email_allowed": {"const": false},
+    "deployment_scope": {"const": "server_a_exact_digest_test_syn_6101_only"}
+  },
+  "$defs": {
+    "component": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["image", "digest", "security_decision"],
+      "properties": {
+        "image": {"type": "string", "pattern": "^ghcr\\.io/codestra-srl/codestra-"},
+        "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "security_decision": {"const": "PASS"}
+      }
+    }
+  }
+}

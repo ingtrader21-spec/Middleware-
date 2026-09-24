@@ -1,0 +1,31 @@
+# Merge into Server A's Caddyfile only after dialer.codestra.agency DNS points
+# to Server A. The existing phone.codestra.agency route remains unchanged.
+dialer.codestra.agency {
+	encode zstd gzip
+	header {
+		Referrer-Policy "strict-origin-when-cross-origin"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		X-Robots-Tag "noindex, nofollow"
+	}
+
+	handle /oauth2/* {
+		reverse_proxy auth-gateway:4180
+	}
+	handle /webphone-api/* {
+		request_body { max_size 16KB }
+		reverse_proxy auth-gateway:4180
+	}
+	handle /ws/agent {
+		request_body { max_size 16KB }
+		reverse_proxy auth-gateway:4180
+	}
+	handle /realtime-api/* {
+		uri strip_prefix /realtime-api
+		request_body { max_size 16KB }
+		reverse_proxy codestra-websocket-gateway-gateway-1:8080
+	}
+	handle {
+		reverse_proxy codestra-agent-desktop-sipjs-staging:8080
+	}
+}

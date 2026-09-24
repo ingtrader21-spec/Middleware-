@@ -1,0 +1,155 @@
+name: Sign bounded production canary authorization
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        required: true
+        type: string
+      release_sha:
+        required: true
+        type: string
+      image_digest:
+        required: true
+        type: string
+      request_base64:
+        required: true
+        type: string
+      request_sha256:
+        required: true
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: production-canary-${{ inputs.release_sha }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    if: github.repository == 'ingtrader21-spec/Middleware-' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      statuses: read
+    outputs:
+      request-sha: ${{ steps.request.outputs.sha }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Verify exact pull request, review, and CI
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ inputs.pr_number }}
+          SHA: ${{ inputs.release_sha }}
+        run: |
+          set -euo pipefail
+          test "${GITHUB_SHA}" = "$(git rev-parse HEAD)"
+          [[ "${SHA}" =~ ^[0-9a-f]{40}$ ]]
+          # checkout intentionally does not persist credentials. Configure the
+          # job-scoped GitHub token only for this private-repository fetch.
+          gh auth setup-git
+          gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR}" > pr.json
+          test "$(jq -r .merged_at pr.json)" != "null"
+          test "$(jq -r .head.sha pr.json)" = "${SHA}"
+          gh api "repos/${GITHUB_REPOSITORY}/compare/${SHA}...${GITHUB_SHA}" > comparison.json
+          jq -e --arg sha "${SHA}" --arg head "${GITHUB_SHA}" '
+            .base_commit.sha == $sha and
+            .merge_base_commit.sha == $sha and
+            .status == "ahead" and
+            .commits[-1].sha == $head
+          ' comparison.json >/dev/null
+          gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR}/reviews" > reviews.json
+          jq -e --arg sha "${SHA}" 'any(.[]; .user.login == "kazan555" and .state == "APPROVED" and .commit_id == $sha)' reviews.json >/dev/null
+          gh api "repos/${GITHUB_REPOSITORY}/commits/${SHA}/status" > status.json
+          jq -e 'any(.statuses[]; .context == "codestra/required-ci" and .state == "success")' status.json >/dev/null
+      - name: Validate detached immutable request
+        id: request
+        env:
+          REQUEST_BASE64: ${{ inputs.request_base64 }}
+          SHA: ${{ inputs.release_sha }}
+          PR: ${{ inputs.pr_number }}
+          EXPECTED_HASH: ${{ inputs.request_sha256 }}
+          IMAGE_DIGEST: ${{ inputs.image_digest }}
+        run: |
+          set -euo pipefail
+          printf '%s' "${REQUEST_BASE64}" | base64 --decode > request.json
+          test "$(sha256sum request.json | cut -d' ' -f1)" = "${EXPECTED_HASH}"
+          jq -cS . request.json > canonical.json
+          cmp --silent request.json canonical.json
+          python scripts/security/validate-production-canary-authorization.py --request request.json --repository "${GITHUB_REPOSITORY}" --pr-number "${PR}" --release-sha "${SHA}" --image-digest "${IMAGE_DIGEST}"
+          echo "sha=${EXPECTED_HASH}" >> "${GITHUB_OUTPUT}"
+
+  release-owner:
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: production-release-owner
+    permissions: {}
+    steps:
+      - name: Record separate Release Owner gate
+        run: |
+          set -euo pipefail
+          test -n "${{ vars.CODESTRA_RELEASE_OWNER_LOGIN }}"
+          test -n "${{ vars.CODESTRA_SECURITY_OWNER_LOGIN }}"
+          test "${{ github.actor }}" != "${{ vars.CODESTRA_RELEASE_OWNER_LOGIN }}"
+          test "${{ github.actor }}" != "${{ vars.CODESTRA_SECURITY_OWNER_LOGIN }}"
+          printf '%s\n' '${{ inputs.release_sha }}' '${{ inputs.image_digest }}' '${{ needs.validate.outputs.request-sha }}' > release-owner-binding.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: release-owner-${{ inputs.release_sha }}
+          path: release-owner-binding.txt
+          if-no-files-found: error
+
+  security-owner:
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: production-security-owner
+    permissions: {}
+    steps:
+      - name: Record separate Security Owner gate
+        run: |
+          set -euo pipefail
+          test -n "${{ vars.CODESTRA_RELEASE_OWNER_LOGIN }}"
+          test -n "${{ vars.CODESTRA_SECURITY_OWNER_LOGIN }}"
+          test "${{ github.actor }}" != "${{ vars.CODESTRA_RELEASE_OWNER_LOGIN }}"
+          test "${{ github.actor }}" != "${{ vars.CODESTRA_SECURITY_OWNER_LOGIN }}"
+          printf '%s\n' '${{ inputs.release_sha }}' '${{ inputs.image_digest }}' '${{ needs.validate.outputs.request-sha }}' > security-owner-binding.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: security-owner-${{ inputs.release_sha }}
+          path: security-owner-binding.txt
+          if-no-files-found: error
+
+  sign:
+    needs: [validate, release-owner, security-owner]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: '*-owner-${{ inputs.release_sha }}'
+          merge-multiple: true
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6
+        with:
+          cosign-release: v3.1.2
+      - name: Sign exact bounded authorization
+        run: |
+          set -euo pipefail
+          test "$(sed -n 1p release-owner-binding.txt)" = '${{ inputs.release_sha }}'
+          test "$(sed -n 1p security-owner-binding.txt)" = '${{ inputs.release_sha }}'
+          jq -cnS --arg sha '${{ inputs.release_sha }}' --arg digest '${{ inputs.image_digest }}' --arg request '${{ needs.validate.outputs.request-sha }}' --arg run '${{ github.run_id }}' '{schema_version:"codestra.production-canary.authorization.v2",release_sha:$sha,image_digest:$digest,request_sha256:$request,workflow_run_id:$run}' > authorization.json
+          cosign sign-blob --yes --bundle authorization.sigstore.json authorization.json
+          sha256sum authorization.json authorization.sigstore.json > SHA256SUMS
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: production-canary-authorization-${{ inputs.release_sha }}
+          path: |
+            authorization.json
+            authorization.sigstore.json
+            SHA256SUMS
+          if-no-files-found: error

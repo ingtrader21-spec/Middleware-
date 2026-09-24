@@ -1,0 +1,10 @@
+apiVersion: platform.codestra.co/v1
+kind: Observability
+metrics:
+  path: /metrics
+logs:
+  format: json
+  redact: [authorization, cookie, password, token, connection_string]
+traces:
+  propagation: [traceparent, x-correlation-id]
+nativeBackends: [prometheus, alertmanager, loki, tempo]

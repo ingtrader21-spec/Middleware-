@@ -1,0 +1,28 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "campaign_id": {
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Campaign Id",
+      "type": "string"
+    },
+    "observed_at": {
+      "format": "date-time",
+      "title": "Observed At",
+      "type": "string"
+    },
+    "remaining": {
+      "minimum": 0,
+      "title": "Remaining",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "campaign_id",
+    "remaining",
+    "observed_at"
+  ],
+  "title": "HopperState",
+  "type": "object"
+}

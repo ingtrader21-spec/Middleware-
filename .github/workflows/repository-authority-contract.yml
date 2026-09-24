@@ -1,0 +1,68 @@
+name: Repository authority contract
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/repository-authority-contract.yml
+      - config/repository-authorities.v1.json
+      - config/adapter-registry.v2.json
+      - connectors/manifests/**
+      - README.md
+      - docs/CI-ENVIRONMENTS-AND-HANDOFF.md
+      - docs/REPOSITORY-AUTHORITY-POLICY.md
+      - scripts/validate_repository_authorities.py
+      - tests/test_repository_authorities.py
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/repository-authority-contract.yml
+      - config/repository-authorities.v1.json
+      - config/adapter-registry.v2.json
+      - connectors/manifests/**
+      - README.md
+      - docs/CI-ENVIRONMENTS-AND-HANDOFF.md
+      - docs/REPOSITORY-AUTHORITY-POLICY.md
+      - scripts/validate_repository_authorities.py
+      - tests/test_repository_authorities.py
+
+permissions:
+  contents: read
+
+concurrency:
+  group: repository-authority-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  repository-authority-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check out exact source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Prove exact source identity
+        env:
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -Eeuo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD_SHA"
+          test -z "$(git status --porcelain)"
+      - name: Validate repository authority contract
+        run: |
+          set -Eeuo pipefail
+          python3 -m py_compile \
+            scripts/validate_repository_authorities.py \
+            tests/test_repository_authorities.py
+          python3 -m unittest -v tests.test_repository_authorities
+          python3 scripts/validate_repository_authorities.py
+          python3 -m json.tool config/repository-authorities.v1.json >/dev/null
+          python3 -m json.tool config/adapter-registry.v2.json >/dev/null
+          git diff --check

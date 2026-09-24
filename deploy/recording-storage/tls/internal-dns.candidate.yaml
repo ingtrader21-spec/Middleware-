@@ -1,0 +1,6 @@
+# Candidate only. Do not apply during source-development phases.
+records:
+  - name: api.staging.internal.codestra.agency
+    type: A
+    value: 10.40.0.1
+    visibility: private

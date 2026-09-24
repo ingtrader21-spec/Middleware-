@@ -1,0 +1,22 @@
+FEATURE,BACKEND,API,DATABASE,FRONTEND,RBAC,TEST,STATUS
+incoming screen pop,Odoo lifecycle + gateway,call-events + realtime,calls/events,CallWorkspace,subject/tenant/campaign/agent,PBX baseline + E2E,IMPLEMENTED
+outgoing workspace,Odoo lifecycle + gateway,call-events + workspace,calls/events,CallWorkspace,subject/tenant/campaign/agent,PBX baseline,IMPLEMENTED
+customer 360,Odoo CRM lookup,workspace,res.partner/crm.lead/mail.activity/mail.message,identity/location/history/tasks/communication status,tenant CRM rules,unit + Odoo + browser,IMPLEMENTED
+live notes,Odoo revisions,notes,call note/revision,debounced editor,call owner/tenant,unit + Odoo,IMPLEMENTED
+timeline,Odoo event ordering,workspace,call event,timeline,call-derived rules,Odoo suite,IMPLEMENTED
+disposition,Odoo validation,disposition,disposition/sub-disposition,wrap-up,owner/campaign/tenant,unit + Odoo,IMPLEMENTED
+callback scheduling,Odoo callback lifecycle,callbacks,callback,callback panel,owner/call/tenant,unit + Odoo,IMPLEMENTED
+follow-up task,Odoo mail activity,tasks,mail.activity,quick action,owner/tenant,unit/build validation,IMPLEMENTED
+recording metadata,recording service + Odoo,recording metadata APIs,recording metadata,status panel,role restricted,pipeline tests,IMPLEMENTED
+secure recording player,private recording authority,authenticated Odoo playback mediation,recording metadata + playback audit,authorized HTML audio player,call scope + role/permission,26 recording tests + frontend build; TEST_SYN audio N/A,IMPLEMENTED
+agent state,Odoo agent + authoritative lifecycle,current/workspace/realtime,agent/call,header/status,agent binding,Odoo + gateway + browser,IMPLEMENTED
+wrap-up mode,Odoo terminal lifecycle + disposition,workspace/disposition,call timestamps + campaign timeout,wrap-up form/timer target,owner/campaign/tenant,Odoo + frontend + browser,IMPLEMENTED
+single popup,gateway idempotency + client sequence,realtime,event uniqueness,one active workspace,single session,PBX replay + browser,IMPLEMENTED
+reconnect recovery,gateway replay + Odoo current,current/workspace/realtime,persisted cursor,current workspace,subject ticket,unit + browser,IMPLEMENTED
+multi-tab control,gateway lock,realtime session,realtime sessions,secondary disconnect,agent binding,browser E2E,IMPLEMENTED
+supervisor dashboard,Odoo scoped aggregation,supervisor dashboard,calls/agents,Supervisor view,campaign/tenant rules,unit + Odoo,IMPLEMENTED
+call search/detail,Odoo scoped query,search/detail,calls/events/notes/QA,Supervisor detail,supervisor/QA rules,unit + Odoo,IMPLEMENTED
+QA scoring,Odoo immutable review,QA endpoint,QA review,QA form,QA tenant scope,Odoo + UI unit,IMPLEMENTED
+coaching,Odoo activity workflow,coaching endpoints,coaching,QA form workflow,reviewer + assignee,Odoo suite,IMPLEMENTED
+accessibility,n/a,n/a,n/a,responsive semantic UI,server RBAC unchanged,axe WCAG A/AA,IMPLEMENTED
+metrics/alerts,gateway Prometheus,/metrics,gateway event store,operational only,internal metrics access,gateway tests + promtool,IMPLEMENTED

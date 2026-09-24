@@ -1,0 +1,14 @@
+--- Caddyfile
++++ Caddyfile.qwen-auth-candidate
+@@ -143,0 +144,11 @@ middleware.internal.codestra.agency {
++		@qwen_auth_verify {
++			remote_ip 10.40.0.4
++			method POST
++			path /internal/api/v1/ai/auth/verify
++		}
++		handle @qwen_auth_verify {
++			reverse_proxy qwen-auth-verifier:8095 {
++				header_up -X-Codestra-Client-Certificate
++				header_up X-Codestra-Client-Certificate-DER "{http.request.tls.client.certificate_der_base64}"
++			}
++		}

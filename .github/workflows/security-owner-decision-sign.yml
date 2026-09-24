@@ -1,0 +1,376 @@
+name: Sign security-owner decision
+
+on:
+  workflow_dispatch:
+    inputs:
+      evidence_kind:
+        description: Evidence contract to sign
+        required: true
+        default: staging_decision
+        type: choice
+        options:
+          - staging_decision
+          - production_openvex
+      pr_number:
+        description: Pull request number containing inert decision evidence
+        required: false
+        type: string
+      pr_head_sha:
+        description: Exact reviewed pull request head SHA
+        required: false
+        type: string
+      decision_request_path:
+        description: Repository-relative path to canonical decision request JSON
+        required: false
+        type: string
+      decision_request_sha256:
+        description: SHA-256 of the exact decision request bytes
+        required: false
+        type: string
+      image_manifest_path:
+        description: Repository-relative path to canonical image manifest JSON
+        required: false
+        type: string
+      image_manifest_sha256:
+        description: SHA-256 of the exact image manifest bytes
+        required: false
+        type: string
+      production_source_sha:
+        description: Exact protected-main production revision SHA
+        required: false
+        type: string
+      production_image_digest:
+        description: Immutable exact-revision candidate image digest
+        required: false
+        type: string
+      openvex_base64:
+        description: Base64 of canonical independently reviewed OpenVEX JSON
+        required: false
+        type: string
+      openvex_sha256:
+        description: SHA-256 of exact canonical OpenVEX bytes
+        required: false
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: security-owner-decision-${{ inputs.evidence_kind }}-${{ inputs.pr_head_sha || inputs.production_source_sha }}
+  cancel-in-progress: false
+
+jobs:
+  sign-decision:
+    # RUNTIME_MUTATION_DISABLED=true: decision signing requires separate authorization.
+    if: ${{ false }}
+    runs-on: ubuntu-latest
+    environment: security-owner-signing
+    timeout-minutes: 15
+    permissions:
+      actions: read
+      contents: read
+      deployments: read
+      id-token: write
+      pull-requests: read
+    env:
+      EXPECTED_ISSUER: https://token.actions.githubusercontent.com
+      EXPECTED_IDENTITY: https://github.com/ingtrader21-spec/Middleware-/.github/workflows/security-owner-decision-sign.yml@refs/heads/main
+      PR_NUMBER: ${{ inputs.pr_number }}
+      PR_HEAD_SHA: ${{ inputs.pr_head_sha }}
+      DECISION_REQUEST_PATH: ${{ inputs.decision_request_path }}
+      DECISION_REQUEST_SHA256: ${{ inputs.decision_request_sha256 }}
+      IMAGE_MANIFEST_PATH: ${{ inputs.image_manifest_path }}
+      IMAGE_MANIFEST_SHA256: ${{ inputs.image_manifest_sha256 }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Check out protected main workflow revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Validate protected context and immutable inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${GITHUB_REPOSITORY}" = "ingtrader21-spec/Middleware-"
+          test "${GITHUB_REF}" = "refs/heads/main"
+          test "${GITHUB_SHA}" = "$(git rev-parse HEAD)"
+          [[ "${PR_NUMBER}" =~ ^[1-9][0-9]*$ ]]
+          [[ "${PR_HEAD_SHA}" =~ ^[0-9a-f]{40}$ ]]
+          [[ "${DECISION_REQUEST_SHA256}" =~ ^[0-9a-f]{64}$ ]]
+          [[ "${IMAGE_MANIFEST_SHA256}" =~ ^[0-9a-f]{64}$ ]]
+          for path in "${DECISION_REQUEST_PATH}" "${IMAGE_MANIFEST_PATH}"; do
+            [[ "${path}" =~ ^[A-Za-z0-9._/-]+$ ]]
+            [[ "${path}" != /* ]]
+            [[ "/${path}/" != *"/../"* ]]
+          done
+
+      - name: Rediscover exact pull request and required CI
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" > pull-request.json
+          test "$(jq -r .state pull-request.json)" = open
+          test "$(jq -r .head.sha pull-request.json)" = "${PR_HEAD_SHA}"
+          gh api "repos/${GITHUB_REPOSITORY}/commits/${PR_HEAD_SHA}/status" > commit-status.json
+          jq -e '
+            .state == "success" and
+            any(.statuses[]; .context == "codestra/required-ci" and .state == "success")
+          ' commit-status.json >/dev/null
+
+      - name: Fetch exact PR evidence as inert data
+        shell: bash
+        run: |
+          set -euo pipefail
+          fetch_content() {
+            local path="$1" output="$2"
+            gh api "repos/${GITHUB_REPOSITORY}/contents/${path}?ref=${PR_HEAD_SHA}" \
+              --jq .content | base64 --decode > "${output}"
+          }
+          fetch_content "${DECISION_REQUEST_PATH}" decision-request.json
+          fetch_content "${IMAGE_MANIFEST_PATH}" image-manifest.json
+          test "$(sha256sum decision-request.json | cut -d' ' -f1)" = "${DECISION_REQUEST_SHA256}"
+          test "$(sha256sum image-manifest.json | cut -d' ' -f1)" = "${IMAGE_MANIFEST_SHA256}"
+          jq -cS . decision-request.json > decision-request.canonical.json
+          jq -cS . image-manifest.json > image-manifest.canonical.json
+          cmp --silent decision-request.json decision-request.canonical.json
+          cmp --silent image-manifest.json image-manifest.canonical.json
+
+      - name: Validate inert evidence using protected-main validator
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/security/validate-security-owner-decision.py request \
+            --request decision-request.json \
+            --image-manifest image-manifest.json \
+            --expected-repository "${GITHUB_REPOSITORY}" \
+            --expected-pr-number "${PR_NUMBER}" \
+            --expected-pr-head "${PR_HEAD_SHA}"
+
+      - name: Audit enforced environment approval
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${GITHUB_ACTOR}" != kazan555
+          gh api "repos/${GITHUB_REPOSITORY}/environments/security-owner-signing" > environment.json
+          jq -e '
+            .can_admins_bypass == false and
+            any(.protection_rules[];
+              .type == "required_reviewers" and
+              .prevent_self_review == true and
+              (.reviewers | length) == 1 and
+              .reviewers[0].type == "User" and
+              .reviewers[0].reviewer.login == "kazan555")
+          ' environment.json >/dev/null
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/approvals" > approvals.json
+          jq -ce '
+            [.[] | select(
+              .state == "approved" and
+              .user.login == "kazan555" and
+              any(.environments[]?; .name == "security-owner-signing")
+            )] | if length == 1 then .[0] else error("exact environment approval required") end
+          ' approvals.json > approved-environment-review.json
+          approver="$(jq -er .user.login approved-environment-review.json)"
+          approval_id="$(jq -er .id approved-environment-review.json)"
+          test "${GITHUB_ACTOR}" != "${approver}"
+          printf 'SECURITY_OWNER_APPROVER=%s\n' "${approver}" >> "${GITHUB_ENV}"
+          printf 'ENVIRONMENT_APPROVAL_RECORD_ID=environment-review:%s\n' "${approval_id}" >> "${GITHUB_ENV}"
+
+      - name: Create canonical decision and approval audit
+        shell: bash
+        env:
+          SECURITY_OWNER_AUTHORITY: SECURITY.md#isolated-staging-security-owner
+        run: |
+          set -euo pipefail
+          signed_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          expires_at="$(jq -r .requested_expiration_utc decision-request.json)"
+          jq -cnS \
+            --arg request_sha "${DECISION_REQUEST_SHA256}" \
+            --arg signed_at "${signed_at}" \
+            --arg expires_at "${expires_at}" \
+            --arg approver "${SECURITY_OWNER_APPROVER}" \
+            --arg authority "${SECURITY_OWNER_AUTHORITY}" \
+            --arg approval_record "${ENVIRONMENT_APPROVAL_RECORD_ID}" \
+            --arg workflow_sha "${GITHUB_SHA}" \
+            --arg run_id "${GITHUB_RUN_ID}" \
+            --arg run_attempt "${GITHUB_RUN_ATTEMPT}" \
+            --slurpfile request decision-request.json \
+            --slurpfile manifest image-manifest.json '
+              $request[0] as $r | {
+                schema_version: "1.0.0",
+                decision_status: "approved_for_staging_preparation",
+                decision_request_sha256: $request_sha,
+                repository: $r.repository,
+                pr_number: $r.pr_number,
+                pr_head_sha: $r.pr_head_sha,
+                middleware_main_sha: $r.middleware_main_sha,
+                odoo_main_sha: $r.odoo_main_sha,
+                approved_scope: $r.approved_scope,
+                approved_image_digests: $r.image_digests,
+                accepted_vulnerability_findings: $r.vulnerability_findings,
+                compensating_controls_sha256: ($r.compensating_controls | tojson | @base64),
+                odoo_isolation_evidence_sha256: $r.odoo_isolation_evidence.sha256,
+                middleware_isolation_evidence_sha256: $r.middleware_isolation_evidence.sha256,
+                security_owner_approver_login: $approver,
+                security_owner_authority_reference: $authority,
+                environment_name: "security-owner-signing",
+                environment_approval_record_id: $approval_record,
+                workflow_repository: "ingtrader21-spec/Middleware-",
+                workflow_path: ".github/workflows/security-owner-decision-sign.yml",
+                workflow_ref: "refs/heads/main",
+                workflow_sha: $workflow_sha,
+                workflow_run_id: $run_id,
+                workflow_run_attempt: $run_attempt,
+                signed_at_utc: $signed_at,
+                expires_at_utc: $expires_at,
+                negative_authorizations: $r.negative_authorizations,
+                revocation_conditions: $r.revocation_conditions,
+                image_manifest_sha256: $r.image_manifest_sha256
+              }
+            ' > security-owner-decision.json
+          controls_sha="$(jq -cS .compensating_controls decision-request.json | sha256sum | cut -d' ' -f1)"
+          jq --arg controls_sha "${controls_sha}" \
+            '.compensating_controls_sha256 = $controls_sha' security-owner-decision.json \
+            > security-owner-decision.tmp
+          mv security-owner-decision.tmp security-owner-decision.json
+          jq -cS . security-owner-decision.json > security-owner-decision.tmp
+          mv security-owner-decision.tmp security-owner-decision.json
+          jq -cnS \
+            --arg environment "security-owner-signing" \
+            --arg approver "${SECURITY_OWNER_APPROVER}" \
+            --arg requestor "${GITHUB_ACTOR}" \
+            --arg run_id "${GITHUB_RUN_ID}" \
+            --arg approval_record "${ENVIRONMENT_APPROVAL_RECORD_ID}" \
+            '{environment:$environment,approver:$approver,requestor:$requestor,workflow_run_id:$run_id,environment_approval_record_id:$approval_record,self_review:($approver==$requestor),bypass_used:false}' \
+            > security-owner-approval-audit.json
+          test "$(jq -r .self_review security-owner-approval-audit.json)" = false
+          sha256sum security-owner-decision.json > security-owner-decision.sha256
+          sha256sum security-owner-approval-audit.json > security-owner-approval-audit.sha256
+          python scripts/security/validate-security-owner-decision.py decision \
+            --decision security-owner-decision.json \
+            --request decision-request.json \
+            --approval-audit security-owner-approval-audit.json
+
+      - name: Install pinned Cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6
+        with:
+          cosign-release: v3.1.2
+
+      - name: Sign and verify canonical decision
+        shell: bash
+        run: |
+          set -euo pipefail
+          cosign sign-blob --yes \
+            --bundle security-owner-decision.sigstore.json \
+            security-owner-decision.json
+          cosign verify-blob \
+            --bundle security-owner-decision.sigstore.json \
+            --certificate-identity "${EXPECTED_IDENTITY}" \
+            --certificate-oidc-issuer "${EXPECTED_ISSUER}" \
+            security-owner-decision.json > verification-result.txt
+          sha256sum -c security-owner-decision.sha256
+          sha256sum -c security-owner-approval-audit.sha256
+          sha256sum security-owner-decision.json security-owner-decision.sha256 \
+            security-owner-decision.sigstore.json security-owner-approval-audit.json \
+            security-owner-approval-audit.sha256 verification-result.txt > SHA256SUMS
+
+      - name: Upload immutable decision evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: security-owner-decision-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          overwrite: false
+          retention-days: 90
+          path: |
+            security-owner-decision.json
+            security-owner-decision.sha256
+            security-owner-decision.sigstore.json
+            security-owner-approval-audit.json
+            security-owner-approval-audit.sha256
+            verification-result.txt
+            SHA256SUMS
+
+  sign-production-openvex:
+    # RUNTIME_MUTATION_DISABLED=true: OpenVEX signing requires separate authorization.
+    if: ${{ false }}
+    runs-on: ubuntu-latest
+    environment: security-owner-signing
+    timeout-minutes: 15
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+    env:
+      SOURCE_SHA: ${{ inputs.production_source_sha }}
+      IMAGE_DIGEST: ${{ inputs.production_image_digest }}
+      OPENVEX_BASE64: ${{ inputs.openvex_base64 }}
+      OPENVEX_SHA256: ${{ inputs.openvex_sha256 }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Check out protected main validator
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate exact revision and reviewed OpenVEX
+        run: |
+          set -euo pipefail
+          test "${GITHUB_REF}" = refs/heads/main
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          [[ "${SOURCE_SHA}" =~ ^[0-9a-f]{40}$ ]]
+          [[ "${IMAGE_DIGEST}" =~ ^sha256:[0-9a-f]{64}$ ]]
+          [[ "${OPENVEX_SHA256}" =~ ^[0-9a-f]{64}$ ]]
+          git merge-base --is-ancestor "${SOURCE_SHA}" "${GITHUB_SHA}"
+          printf '%s' "${OPENVEX_BASE64}" | base64 --decode > openvex.json
+          test "$(sha256sum openvex.json | cut -d' ' -f1)" = "${OPENVEX_SHA256}"
+          jq -cS . openvex.json > canonical.json
+          cmp --silent openvex.json canonical.json
+          python3 scripts/security/validate-production-openvex.py \
+            --openvex openvex.json --source-sha "${SOURCE_SHA}" \
+            --image-digest "${IMAGE_DIGEST}"
+
+      - name: Audit independent Security Owner environment approval
+        run: |
+          set -euo pipefail
+          gh api "repos/${GITHUB_REPOSITORY}/environments/security-owner-signing" > environment.json
+          jq -e '
+            .can_admins_bypass == false and
+            any(.protection_rules[]?;
+              .type == "required_reviewers" and .prevent_self_review == true)
+          ' environment.json >/dev/null
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/approvals" > approvals.json
+          jq -e --arg actor "${GITHUB_ACTOR}" '
+            any(.[]; .state == "approved" and .user.login != $actor and
+              any(.environments[]?; .name == "security-owner-signing"))
+          ' approvals.json >/dev/null
+
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6
+        with:
+          cosign-release: v3.1.2
+
+      - name: Sign and verify exact production OpenVEX
+        run: |
+          set -euo pipefail
+          identity="https://github.com/ingtrader21-spec/Middleware-/.github/workflows/security-owner-decision-sign.yml@refs/heads/main"
+          issuer="https://token.actions.githubusercontent.com"
+          cosign sign-blob --yes --bundle openvex.sigstore.json openvex.json
+          cosign verify-blob --bundle openvex.sigstore.json \
+            --certificate-identity "${identity}" \
+            --certificate-oidc-issuer "${issuer}" openvex.json
+          sha256sum openvex.json openvex.sigstore.json > SHA256SUMS
+          sha256sum --check --strict SHA256SUMS
+
+      - name: Upload immutable production OpenVEX
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: production-openvex-${{ inputs.production_source_sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          overwrite: false
+          retention-days: 90
+          path: |
+            openvex.json
+            openvex.sigstore.json
+            SHA256SUMS

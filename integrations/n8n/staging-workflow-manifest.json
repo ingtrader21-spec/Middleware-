@@ -1,0 +1,2248 @@
+{
+  "schema": "codestra.n8n.staging-manifest.v1",
+  "workflow_count": 249,
+  "unclassified_active_ids": [],
+  "workflows": [
+    {
+      "workflow_id": "CdstVerifyEventV1",
+      "version_id": "b49498df-aca8-4edc-8fb9-92fad325e953",
+      "name": "CDA-SW-01 Verify Event",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "CdstStartExecutionV1",
+      "version_id": "55488094-0db1-412f-8c4e-1b3da33ca733",
+      "name": "CDA-SW-02 Start Execution",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "CdstFetchContextV1",
+      "version_id": "3c48ef5f-3d99-4f2c-a8d7-7d2074c2d648",
+      "name": "CDA-SW-03 Fetch Context",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "CdstCompleteExecutionV1",
+      "version_id": "849c6a36-4f38-4bc1-a633-defbcd1fd557",
+      "name": "CDA-SW-04 Complete Execution",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "CdstFailExecutionV1",
+      "version_id": "83a06c78-34af-431f-9df8-5e4b347b4265",
+      "name": "CDA-SW-05 Fail Execution",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "CdstAutomationRouterV1",
+      "version_id": "ffcc097a-4805-40bf-b6f5-a0fc99781d94",
+      "name": "CDA-WF-00 Codestra Event Router",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "CdstCallCompletedV1",
+      "version_id": "2fddee8d-09e7-414c-991c-1fdb1b0e1d18",
+      "name": "CDA-WF-10 Call Completed",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "CdstCallbackDueV1",
+      "version_id": "09ab509e-1821-4be6-a9e9-9430ffb9e6cd",
+      "name": "CDA-WF-20 Callback Due",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "CdstLeadEnrichmentV1",
+      "version_id": "3601a58e-00ad-43f5-8832-7c2189c6fe42",
+      "name": "CDA-WF-30 Lead Enrichment",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "CdstHotLeadAlertV1",
+      "version_id": "36f45e1a-99b2-4c4d-add1-507103e8d05b",
+      "name": "CDA-WF-40 Hot Lead Alert",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "CdstDailyOperationsDigestV1",
+      "version_id": "16120729-346a-4863-86e8-8aafb5eda0c4",
+      "name": "CDA-WF-70 Daily Operations Digest",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "CdstErrorDeadLetterV1",
+      "version_id": "c2489ea2-86a9-4bb6-95ad-023ec22203b8",
+      "name": "CDA-WF-90 Error and Dead Letter",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "cdst-order-callback-v1",
+      "version_id": "780dfb23-d86c-4f92-a129-c2294cfae157",
+      "name": "CdstOrderCallbackV1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "cdst-order-customer-setup-v1",
+      "version_id": "ef5547f6-ab5a-43af-b5a7-0911705d6893",
+      "name": "CdstOrderCustomerSetupV1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "cdst-order-dead-letter-v1",
+      "version_id": "06426aff-c27c-459f-9a88-100468fa90ee",
+      "name": "CdstOrderDeadLetterV1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "cdst-order-execute-v1",
+      "version_id": "f8968ad9-f8e3-4703-a1c3-38cacc6cc332",
+      "name": "CdstOrderExecuteV1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "cdst-order-failure-v1",
+      "version_id": "86ad17e5-6792-4706-a700-d79887d34302",
+      "name": "CdstOrderFailureV1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "cdst-order-fulfillment-v1",
+      "version_id": "d58f6d3f-3e27-431c-8e4d-2b297437fc79",
+      "name": "CdstOrderFulfillmentV1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "cdst-order-intake-validate-v1",
+      "version_id": "0d21b189-ad51-46b6-a84c-6a326ebdfe11",
+      "name": "CdstOrderIntakeValidateV1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "cdst-order-internal-report-v1",
+      "version_id": "90009c87-06b5-4b3a-9829-b0277a5930d0",
+      "name": "CdstOrderInternalReportV1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "cdst-order-reconciliation-v1",
+      "version_id": "106516c6-03f8-4ee9-a53c-3d0f18fe9581",
+      "name": "CdstOrderReconciliationV1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "cdst-order-result-v1",
+      "version_id": "5ed3acd0-6be5-4c05-9b33-648a0b108aed",
+      "name": "CdstOrderResultV1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "cdst-order-router-v1",
+      "version_id": "27fb4917-f97a-4807-b967-4d01ecd53837",
+      "name": "CdstOrderRouterV1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "cdst-order-shipping-v1",
+      "version_id": "8db64473-bc3f-4b14-9289-f94df5057ae1",
+      "name": "CdstOrderShippingV1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "cdst-order-social-campaign-v1",
+      "version_id": "8f36e32c-ee48-4e96-acd3-5ebd30d41276",
+      "name": "CdstOrderSocialCampaignV1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "cdst-order-social-draft-v1",
+      "version_id": "ec5869bd-feca-4075-b6f2-3deafaba8e1f",
+      "name": "CdstOrderSocialDraftV1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "CdstSocialAccountAuthRequiredV1",
+      "version_id": "d44db894-2c74-42eb-a42b-2c2ef5a54cda",
+      "name": "CdstSocialAccountAuthRequiredV1",
+      "classification": "required_and_active",
+      "active": true,
+      "source_file": "integrations/n8n/social-runtime/CdstSocialHandlersV1.json",
+      "source_sha256": "db4105ab4f433e1475d48c0bcca97cb8b4257218b991567845d3205cf917ec5a"
+    },
+    {
+      "workflow_id": "CdstSocialAccountDisconnectedV1",
+      "version_id": "1f7e5a07-01a4-4bdf-8efb-820d0f10b0e2",
+      "name": "CdstSocialAccountDisconnectedV1",
+      "classification": "required_and_active",
+      "active": true,
+      "source_file": "integrations/n8n/social-runtime/CdstSocialHandlersV1.json",
+      "source_sha256": "db4105ab4f433e1475d48c0bcca97cb8b4257218b991567845d3205cf917ec5a"
+    },
+    {
+      "workflow_id": "CdstSocialAnalyticsUpdatedV1",
+      "version_id": "8f23270c-85c3-4051-bf65-2f25057cf62e",
+      "name": "CdstSocialAnalyticsUpdatedV1",
+      "classification": "required_and_active",
+      "active": true,
+      "source_file": "integrations/n8n/social-runtime/CdstSocialHandlersV1.json",
+      "source_sha256": "db4105ab4f433e1475d48c0bcca97cb8b4257218b991567845d3205cf917ec5a"
+    },
+    {
+      "workflow_id": "CdstSocialCommentReceivedV1",
+      "version_id": "b322b71c-9093-49ad-8976-f8aa0aa61cc7",
+      "name": "CdstSocialCommentReceivedV1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "CdstSocialDeadLetterV1",
+      "version_id": "e26d0388-a4cb-4fab-bea0-e3b37a19714e",
+      "name": "CdstSocialDeadLetterV1",
+      "classification": "required_and_active",
+      "active": true,
+      "source_file": "integrations/n8n/social-runtime/CdstSocialHandlersV1.json",
+      "source_sha256": "db4105ab4f433e1475d48c0bcca97cb8b4257218b991567845d3205cf917ec5a"
+    },
+    {
+      "workflow_id": "CdstSocialEventRouterV1",
+      "version_id": "9010d23d-ef04-4268-8640-dba49f4d55f8",
+      "name": "CdstSocialEventRouterV1",
+      "classification": "required_and_active",
+      "active": true,
+      "source_file": "integrations/n8n/social-runtime/CdstSocialEventRouterV1.json",
+      "source_sha256": "f7a9dbea2c7643adea9b36e87bfaeebc5dc963a5490bfd1a1a5fee7a54744a25"
+    },
+    {
+      "workflow_id": "CdstSocialLeadQualificationV1",
+      "version_id": "4c0ce92c-499c-4dfc-9f80-3d3f164bf1ac",
+      "name": "CdstSocialLeadQualificationV1",
+      "classification": "required_and_active",
+      "active": true,
+      "source_file": "integrations/n8n/social-runtime/CdstSocialHandlersV1.json",
+      "source_sha256": "db4105ab4f433e1475d48c0bcca97cb8b4257218b991567845d3205cf917ec5a"
+    },
+    {
+      "workflow_id": "CdstSocialMessageReceivedV1",
+      "version_id": "d7529f9a-2826-4c71-ab77-b78219d9217f",
+      "name": "CdstSocialMessageReceivedV1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "CdstSocialNotificationV1",
+      "version_id": "2ca9fa08-ce1a-4517-94dc-ac0ae8c8e384",
+      "name": "CdstSocialNotificationV1",
+      "classification": "required_and_active",
+      "active": true,
+      "source_file": "integrations/n8n/social-runtime/CdstSocialHandlersV1.json",
+      "source_sha256": "db4105ab4f433e1475d48c0bcca97cb8b4257218b991567845d3205cf917ec5a"
+    },
+    {
+      "workflow_id": "CdstSocialOdooProjectionV1",
+      "version_id": "397cd638-42a9-4c5c-8146-ec7e26c2ee87",
+      "name": "CdstSocialOdooProjectionV1",
+      "classification": "required_and_active",
+      "active": true,
+      "source_file": "integrations/n8n/social-runtime/CdstSocialHandlersV1.json",
+      "source_sha256": "db4105ab4f433e1475d48c0bcca97cb8b4257218b991567845d3205cf917ec5a"
+    },
+    {
+      "workflow_id": "CdstSocialPostFailedV1",
+      "version_id": "8c202062-7c95-4c3b-919d-a0a70ed3b8e1",
+      "name": "CdstSocialPostFailedV1",
+      "classification": "required_and_active",
+      "active": true,
+      "source_file": "integrations/n8n/social-runtime/CdstSocialHandlersV1.json",
+      "source_sha256": "db4105ab4f433e1475d48c0bcca97cb8b4257218b991567845d3205cf917ec5a"
+    },
+    {
+      "workflow_id": "CdstSocialPostPublishedV1",
+      "version_id": "6297e259-b69a-459f-bdcd-132e7e56b5fc",
+      "name": "CdstSocialPostPublishedV1",
+      "classification": "required_and_active",
+      "active": true,
+      "source_file": "integrations/n8n/social-runtime/CdstSocialHandlersV1.json",
+      "source_sha256": "db4105ab4f433e1475d48c0bcca97cb8b4257218b991567845d3205cf917ec5a"
+    },
+    {
+      "workflow_id": "N8W00GlobalError20260722",
+      "version_id": "20ae84c7-7d0c-49d0-ac13-78cb3e7fd2ab",
+      "name": "N8-00 Global Error Handler",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "N8W01IntakeRouter20260722",
+      "version_id": "69113e0f-6062-4242-8fdf-ba1eea8a25e6",
+      "name": "N8-01 Post-Acceptance Intake and Router",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "N8W02CallbackAudit20260722",
+      "version_id": "2c850977-91f1-4bc8-b2d0-40fe09f84abd",
+      "name": "N8-02 Middleware Callback and Audit",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "N8W10RecordingResolver20260722",
+      "version_id": "522bcdff-fc69-4182-9b9f-b719843eeae3",
+      "name": "N8-10 Recording and Transcript Resolver",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "N8W11AIEnrichment20260722",
+      "version_id": "8edc36c9-7fdc-409b-a2d6-2b59be96e737",
+      "name": "N8-11 AI Call Enrichment",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "N8W12FollowUpProposal20260722",
+      "version_id": "20bf49e0-be66-47e7-84e6-dbbc8c49f34f",
+      "name": "N8-12 CRM Follow-Up Proposal",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "N8W13ComplianceQA20260722",
+      "version_id": "2015b938-7933-4a03-b8dc-fdfac5762646",
+      "name": "N8-13 Compliance and QA Review",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "N8W14InternalAlert20260722",
+      "version_id": "1ef01833-ffb5-4db9-b330-e55001f1c978",
+      "name": "N8-14 Internal Notification and Escalation",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "N8W90Reconciliation20260722",
+      "version_id": "950e2b1a-4685-4bca-ba36-ba72675608d9",
+      "name": "N8-90 Reconciliation Monitor",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "N8W99DeadLetterReplay20260722",
+      "version_id": "cfb73eaa-242e-48fe-9498-796096bfbe8f",
+      "name": "N8-99 Dead-Letter Replay",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "Phase2SyntheticC0F02BFD20260724",
+      "version_id": "63baee55-80ff-4f89-bcaa-190124447579",
+      "name": "PHASE2 Synthetic Reconciliation c0f02bfd",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "IdentityStaging01V1",
+      "version_id": "b6898633-6815-4cf1-bcbe-d9bc5fa2f330",
+      "name": "STG IDENTITY 01 - Provisioning request approved",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "IdentityStaging02V1",
+      "version_id": "82da6856-9c5b-4435-8e6c-6ff30405ed90",
+      "name": "STG IDENTITY 02 - Provisioning step failed",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "IdentityStaging03V1",
+      "version_id": "33f56660-fc86-43c1-ab08-12def22151bc",
+      "name": "STG IDENTITY 03 - Provisioning partially completed",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "IdentityStaging04V1",
+      "version_id": "f595f7de-09ca-49cb-86e8-cf7492342f11",
+      "name": "STG IDENTITY 04 - User activation pending",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "IdentityStaging05V1",
+      "version_id": "ed741f13-1ef7-43f2-825a-a54c543e41cf",
+      "name": "STG IDENTITY 05 - Provisioning completed",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "IdentityStaging06V1",
+      "version_id": "a134c6c3-d050-48de-b08a-203cfc36b036",
+      "name": "STG IDENTITY 06 - Provisioning SLA overdue",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "IdentityStaging07V1",
+      "version_id": "14e5b10f-75b3-4bf8-b96b-ddcbacf78f0d",
+      "name": "STG IDENTITY 07 - Account suspended",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "IdentityStaging08V1",
+      "version_id": "b1f81976-eba4-4381-96f3-6dfbc732dd5f",
+      "name": "STG IDENTITY 08 - Account terminated",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "IdentityStaging09V1",
+      "version_id": "4c060282-7a8f-41f7-90c3-8b21b907d978",
+      "name": "STG IDENTITY 09 - Reconciliation drift found",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "IdentityStaging10V1",
+      "version_id": "a19ec7b3-26cc-4680-ab04-26476c27e278",
+      "name": "STG IDENTITY 10 - Extension pool low",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "IdentityStaging11V1",
+      "version_id": "ddb45098-148c-4ac9-97f0-153cf7fa781a",
+      "name": "STG IDENTITY 11 - Mailbox license low",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "IdentityStaging12V1",
+      "version_id": "e37e950c-0330-4af4-b84f-c9cf02afbfe2",
+      "name": "STG IDENTITY 12 - Credential rotation due",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "IdentityStaging13V1",
+      "version_id": "8ee5a518-983f-4db6-adb6-4a1d30cd8d9b",
+      "name": "STG IDENTITY 13 - Unauthorized privilege drift",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "IdentityStaging14V1",
+      "version_id": "874855ef-7c15-412d-8817-9cbf6490c7d3",
+      "name": "STG IDENTITY 14 - Orphaned SIP endpoint",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "IdentityStaging15V1",
+      "version_id": "887bc531-cd64-45ce-a456-e524e8d9b3e6",
+      "name": "STG IDENTITY 15 - Termination incomplete",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "Fd509lUgV8EGkZgS",
+      "version_id": "fdd855b2-a404-4ca6-9e94-74d5229eb2a2",
+      "name": "STG-CAL-AUTOMATION-DAILY-REPORT-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "uP4NPLVb2JoIHcYg",
+      "version_id": "1c3fea89-5542-48c4-bf76-0d6a1a2c910e",
+      "name": "STG-CAL-AUTOMATION-DELIVERY-NOTIFICATION-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "scgv3HWPGWT3Y1M7",
+      "version_id": "a08d71bd-afc2-445c-9f7a-4a250d42b765",
+      "name": "STG-CAL-AUTOMATION-FARM-INSPECTION-REMINDER-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "oDnEJ08zBvtTXvDy",
+      "version_id": "99acc523-f3a0-4d1a-8b4b-231d04ac7dfd",
+      "name": "STG-CAL-AUTOMATION-HARVEST-ALLOCATION-NOTIFICATION-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "WpNaJtsUVhZh97OJ",
+      "version_id": "b211d422-f501-4c42-bf4e-c0692e9ade82",
+      "name": "STG-CAL-AUTOMATION-INVOICE-REMINDER-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "uMXP4l0uyfArvves",
+      "version_id": "8f239549-eb7e-4fdc-987e-a18220d11bd5",
+      "name": "STG-CAL-AUTOMATION-PACKING-NOTIFICATION-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "kcKosqAqG1bc2EKm",
+      "version_id": "4c319d85-d496-45d9-bb5f-77ce2c8384b4",
+      "name": "STG-CAL-AUTOMATION-PRODUCT-AVAILABILITY-NOTIFICATION-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "tFsNawzRt7qRF65P",
+      "version_id": "3dbf9b87-0772-4e33-a033-16cf1be1eae7",
+      "name": "STG-CAL-AUTOMATION-QUOTATION-FOLLOW-UP-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "2n8Qw73rJp35Vluj",
+      "version_id": "cb5bac04-c797-497e-8738-22afc555f57b",
+      "name": "STG-CAL-AUTOMATION-REPEAT-ORDER-REMINDER-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "aeLklVy72JLx2stW",
+      "version_id": "57374a36-3ab3-4b81-a095-7197a8fa8065",
+      "name": "STG-CAL-AUTOMATION-SAMPLE-REQUEST-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "q0NiJ9umhrXdCEIl",
+      "version_id": "352a5cf6-bb5e-47c5-b99d-554ee7d62487",
+      "name": "STG-CAL-LEAD-EXPORT-BUYER-LEAD-INTAKE-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "TZ42l7Co0F8U9Gre",
+      "version_id": "9c93d9b6-3bf1-4adc-97ad-cda46ded44be",
+      "name": "STG-CAL-LEAD-WHOLESALE-BUYER-LEAD-INTAKE-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "8DtPVtNUOQqNkPFB",
+      "version_id": "d5b1c044-bfcb-4eaf-ab68-303f7c3b694a",
+      "name": "STG-COD-AUTOMATION-CONTRACT-REMINDER-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "jj1dN753Z4K8EcRl",
+      "version_id": "acec5f4b-dcfe-4574-9b41-f7d3eef18e58",
+      "name": "STG-COD-AUTOMATION-DAILY-SALES-REPORT-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "8VcUIiVLn6L1WnVl",
+      "version_id": "8baf262a-1a16-45eb-a8c5-41a3c8155082",
+      "name": "STG-COD-AUTOMATION-DEPOSIT-REMINDER-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "mbZf5RMq7ZQYReSO",
+      "version_id": "70683117-bf66-4d50-8ca6-79770af59bcc",
+      "name": "STG-COD-AUTOMATION-DISCOVERY-APPOINTMENT-CONFIRMATION-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "TQvSbpKYNEzjO4zk",
+      "version_id": "4f8a5882-4309-4b0d-9f5b-878e80537465",
+      "name": "STG-COD-AUTOMATION-DISCOVERY-REMINDER-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "zZDn194USY2eanK4",
+      "version_id": "cdc59058-61a1-4637-b438-4c04c6f42c2e",
+      "name": "STG-COD-AUTOMATION-MAINTENANCE-RENEWAL-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "OqvSFSXY8S0ryNiu",
+      "version_id": "b957b6a4-e084-4c3f-a5fb-f1afecd994b6",
+      "name": "STG-COD-AUTOMATION-PROJECT-HANDOFF-NOTIFICATION-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "dj7nW5obPSaotDIN",
+      "version_id": "dc7b0020-de1e-4b91-9fe3-1980db1da9fa",
+      "name": "STG-COD-AUTOMATION-PROPOSAL-FOLLOW-UP-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "p07P5i9hKIziCzSI",
+      "version_id": "a8e333ff-e619-460b-a1f3-fcb46ba42736",
+      "name": "STG-COD-AUTOMATION-REQUIREMENTS-FORM-DELIVERY-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "s2J9HlGacc3NCeHS",
+      "version_id": "4d83fb81-f129-497f-846e-b5b9cb79d889",
+      "name": "STG-COD-AUTOMATION-WEBSITE-TECHNOLOGY-AUDIT-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "9RQvZ6QpQIrsWIyb",
+      "version_id": "3a755b9b-5223-4b6b-923c-20c614b8b5f1",
+      "name": "STG-COD-LEAD-AI-SERVICES-LEAD-INTAKE-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "uUC2RA7AmzBuavLj",
+      "version_id": "eb210db9-6025-4475-9e90-c634dbef40b0",
+      "name": "STG-COD-LEAD-MOBILE-APP-LEAD-INTAKE-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "CqRIKI4wGhycNB3Y",
+      "version_id": "3f3ac2a0-7b85-4d8b-bb08-103eb772ddf6",
+      "name": "STG-COD-LEAD-ODOO-LEAD-INTAKE-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "KW2WRwbihgkrOXiU",
+      "version_id": "55e5440b-1a9d-4d8e-98fe-d19eb759d6b5",
+      "name": "STG-COD-LEAD-WEB-DEVELOPMENT-LEAD-INTAKE-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "0uv6mrfJ2z6dmdOw",
+      "version_id": "c881eca4-8a76-47d7-98ee-1bfcea3f340c",
+      "name": "STG-FTP-AUTOMATION-CAMPAIGN-UPDATE-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "Ct98LzkE7qSHJj0q",
+      "version_id": "0673c634-7e97-4ecf-b690-aa4313e7f7f9",
+      "name": "STG-FTP-AUTOMATION-CORPORATE-SPONSORSHIP-FOLLOW-UP-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "GCbPPl5nTWkIurCk",
+      "version_id": "05d8fb53-f17c-4f1c-96d9-7f047bd0bd59",
+      "name": "STG-FTP-AUTOMATION-DONATION-RECEIPT-DELIVERY-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "WfKZVpcMDW1EqM49",
+      "version_id": "c78a4d04-08e2-40fc-bd84-fd9917c3466f",
+      "name": "STG-FTP-AUTOMATION-DONATION-REMINDER-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "Sd20RqXX8V2CbOdx",
+      "version_id": "956576e3-6ffc-40dd-9ec4-93e603dbf944",
+      "name": "STG-FTP-AUTOMATION-DONOR-RETENTION-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "GSz64JlgZ2ow84Jf",
+      "version_id": "66432ea6-0058-43bc-83da-54fc3574d774",
+      "name": "STG-FTP-AUTOMATION-DONOR-THANK-YOU-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "4ia7LrmM1cSHBYSn",
+      "version_id": "890e5d0b-0c47-4cfb-970d-d678e5befb7e",
+      "name": "STG-FTP-AUTOMATION-FUNDRAISING-DAILY-REPORT-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "rDTPy4gjyr9Yvujv",
+      "version_id": "6a4fcaea-8195-486a-8089-515e76374419",
+      "name": "STG-FTP-AUTOMATION-PLEDGE-CONFIRMATION-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "8zKKIiPdPwK9GeVO",
+      "version_id": "057732a1-86c3-4f10-b15a-033e50005562",
+      "name": "STG-FTP-AUTOMATION-RECURRING-DONATION-REMINDER-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "KhrBxoeCRc1PVz65",
+      "version_id": "6fc81b5a-11b6-4e10-985f-c48663dbfafe",
+      "name": "STG-FTP-LEAD-DONOR-LEAD-INTAKE-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "NnKpXOO96OyyVqCJ",
+      "version_id": "fc3a2ea1-2f15-47ef-97ef-8372065e08ca",
+      "name": "STG-GLOBAL-AI-CALL-SUMMARY-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "r5AIi9kI7LE8ULOg",
+      "version_id": "f34f0f7f-b104-4e0f-88dc-735fdf46f2a3",
+      "name": "STG-GLOBAL-AI-CHURN-PREDICTION-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "t5D9bUVypOOUyRt2",
+      "version_id": "31cbb503-dfdf-4bc6-9221-308f14e19415",
+      "name": "STG-GLOBAL-AI-COMPLIANCE-ANALYSIS-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "w2S3eBmqqVHikE1T",
+      "version_id": "534d9221-f0a0-4d0a-b945-1b8a0a1c1809",
+      "name": "STG-GLOBAL-AI-COST-REPORT-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "e9Xx3FGiqq1DSBzt",
+      "version_id": "55ef49d0-10b6-43ec-9985-ae6383a27ffe",
+      "name": "STG-GLOBAL-AI-FIT-SCORE-PROCESSING-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "INDnS2usTuP9YS11",
+      "version_id": "01044373-3f1d-4441-bfb2-f49923238d4b",
+      "name": "STG-GLOBAL-AI-FORBIDDEN-PHRASE-ANALYSIS-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "n7jU9USCeXr7NSTh",
+      "version_id": "9071f487-b7c3-4f00-88a3-9a31b9cb5d0a",
+      "name": "STG-GLOBAL-AI-HUMAN-REVIEW-NOTIFICATION-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "oF90ftTtKrOvFsbx",
+      "version_id": "0886e64b-e8af-43a0-9fb2-b726ea0524b2",
+      "name": "STG-GLOBAL-AI-LEAD-QUALIFICATION-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "Zo8H7whDv39pCREt",
+      "version_id": "23e18fb7-bd87-4f0f-a19f-d337059611e6",
+      "name": "STG-GLOBAL-AI-OBJECTION-DETECTION-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "eDUPQTtybjOqW1N3",
+      "version_id": "4bd8e56d-64d1-4d1d-9b79-2b5071cfef4d",
+      "name": "STG-GLOBAL-AI-PROVIDER-FAILURE-ALERT-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "XTNh2TiSE8LDmRaK",
+      "version_id": "38926bed-5bea-4a35-b2d2-e5bf7ab5a19f",
+      "name": "STG-GLOBAL-AI-SENTIMENT-ANALYSIS-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "SMbHqURN2RNClHkT",
+      "version_id": "47525ad9-e45f-4a98-ac8e-d1f0bcce2839",
+      "name": "STG-GLOBAL-AI-UPSELL-RECOMMENDATION-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "3tTEVvbHfNXeDhV6",
+      "version_id": "47f0b4fb-ca7b-4030-938a-5caa41b14665",
+      "name": "STG-GLOBAL-AI-URGENCY-RATING-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "IIFWfQehGdOASclp",
+      "version_id": "0b62f613-ff2b-49d2-9f4a-87d27fa40d0b",
+      "name": "STG-GLOBAL-APPT-AGENT-DAILY-APPOINTMENT-SUMMARY-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "hgrtbkaOgfqRcCJl",
+      "version_id": "87a26b2a-823c-4c95-b663-774509f3d262",
+      "name": "STG-GLOBAL-APPT-APPOINTMENT-COMPLETION-FOLLOW-UP-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "nFDz8Em1XWqVuv3a",
+      "version_id": "f72be677-d2d6-489b-8e43-aed05e4edc5e",
+      "name": "STG-GLOBAL-APPT-CUSTOMER-APPOINTMENT-CONFIRMATION-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "XLS4gcKgyt3y7lQI",
+      "version_id": "eed842a4-524e-49bd-8b16-f20607537579",
+      "name": "STG-GLOBAL-APPT-CUSTOMER-REMINDER-SMS-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "aNPW9RkTpbFSdXAP",
+      "version_id": "bcf5b22b-457b-4fe3-a074-baf7a3b2f291",
+      "name": "STG-GLOBAL-APPT-FIFTEEN-MINUTE-AGENT-REMINDER-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "rQ1KWtQre9bUK98w",
+      "version_id": "54569bd9-c512-487a-93bc-ec0041d1814e",
+      "name": "STG-GLOBAL-APPT-MISSED-APPOINTMENT-FOLLOW-UP-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "EyANp6FMBkJXQtkA",
+      "version_id": "d4522603-a964-43a9-8a24-1706860810c8",
+      "name": "STG-GLOBAL-APPT-RESCHEDULE-NOTIFICATION-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "dNg0aDTb48aSk2Ox",
+      "version_id": "99b187c2-b6d5-4cd7-87e1-4b3159ae0205",
+      "name": "STG-GLOBAL-APPT-SUPERVISOR-DAILY-APPOINTMENT-SUMMARY-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "lwx0oQBVOyjaCevi",
+      "version_id": "d8b5092c-16e8-4ff8-b6e5-07dc950fd34e",
+      "name": "STG-GLOBAL-CALENDAR-ATTENDEE-CONFIRMATION-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "SIpedKp2mXtvJcmy",
+      "version_id": "47cbeaec-d1d7-423c-ba64-91c6510086e8",
+      "name": "STG-GLOBAL-CALENDAR-CALENDAR-WEBHOOK-INTAKE-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "KFJdmvWib8cdu9on",
+      "version_id": "5a486a07-1628-4169-946a-e6e95f89a3f4",
+      "name": "STG-GLOBAL-CALENDAR-CANCEL-EVENT-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "bXlrM5GejasKi623",
+      "version_id": "ccd67d95-2026-4b3e-a26e-38a23d9de0c7",
+      "name": "STG-GLOBAL-CALENDAR-CONFLICT-NOTIFICATION-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "bvNlOUcaYMpnNELb",
+      "version_id": "b5ac942b-b7f1-4d6e-aafc-b31ee1d82252",
+      "name": "STG-GLOBAL-CALENDAR-CREATE-EVENT-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "dYfO6gAAZVV81V1z",
+      "version_id": "203b40ff-27d1-499f-bc91-11520acbcdb4",
+      "name": "STG-GLOBAL-CALENDAR-MEET-LINK-CREATION-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "ropBmPpIKjZhbLOJ",
+      "version_id": "7ddd1f46-5b3d-4a02-9e9b-dac92925cf75",
+      "name": "STG-GLOBAL-CALENDAR-UPDATE-EVENT-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "o3GQ7pUrtZNYcDkL",
+      "version_id": "cfa97be1-e70e-4236-be2d-729d1aefa3cc",
+      "name": "STG-GLOBAL-ERROR-GLOBAL-ERROR-HANDLER-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "Pa95Z8ze5WLhgDNE",
+      "version_id": "b7ad8289-bf42-4dc3-9a93-7547d827ba52",
+      "name": "STG-GLOBAL-FULFILLMENT-ACCEPTED-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "PY5n6uuqK96yLWYd",
+      "version_id": "e708ff52-5dc0-4a99-9b25-cba735d0c756",
+      "name": "STG-GLOBAL-FULFILLMENT-CUSTOMER-CONFIRMATION-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "Ju4byveiAcbS0yVA",
+      "version_id": "10711704-3759-41a0-8bc2-884a188235e6",
+      "name": "STG-GLOBAL-FULFILLMENT-DELIVERY-COMPLETED-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "DcQ4de1YZ6QBJNHM",
+      "version_id": "1a9c7f6f-f60d-4ca4-a589-9e7211657c66",
+      "name": "STG-GLOBAL-FULFILLMENT-DELIVERY-DELAYED-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "i9sAURjKwMw7LCuc",
+      "version_id": "3a8a9fb4-b52b-4ca1-ac0e-94e5633c3365",
+      "name": "STG-GLOBAL-FULFILLMENT-FAILURE-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "bIzyObbuqLt8UHA9",
+      "version_id": "5bb56abc-cb7a-4a28-b1af-42e14f974af7",
+      "name": "STG-GLOBAL-FULFILLMENT-MISSING-DOCUMENTS-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "EkaqloqL8rhAaleW",
+      "version_id": "409e97f1-8100-4662-b9eb-7552d4b63650",
+      "name": "STG-GLOBAL-FULFILLMENT-ORDER-PREPARED-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "FO6RzSJQi6nqOZun",
+      "version_id": "1505bc56-4f1e-4c76-bde1-e51e40cf3338",
+      "name": "STG-GLOBAL-FULFILLMENT-PROJECT-STARTED-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "ObiOe5b1v1m86btv",
+      "version_id": "c16c098f-4142-4bc1-8bfb-6fbe4417f3df",
+      "name": "STG-GLOBAL-FULFILLMENT-SHIPMENT-CREATED-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "cl4xK8gL2DT4ZeMm",
+      "version_id": "5acf7a72-0cc9-4ef4-8385-3b0bf8ad8626",
+      "name": "STG-GLOBAL-FULFILLMENT-SUPERVISOR-ESCALATION-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "MB1QHz6G4rXFfZ2y",
+      "version_id": "b529f5cb-a98a-49cf-b26f-2e38899e43ba",
+      "name": "STG-GLOBAL-LEAD-AFFILIATE-INGEST-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "F5ZnmrBHmECq6wy5",
+      "version_id": "3d54cbb8-b796-4816-96ac-6281aff88903",
+      "name": "STG-GLOBAL-LEAD-AI-CHATBOT-INGEST-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "grEpxuVIUjDuyECY",
+      "version_id": "5819244f-94b2-4d88-b816-6fea6e518c93",
+      "name": "STG-GLOBAL-LEAD-AI-VOICE-INGEST-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "r0XkzJeBsrlM51d1",
+      "version_id": "cc69291c-d820-4686-9795-4d6c573a2d51",
+      "name": "STG-GLOBAL-LEAD-EMAIL-ALIAS-INGEST-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "gmlR4rEXvs8SGbP5",
+      "version_id": "0f6fa73e-c9ef-4e1d-bcf3-d2a920324556",
+      "name": "STG-GLOBAL-LEAD-GOOGLE-FORMS-INGEST-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "xrbECU0FGwBeYm1S",
+      "version_id": "a8b7eb4e-78d4-4258-a1d7-4888d0a23b1f",
+      "name": "STG-GLOBAL-LEAD-LINKEDIN-INGEST-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "6JgEsqv3201GAdwo",
+      "version_id": "03a7e724-9738-4e9f-abf5-6515833c7c54",
+      "name": "STG-GLOBAL-LEAD-LIVE-VENDOR-INGEST-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "KqZ6wq6YpCiGmZ3R",
+      "version_id": "c14b0d0d-7bd2-40c4-a80e-9de57c2d4250",
+      "name": "STG-GLOBAL-LEAD-META-INGEST-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "mqrOjiDiNGT4bXym",
+      "version_id": "569b0c9b-bada-4668-8efb-6fa072dcbe78",
+      "name": "STG-GLOBAL-LEAD-TIKTOK-INGEST-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "2uVI104Y0BNQqI7u",
+      "version_id": "25c29484-63ee-4817-9695-0be3934c5b6b",
+      "name": "STG-GLOBAL-LEAD-WEBSITE-INGEST-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "1ZHaGAAwCKut7tXJ",
+      "version_id": "039693dc-bb66-48ca-b6f4-ffd0a930d7fc",
+      "name": "STG-GLOBAL-PAYMENT-CHARGEBACK-ALERT-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "uQx5DQbOnExm5ESF",
+      "version_id": "e81ba8fc-0dc6-4d5e-b73d-5b58c9b3c4b0",
+      "name": "STG-GLOBAL-PAYMENT-FAILURE-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "9aEtXUY1ZA4GxOUp",
+      "version_id": "5f934006-f4f4-4324-aa6e-f3f5728e636e",
+      "name": "STG-GLOBAL-PAYMENT-METHOD-EXPIRING-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "dJ995LdC8y6zgX4F",
+      "version_id": "0c4e08f8-c691-4e99-b067-5d618d6cd78b",
+      "name": "STG-GLOBAL-PAYMENT-PLAN-REMINDER-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "h3RgjdNk5uFabCs4",
+      "version_id": "b0dcfbc3-318a-433b-9954-1eb37c0304dd",
+      "name": "STG-GLOBAL-PAYMENT-RECOVERY-ESCALATION-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "gPGiHGqLY421Ffvf",
+      "version_id": "0a36e158-dad8-436d-aa67-c8b7134fde08",
+      "name": "STG-GLOBAL-PAYMENT-REFUND-NOTIFICATION-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "FmjYYIXNrZPSjjg0",
+      "version_id": "a2654490-c449-43c0-89c7-546febc1e0d7",
+      "name": "STG-GLOBAL-PAYMENT-RETRY-NOTIFICATION-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "pwfTgkIESvKJlca2",
+      "version_id": "d3ad2110-3e2e-4e4b-9ba8-8163278e1807",
+      "name": "STG-GLOBAL-PAYMENT-SUCCESS-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "K8yCporxIXPPN9Vs",
+      "version_id": "81e2b849-f417-4465-a8a7-0a542ba0e4f6",
+      "name": "STG-GLOBAL-REPORT-ABANDONMENT-ALERT-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "BBqyniKRWGpxdKCV",
+      "version_id": "fa9acde4-c250-4dfc-b9de-7e6d23983e10",
+      "name": "STG-GLOBAL-REPORT-AGENT-DAILY-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "vdepUgeYLHi9MCok",
+      "version_id": "25b52bde-ee84-4bf9-bb36-da40ebedbb17",
+      "name": "STG-GLOBAL-REPORT-APPOINTMENT-ALERT-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "kUqGmTgVTjHnIqf0",
+      "version_id": "7ad4ffc1-2576-4dd3-8feb-ee943736ed90",
+      "name": "STG-GLOBAL-REPORT-ASA-ALERT-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "BeuTIPPb8lh6vdCe",
+      "version_id": "f1d081ca-d20a-4a4a-9f93-f3812593e6e2",
+      "name": "STG-GLOBAL-REPORT-BUSINESS-UNIT-WEEKLY-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "bPj0LBuJ7Y6xmqcz",
+      "version_id": "28ce4914-c89d-43fe-91bc-f27b9eee84a7",
+      "name": "STG-GLOBAL-REPORT-CAMPAIGN-WEEKLY-SCORECARD-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "NAQQSlMqpGQmahS2",
+      "version_id": "bab50c95-389d-4853-b8c9-3864efe6cf0c",
+      "name": "STG-GLOBAL-REPORT-COMPLIANCE-ALERT-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "t30KHVs6nmnpnPSk",
+      "version_id": "bf5caafd-4359-431e-b523-64a8d63b50d9",
+      "name": "STG-GLOBAL-REPORT-DEPARTMENT-WEEKLY-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "aIXRFg4cVrTTF47F",
+      "version_id": "f60e870f-8728-448e-aecf-b9ceb2d880bb",
+      "name": "STG-GLOBAL-REPORT-EXECUTIVE-MONTHLY-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "zmUi97JkYqUnSAg1",
+      "version_id": "0e49d87e-857c-4806-8304-098da3b1c559",
+      "name": "STG-GLOBAL-REPORT-QA-ALERT-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "bX0NjFCA9T9CsrpK",
+      "version_id": "c944d6ec-673c-4178-aa08-ca6c994a9b1b",
+      "name": "STG-GLOBAL-REPORT-RECONCILIATION-ALERT-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "t0a3hUOEKvCsZ1GJ",
+      "version_id": "7f2c9ee9-7790-4a9f-a510-19a27d06e8a1",
+      "name": "STG-GLOBAL-REPORT-SERVICE-LEVEL-ALERT-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "j6jybvcNwf86Moyf",
+      "version_id": "25432a7d-0da2-48aa-8d06-664bf8845ab1",
+      "name": "STG-GLOBAL-REPORT-SPEED-TO-LEAD-ALERT-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "JC3WiBpSrEsEYATv",
+      "version_id": "a2665322-8551-4087-a772-f0a443befd87",
+      "name": "STG-GLOBAL-REPORT-STAFFING-ALERT-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "LpXbx2lsX9m2zk5v",
+      "version_id": "5eb1ef09-f6c1-41c9-85c4-343bd81c5115",
+      "name": "STG-GLOBAL-REPORT-SUPERVISOR-DAILY-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "npBFzTP3ZnHxsMMu",
+      "version_id": "54d58597-ee14-46d0-9fa8-00afdfe31afa",
+      "name": "STG-GLOBAL-RETENTION-AGENT-ASSIGNMENT-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "3mU3AgzVGn32W7a0",
+      "version_id": "36443fce-b892-48bf-9985-776c53916a7a",
+      "name": "STG-GLOBAL-RETENTION-CANCELLATION-REQUEST-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "mPGLC2ufOF7klHjJ",
+      "version_id": "a34b2893-1716-48b0-a542-4bcddf910c58",
+      "name": "STG-GLOBAL-RETENTION-CHURN-RISK-ALERT-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "B1s18RqwyKuyBYx5",
+      "version_id": "fc798590-6260-45e8-a860-a93dd6698636",
+      "name": "STG-GLOBAL-RETENTION-CUSTOMER-ANNIVERSARY-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "lmTe1H4sYQfXqrBs",
+      "version_id": "fe586476-420e-4c59-b90e-ee309572372e",
+      "name": "STG-GLOBAL-RETENTION-LOYALTY-TIER-UPDATE-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "GR62Q5BuTn7whqEj",
+      "version_id": "3dc3572c-0323-4e23-9fb1-f747a65ee74b",
+      "name": "STG-GLOBAL-RETENTION-RENEWAL-REMINDER-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "VSvqL4MhmtJIuGYb",
+      "version_id": "f7b33f24-deb8-4cab-9e85-a4dd9cdbfa88",
+      "name": "STG-GLOBAL-RETENTION-REORDER-REMINDER-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "3RBlHZBr9Qu7noPv",
+      "version_id": "11c309eb-b173-447e-a6b4-3e0545f9abbf",
+      "name": "STG-GLOBAL-RETENTION-SAVE-OFFER-APPROVAL-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "srQsrmKyhlD9BK9h",
+      "version_id": "36304d9e-451b-469d-825d-3994f4e8975f",
+      "name": "STG-GLOBAL-RETENTION-SUBSCRIPTION-RENEWAL-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "PM5AQlRyXZTvMfAG",
+      "version_id": "b55693c0-2955-4bbe-8ea3-79053cb8888c",
+      "name": "STG-GLOBAL-RETENTION-WIN-BACK-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "2yHZb5WahTrA0V6N",
+      "version_id": "c0f7c566-e687-4680-b029-585c09493040",
+      "name": "STG-GLOBAL-SUPPORT-CUSTOMER-UPDATE-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "uZUkLEUxz8xt9IyP",
+      "version_id": "68befdc8-47c3-46ad-8d9c-82fcde5736da",
+      "name": "STG-GLOBAL-SUPPORT-ESCALATION-ALERT-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "QwbVxjkMUNBtu9vO",
+      "version_id": "11da22f1-2be1-4e4e-ac6a-5af0f32b9e39",
+      "name": "STG-GLOBAL-SUPPORT-SATISFACTION-REQUEST-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "TQ76dKOnPHyBqm3F",
+      "version_id": "423470c2-e7af-49d6-8c10-6f057d8b96d8",
+      "name": "STG-GLOBAL-SUPPORT-SLA-BREACH-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "WbLD3c5Ovp5MsIY0",
+      "version_id": "def1c317-a034-4a09-85d8-53dd4088f7c7",
+      "name": "STG-GLOBAL-SUPPORT-SLA-WARNING-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "2dQQpp7ZtW8SOdtG",
+      "version_id": "06d3ca7c-5168-41c3-bc63-261f2c248d26",
+      "name": "STG-GLOBAL-SUPPORT-TICKET-ASSIGNMENT-ALERT-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "GrMotNltISvI5Tr1",
+      "version_id": "e2bceeb3-989e-43d0-85ee-b48627e68bfc",
+      "name": "STG-GLOBAL-SUPPORT-TICKET-CONFIRMATION-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "iw3rlFUJHmqWhrMv",
+      "version_id": "0a5a2b8a-86f3-4e92-98ca-2f278ff41a65",
+      "name": "STG-GLOBAL-SUPPORT-TICKET-RESOLVED-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "xrdvjOVuVEz9xMTe",
+      "version_id": "57fc4976-617e-4daa-bbfa-585f705c7d0f",
+      "name": "STG-MBL-AUTOMATION-APPLICATION-STATUS-UPDATE-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "zV7IdNhdb0juXLrj",
+      "version_id": "09a94c62-821b-42ca-aef8-5828f0abb2ae",
+      "name": "STG-MBL-AUTOMATION-CONTRACT-SIGNATURE-REMINDER-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "sbmD7lcNUc27kHhZ",
+      "version_id": "da81122a-679d-468b-9207-58b4cadeff45",
+      "name": "STG-MBL-AUTOMATION-DAILY-REPORT-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "L4WaZ8z2w4k9C0tj",
+      "version_id": "72a737b3-3625-433a-90be-2eab3a42b0ba",
+      "name": "STG-MBL-AUTOMATION-DOCUMENT-REQUEST-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "NMVsbRtmxyMheZfl",
+      "version_id": "5d7a9582-f245-497d-b867-ca4695be6ea2",
+      "name": "STG-MBL-AUTOMATION-FUNDING-CONFIRMATION-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "XuzRWJtIJUwPoeiJ",
+      "version_id": "46cdbd13-c98a-457f-acc2-9d1de1030678",
+      "name": "STG-MBL-AUTOMATION-MISSING-DOCUMENT-REMINDER-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "6gtdlLj8KuEi17fa",
+      "version_id": "2be433bd-0bd2-4f86-b37f-ac8ab205d052",
+      "name": "STG-MBL-AUTOMATION-OFFER-AVAILABLE-NOTIFICATION-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "3VXOMfnkfVAbYCCv",
+      "version_id": "06b80b30-1611-4f80-9b99-1dbf84ff9bb2",
+      "name": "STG-MBL-AUTOMATION-PAYMENT-REMINDER-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "gzNttNi54f0Agq20",
+      "version_id": "19e0ceaa-0cb8-4b0c-be0c-f7fa7046760d",
+      "name": "STG-MBL-AUTOMATION-RENEWAL-ELIGIBILITY-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "vGrLiQs065XQYGLF",
+      "version_id": "cc738751-397f-4a11-b424-5b2687e1eafc",
+      "name": "STG-MBL-AUTOMATION-UNDERWRITING-NOTIFICATION-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "SeZpIzKTlqManApk",
+      "version_id": "b299dce1-5df2-4a5a-b42d-562435246244",
+      "name": "STG-MBL-LEAD-BUSINESS-LOAN-LEAD-INTAKE-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "Kpt7zkma49afbVA0",
+      "version_id": "1c3edd9d-1a33-40c9-96a4-5b8d5448c1c6",
+      "name": "STG-MOY-AUTOMATION-ACCOUNT-RETENTION-REMINDER-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "K1TXWN9XWmzpoctK",
+      "version_id": "3e4edd83-1bf2-4a36-948b-6265029b6d44",
+      "name": "STG-MOY-AUTOMATION-CARRIER-PACKET-REMINDER-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "f5Jc1pMghxylM3J7",
+      "version_id": "80710227-65f6-4e7f-90bd-916323e90d8f",
+      "name": "STG-MOY-AUTOMATION-DELIVERY-EXCEPTION-ALERT-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "7bW842XQGTBFwy3X",
+      "version_id": "ad84f861-423a-4ad1-8390-f9534e3660be",
+      "name": "STG-MOY-AUTOMATION-DOT-MC-ENRICHMENT-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "jubtdVXYOAODsSpF",
+      "version_id": "6c7ee2c9-65e1-4eb1-95a8-7203e6c1782e",
+      "name": "STG-MOY-AUTOMATION-FIRST-LOAD-FOLLOW-UP-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "divWmfdxnhgHkYiH",
+      "version_id": "bf030f7f-bacb-4553-b66f-3125b987e54f",
+      "name": "STG-MOY-AUTOMATION-INSURANCE-EXPIRATION-ALERT-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "S9vPlsulrqXxRcyM",
+      "version_id": "d88efa8e-dd1b-410e-ba72-77d5e4209d85",
+      "name": "STG-MOY-AUTOMATION-LOGISTICS-DAILY-REPORT-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "TcJit7NdTNFsbx8l",
+      "version_id": "1c848c97-698a-42ba-bc7d-0bfea2ec9d04",
+      "name": "STG-MOY-AUTOMATION-QUOTE-FOLLOW-UP-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "jRiBZ6qoqD2y83Nt",
+      "version_id": "b4c1eb0d-d4ac-47c1-a6aa-616966754b0f",
+      "name": "STG-MOY-LEAD-CARRIER-LEAD-INTAKE-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "V1eL8BYjXkcX5TPT",
+      "version_id": "cd376dac-ad16-498e-b676-c4515193f66c",
+      "name": "STG-MOY-LEAD-DISPATCH-LEAD-INTAKE-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "75A2JCik14HAFpvv",
+      "version_id": "76172c03-2a82-417d-9135-58566a69714d",
+      "name": "STG-MOY-LEAD-SHIPPER-LEAD-INTAKE-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "xiBKCxgFB2W11AVD",
+      "version_id": "04a5d2cb-e2c5-4069-a2a5-302f73390612",
+      "name": "STG-RLP-AUTOMATION-CLOSING-REMINDER-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "vZovbftit8g9b7TL",
+      "version_id": "14150c4d-57eb-4ec6-8e89-a0ad271eab2b",
+      "name": "STG-RLP-AUTOMATION-CONTRACT-REMINDER-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "M23b7NhTLVhwAn3V",
+      "version_id": "490b2aca-55a7-499e-849f-80d80fae400b",
+      "name": "STG-RLP-AUTOMATION-DAILY-REPORT-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "QmuhdaIhlkAIig23",
+      "version_id": "217228e7-b1e7-494d-bf93-daa6ce963a8e",
+      "name": "STG-RLP-AUTOMATION-OFFER-FOLLOW-UP-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "ZFgAA6PkpVUGWNbY",
+      "version_id": "2363031c-7478-40cf-9509-3a15ad629924",
+      "name": "STG-RLP-AUTOMATION-POST-CLOSING-FOLLOW-UP-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "t5dHlLH7sBbRaViB",
+      "version_id": "62369057-bfb2-48b5-b7b9-e5b5435069b0",
+      "name": "STG-RLP-AUTOMATION-PROPERTY-MATCH-NOTIFICATION-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "oXb3HBSLFi0jOS4O",
+      "version_id": "0fbc3e23-5ed4-4b7e-a079-cba04d19f385",
+      "name": "STG-RLP-AUTOMATION-REFERRAL-REQUEST-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "e618V0kNQeV70Tzg",
+      "version_id": "8981be34-c79c-44e8-b33d-69ebb82c7255",
+      "name": "STG-RLP-AUTOMATION-VIEWING-CONFIRMATION-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "HgaGwyVIXLyUJ3MI",
+      "version_id": "338919eb-afe0-47b6-8ec2-1d61b09048da",
+      "name": "STG-RLP-AUTOMATION-VIEWING-REMINDER-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "ncdm0TZSL5Alr8Mj",
+      "version_id": "7930c013-9df6-44fe-8db2-261fad21116c",
+      "name": "STG-RLP-LEAD-BUYER-LEAD-INTAKE-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "SSarGk2go2NIM0B0",
+      "version_id": "d8db6cbc-117d-417a-9bf6-14afbbaa48fd",
+      "name": "STG-RLP-LEAD-INVESTOR-LEAD-INTAKE-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "0AJafUvCqEHDMVW0",
+      "version_id": "bae37281-41ab-4ab7-b97a-d7b7b4c01ce3",
+      "name": "STG-RLP-LEAD-SELLER-LEAD-INTAKE-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "BOQZ56ATeiQbGGxe",
+      "version_id": "31b24a7f-abcf-4713-a778-63a1ccd1b3e2",
+      "name": "STG-SCP-AUTOMATION-COMPLIANCE-REVIEW-ALERT-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "ekysElMUP38241ct",
+      "version_id": "6c186661-9268-4a80-b82f-a0a445429967",
+      "name": "STG-SCP-AUTOMATION-DAILY-REPORT-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "FK3ZPCPraxsehvUy",
+      "version_id": "4455096e-a8c4-42c6-9cba-3ce0d06cbc41",
+      "name": "STG-SCP-AUTOMATION-DELIVERY-CONFIRMATION-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "koBAaQ7pYcMvK3Mu",
+      "version_id": "f8a0bbfa-f30a-442e-a9c4-97402ae8d6db",
+      "name": "STG-SCP-AUTOMATION-ORDER-CONFIRMATION-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "0ec6AXJVGZNnj3PE",
+      "version_id": "0cbc7d8e-7772-4e44-b6db-0b678283f50b",
+      "name": "STG-SCP-AUTOMATION-PAYMENT-REMINDER-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "xLPs1cYpE1RImq9e",
+      "version_id": "07fd5ea0-45b8-4542-bbea-cff45c14c7e2",
+      "name": "STG-SCP-AUTOMATION-REORDER-REMINDER-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "R8iUrC1RPkxcVHU7",
+      "version_id": "beaa3463-e37f-465e-ae36-6a9dd39e53e4",
+      "name": "STG-SCP-AUTOMATION-RETENTION-ALERT-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "MbLa27bDTW2HO86O",
+      "version_id": "c7d3cd7a-7315-415b-91c6-1cc806ac4752",
+      "name": "STG-SCP-AUTOMATION-RETURN-NOTIFICATION-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "MPhpR0YIFRTJuXOp",
+      "version_id": "9c3f7f7c-0243-44f0-9264-6f5cddbc8833",
+      "name": "STG-SCP-AUTOMATION-SHIPMENT-NOTIFICATION-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "hZicE1tVsrsPH3xs",
+      "version_id": "cd147945-7590-40ad-9ff5-c2d4b344488b",
+      "name": "STG-SCP-AUTOMATION-SUBSCRIPTION-RENEWAL-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "kscLp339SbfLJyR7",
+      "version_id": "5ba6b0e1-8988-4be1-89da-f6f6365c4ee7",
+      "name": "STG-SCP-AUTOMATION-WARRANTY-FOLLOW-UP-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "qlEJuENzxfJJOPkL",
+      "version_id": "ab2f6407-c4d7-4554-9f1f-167d47614ff9",
+      "name": "STG-SCP-LEAD-CAREGIVER-INQUIRY-INTAKE-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "ix1nhvtot83QP8Lq",
+      "version_id": "95b4e7b4-3bf3-4b49-82e1-5ce721dc052d",
+      "name": "STG-SCP-LEAD-PRODUCT-INQUIRY-INTAKE-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "YKId4kSMuRlQrzvf",
+      "version_id": "f54b9047-5864-4031-b133-e6a533838b22",
+      "name": "STG-TRX-AUTOMATION-DAILY-REPORT-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "c2EPKqCSne2KpRwt",
+      "version_id": "f37c27a0-bc57-4ba9-88d4-ed5857a303ae",
+      "name": "STG-TRX-AUTOMATION-DEMO-CONFIRMATION-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "WnNgA9sndsZ9dZYY",
+      "version_id": "b8caebd7-e5f7-40d1-83c5-4c76a74fce2e",
+      "name": "STG-TRX-AUTOMATION-DEMO-REMINDER-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "TR3U0T81GeCLtYhH",
+      "version_id": "666f6d3f-ef50-4713-a93d-2b86d66f1123",
+      "name": "STG-TRX-AUTOMATION-ONBOARDING-NOTIFICATION-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "FQKiO9jcwTBUa3zB",
+      "version_id": "7ebcac22-6980-427f-b5b3-920fbc9ce539",
+      "name": "STG-TRX-AUTOMATION-RENEWAL-REMINDER-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "9UMWY5gQhRAgrfBR",
+      "version_id": "cdc81961-5ce6-446a-9aa4-0db0959b3da7",
+      "name": "STG-TRX-AUTOMATION-RISK-DISCLOSURE-REMINDER-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "JMGeYB7CQJOLaKIH",
+      "version_id": "d67ed8fc-f529-498c-9b18-4a860117de2e",
+      "name": "STG-TRX-AUTOMATION-SUBSCRIPTION-PROPOSAL-FOLLOW-UP-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "Qeiig4oewPmQoXRZ",
+      "version_id": "867c87ea-72a3-4736-8cca-e73992c41ebc",
+      "name": "STG-TRX-AUTOMATION-SUPPORT-ESCALATION-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "xMaqCCXmkuU5HGz6",
+      "version_id": "0d5c918b-3caf-4472-8e16-095971ff1434",
+      "name": "STG-TRX-AUTOMATION-TRIAL-ACTIVATION-NOTIFICATION-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "aYRsLmOEUEdgPxtV",
+      "version_id": "a6b2d1c3-40ab-4cfd-a8f3-f723bd6bf109",
+      "name": "STG-TRX-AUTOMATION-TRIAL-FOLLOW-UP-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "Orh5EyPt5J5oIyIR",
+      "version_id": "04213784-c2a7-4141-96ae-80162e33d989",
+      "name": "STG-TRX-LEAD-TRADING-SOFTWARE-LEAD-INTAKE-V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    },
+    {
+      "workflow_id": "CodestraTestSynRuntimeV1",
+      "version_id": "d5ec35f6-3039-45a1-83ae-2aa8b7875a82",
+      "name": "TEST_SYN Codestra Governed Runtime V1",
+      "classification": "staging_only",
+      "active": false,
+      "source_file": null,
+      "source_sha256": null
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+# Grafana (2026-09-17) — Codestra-Grafana- @ `9c119fe8eca0`
+
+Datasources (provisioned, read-only): `codestra-prometheus` (prometheus), `codestra-loki` (loki, derived fields TraceID/CorrelationID), `codestra-tempo` (tempo, service-map/request-rate/error-ratio/p95 links), `codestra-alertmanager` (alertmanager), `codestra-middleware-observability` (`yesoreyeram-infinity-datasource` 4.0.0, plugin sha256 pinned `2ebce2b2937983651d64991e833e48294b8002581a105741ae3df967e329905d`, url `http://middleware-integration-api:8095`, allowedHosts, bearer token from `$__file{/run/secrets/grafana_middleware_observability_token}`; identity `grafana-runtime`, prefix `observability/grafana/`).
+
+Dashboards: 53 generated (validator count 2 + 18 families), including `codestra-openbao` (operational only: seal/leader state, health probe, audit device, auth failures, lease revocations, scrape-token expiry, backup freshness — no secret paths or values) and `codestra-middleware-operations` (incidents, reconciliation states, catalog monitoring states, collector freshness).
+
+Runtime proofs defined: collector `read_grafana` (health, datasource list + per-datasource health, dashboard uids → binding digest); TEST_SYN `dashboard-readback` (Middleware datasource health OK, required dashboards `codestra-openbao` + `codestra-middleware-operations` present, `/v1/observability/overview` answers the monitoring-readonly token). Runtime execution on staging: **not performed**.

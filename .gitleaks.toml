@@ -1,0 +1,23 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Reviewed SHA-256 of the immutable Middleware connector CI workflow; not credential material"
+condition = "AND"
+paths = ['''^\.codestra/validate-production-orchestrator-contract\.py$''']
+regexTarget = "line"
+regexes = ['''917ab06febf30f0d81146fc147794dace9510f7bb0a6fb903dd69b2244d4e1d0''']
+
+[[allowlists]]
+description = "Reviewed SHA-256 of the read-only OpenAPI validator; not credential material"
+condition = "AND"
+paths = ['''^\.codestra/validate-production-orchestrator-contract\.py$''']
+regexTarget = "line"
+regexes = ['''^\s*"scripts/verify_openapi_contract\.py":\s*"b4dd40045e2781a6a741787b0c1a51d30b96248027a0e058f0123a9853a784a0",\s*$''']
+
+[[allowlists]]
+description = "Synthetic keycloak_subject fixture value in a test-only fake KeycloakUserRecord double; not a real credential. The field name is fixed by the production KeycloakUserRecord.keycloak_subject attribute this test stands in for, so it cannot be renamed away without changing app/adapters/keycloak/lifecycle_client.py."
+condition = "AND"
+paths = ['''^tests/test_agent_provisioning\.py$''']
+regexTarget = "line"
+regexes = ['''^\s*return _KeycloakRecord\(keycloak_subject="kc-subject-synthetic-0016"\)\s*$''']

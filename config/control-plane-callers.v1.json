@@ -1,0 +1,306 @@
+{
+  "schema_version": "1.0",
+  "issuer": "https://auth.codestra.co/realms/codestra",
+  "audience": "middleware-api",
+  "token_exchange": false,
+  "original_bearer_required": true,
+  "maximum_token_lifetime_seconds": 300,
+  "tenant_claim": "tenant_id",
+  "callers": {
+    "odoo-sms": {
+      "command_scope": "odoo.sms.command.write",
+      "status_scope": "odoo.sms.status.read",
+      "allowed_command_prefixes": [
+        "sms."
+      ],
+      "allowed_targets": [
+        "telnexa-sms"
+      ],
+      "compatibility_only": false,
+      "staging_auth_matrix": true
+    },
+    "telnexa-gateway": {
+      "command_scope": "sms.events.publish",
+      "status_scope": "sms.events.read",
+      "connector_commands_allowed": false,
+      "allowed_command_prefixes": [],
+      "allowed_targets": [],
+      "compatibility_only": false,
+      "staging_auth_matrix": true
+    },
+    "odoo-email": {
+      "command_scope": "odoo.email.command.write",
+      "status_scope": "odoo.email.status.read",
+      "allowed_command_prefixes": [
+        "email."
+      ],
+      "allowed_targets": [
+        "klyrow-email"
+      ],
+      "compatibility_only": false,
+      "staging_auth_matrix": true
+    },
+    "kong-gateway": {
+      "command_scope": "middleware.request.forward",
+      "status_scope": "middleware.status.read",
+      "allowed_command_prefixes": [
+        "beyvra.operations.",
+        "crawler.",
+        "crm.",
+        "email.",
+        "provisioning.",
+        "sms.",
+        "social.",
+        "telephony."
+      ],
+      "allowed_targets": [
+        "beyvra-nonfinancial",
+        "kyqra-crawler",
+        "odoo-19",
+        "klyrow-email",
+        "provisioning-service",
+        "telnexa-sms",
+        "postly-social",
+        "vicidial-restricted"
+      ],
+      "compatibility_only": true,
+      "staging_auth_matrix": false
+    },
+    "n8n-automation": {
+      "command_scope": "middleware.request.forward",
+      "status_scope": "middleware.status.read",
+      "allowed_command_prefixes": [
+        "beyvra.operations.",
+        "crawler.",
+        "crm.",
+        "email.",
+        "provisioning.",
+        "sms.",
+        "social.",
+        "telephony."
+      ],
+      "allowed_targets": [
+        "beyvra-nonfinancial",
+        "kyqra-crawler",
+        "odoo-19",
+        "klyrow-email",
+        "provisioning-service",
+        "telnexa-sms",
+        "postly-social",
+        "vicidial-restricted"
+      ],
+      "compatibility_only": false,
+      "staging_auth_matrix": true
+    },
+    "alertmanager": {
+      "command_scope": "alerts.write",
+      "status_scope": "alerts.read",
+      "allowed_command_prefixes": [
+        "observability.alert."
+      ],
+      "allowed_targets": [
+        "klyrow-alert-email"
+      ],
+      "compatibility_only": false,
+      "staging_auth_matrix": true
+    },
+    "klyrow-alert-adapter": {
+      "command_scope": "observability.alerts.events.write",
+      "status_scope": "observability.alerts.read",
+      "allowed_command_prefixes": [
+        "observability.alert."
+      ],
+      "allowed_targets": [
+        "klyrow-alert-email"
+      ],
+      "compatibility_only": false,
+      "staging_auth_matrix": true
+    },
+    "observability-operator": {
+      "command_scope": "observability.incidents.write",
+      "status_scope": "observability.incidents.read",
+      "connector_commands_allowed": false,
+      "allowed_command_prefixes": [],
+      "allowed_targets": [],
+      "compatibility_only": false,
+      "staging_auth_matrix": true
+    },
+    "production-operator": {
+      "command_scope": "email.production.write",
+      "status_scope": "email.production.read",
+      "connector_commands_allowed": false,
+      "allowed_command_prefixes": [],
+      "allowed_targets": [],
+      "compatibility_only": false,
+      "staging_auth_matrix": true
+    },
+    "moneybee-backend": {
+      "command_scope": "moneybee.middleware.command.write",
+      "status_scope": "moneybee.middleware.status.read",
+      "allowed_command_prefixes": [
+        "crm."
+      ],
+      "allowed_targets": [
+        "odoo-19"
+      ],
+      "compatibility_only": false,
+      "staging_auth_matrix": true
+    },
+    "breero-backend": {
+      "command_scope": "breero.middleware.command.write",
+      "status_scope": "breero.middleware.status.read",
+      "allowed_command_prefixes": [
+        "crm."
+      ],
+      "allowed_targets": [
+        "odoo-19"
+      ],
+      "compatibility_only": false,
+      "staging_auth_matrix": true
+    },
+    "larim-a-backend": {
+      "command_scope": "larim-a.middleware.command.write",
+      "status_scope": "larim-a.middleware.status.read",
+      "allowed_command_prefixes": [
+        "crm."
+      ],
+      "allowed_targets": [
+        "odoo-19"
+      ],
+      "compatibility_only": false,
+      "staging_auth_matrix": true
+    },
+    "transportation-backend": {
+      "command_scope": "transportation.middleware.command.write",
+      "status_scope": "transportation.middleware.status.read",
+      "allowed_command_prefixes": [
+        "crm."
+      ],
+      "allowed_targets": [
+        "odoo-19"
+      ],
+      "compatibility_only": false,
+      "staging_auth_matrix": true
+    },
+    "beyvra-backend": {
+      "command_scope": "beyvra.middleware.command.write",
+      "status_scope": "beyvra.middleware.status.read",
+      "allowed_command_prefixes": [
+        "crm."
+      ],
+      "allowed_targets": [
+        "odoo-19"
+      ],
+      "compatibility_only": false,
+      "staging_auth_matrix": true
+    },
+    "kyqra": {
+      "command_scope": "kyqra.middleware.command.write",
+      "status_scope": "kyqra.middleware.status.read",
+      "allowed_command_prefixes": [
+        "crawler.",
+        "sms."
+      ],
+      "allowed_targets": [
+        "kyqra-crawler",
+        "telnexa-sms"
+      ],
+      "compatibility_only": false,
+      "staging_auth_matrix": true
+    },
+    "klyrow": {
+      "command_scope": "klyrow.middleware.command.write",
+      "status_scope": "klyrow.middleware.status.read",
+      "allowed_command_prefixes": [
+        "email."
+      ],
+      "allowed_targets": [
+        "klyrow-email"
+      ],
+      "compatibility_only": false,
+      "staging_auth_matrix": true
+    },
+    "social-codestra": {
+      "command_scope": "social.middleware.command.write",
+      "status_scope": "social.middleware.status.read",
+      "allowed_command_prefixes": [
+        "social."
+      ],
+      "allowed_targets": [
+        "postly-social"
+      ],
+      "compatibility_only": false,
+      "staging_auth_matrix": true
+    },
+    "codestra-ai": {
+      "command_scope": "provider-control.generic-mutations.denied",
+      "status_scope": "provider-control.operations.read.denied",
+      "connector_commands_allowed": false,
+      "allowed_command_prefixes": [],
+      "allowed_targets": [],
+      "compatibility_only": false,
+      "staging_auth_matrix": true
+    },
+    "codestra-communication": {
+      "command_scope": "provider-control.generic-mutations.denied",
+      "status_scope": "provider-control.operations.read.denied",
+      "connector_commands_allowed": false,
+      "allowed_command_prefixes": [],
+      "allowed_targets": [],
+      "compatibility_only": false,
+      "staging_auth_matrix": true
+    },
+    "codestra-marketing": {
+      "command_scope": "provider-control.generic-mutations.denied",
+      "status_scope": "provider-control.operations.read.denied",
+      "connector_commands_allowed": false,
+      "allowed_command_prefixes": [],
+      "allowed_targets": [],
+      "compatibility_only": false,
+      "staging_auth_matrix": true
+    },
+    "codestra-social": {
+      "command_scope": "provider-control.generic-mutations.denied",
+      "status_scope": "provider-control.operations.read.denied",
+      "connector_commands_allowed": false,
+      "allowed_command_prefixes": [],
+      "allowed_targets": [],
+      "compatibility_only": false,
+      "staging_auth_matrix": true
+    },
+    "middleware-api": {
+      "command_scope": "platform.command",
+      "status_scope": "platform.command.read",
+      "connector_commands_allowed": false,
+      "allowed_command_prefixes": [],
+      "allowed_targets": [],
+      "compatibility_only": false,
+      "staging_auth_matrix": false
+    },
+    "odoo-integration": {
+      "command_scope": "platform.command",
+      "status_scope": "platform.command.read",
+      "allowed_command_prefixes": [
+        "crm.",
+        "email.",
+        "sms."
+      ],
+      "allowed_targets": [
+        "odoo-19",
+        "klyrow-email",
+        "telnexa-sms"
+      ],
+      "compatibility_only": false,
+      "staging_auth_matrix": false
+    },
+    "middleware-worker": {
+      "command_scope": "platform.command",
+      "status_scope": "platform.command.read",
+      "connector_commands_allowed": false,
+      "allowed_command_prefixes": [],
+      "allowed_targets": [],
+      "compatibility_only": false,
+      "staging_auth_matrix": false
+    }
+  }
+}

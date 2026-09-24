@@ -1,0 +1,89 @@
+{
+  "schema_version": "1.0",
+  "authority_id": "codestra.production-reviewer-access.v1",
+  "owner": "appolon1908-hue",
+  "reviewer": {
+    "login": "kazan555",
+    "user_id": 77101516,
+    "permission": "push",
+    "admin": false
+  },
+  "repositories": [
+    {
+      "repository": "appolon1908-hue/codestra-production-platform",
+      "repository_id": 1314230781
+    },
+    {
+      "repository": "ingtrader21-spec/Middleware-",
+      "repository_id": 1347559071
+    },
+    {
+      "repository": "appolon1908-hue/Websocket-",
+      "repository_id": 1357322123
+    },
+    {
+      "repository": "appolon1908-hue/Odoo",
+      "repository_id": 1347522940
+    },
+    {
+      "repository": "appolon1908-hue/Caddy",
+      "repository_id": 1350228103
+    },
+    {
+      "repository": "appolon1908-hue/Kong",
+      "repository_id": 1347790742
+    },
+    {
+      "repository": "appolon1908-hue/Keycloak",
+      "repository_id": 1347523366
+    },
+    {
+      "repository": "appolon1908-hue/SDK-repository",
+      "repository_id": 1349042079
+    },
+    {
+      "repository": "appolon1908-hue/Vicidialer-Codestra",
+      "repository_id": 1347744324
+    },
+    {
+      "repository": "appolon1908-hue/N8N",
+      "repository_id": 1347560645
+    },
+    {
+      "repository": "appolon1908-hue/klyrow.com",
+      "repository_id": 1334863061
+    },
+    {
+      "repository": "appolon1908-hue/social.codestra.co",
+      "repository_id": 1348783113
+    },
+    {
+      "repository": "appolon1908-hue/Codestra-AI",
+      "repository_id": 1351354401
+    },
+    {
+      "repository": "appolon1908-hue/Codestra-Marketing-",
+      "repository_id": 1351352422
+    },
+    {
+      "repository": "appolon1908-hue/codestra-provisioning-service",
+      "repository_id": 1339900477
+    },
+    {
+      "repository": "appolon1908-hue/Codestra-Prometheus",
+      "repository_id": 1350767800
+    },
+    {
+      "repository": "appolon1908-hue/telnexa",
+      "repository_id": 1334764612
+    },
+    {
+      "repository": "appolon1908-hue/kyqra-crawler",
+      "repository_id": 1334792686
+    },
+    {
+      "repository": "appolon1908-hue/beyvra-backend",
+      "repository_id": 1319831182
+    }
+  ]
+}

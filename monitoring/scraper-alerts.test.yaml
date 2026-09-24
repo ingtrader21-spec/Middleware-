@@ -1,0 +1,96 @@
+rule_files:
+  - middleware-alerts.yaml
+
+evaluation_interval: 1m
+
+tests:
+  - interval: 1m
+    input_series:
+      - series: 'codestra_delivery_queue_depth{target="scraper"}'
+        values: '60x12 0x8'
+      - series: 'codestra_delivery_oldest_seconds{target="scraper"}'
+        values: '901x12 0x8'
+      - series: 'codestra_dlq_depth{target="scraper"}'
+        values: '1x3 0x17'
+      - series: 'codestra_auth_failures_total{kind="scraper_hmac"}'
+        values: '0 2 4 6 8 10 12 12x13'
+      - series: 'redis_errors_total{operation="scraper_enqueue"}'
+        values: '0 1 2 3 4 5 6 6x13'
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: CodestraScraperDeadLetter
+        exp_alerts:
+          - exp_labels:
+              component: scraper
+              environment: production-readiness
+              owner: integration-operations
+              service: middleware
+              severity: critical
+              target: scraper
+            exp_annotations:
+              runbook_url: https://monitoring.codestra.co/runbooks/scraper-pipeline
+              summary: A scraper event entered dead letter
+      - eval_time: 7m
+        alertname: CodestraScraperAuthenticationFailures
+        exp_alerts:
+          - exp_labels:
+              component: scraper
+              environment: production-readiness
+              owner: security-operations
+              service: middleware
+              severity: warning
+            exp_annotations:
+              runbook_url: https://monitoring.codestra.co/runbooks/scraper-authentication
+              summary: Scraper authentication or replay failures increased
+      - eval_time: 7m
+        alertname: CodestraScraperRedisErrors
+        exp_alerts:
+          - exp_labels:
+              component: scraper
+              environment: production-readiness
+              owner: integration-operations
+              service: redis
+              severity: warning
+            exp_annotations:
+              runbook_url: https://monitoring.codestra.co/runbooks/scraper-redis-recovery
+              summary: Scraper Redis signaling is degraded to PostgreSQL recovery
+      - eval_time: 11m
+        alertname: CodestraScraperInboxBacklog
+        exp_alerts:
+          - exp_labels:
+              component: scraper
+              environment: production-readiness
+              owner: integration-operations
+              service: middleware
+              severity: warning
+            exp_annotations:
+              runbook_url: https://monitoring.codestra.co/runbooks/scraper-pipeline
+              summary: Scraper inbox backlog exceeds the bounded threshold
+      - eval_time: 11m
+        alertname: CodestraScraperOldestPending
+        exp_alerts:
+          - exp_labels:
+              component: scraper
+              environment: production-readiness
+              owner: integration-operations
+              service: middleware
+              severity: warning
+              target: scraper
+            exp_annotations:
+              runbook_url: https://monitoring.codestra.co/runbooks/scraper-pipeline
+              summary: Oldest scraper event exceeds 15 minutes
+      - eval_time: 19m
+        alertname: CodestraScraperInboxBacklog
+        exp_alerts: []
+      - eval_time: 19m
+        alertname: CodestraScraperOldestPending
+        exp_alerts: []
+      - eval_time: 19m
+        alertname: CodestraScraperDeadLetter
+        exp_alerts: []
+      - eval_time: 19m
+        alertname: CodestraScraperAuthenticationFailures
+        exp_alerts: []
+      - eval_time: 19m
+        alertname: CodestraScraperRedisErrors
+        exp_alerts: []

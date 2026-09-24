@@ -1,0 +1,92 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://github.com/Codestra-SRL/codestra-middleware/pull/103#qwen-auth-verifier-der-vex",
+  "author": "Evelin Appolon (GitHub: kazan555; user ID: 77101516)",
+  "role": "Security Owner",
+  "timestamp": "2026-08-04T22:46:26Z",
+  "last_updated": "2026-08-04T22:46:26Z",
+  "version": 1,
+  "statements": [
+    {
+      "vulnerability": {"name": "CVE-2026-11940"},
+      "products": [{"@id": "pkg:oci/qwen-auth-verifier@sha256%3Acc7e2457fdd69fdd1bf766831f8f86396495b47e377e86b2d9df1d4fb5432390?repository_url=ghcr.io%2Fcodestra-srl", "subcomponents": [{"@id": "pkg:generic/cpython@3.12.13"}]}],
+      "status": "fixed",
+      "timestamp": "2026-08-04T22:46:26Z",
+      "action_statement": "Verified upstream correction commit be13e86f6b9788a6f4d0419dffef72cbae5865c9 is applied before CPython compilation; the clean build and runtime validation passed.",
+      "status_notes": "Security Owner decision: https://github.com/Codestra-SRL/codestra-middleware/pull/103#pullrequestreview-4859576544; evidence package: https://github.com/Codestra-SRL/codestra-middleware/pull/103#issuecomment-5185499704; package_sha256=9ef990def5e742ad561bcb7b93b27d8765d6400196b24d679b24442c954df75f"
+    },
+    {
+      "vulnerability": {"name": "CVE-2026-11972"},
+      "products": [{"@id": "pkg:oci/qwen-auth-verifier@sha256%3Acc7e2457fdd69fdd1bf766831f8f86396495b47e377e86b2d9df1d4fb5432390?repository_url=ghcr.io%2Fcodestra-srl", "subcomponents": [{"@id": "pkg:generic/cpython@3.12.13"}]}],
+      "status": "fixed",
+      "timestamp": "2026-08-04T22:46:26Z",
+      "action_statement": "Verified upstream correction commit 7f0dc59c9a70f8f3b4da33d7c4a2ba552a7acc21 is applied before CPython compilation; the patched interpreter built and tested successfully.",
+      "status_notes": "decision=https://github.com/Codestra-SRL/codestra-middleware/pull/103#pullrequestreview-4859576544; evidence_package_sha256=9ef990def5e742ad561bcb7b93b27d8765d6400196b24d679b24442c954df75f"
+    },
+    {
+      "vulnerability": {"name": "CVE-2026-15308"},
+      "products": [{"@id": "pkg:oci/qwen-auth-verifier@sha256%3Acc7e2457fdd69fdd1bf766831f8f86396495b47e377e86b2d9df1d4fb5432390?repository_url=ghcr.io%2Fcodestra-srl", "subcomponents": [{"@id": "pkg:generic/cpython@3.12.13"}]}],
+      "status": "fixed",
+      "timestamp": "2026-08-04T22:46:26Z",
+      "action_statement": "Verified upstream correction commit 7933f4bf7131aa4140750f9404f5de0aa2969ced is applied before CPython compilation; clean-build and runtime evidence confirm inclusion.",
+      "status_notes": "decision=https://github.com/Codestra-SRL/codestra-middleware/pull/103#pullrequestreview-4859576544; evidence_package_sha256=9ef990def5e742ad561bcb7b93b27d8765d6400196b24d679b24442c954df75f"
+    },
+    {
+      "vulnerability": {"name": "CVE-2026-3644"},
+      "products": [{"@id": "pkg:oci/qwen-auth-verifier@sha256%3Acc7e2457fdd69fdd1bf766831f8f86396495b47e377e86b2d9df1d4fb5432390?repository_url=ghcr.io%2Fcodestra-srl", "subcomponents": [{"@id": "pkg:generic/cpython@3.12.13"}]}],
+      "status": "fixed",
+      "timestamp": "2026-08-04T22:46:26Z",
+      "action_statement": "Verified upstream correction commit dae4b1a21f8df4570e30986affd61bbe4ade4cef is applied before CPython compilation and passed candidate build and test gates.",
+      "status_notes": "decision=https://github.com/Codestra-SRL/codestra-middleware/pull/103#pullrequestreview-4859576544; evidence_package_sha256=9ef990def5e742ad561bcb7b93b27d8765d6400196b24d679b24442c954df75f"
+    },
+    {
+      "vulnerability": {"name": "CVE-2026-4224"},
+      "products": [{"@id": "pkg:oci/qwen-auth-verifier@sha256%3Acc7e2457fdd69fdd1bf766831f8f86396495b47e377e86b2d9df1d4fb5432390?repository_url=ghcr.io%2Fcodestra-srl", "subcomponents": [{"@id": "pkg:generic/cpython@3.12.13"}]}],
+      "status": "fixed",
+      "timestamp": "2026-08-04T22:46:26Z",
+      "action_statement": "Verified upstream correction commit 642865ddf4b232da1f3b1f7abcfa3254c4bfe785 is applied before compilation; the remaining Grype match is version-metadata based.",
+      "status_notes": "decision=https://github.com/Codestra-SRL/codestra-middleware/pull/103#pullrequestreview-4859576544; evidence_package_sha256=9ef990def5e742ad561bcb7b93b27d8765d6400196b24d679b24442c954df75f"
+    },
+    {
+      "vulnerability": {"name": "CVE-2026-6100"},
+      "products": [{"@id": "pkg:oci/qwen-auth-verifier@sha256%3Acc7e2457fdd69fdd1bf766831f8f86396495b47e377e86b2d9df1d4fb5432390?repository_url=ghcr.io%2Fcodestra-srl", "subcomponents": [{"@id": "pkg:generic/cpython@3.12.13"}]}],
+      "status": "fixed",
+      "timestamp": "2026-08-04T22:46:26Z",
+      "action_statement": "Verified upstream correction commit e20c6c9667c99ecaab96e1a2b3767082841ffc8b is applied before compilation; unit, integration, clean-build and runtime checks passed.",
+      "status_notes": "decision=https://github.com/Codestra-SRL/codestra-middleware/pull/103#pullrequestreview-4859576544; evidence_package_sha256=9ef990def5e742ad561bcb7b93b27d8765d6400196b24d679b24442c954df75f"
+    },
+    {
+      "vulnerability": {"name": "CVE-2026-9669"},
+      "products": [{"@id": "pkg:oci/qwen-auth-verifier@sha256%3Acc7e2457fdd69fdd1bf766831f8f86396495b47e377e86b2d9df1d4fb5432390?repository_url=ghcr.io%2Fcodestra-srl", "subcomponents": [{"@id": "pkg:generic/cpython@3.12.13"}]}],
+      "status": "fixed",
+      "timestamp": "2026-08-04T22:46:26Z",
+      "action_statement": "Verified upstream correction commit 938ec030e90c5e53f1faac6fab1643f14e4f4a79 is present in the built runtime; the remaining scanner match identifies only the base CPython version.",
+      "status_notes": "decision=https://github.com/Codestra-SRL/codestra-middleware/pull/103#pullrequestreview-4859576544; evidence_package_sha256=9ef990def5e742ad561bcb7b93b27d8765d6400196b24d679b24442c954df75f"
+    },
+    {
+      "vulnerability": {"name": "CVE-2026-4786"},
+      "products": [{"@id": "pkg:oci/qwen-auth-verifier@sha256%3Acc7e2457fdd69fdd1bf766831f8f86396495b47e377e86b2d9df1d4fb5432390?repository_url=ghcr.io%2Fcodestra-srl", "subcomponents": [{"@id": "pkg:generic/cpython@3.12.13"}]}],
+      "status": "fixed",
+      "timestamp": "2026-08-04T22:46:26Z",
+      "action_statement": "The candidate incorporates upstream behavior from commit f4654824ae0850ac87227fb270f9057477946769 and the verified webbrowser-action-hardening.patch before compilation.",
+      "status_notes": "decision=https://github.com/Codestra-SRL/codestra-middleware/pull/103#pullrequestreview-4859576544; evidence_package_sha256=9ef990def5e742ad561bcb7b93b27d8765d6400196b24d679b24442c954df75f"
+    },
+    {
+      "vulnerability": {"name": "CVE-2026-7210"},
+      "products": [{"@id": "pkg:oci/qwen-auth-verifier@sha256%3Acc7e2457fdd69fdd1bf766831f8f86396495b47e377e86b2d9df1d4fb5432390?repository_url=ghcr.io%2Fcodestra-srl", "subcomponents": [{"@id": "pkg:generic/cpython@3.12.13"}, {"@id": "pkg:generic/expat@2.8.2"}]}],
+      "status": "fixed",
+      "timestamp": "2026-08-04T22:46:26Z",
+      "action_statement": "The candidate uses pinned Expat 2.8.2 and verified correction evidence from commit fc9b11ff49cbc82e6f917d07a61517a2b5f3145f and expat-hash-salt-3.12.patch; integration tests passed.",
+      "status_notes": "decision=https://github.com/Codestra-SRL/codestra-middleware/pull/103#pullrequestreview-4859576544; evidence_package_sha256=9ef990def5e742ad561bcb7b93b27d8765d6400196b24d679b24442c954df75f"
+    },
+    {
+      "vulnerability": {"name": "CVE-2026-3298"},
+      "products": [{"@id": "pkg:oci/qwen-auth-verifier@sha256%3Acc7e2457fdd69fdd1bf766831f8f86396495b47e377e86b2d9df1d4fb5432390?repository_url=ghcr.io%2Fcodestra-srl", "subcomponents": [{"@id": "pkg:generic/cpython@3.12.13"}]}],
+      "status": "not_affected",
+      "justification": "component_not_present",
+      "timestamp": "2026-08-04T22:46:26Z",
+      "impact_statement": "The affected Windows-specific runtime path is absent from the reviewed Linux/amd64 image and cannot be invoked.",
+      "status_notes": "decision=https://github.com/Codestra-SRL/codestra-middleware/pull/103#pullrequestreview-4859576544; evidence_package_sha256=9ef990def5e742ad561bcb7b93b27d8765d6400196b24d679b24442c954df75f"
+    }
+  ]
+}

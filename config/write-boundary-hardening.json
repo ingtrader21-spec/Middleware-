@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "tracked_file_scan": {
+    "tracked_files_only": true,
+    "size_exemptions_allowed": false,
+    "streaming_scan_required": true
+  },
+  "n8n": {
+    "base_expression": "{{$env.MIDDLEWARE_BASE_URL}}",
+    "approved_path_prefixes": [
+      "/v1/commands",
+      "/v1/queries",
+      "/v1/triggers"
+    ],
+    "approved_node_types": [
+      "n8n-nodes-base.aggregate",
+      "n8n-nodes-base.dateTime",
+      "n8n-nodes-base.filter",
+      "n8n-nodes-base.httpRequest",
+      "n8n-nodes-base.if",
+      "n8n-nodes-base.itemLists",
+      "n8n-nodes-base.limit",
+      "n8n-nodes-base.manualTrigger",
+      "n8n-nodes-base.merge",
+      "n8n-nodes-base.noOp",
+      "n8n-nodes-base.removeDuplicates",
+      "n8n-nodes-base.respondToWebhook",
+      "n8n-nodes-base.scheduleTrigger",
+      "n8n-nodes-base.set",
+      "n8n-nodes-base.sort",
+      "n8n-nodes-base.splitInBatches",
+      "n8n-nodes-base.stopAndError",
+      "n8n-nodes-base.switch",
+      "n8n-nodes-base.wait",
+      "n8n-nodes-base.webhook"
+    ],
+    "paths_must_be_static": true,
+    "paths_must_be_canonical": true,
+    "dot_segments_allowed": false,
+    "percent_encoded_paths_allowed": false,
+    "repeated_slashes_allowed": false,
+    "backslashes_allowed": false,
+    "webhook_authentication_required": true,
+    "webhook_path_prefix": "middleware/"
+  },
+  "timestamp": {
+    "calendar_validity_required": true,
+    "year_zero_allowed": false,
+    "strict_pattern_location": "properties.requested_at.allOf[0].pattern"
+  }
+}

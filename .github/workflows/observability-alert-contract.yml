@@ -1,0 +1,80 @@
+name: Observability alert contract
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/observability-alert-contract.yml
+      - config/observability-alert-policy.v1.json
+      - config/capabilities.v2.json
+      - config/control-plane-callers.v1.json
+      - config/adapter-registry.v2.json
+      - connectors/generated/command-registry.v1.json
+      - contracts/observability/alert-api.v1.openapi.yaml
+      - deploy/observability-alerts/**
+      - app/observability_alerts.py
+      - app/observability_alert_contract.py
+      - app/observability_incidents.py
+      - app/klyrow_alert_adapter.py
+      - workers/run_temporal.py
+      - migrations/0009_observability_incidents.sql
+      - scripts/validate_observability_alert_contract.py
+      - tests/test_observability_alert_contract_validation.py
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/observability-alert-contract.yml
+      - config/observability-alert-policy.v1.json
+      - config/capabilities.v2.json
+      - config/control-plane-callers.v1.json
+      - config/adapter-registry.v2.json
+      - connectors/generated/command-registry.v1.json
+      - contracts/observability/alert-api.v1.openapi.yaml
+      - deploy/observability-alerts/**
+      - app/observability_alerts.py
+      - app/observability_alert_contract.py
+      - app/observability_incidents.py
+      - app/klyrow_alert_adapter.py
+      - workers/run_temporal.py
+      - migrations/0009_observability_incidents.sql
+      - scripts/validate_observability_alert_contract.py
+      - tests/test_observability_alert_contract_validation.py
+
+permissions:
+  contents: read
+
+concurrency:
+  group: observability-alert-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  observability-alert-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check out exact source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Prove exact source identity
+        env:
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -Eeuo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD_SHA"
+          test -z "$(git status --porcelain)"
+      - name: Validate observability alert contract
+        run: |
+          set -Eeuo pipefail
+          python3 -m py_compile \
+            scripts/validate_observability_alert_contract.py \
+            tests/test_observability_alert_contract_validation.py
+          python3 -m unittest -v tests.test_observability_alert_contract_validation
+          python3 scripts/validate_observability_alert_contract.py
+          git diff --check

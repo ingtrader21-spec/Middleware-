@@ -1,0 +1,216 @@
+ARG RUNTIME_BASE=python:3.14.7-slim-bookworm@sha256:82bc3c539b8813ada9d68c63b40158fa002f7f33de9bf3312a3dfdc0620dff56
+ARG TEST_BASE=python:3.14.7-bookworm@sha256:4121f1893084fd19c71df52b7a48565d47f5bf36173d2c2ce8bca626512ef3db
+ARG FINAL_BASE=python:3.14.7-slim-bookworm@sha256:82bc3c539b8813ada9d68c63b40158fa002f7f33de9bf3312a3dfdc0620dff56
+
+FROM ${FINAL_BASE} AS patched-final-base
+USER root
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends libpcre2-8-0=10.42-1+deb12u1 \
+ && rm -rf /var/lib/apt/lists/*
+
+FROM ${RUNTIME_BASE} AS runtime-dependencies
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1 PIP_NO_CACHE_DIR=1
+WORKDIR /build
+COPY requirements-runtime.txt ./
+RUN python -m pip install --require-hashes --prefix=/opt/runtime -r requirements-runtime.txt \
+ && PYTHONPATH=/opt/runtime/lib/python3.14/site-packages python -m pip check
+
+FROM patched-final-base AS runtime-common
+ARG SOURCE_REPOSITORY=https://github.com/ingtrader21-spec/Middleware-
+ARG SOURCE_REVISION
+ARG SOURCE_VERSION
+ARG BUILD_DATE
+ARG GIT_TREE_ID
+LABEL org.opencontainers.image.source="${SOURCE_REPOSITORY}" \
+      org.opencontainers.image.revision="${SOURCE_REVISION}" \
+      org.opencontainers.image.version="${SOURCE_VERSION}" \
+      org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.title="Codestra Middleware" \
+      org.opencontainers.image.vendor="Codestra"
+ENV PYTHONPATH=/opt/runtime/lib/python3.14/site-packages \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    APP_SOURCE_SHA=${SOURCE_REVISION} \
+    APP_VERSION=${SOURCE_VERSION} \
+    BUILD_TIME=${BUILD_DATE} \
+    RELEASE_ID=${SOURCE_VERSION} \
+    CONFIGURATION_CHECKSUM=runtime-injected
+COPY --from=runtime-dependencies /opt/runtime /opt/runtime
+WORKDIR /app
+COPY --chown=65532:65532 app ./app
+COPY --chown=65532:65532 workers ./workers
+COPY --chown=65532:65532 config ./config
+COPY --chown=65532:65532 connectors ./connectors
+COPY --chown=65532:65532 contracts ./contracts
+COPY --chown=65532:65532 migrations ./migrations
+COPY --chown=65532:65532 scripts/migrate_runtime.py ./scripts/migrate_runtime.py
+COPY --chown=65532:65532 scripts/production_migration_authority.py ./scripts/production_migration_authority.py
+COPY --chown=65532:65532 scripts/runtime_sql_schema.py ./scripts/runtime_sql_schema.py
+USER 65532:65532
+ENTRYPOINT ["/usr/local/bin/python3.14"]
+
+FROM runtime-common AS runtime
+EXPOSE 8095
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+  CMD ["/usr/local/bin/python3.14", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8095/health', timeout=2)"]
+CMD ["-m", "uvicorn", "app.entrypoints.integration_api:app", "--host", "0.0.0.0", "--port", "8095", "--proxy-headers", "--forwarded-allow-ips=127.0.0.1"]
+
+FROM runtime-common AS worker
+CMD ["-m", "workers.run_outbox"]
+
+# The scheduler and reconciler are the same immutable runtime artifact with a
+# different process command (one image digest for api/worker/scheduler/reconciler).
+FROM runtime-common AS scheduler
+CMD ["-m", "app.entrypoints.scheduler"]
+
+FROM runtime-common AS reconciler
+CMD ["-m", "app.entrypoints.reconciliation_worker"]
+
+FROM ${RUNTIME_BASE} AS connector-dependencies
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1 PIP_NO_CACHE_DIR=1
+WORKDIR /build
+COPY requirements-connector-runtime.txt ./
+RUN python -m pip install --require-hashes --prefix=/opt/connector -r requirements-connector-runtime.txt
+COPY services/connector-sdk/pyproject.toml ./connector-sdk/pyproject.toml
+COPY middleware ./connector-sdk/middleware
+RUN python -m pip install --no-deps --prefix=/opt/connector ./connector-sdk
+COPY services/connector-runtime/pyproject.toml ./runtime/pyproject.toml
+COPY services/connector-runtime/src ./runtime/src
+RUN python -m pip install --no-deps --prefix=/opt/connector ./runtime \
+ && PYTHONPATH=/opt/connector/lib/python3.14/site-packages python -m pip check
+
+FROM patched-final-base AS connector-runtime
+ARG SOURCE_REPOSITORY=https://github.com/ingtrader21-spec/Middleware-
+ARG SOURCE_REVISION
+ARG SOURCE_VERSION
+ARG BUILD_DATE
+LABEL org.opencontainers.image.source="${SOURCE_REPOSITORY}" \
+      org.opencontainers.image.revision="${SOURCE_REVISION}" \
+      org.opencontainers.image.version="${SOURCE_VERSION}" \
+      org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.title="Codestra Connector Runtime" \
+      org.opencontainers.image.vendor="Codestra"
+ENV PYTHONPATH=/opt/connector/lib/python3.14/site-packages \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    CONNECTOR_RUNTIME_RELEASE_SHA=${SOURCE_REVISION}
+COPY --from=connector-dependencies /opt/connector /opt/connector
+WORKDIR /app
+COPY --chown=65532:65532 services/connector-runtime/alembic.ini ./alembic.ini
+COPY --chown=65532:65532 services/connector-runtime/migrations ./migrations
+USER 65532:65532
+ENTRYPOINT ["/usr/local/bin/python3.14"]
+EXPOSE 8081
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+  CMD ["/usr/local/bin/python3.14", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8081/healthz', timeout=2)"]
+CMD ["-m", "uvicorn", "codestra_connector_runtime.main:app", "--host", "0.0.0.0", "--port", "8081", "--proxy-headers", "--forwarded-allow-ips=127.0.0.1"]
+
+FROM ${TEST_BASE} AS test
+ARG SOURCE_REPOSITORY=https://github.com/ingtrader21-spec/Middleware-
+ARG SOURCE_REVISION
+ARG SOURCE_VERSION
+ARG BUILD_DATE
+ARG GIT_TREE_ID
+LABEL org.opencontainers.image.source="${SOURCE_REPOSITORY}" \
+      org.opencontainers.image.revision="${SOURCE_REVISION}" \
+      org.opencontainers.image.version="${SOURCE_VERSION}" \
+      org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.title="Codestra Middleware Tests" \
+      org.opencontainers.image.vendor="Codestra"
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1 PIP_NO_CACHE_DIR=1 \
+    PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 \
+    CODESTRA_TEST_SOURCE_SHA=${SOURCE_REVISION} \
+    CODESTRA_TEST_GIT_TREE_ID=${GIT_TREE_ID} \
+    PYTEST_ADDOPTS="-p no:cacheprovider"
+RUN groupadd --system --gid 10001 middleware \
+ && useradd --system --uid 10001 --gid middleware --home-dir /nonexistent middleware
+WORKDIR /app
+COPY requirements-test.txt ./
+RUN python -m pip install --require-hashes -r requirements-test.txt \
+ && python -m pip check \
+ && test "$(openssl version | awk '{print $2}')" = "3.0.20"
+# The full source tree is required because repository contract tests inspect
+# schemas, workflows, lockfiles, deployment descriptors, and root metadata.
+# .dockerignore already keeps VCS data, credentials, caches, and build outputs
+# outside the build context.
+COPY --chown=10001:10001 MIDDLEWARE-AUTHORITY-RECONCILIATION.yaml ./MIDDLEWARE-AUTHORITY-RECONCILIATION.yaml
+COPY --chown=10001:10001 .github/workflows/mirror-codestra-legacy-middleware-images.yml ./.github/workflows/mirror-codestra-legacy-middleware-images.yml
+COPY --chown=10001:10001 . .
+# Keep authority assets explicit: certification tests require these exact
+# packages to remain visible in the test-image contract.
+COPY --chown=10001:10001 MIDDLEWARE-AUTHORITY-RECONCILIATION.yaml ./MIDDLEWARE-AUTHORITY-RECONCILIATION.yaml
+COPY --chown=10001:10001 .github/workflows/mirror-codestra-legacy-middleware-images.yml ./.github/workflows/mirror-codestra-legacy-middleware-images.yml
+# Docker does not make the controlling .dockerignore available to COPY, so
+# recreate its non-secret policy file for contract tests that inspect it.
+RUN printf '%s\n' \
+      '.git' \
+      '.github/*' \
+      '!.github/workflows/' \
+      '.github/workflows/*' \
+      '!.github/workflows/mirror-codestra-legacy-middleware-images.yml' \
+      '!.github/workflows/*.yml' \
+      '.env' \
+      '.env.*' \
+      '*.env' \
+      '*.env.*' \
+      '!.env.example' \
+      '!*.env.example' \
+      '__pycache__' \
+      '*.py[cod]' \
+      '.pytest_cache' \
+      '.mypy_cache' \
+      '.ruff_cache' \
+      'coverage' \
+      'dist' \
+      'build' \
+      'node_modules' \
+      'test-results' \
+      '.venv' \
+      'venv' \
+      '*.tsbuildinfo' \
+      '*.dump' \
+      '*.sql' \
+      '!migrations/[0-9][0-9][0-9][0-9]_*.sql' \
+      '!migrations/automation/[0-9][0-9][0-9][0-9]_*.sql' \
+      '*.rdb' \
+      '*.tgz' \
+      '*.tar.gz' \
+      'credentials' \
+      'private_keys' \
+      'reports' \
+      'logs' \
+      'runtime' \
+      'backups' \
+      'private-evidence' \
+      'server-baseline' \
+      'server-import-*' \
+      'runtime-evidence' \
+      'artifacts' \
+      'secrets' \
+      '*.pem' \
+      '*.crt' \
+      '*.cer' \
+      '*.der' \
+      '*.csr' \
+      'id_rsa*' \
+      'id_ed25519*' \
+      '*.log' \
+      '*.pid' \
+      '*.backup' \
+      '*.sql.gz' \
+      '*.sql.zst' \
+      '*.sqlite' \
+      '*.sqlite3' \
+      '*.aof' \
+      '*.key' \
+      '*.p12' \
+      '*.pfx' \
+      '*.jks' \
+      '*.keystore' \
+      '*.har' \
+      '*.pcap' \
+      '*.trace' \
+      > .dockerignore
+USER 10001:10001
+ENTRYPOINT ["pytest"]
+CMD ["-q"]

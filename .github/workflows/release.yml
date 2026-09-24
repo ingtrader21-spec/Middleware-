@@ -1,0 +1,338 @@
+name: Signed Middleware Release
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Middleware CI"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: signed-middleware-release-${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  attest-pinned-release:
+    name: Recover provenance for the pinned signed release
+    # RUNTIME_MUTATION_DISABLED=true: registry attestations require separate release authorization.
+    if: ${{ false }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      actions: read
+      contents: read
+      packages: write
+      id-token: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SOURCE_SHA: 29b25cba8302cd15ef4d87b68f501da6347f2f17
+      IMAGE_DIGEST: sha256:0f5a5b3b1c8166d6509b228541bee01533f5feb1dbef24ed2d241194ba610802
+      IMAGE: ghcr.io/appolon1908-hue/codestra-middleware@sha256:0f5a5b3b1c8166d6509b228541bee01533f5feb1dbef24ed2d241194ba610802
+      SIGNER: https://github.com/appolon1908-hue/Middleware-/.github/workflows/release.yml@refs/heads/main
+      ISSUER: https://token.actions.githubusercontent.com
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+        with:
+          cosign-release: v3.0.6
+      - name: Retrieve immutable evidence from the original successful release
+        run: |
+          set -Eeuo pipefail
+          test "$GITHUB_REPOSITORY" = ingtrader21-spec/Middleware-
+          gh api repos/appolon1908-hue/Middleware-/actions/runs/33922375053 > "$RUNNER_TEMP/original-run.json"
+          jq -e --arg sha "$SOURCE_SHA" '.conclusion == "success" and .head_sha == $sha and .event == "workflow_run" and .path == ".github/workflows/release.yml"' "$RUNNER_TEMP/original-run.json"
+          gh api repos/appolon1908-hue/Middleware-/actions/artifacts/9955590882 > "$RUNNER_TEMP/artifact.json"
+          jq -e '.expired == false and .workflow_run.id == 33922375053 and .digest == "sha256:e04928d95ec12a429096af180f3bbd40891af324eff0f4868f5a7d638e74c5b6"' "$RUNNER_TEMP/artifact.json"
+          gh api repos/appolon1908-hue/Middleware-/actions/artifacts/9955590882/zip > "$RUNNER_TEMP/original-release.zip"
+          echo "e04928d95ec12a429096af180f3bbd40891af324eff0f4868f5a7d638e74c5b6  $RUNNER_TEMP/original-release.zip" | sha256sum --check --strict
+          mkdir "$RUNNER_TEMP/original-release"
+          unzip -q "$RUNNER_TEMP/original-release.zip" -d "$RUNNER_TEMP/original-release"
+          python3 scripts/release_manifest.py verify \
+            --manifest "$RUNNER_TEMP/original-release/release-manifest.v1.json" \
+            --bundle "$RUNNER_TEMP/original-release/release-manifest.v1.sigstore.json" \
+            --expected-source-sha "$SOURCE_SHA" --expected-image-digest "$IMAGE_DIGEST" \
+            --skip-workspace
+      - name: Verify existing image and evidence before adding provenance
+        run: |
+          set -Eeuo pipefail
+          printf '%s' "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          cosign verify --certificate-identity "$SIGNER" --certificate-oidc-issuer "$ISSUER" "$IMAGE" > "$RUNNER_TEMP/image-signature.json"
+          cosign verify-attestation --type spdxjson --certificate-identity "$SIGNER" --certificate-oidc-issuer "$ISSUER" "$IMAGE" > "$RUNNER_TEMP/sbom-attestation.json"
+          python3 scripts/recover_pinned_provenance.py \
+            --evidence "$RUNNER_TEMP/original-release" \
+            --sbom-verification "$RUNNER_TEMP/sbom-attestation.json" \
+            --output "$RUNNER_TEMP/predicate.json"
+      - name: Publish and verify SLSA v1 on the original digest
+        run: |
+          set -Eeuo pipefail
+          cosign attest --yes --type slsaprovenance1 --predicate "$RUNNER_TEMP/predicate.json" "$IMAGE"
+          cosign verify-attestation --type slsaprovenance1 --certificate-identity "$SIGNER" --certificate-oidc-issuer "$ISSUER" "$IMAGE" > "$RUNNER_TEMP/provenance-verification.json"
+          python3 scripts/recover_pinned_provenance.py \
+            --evidence "$RUNNER_TEMP/original-release" \
+            --sbom-verification "$RUNNER_TEMP/sbom-attestation.json" \
+            --output "$RUNNER_TEMP/predicate.json" \
+            --provenance-verification "$RUNNER_TEMP/provenance-verification.json"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: pinned-provenance-recovery-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/predicate.json
+            ${{ runner.temp }}/provenance-verification.json
+            ${{ runner.temp }}/image-signature.json
+            ${{ runner.temp }}/sbom-attestation.json
+            ${{ runner.temp }}/original-run.json
+            ${{ runner.temp }}/artifact.json
+          if-no-files-found: error
+          retention-days: 90
+  release:
+    name: Build, scan, sign, and verify immutable image
+    # The single forward Middleware production publisher. Its exact job bytes are
+    # authorized as a narrow mutation by the protected production validator; any
+    # change to this job requires a new trust generation.
+    if: >-
+      github.repository == 'ingtrader21-spec/Middleware-' &&
+      (
+        (
+          github.event_name == 'workflow_run' &&
+          github.event.workflow_run.conclusion == 'success' &&
+          github.event.workflow_run.head_branch == 'main' &&
+          github.event.workflow_run.head_repository.full_name == github.repository
+        ) ||
+        (
+          github.event_name == 'workflow_dispatch' &&
+          github.ref == 'refs/heads/main'
+        )
+      )
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    env:
+      IMAGE_REPOSITORY: ghcr.io/ingtrader21-spec/codestra-middleware
+      COSIGN_YES: "true"
+      SOURCE_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+      EXPECTED_SCHEMA_HEAD: 0067_service_catalog_monitoring_state
+
+    steps:
+      - name: Check out the exact CI-accepted source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Prove release source and initialize immutable metadata
+        id: metadata
+        env:
+          EXPECTED_SOURCE_SHA: ${{ env.SOURCE_SHA }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          test "$GITHUB_REPOSITORY" = "ingtrader21-spec/Middleware-"
+          test "$GITHUB_REF" = "refs/heads/main"
+          [[ "$EXPECTED_SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SOURCE_SHA"
+          test -z "$(git status --porcelain)"
+          # Only the current protected head may become a release candidate: a
+          # stale main SHA is rejected even when its CI was green.
+          protected_head="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq .object.sha)"
+          test "$protected_head" = "$EXPECTED_SOURCE_SHA"
+          # The exact source must have passed Middleware CI on protected main.
+          accepted_runs="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/middleware-ci.yml/runs?branch=main&event=push&status=success&head_sha=${EXPECTED_SOURCE_SHA}&per_page=1" --jq .total_count)"
+          test "$accepted_runs" -ge 1
+          build_time="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          printf 'RELEASE_SOURCE_SHA=%s\n' "$EXPECTED_SOURCE_SHA" >> "$GITHUB_ENV"
+          printf 'RELEASE_GIT_TREE_ID=%s\n' "$(git rev-parse 'HEAD^{tree}')" >> "$GITHUB_ENV"
+          printf 'RELEASE_BUILD_TIME=%s\n' "$build_time" >> "$GITHUB_ENV"
+          printf 'RELEASE_EVIDENCE_DIR=%s\n' "$RUNNER_TEMP/codestra-release" >> "$GITHUB_ENV"
+          printf 'source_sha=%s\n' "$EXPECTED_SOURCE_SHA" >> "$GITHUB_OUTPUT"
+          printf 'build_time=%s\n' "$build_time" >> "$GITHUB_OUTPUT"
+          printf 'evidence_dir=%s\n' "$RUNNER_TEMP/codestra-release" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+
+      - name: Authenticate to GHCR
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish one provenance-bearing image
+        id: build
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: .
+          file: Dockerfile.runtime
+          target: runtime
+          platforms: linux/amd64
+          push: true
+          tags: >-
+            ghcr.io/ingtrader21-spec/codestra-middleware:sha-${{ env.SOURCE_SHA }}-run-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          build-args: |
+            SOURCE_REPOSITORY=https://github.com/${{ github.repository }}
+            SOURCE_REVISION=${{ env.SOURCE_SHA }}
+            SOURCE_VERSION=sha-${{ env.SOURCE_SHA }}
+            BUILD_DATE=${{ steps.metadata.outputs.build_time }}
+          provenance: mode=max
+          sbom: true
+
+      - name: Bind published digest for all remaining steps
+        id: image
+        env:
+          BUILT_IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          set -Eeuo pipefail
+          [[ "$BUILT_IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+          mkdir -p "$RELEASE_EVIDENCE_DIR"
+          printf 'RELEASE_IMAGE_DIGEST=%s\n' "$BUILT_IMAGE_DIGEST" >> "$GITHUB_ENV"
+          printf 'RELEASE_IMAGE_REFERENCE=%s@%s\n' "$IMAGE_REPOSITORY" "$BUILT_IMAGE_DIGEST" >> "$GITHUB_ENV"
+          printf 'RELEASE_SBOM_PATH=%s\n' "$RELEASE_EVIDENCE_DIR/middleware.spdx.json" >> "$GITHUB_ENV"
+          printf 'RELEASE_SCAN_PATH=%s\n' "$RELEASE_EVIDENCE_DIR/middleware.grype.json" >> "$GITHUB_ENV"
+          printf 'RELEASE_MANIFEST_PATH=%s\n' "$RELEASE_EVIDENCE_DIR/release-manifest.v1.json" >> "$GITHUB_ENV"
+          printf 'RELEASE_BUNDLE_PATH=%s\n' "$RELEASE_EVIDENCE_DIR/release-manifest.v1.sigstore.json" >> "$GITHUB_ENV"
+          printf 'digest=%s\n' "$BUILT_IMAGE_DIGEST" >> "$GITHUB_OUTPUT"
+          printf 'reference=%s@%s\n' "$IMAGE_REPOSITORY" "$BUILT_IMAGE_DIGEST" >> "$GITHUB_OUTPUT"
+          printf 'sbom=%s\n' "$RELEASE_EVIDENCE_DIR/middleware.spdx.json" >> "$GITHUB_OUTPUT"
+          printf 'scan=%s\n' "$RELEASE_EVIDENCE_DIR/middleware.grype.json" >> "$GITHUB_OUTPUT"
+
+      - name: Prove the published image carries exactly one Alembic head
+        run: |
+          set -Eeuo pipefail
+          docker pull --platform linux/amd64 "$RELEASE_IMAGE_REFERENCE"
+          test "$(docker image inspect "$RELEASE_IMAGE_REFERENCE" --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')" = "$RELEASE_SOURCE_SHA"
+          test "$(docker image inspect "$RELEASE_IMAGE_REFERENCE" --format '{{index .Config.Labels "org.opencontainers.image.source"}}')" = "https://github.com/${GITHUB_REPOSITORY}"
+          heads_probe='from alembic.config import Config; from alembic.script import ScriptDirectory; c = Config(); c.set_main_option("script_location", "/app/migrations"); print(chr(10).join(sorted(ScriptDirectory.from_config(c).get_heads())))'
+          mapfile -t HEADS < <(docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-privileges:true "$RELEASE_IMAGE_REFERENCE" -c "$heads_probe")
+          test "${#HEADS[@]}" -eq 1
+          test "${HEADS[0]}" = "$EXPECTED_SCHEMA_HEAD"
+
+      - name: Generate exact-image SPDX SBOM
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        with:
+          image: ${{ steps.image.outputs.reference }}
+          format: spdx-json
+          output-file: ${{ steps.image.outputs.sbom }}
+          upload-artifact: false
+          upload-release-assets: false
+
+      - name: Reject fixable high or critical vulnerabilities
+        uses: anchore/scan-action@e1165082ffb1fe366ebaf02d8526e7c4989ea9d2 # v7.4.0
+        with:
+          sbom: ${{ steps.image.outputs.sbom }}
+          fail-build: true
+          severity-cutoff: high
+          only-fixed: true
+          output-format: json
+          output-file: ${{ steps.image.outputs.scan }}
+
+      - name: Create canonical release manifest
+        env:
+          RELEASE_RUN_ID: ${{ github.run_id }}
+          RELEASE_RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          set -Eeuo pipefail
+          python3 scripts/release_manifest.py create \
+            --source-sha "$RELEASE_SOURCE_SHA" \
+            --git-tree-id "$RELEASE_GIT_TREE_ID" \
+            --image-digest "$RELEASE_IMAGE_DIGEST" \
+            --built-at "$RELEASE_BUILD_TIME" \
+            --run-id "$RELEASE_RUN_ID" \
+            --run-attempt "$RELEASE_RUN_ATTEMPT" \
+            --sbom "$RELEASE_SBOM_PATH" \
+            --vulnerability-report "$RELEASE_SCAN_PATH" \
+            --output "$RELEASE_MANIFEST_PATH"
+
+      - name: Install verified Cosign release
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+        with:
+          cosign-release: v3.0.6
+
+      - name: Keylessly sign image, SBOM attestation, and manifest
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          predicate = {
+              "buildDefinition": {
+                  "buildType": "https://codestra.example/buildtypes/exact-main-middleware-production/v1",
+                  "externalParameters": {
+                      "sourceSha": os.environ["RELEASE_SOURCE_SHA"],
+                      "platform": "linux/amd64",
+                  },
+                  "resolvedDependencies": [{
+                      "uri": f"git+https://github.com/ingtrader21-spec/Middleware-@{os.environ['RELEASE_SOURCE_SHA']}",
+                      "digest": {"gitCommit": os.environ["RELEASE_SOURCE_SHA"]},
+                  }],
+              },
+              "runDetails": {
+                  "builder": {
+                      "id": "https://github.com/ingtrader21-spec/Middleware-/.github/workflows/release.yml@refs/heads/main"
+                  }
+              },
+          }
+          Path(os.environ["RUNNER_TEMP"], "middleware-slsa-v1-predicate.json").write_text(
+              json.dumps(predicate, sort_keys=True, separators=(",", ":")) + "\n",
+              encoding="utf-8",
+          )
+          PY
+          cosign sign --yes \
+            --annotations "codestra.source_sha=$RELEASE_SOURCE_SHA" \
+            --annotations "codestra.schema_head=0067_service_catalog_monitoring_state" \
+            "$RELEASE_IMAGE_REFERENCE"
+          cosign attest --yes \
+            --predicate "$RELEASE_SBOM_PATH" \
+            --type spdxjson \
+            "$RELEASE_IMAGE_REFERENCE"
+          cosign attest --yes \
+            --predicate "$RUNNER_TEMP/middleware-slsa-v1-predicate.json" \
+            --type slsaprovenance1 \
+            "$RELEASE_IMAGE_REFERENCE"
+          cosign sign-blob --yes \
+            --bundle "$RELEASE_BUNDLE_PATH" \
+            "$RELEASE_MANIFEST_PATH"
+
+      - name: Verify signer identity and every release binding
+        run: |
+          set -Eeuo pipefail
+          SIGNER_IDENTITY='https://github.com/ingtrader21-spec/Middleware-/.github/workflows/release.yml@refs/heads/main'
+          OIDC_ISSUER='https://token.actions.githubusercontent.com'
+          cosign verify \
+            --certificate-identity "$SIGNER_IDENTITY" \
+            --certificate-oidc-issuer "$OIDC_ISSUER" \
+            "$RELEASE_IMAGE_REFERENCE"
+          cosign verify-attestation \
+            --type spdxjson \
+            --certificate-identity "$SIGNER_IDENTITY" \
+            --certificate-oidc-issuer "$OIDC_ISSUER" \
+            "$RELEASE_IMAGE_REFERENCE" >/dev/null
+          cosign verify-attestation \
+            --type slsaprovenance1 \
+            --certificate-identity "$SIGNER_IDENTITY" \
+            --certificate-oidc-issuer "$OIDC_ISSUER" \
+            "$RELEASE_IMAGE_REFERENCE" >/dev/null
+          python3 scripts/release_manifest.py verify \
+            --manifest "$RELEASE_MANIFEST_PATH" \
+            --bundle "$RELEASE_BUNDLE_PATH" \
+            --expected-source-sha "$RELEASE_SOURCE_SHA" \
+            --expected-image-digest "$RELEASE_IMAGE_DIGEST"
+
+      - name: Preserve immutable release evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: signed-middleware-release-${{ env.SOURCE_SHA }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ steps.metadata.outputs.evidence_dir }}
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0

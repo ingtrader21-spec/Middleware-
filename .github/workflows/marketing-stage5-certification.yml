@@ -1,0 +1,44 @@
+name: Marketing Stage 5 Certification
+
+on:
+  pull_request:
+    paths:
+      - "contracts/marketing/**"
+      - "migrations/**"
+      - "workers/**"
+      - "app/storage.py"
+      - "app/worker.py"
+      - "scripts/certify_marketing_stage5.py"
+      - ".github/workflows/marketing-stage5-certification.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  certify:
+    name: Marketing Stage 5 exact-head certification
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out exact source head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify exact source identity
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          test -z "$(git status --porcelain)"
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Certify Marketing Stage 5
+        run: python scripts/certify_marketing_stage5.py

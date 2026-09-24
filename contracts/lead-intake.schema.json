@@ -1,0 +1,253 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.codestra.co/middleware/lead-intake.v1.json",
+  "title": "Codestra lead intake event",
+  "allOf": [
+    {
+      "$ref": "https://contracts.codestra.co/platform/event-envelope.v1.schema.json"
+    },
+    {
+      "properties": {
+        "event_type": {
+          "const": "codestra.lead.intake"
+        },
+        "event_version": {
+          "const": "1.0"
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source_kind",
+            "source_system",
+            "source_route",
+            "submission_id",
+            "captured_at",
+            "provenance",
+            "consent",
+            "review",
+            "data"
+          ],
+          "properties": {
+            "source_kind": {
+              "enum": ["public_form", "crawler_result", "scraper_result"]
+            },
+            "source_system": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "source_route": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "submission_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255
+            },
+            "source_record_id": {
+              "type": ["string", "null"],
+              "maxLength": 255
+            },
+            "captured_at": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "traceparent": {
+              "type": ["string", "null"],
+              "maxLength": 255
+            },
+            "provenance": {
+              "$ref": "#/$defs/provenance"
+            },
+            "consent": {
+              "$ref": "#/$defs/consent"
+            },
+            "review": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["required", "reason"],
+              "properties": {
+                "required": {"type": "boolean"},
+                "reason": {
+                  "type": ["string", "null"],
+                  "maxLength": 512
+                }
+              }
+            },
+            "data": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "contact": {"$ref": "#/$defs/contact"},
+                "company": {"$ref": "#/$defs/company"},
+                "message": {
+                  "type": ["string", "null"],
+                  "maxLength": 10000
+                },
+                "campaign_code": {
+                  "type": ["string", "null"],
+                  "maxLength": 128
+                },
+                "metadata": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              },
+              "anyOf": [
+                {"required": ["contact"]},
+                {"required": ["company"]},
+                {"required": ["message"]}
+              ]
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "payload": {
+                "properties": {"source_kind": {"const": "public_form"}}
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "payload": {
+                "properties": {
+                  "provenance": {
+                    "properties": {
+                      "method": {"const": "submitted_by_person"}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "payload": {
+                "properties": {
+                  "source_kind": {
+                    "enum": ["crawler_result", "scraper_result"]
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "payload": {
+                "properties": {
+                  "review": {
+                    "properties": {"required": {"const": true}}
+                  },
+                  "consent": {
+                    "properties": {
+                      "status": {
+                        "enum": ["not_applicable", "unknown"]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "$defs": {
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "captured_by", "source_reference", "legal_basis"],
+      "properties": {
+        "method": {
+          "enum": ["submitted_by_person", "crawler_discovery", "scraper_import"]
+        },
+        "captured_by": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "source_reference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "legal_basis": {
+          "enum": [
+            "consent",
+            "legitimate_interest_review_required",
+            "contract_request",
+            "unknown_review_required"
+          ]
+        },
+        "content_digest": {
+          "type": ["string", "null"],
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "consent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "channels"],
+      "properties": {
+        "status": {
+          "enum": ["granted", "denied", "not_applicable", "unknown"]
+        },
+        "captured_at": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        },
+        "policy_version": {
+          "type": ["string", "null"],
+          "maxLength": 128
+        },
+        "channels": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["email", "sms", "phone"],
+          "properties": {
+            "email": {"type": "boolean"},
+            "sms": {"type": "boolean"},
+            "phone": {"type": "boolean"}
+          }
+        }
+      }
+    },
+    "contact": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {"type": ["string", "null"], "maxLength": 255},
+        "email": {
+          "type": ["string", "null"],
+          "format": "email",
+          "maxLength": 320
+        },
+        "phone": {"type": ["string", "null"], "maxLength": 64},
+        "preferred_language": {
+          "type": ["string", "null"],
+          "maxLength": 16
+        }
+      }
+    },
+    "company": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {"type": ["string", "null"], "maxLength": 255},
+        "domain": {"type": ["string", "null"], "maxLength": 255},
+        "industry": {"type": ["string", "null"], "maxLength": 255}
+      }
+    }
+  }
+}

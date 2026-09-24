@@ -1,0 +1,13 @@
+--- a/.codestra/validate-production-orchestrator-contract.py
++++ b/.codestra/validate-production-orchestrator-contract.py
+@@ -336,8 +336,8 @@
+         ),
+         "scripts/integration_ci.sh": "8d9327fd9ad51d6ba7243d051336f623a4f75d60c60e69fd012e65f598b12d4a",
+         "scripts/validate_middleware_authority_convergence.py": (
+-            "23679aee112625c778d7607187ea505c"
+-            "a2f9f0983411143728d785d011298ae4"
++            "07c3a1bd8780de9cf3d2f04f441c4d14"
++            "23a781b2a4d0f5d24d0bd792b7daa1c7"
+         ),
+         "scripts/nats_integration_ci.sh": "88d843c665cece68e0fb56a931c295ee10490446cad7b64d9f5356c1cbf7263d",
+         "scripts/project_ci.sh": "12a529ea96f39baec5f1eeb287209dc9db355e5dca000cbbfd7494303501b2ae",

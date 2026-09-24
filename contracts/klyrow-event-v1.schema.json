@@ -1,0 +1,635 @@
+{
+  "$defs": {
+    "AccountStateData": {
+      "additionalProperties": false,
+      "properties": {
+        "changed_at": {
+          "format": "date-time",
+          "title": "Changed At",
+          "type": "string"
+        },
+        "reason": {
+          "maxLength": 300,
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "HELD",
+            "RELEASED"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "reason",
+        "changed_at"
+      ],
+      "title": "AccountStateData",
+      "type": "object"
+    },
+    "CampaignSummaryData": {
+      "additionalProperties": false,
+      "properties": {
+        "audience_count": {
+          "minimum": 0,
+          "title": "Audience Count",
+          "type": "integer"
+        },
+        "campaign_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Campaign Id",
+          "type": "string"
+        },
+        "campaign_version": {
+          "minimum": 1,
+          "title": "Campaign Version",
+          "type": "integer"
+        },
+        "delivered_count": {
+          "minimum": 0,
+          "title": "Delivered Count",
+          "type": "integer"
+        },
+        "failed_count": {
+          "minimum": 0,
+          "title": "Failed Count",
+          "type": "integer"
+        },
+        "status": {
+          "enum": [
+            "COMPLETED",
+            "CANCELLED",
+            "FAILED"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "suppressed_count": {
+          "minimum": 0,
+          "title": "Suppressed Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "campaign_id",
+        "campaign_version",
+        "status",
+        "audience_count",
+        "delivered_count",
+        "suppressed_count",
+        "failed_count"
+      ],
+      "title": "CampaignSummaryData",
+      "type": "object"
+    },
+    "DailyKpiData": {
+      "additionalProperties": false,
+      "properties": {
+        "accepted": {
+          "minimum": 0,
+          "title": "Accepted",
+          "type": "integer"
+        },
+        "bounced": {
+          "minimum": 0,
+          "title": "Bounced",
+          "type": "integer"
+        },
+        "complained": {
+          "minimum": 0,
+          "title": "Complained",
+          "type": "integer"
+        },
+        "date": {
+          "format": "date",
+          "title": "Date",
+          "type": "string"
+        },
+        "delivered": {
+          "minimum": 0,
+          "title": "Delivered",
+          "type": "integer"
+        },
+        "snapshot_at": {
+          "format": "date-time",
+          "title": "Snapshot At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "date",
+        "accepted",
+        "delivered",
+        "bounced",
+        "complained",
+        "snapshot_at"
+      ],
+      "title": "DailyKpiData",
+      "type": "object"
+    },
+    "DailyUsageData": {
+      "additionalProperties": false,
+      "properties": {
+        "date": {
+          "format": "date",
+          "title": "Date",
+          "type": "string"
+        },
+        "quantity": {
+          "minimum": 0,
+          "title": "Quantity",
+          "type": "integer"
+        },
+        "snapshot_at": {
+          "format": "date-time",
+          "title": "Snapshot At",
+          "type": "string"
+        },
+        "unit": {
+          "const": "accepted_message",
+          "title": "Unit",
+          "type": "string"
+        }
+      },
+      "required": [
+        "date",
+        "unit",
+        "quantity",
+        "snapshot_at"
+      ],
+      "title": "DailyUsageData",
+      "type": "object"
+    },
+    "DomainStatusData": {
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "maxLength": 253,
+          "minLength": 1,
+          "title": "Domain",
+          "type": "string"
+        },
+        "domain_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Domain Id",
+          "type": "string"
+        },
+        "status": {
+          "maxLength": 50,
+          "minLength": 1,
+          "title": "Status",
+          "type": "string"
+        },
+        "verified_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Verified At"
+        }
+      },
+      "required": [
+        "domain_id",
+        "domain",
+        "status"
+      ],
+      "title": "DomainStatusData",
+      "type": "object"
+    },
+    "ProviderHealthData": {
+      "additionalProperties": false,
+      "properties": {
+        "checked_at": {
+          "format": "date-time",
+          "title": "Checked At",
+          "type": "string"
+        },
+        "provider": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Provider",
+          "type": "string"
+        },
+        "reason_code": {
+          "anyOf": [
+            {
+              "maxLength": 100,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Reason Code"
+        },
+        "status": {
+          "enum": [
+            "HEALTHY",
+            "DEGRADED",
+            "UNAVAILABLE"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "provider",
+        "status",
+        "checked_at"
+      ],
+      "title": "ProviderHealthData",
+      "type": "object"
+    },
+    "SubscriptionChangedData": {
+      "additionalProperties": false,
+      "properties": {
+        "effective_at": {
+          "format": "date-time",
+          "title": "Effective At",
+          "type": "string"
+        },
+        "plan_id": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Plan Id"
+        },
+        "price_id": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Price Id"
+        },
+        "status": {
+          "maxLength": 50,
+          "minLength": 1,
+          "title": "Status",
+          "type": "string"
+        },
+        "subscription_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Subscription Id",
+          "type": "string"
+        },
+        "version": {
+          "minimum": 1,
+          "title": "Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "subscription_id",
+        "status",
+        "version",
+        "effective_at"
+      ],
+      "title": "SubscriptionChangedData",
+      "type": "object"
+    },
+    "TenantEventData": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Name"
+        },
+        "organization_id": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Organization Id"
+        },
+        "tenant_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Tenant Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tenant_id",
+        "enabled"
+      ],
+      "title": "TenantEventData",
+      "type": "object"
+    }
+  },
+  "$id": "https://contracts.codestra.co/klyrow/klyrow-event-v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "klyrow.tenant.created"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/TenantEventData"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "klyrow.tenant.updated"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/TenantEventData"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "klyrow.subscription.changed"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/SubscriptionChangedData"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "klyrow.usage.daily"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/DailyUsageData"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "klyrow.kpi.daily"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/DailyKpiData"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "klyrow.campaign.summary"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/CampaignSummaryData"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "klyrow.domain.status"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/DomainStatusData"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "klyrow.provider.health"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/ProviderHealthData"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "klyrow.account.held"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/AccountStateData"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "klyrow.account.released"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/AccountStateData"
+          }
+        }
+      }
+    }
+  ],
+  "properties": {
+    "causation_id": {
+      "anyOf": [
+        {
+          "maxLength": 200,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Causation Id"
+    },
+    "correlation_id": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Correlation Id",
+      "type": "string"
+    },
+    "data": {
+      "title": "Data",
+      "type": "object"
+    },
+    "id": {
+      "maxLength": 200,
+      "minLength": 5,
+      "pattern": "^evt_[A-Za-z0-9_-]+$",
+      "title": "Id",
+      "type": "string"
+    },
+    "occurred_at": {
+      "format": "date-time",
+      "title": "Occurred At",
+      "type": "string"
+    },
+    "source": {
+      "const": "klyrow",
+      "title": "Source",
+      "type": "string"
+    },
+    "tenant_id": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "type": {
+      "enum": [
+        "klyrow.tenant.created",
+        "klyrow.tenant.updated",
+        "klyrow.subscription.changed",
+        "klyrow.usage.daily",
+        "klyrow.kpi.daily",
+        "klyrow.campaign.summary",
+        "klyrow.domain.status",
+        "klyrow.provider.health",
+        "klyrow.account.held",
+        "klyrow.account.released"
+      ],
+      "title": "Type",
+      "type": "string"
+    },
+    "version": {
+      "const": 1,
+      "title": "Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "id",
+    "type",
+    "version",
+    "source",
+    "tenant_id",
+    "correlation_id",
+    "occurred_at",
+    "data"
+  ],
+  "title": "Klyrow business event v1",
+  "type": "object"
+}

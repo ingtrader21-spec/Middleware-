@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "gateway_repository": "Codestra-SRL/telephony-event-gateway",
+  "gateway_source_commit": "b9ffcedca23628c16d8b046e8ec555d13186cf59",
+  "gateway_source_tree": "e5ba6935bc83bf57b2f9e7125e48e4491dc351b9",
+  "gateway_image": "docker.io/codestra1980/telephony-event-gateway@sha256:dc91007162f64410eb97b163502bad013a2adb670a28d0655572326da18f42fb",
+  "registry_index_digest": "sha256:dc91007162f64410eb97b163502bad013a2adb670a28d0655572326da18f42fb",
+  "linux_amd64_manifest_digest": "sha256:76f349b4edb65aac257e460c0cdd03d249dff3fec48466104e64d5b7fd259288",
+  "base_image": "docker.io/codestra/python@sha256:541d6acdaa39568e8e9ba2a12f707ce167a819e553025256c29918a9509fe0c2",
+  "tests": {
+    "passed": 85,
+    "failed": 0
+  },
+  "artifacts": {
+    "release_inputs_manifest_sha256": "9ced07744b092b4309512313daa0c33db15dc86d3c75d7640d0d243bb9a5422a",
+    "sbom_spdx_sha256": "c05557240589c8592eb4dba5872b86c12b9dd86c55ebd79e81fbecefbb1cd66f",
+    "sbom_cyclonedx_sha256": "26487470e10d3687152fbe88c411811ce20b8accf9f1fd082a7d5b37b8a84632",
+    "grype_sha256": "8865efdb53472a9a2beed2bfe4b7b547efbe304fbc7f8c44874495f48e193756",
+    "trivy_sha256": "7e61c55c9b083fc0680b474d13cc28e2810123c6cf38ce06a11fe8189a94f34b"
+  },
+  "scanner_summary": {
+    "trivy_high": 0,
+    "trivy_critical": 0,
+    "grype_high": 3,
+    "grype_critical": 0,
+    "grype_high_ids": [
+      "CVE-2026-11940",
+      "CVE-2026-15308",
+      "CVE-2026-11972"
+    ]
+  },
+  "excluded_rejected_image": "docker.io/codestra1980/telephony-event-gateway@sha256:09b7fef5207d25bfd336cd6ba239ab433ac00f5fadac6f1b79077297662f5c19"
+}

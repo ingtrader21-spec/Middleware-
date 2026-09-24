@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "issuer": "https://auth.codestra.co/realms/codestra",
+  "clientId": "moneybee-backend",
+  "grantType": "client_credentials",
+  "targetClientId": "middleware-api",
+  "audience": "middleware-api",
+  "scopes": ["moneybee.events.publish"],
+  "maximumAccessTokenLifetimeSeconds": 300,
+  "refreshTokensAllowed": false,
+  "fullScopeAllowed": false,
+  "humanLoginAllowed": false,
+  "keycloakAdminApiAccess": false,
+  "prohibitedScopes": [
+    "identity.request",
+    "integration.configure",
+    "tenant.provision",
+    "odoo.leads.write",
+    "workflow.trigger",
+    "email.send",
+    "sms.send"
+  ],
+  "state": "desired-not-provisioned",
+  "keycloakSourceOfTruth": {
+    "repository": "appolon1908-hue/Keycloak",
+    "requiredClientId": "moneybee-backend"
+  }
+}

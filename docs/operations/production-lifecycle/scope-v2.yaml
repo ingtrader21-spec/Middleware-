@@ -1,0 +1,22 @@
+schema_version: production-lifecycle-scope-v2
+status: PROPOSED_DISABLED
+registry_version: campaign-registry-v1
+campaigns:
+  - {number: 100, code: RLP, campaign_id: RLP100, source_extension_range: [7100, 7199], agent_group: RLP100_AGENTS, dialplan_contexts: [cs-prod-rlp100]}
+  - {number: 200, code: TRD, campaign_id: TRD200, source_extension_range: [7200, 7299], agent_group: TRD200_AGENTS, dialplan_contexts: [cs-prod-trd200]}
+  - {number: 300, code: MOY, campaign_id: MOY300, source_extension_range: [7300, 7399], agent_group: MOY300_AGENTS, dialplan_contexts: [cs-prod-moy300]}
+  - {number: 400, code: COD, campaign_id: COD400, source_extension_range: [7400, 7499], agent_group: COD400_AGENTS, dialplan_contexts: [cs-prod-cod400]}
+  - {number: 500, code: SCP, campaign_id: SCP500, source_extension_range: [7500, 7599], agent_group: SCP500_AGENTS, dialplan_contexts: [cs-prod-scp500]}
+  - {number: 600, code: MBL, campaign_id: MBL600, source_extension_range: [7600, 7699], agent_group: MBL600_AGENTS, dialplan_contexts: [cs-prod-mbl600]}
+  - {number: 700, code: FTP, campaign_id: FTP700, source_extension_range: [7700, 7799], agent_group: FTP700_AGENTS, dialplan_contexts: [cs-prod-ftp700]}
+  - {number: 800, code: CAL, campaign_id: CAL800, source_extension_range: [7800, 7899], agent_group: CAL800_AGENTS, dialplan_contexts: [cs-prod-cal800]}
+allowed_event_types: [vicidial.call.started, vicidial.call.connected, vicidial.call.ended]
+call_directions: []
+approved_destination_classifications: []
+payload_fields: [lifecycle_status, disposition, hangup_cause]
+excluded_extensions: [6110, 6198]
+excluded_features: [callbacks, conferences, emergency, queues, service_codes, transfers, voicemail]
+observation: {maximum_submissions: 25, window_minutes: 30, attempts_per_event: 1, automatic_retry: false, stop_on_first_unexpected_failure: true}
+activation_high_water_required: true
+per_campaign_kill_switch_required: true
+production_activation: false

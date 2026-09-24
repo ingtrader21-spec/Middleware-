@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.codestra.co/middleware/telnexa-sms-command.v1.json",
+  "title": "Codestra Telnexa SMS submission command",
+  "allOf": [
+    {
+      "$ref": "https://contracts.codestra.co/platform/command-envelope.v1.schema.json"
+    },
+    {
+      "properties": {
+        "command_type": {"const": "sms.message.submit.v1"},
+        "command_version": {"const": "1.0"},
+        "target": {"const": "telnexa-sms"},
+        "capability": {"const": "SMS_DELIVERY"},
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "message_id",
+            "channel",
+            "destination",
+            "sender",
+            "content",
+            "encoding",
+            "characters",
+            "segments",
+            "category",
+            "client_reference",
+            "scheduled_at",
+            "billing_account_id",
+            "campaign_id"
+          ],
+          "properties": {
+            "message_id": {"type": "string", "format": "uuid"},
+            "channel": {"const": "sms"},
+            "destination": {
+              "type": "string",
+              "pattern": "^\\+[1-9][0-9]{5,18}$"
+            },
+            "sender": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 20
+            },
+            "content": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 5000
+            },
+            "encoding": {"enum": ["GSM-7", "UCS-2"]},
+            "characters": {"type": "integer", "minimum": 1},
+            "segments": {"type": "integer", "minimum": 1},
+            "category": {
+              "enum": ["transactional", "service", "marketing"]
+            },
+            "client_reference": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120
+            },
+            "scheduled_at": {
+              "type": ["string", "null"],
+              "format": "date-time"
+            },
+            "billing_account_id": {
+              "type": ["string", "null"],
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "campaign_id": {
+              "type": ["string", "null"],
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        }
+      }
+    }
+  ]
+}

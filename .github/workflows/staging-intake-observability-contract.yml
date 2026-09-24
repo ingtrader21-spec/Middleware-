@@ -1,0 +1,52 @@
+name: Historical Stage 6 staging intake observability source contract
+
+on:
+  pull_request:
+    paths:
+      - "app/**/*.py"
+      - "config/api-webhook-contracts.json"
+      - "contracts/staging-intake-observability-runtime.v1.json"
+      - "config/provider-operation-policy.json"
+      - "config/runtime-profiles.v1.json"
+      - "config/environments/staging.intake-observability.runtime.env.example"
+      - "scripts/validate_staging_intake_observability_contract.py"
+      - "tests/test_staging_intake_observability_contract_validation.py"
+      - ".github/workflows/staging-intake-observability-contract.yml"
+  push:
+    branches: [main]
+    paths:
+      - "app/**/*.py"
+      - "config/api-webhook-contracts.json"
+      - "contracts/staging-intake-observability-runtime.v1.json"
+      - "config/provider-operation-policy.json"
+      - "config/runtime-profiles.v1.json"
+      - "config/environments/staging.intake-observability.runtime.env.example"
+      - "scripts/validate_staging_intake_observability_contract.py"
+      - "tests/test_staging_intake_observability_contract_validation.py"
+      - ".github/workflows/staging-intake-observability-contract.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d
+        with:
+          python-version: "3.13"
+      - run: python -m py_compile scripts/validate_staging_intake_observability_contract.py
+      - run: python scripts/validate_staging_intake_observability_contract.py
+      - run: python -O scripts/validate_staging_intake_observability_contract.py
+      - name: Preserve runtime boundary
+        run: |
+          echo 'HISTORICAL_REFERENCE_ONLY=YES'
+          echo 'IMMUTABLE_IMAGE_SOURCE=f6748a58f8d2590520a4f28776770957061cdea1'
+          echo 'DEPLOYMENT_PERFORMED=NO'
+          echo 'RUNTIME_CERTIFICATION_PERFORMED=NO'
+          echo 'EXTERNAL_EFFECTS_ENABLED=NO'
+          echo 'PRODUCTION_AUTHORIZED=NO'

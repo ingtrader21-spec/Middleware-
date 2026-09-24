@@ -1,0 +1,18 @@
+{
+  "contract_version": "1.0",
+  "binding_key": "n8n.leads.ingest",
+  "environment": "staging",
+  "business_unit_key": "staging-placeholder",
+  "campaign_key": "STAGING_PLACEHOLDER",
+  "event_type": "lead.update.requested.v1",
+  "workflow_logical_name": "lead-automation-generic-v1",
+  "enabled": false,
+  "lead_automation_enabled": false,
+  "effective_from": null,
+  "effective_until": null,
+  "maximum_concurrency": 1,
+  "rate_limit_per_minute": 10,
+  "timeout_seconds": 30,
+  "maximum_attempts": 5,
+  "policy_version": "SOURCE-CANDIDATE-NOT-ACTIVE"
+}

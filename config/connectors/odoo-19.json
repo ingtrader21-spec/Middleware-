@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "id": "odoo-19",
+  "workstream": "integration/odoo-19",
+  "repository": "appolon1908-hue/Odoo",
+  "role": "erp",
+  "transport": {
+    "protocol": "internal_https",
+    "base_url_env": "ODOO_19_BASE_URL",
+    "health_path": "/web/health"
+  },
+  "authentication": {
+    "method": "oidc_client_credentials",
+    "keycloak_client_id": "middleware-odoo-19",
+    "secret_env": "ODOO_19_CLIENT_SECRET"
+  },
+  "runtime": {
+    "enabled_by_default": false,
+    "external_effects_enabled": false,
+    "status": "runtime_unconfirmed"
+  },
+  "deployment_evidence": {
+    "deployed": false,
+    "verified_commit": null,
+    "verified_at": null,
+    "notes": "Configuration contract only; no live deployment performed."
+  }
+}

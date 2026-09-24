@@ -1,0 +1,4 @@
+flowchart LR
+    M[Deployed Middleware] -. recording API missing at audit .-> O[Legacy Odoo recording model]
+    M -. no deployed private storage .-> S[Object storage missing]
+    M -. related workflows inactive .-> N[n8n legacy recording and QA workflows]

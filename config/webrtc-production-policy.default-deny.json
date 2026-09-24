@@ -1,0 +1,22 @@
+{
+  "version": "webrtc-production-policy-v1",
+  "enabled": false,
+  "kill_switch": true,
+  "allowed_campaign": null,
+  "allowed_business_unit": null,
+  "allowed_agent": null,
+  "allowed_extension": null,
+  "allowed_caller_id": null,
+  "allowed_destination": null,
+  "allowed_destination_classes": [],
+  "allowed_countries": [],
+  "prohibited_destinations": [],
+  "calling_window": {"timezone": null, "start": null, "end": null, "weekdays": []},
+  "pilot_window": {"start": null, "end": null},
+  "max_concurrent_calls": 1,
+  "max_call_attempts": 1,
+  "recording": {"mode": "disabled", "notice_required": false, "consent_required": false, "retention_class": null},
+  "emergency_blocking": true,
+  "premium_blocking": true,
+  "consent_required": true
+}

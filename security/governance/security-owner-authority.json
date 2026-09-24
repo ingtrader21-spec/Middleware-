@@ -1,0 +1,26 @@
+{
+  "company": "Codestra LLC",
+  "authority_id": "codestra-security-owner-20260801-653243c6cf56",
+  "role": "Security Owner",
+  "authorized_identity": "https://github.com/kazan555",
+  "github_identity": "kazan555",
+  "authority_reference": ".github/CODEOWNERS#isolated-staging-security-governance",
+  "approved_scopes": ["server_a_isolated_staging"],
+  "prohibited_scopes": [
+    "production_deployment",
+    "production_activation",
+    "canary_activation",
+    "server_b_access",
+    "customer_data",
+    "unrestricted_n8n_activation",
+    "external_delivery"
+  ],
+  "issued_utc": "2026-08-01T21:47:10Z",
+  "not_before_utc": "2026-08-01T21:47:10Z",
+  "expires_utc": "2026-11-01T21:47:10Z",
+  "approving_authority": "Codestra LLC protected environment security-owner-authority",
+  "signature_method": "sigstore-keyless-oidc",
+  "signature_key_id": "https://token.actions.githubusercontent.com",
+  "detached_signature_path": "security-owner-authority.sigstore.json",
+  "document_sha256": "c11e8fe8cc62c9dea09a5eb161b38a99318b502a91d7396b1d5580cb0ee48213"
+}

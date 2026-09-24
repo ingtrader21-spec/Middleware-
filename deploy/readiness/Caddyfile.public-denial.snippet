@@ -1,0 +1,5 @@
+# Merge before the public api.codestra.agency reverse proxy.
+@private_readiness_on_public path /api/v1/readiness/server-a/challenge
+respond @private_readiness_on_public 404
+@private_vicidial_events_on_public path /api/v1/events/vicidial /api/v2/telephony/events
+respond @private_vicidial_events_on_public 404

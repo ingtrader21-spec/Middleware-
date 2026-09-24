@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.codestra.co/runtime-safety-readback.v1.schema.json",
+  "title": "Codestra Middleware Runtime Safety Read-back v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "service",
+    "environment",
+    "runtime_profile_id",
+    "release",
+    "persistence",
+    "dispatch",
+    "external_effects",
+    "production_dialing",
+    "production_activation_configured",
+    "provider_effects_disabled",
+    "all_external_effects_disabled",
+    "staging_safe"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "service": {"const": "middleware-api"},
+    "environment": {"enum": ["development", "test", "staging", "production"]},
+    "runtime_profile_id": {"type": "string", "minLength": 1},
+    "release": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_sha", "image_digest", "schema_head", "build_time"],
+      "properties": {
+        "source_sha": {"type": "string", "minLength": 1},
+        "image_digest": {"type": "string", "minLength": 1},
+        "schema_head": {"type": "string", "minLength": 1},
+        "build_time": {"type": "string", "minLength": 1}
+      }
+    },
+    "persistence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["in_memory"],
+      "properties": {"in_memory": {"type": "boolean"}}
+    },
+    "dispatch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["outbox_enabled", "nats_mode", "temporal_worker_mode"],
+      "properties": {
+        "outbox_enabled": {"type": "boolean"},
+        "nats_mode": {"enum": ["disabled", "isolated", "production"]},
+        "temporal_worker_mode": {"enum": ["disabled", "isolated", "production"]}
+      }
+    },
+    "external_effects": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {"type": "boolean"},
+      "propertyNames": {"pattern": "^[A-Z][A-Z0-9_]+$"}
+    },
+    "production_dialing": {"const": "DISABLED"},
+    "production_activation_configured": {"type": "boolean"},
+    "provider_effects_disabled": {"type": "boolean"},
+    "all_external_effects_disabled": {"type": "boolean"},
+    "staging_safe": {"type": "boolean"}
+  }
+}

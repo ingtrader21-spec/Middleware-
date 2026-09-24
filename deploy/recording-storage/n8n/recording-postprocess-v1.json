@@ -1,0 +1,28 @@
+{
+  "name": "recording-postprocess-v1",
+  "active": false,
+  "settings": {"executionOrder": "v1"},
+  "meta": {
+    "binding_key": "n8n.events.ingest",
+    "event_type": "vicidial.recording.verified.v1",
+    "binding_enabled_default": false,
+    "email_actions": false,
+    "sms_actions": false,
+    "whatsapp_actions": false,
+    "calendar_actions": false,
+    "appointment_actions": false,
+    "crm_lead_actions": false
+  },
+  "nodes": [
+    {
+      "id": "generic-event-ingress",
+      "name": "Generic event ingress",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "parameters": {"httpMethod": "POST", "path": "v1/events", "responseMode": "onReceived"},
+      "webhookId": "recording-postprocess-v1"
+    }
+  ],
+  "connections": {}
+}

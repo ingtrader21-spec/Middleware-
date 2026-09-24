@@ -1,0 +1,77 @@
+{
+  "broader_suite": {
+    "failures": 3,
+    "note": "The three generated-contract/router failures were corrected and covered by the final 119-test rerun; complete GitHub CI remains required.",
+    "passed": 2728,
+    "skipped": 118
+  },
+  "focused_validation": {
+    "campaign_cases": 50,
+    "contract_and_route_cases": 69,
+    "passed": 119,
+    "postgresql": "17, disposable isolated database",
+    "skipped": 0,
+    "status": "PASS"
+  },
+  "observed_at_utc": "2026-09-10T03:10:26.322862+00:00",
+  "odoo_pull_request": "https://github.com/appolon1908-hue/Odoo/pull/95",
+  "odoo_source_sha": "033121934b493c62a7435082a92d533d6c4b6805",
+  "production_execution": "NOT_RUN",
+  "production_preflight": {
+    "automatic_campaign_fields_present": false,
+    "blockers": [
+      "ODOO_AUTOMATIC_DESIGN_RELEASE_NOT_DEPLOYED",
+      "ODOO_CAMPAIGN_DESIGN_ENDPOINT_UNBOUND",
+      "ODOO_CAMPAIGN_DESIGN_CREDENTIAL_UNBOUND",
+      "ODOO_CAMPAIGN_TENANT_BINDING_UNBOUND",
+      "CAMPAIGN_AUTOMATION_WORKFLOW_NOT_ACTIVE"
+    ],
+    "campaigns": {
+      "active": 0,
+      "total": 106
+    },
+    "external_effects_performed": false,
+    "live_flags": {
+      "LIVE_EMAIL_DELIVERY": "false",
+      "LIVE_PSTN_DIALING": "false",
+      "LIVE_SMS_DELIVERY": "false"
+    },
+    "n8n_campaign_router_active": false,
+    "n8n_health": "healthy",
+    "n8n_workflows": {
+      "active": 1,
+      "total": 130
+    },
+    "odoo_campaign_tenant_mapping_configured": false,
+    "odoo_design_credential_reference_configured": false,
+    "odoo_design_endpoint_configured": false,
+    "odoo_health": "healthy",
+    "production_execution": "NOT_RUN",
+    "status": "BLOCKED"
+  },
+  "release_blockers": [
+    "protected schema and workflow trust review",
+    "exact-main signed release and deployment",
+    "production endpoint, credential and tenant bindings"
+  ],
+  "remaining_implementation": [
+    "Odoo approval outbox consumer",
+    "immutable provisioning-run saga",
+    "restricted campaign.provision-disabled adapter handler and signed command contract",
+    "inactive n8n scope creation and governed workflow binding",
+    "Odoo provisioning result delivery and synthetic acceptance"
+  ],
+  "schema_dependency": "https://github.com/appolon1908-hue/Middleware-/pull/222",
+  "schema_source_sha": "d31a7186f4d4d6e177c85222d56b9dabbb52560c",
+  "scope": "isolated PostgreSQL and source contract tests; read-only production preflight",
+  "source_contract": {
+    "active_workflow_rejected": true,
+    "manifest_sha256": "a1048e2f7336421f2eff557942b15d03b3cc52d904b9c4cf30cf17609a0d5503",
+    "odoo_transport_sha256": "4fdd212bfd5dc7202d8e6d39e5c38f5821bf68496a2c8151ce0e1aeccddd7ad3",
+    "odoo_validator_sha256": "2d766feab9234fd9235416041a48de6be4f648b4dc080076ee752bdfc1b1ffe3",
+    "preview_state": "ready",
+    "production_execution": "NOT_RUN",
+    "source_contract": "PASS",
+    "tenant_binding_verified": true
+  }
+}

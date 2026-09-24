@@ -1,0 +1,7 @@
+apiVersion: platform.codestra.co/v1
+kind: ServiceLevelObjective
+profile: customer-api
+objectives:
+  availability: 99.9
+  latencyP95Milliseconds: 500
+  windowDays: 30

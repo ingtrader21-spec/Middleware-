@@ -1,0 +1,66 @@
+name: Connector storage v1
+
+on:
+  pull_request:
+    paths:
+      - "services/connector-runtime/**"
+      - ".github/workflows/connector-storage-ci.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "services/connector-runtime/**"
+      - ".github/workflows/connector-storage-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  postgres-migration-and-isolation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres@sha256:ef257d85f76e48da1c64832459b59fcaba1a4dac97bf5d7450c77753542eee94
+        env:
+          POSTGRES_USER: connector
+          POSTGRES_PASSWORD: connector
+          POSTGRES_DB: connector
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U connector -d connector"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      ADMIN_DATABASE_URL: postgresql+psycopg://connector:connector@127.0.0.1:5432/connector
+      APP_DATABASE_URL: postgresql+psycopg://connector_app_test:connector_app_test@127.0.0.1:5432/connector
+      POSTGRES_TOOL_IMAGE: postgres@sha256:ef257d85f76e48da1c64832459b59fcaba1a4dac97bf5d7450c77753542eee94
+      PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/services/connector-runtime/src
+    steps:
+      - name: Check out exact source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Prove exact source identity
+        env:
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD_SHA"
+          test -z "$(git status --porcelain)"
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - name: Install exact runtime dependencies
+        working-directory: services/connector-runtime
+        run: python -m pip install --disable-pip-version-check -e '.[test]'
+      - name: Reject whitespace and compile source
+        run: |
+          git diff --check
+          python -m compileall -q services/connector-runtime/src services/connector-runtime/migrations
+      - name: Upgrade, test RLS and races, backup, downgrade, repeat upgrade
+        run: bash services/connector-runtime/scripts/test_postgres.sh

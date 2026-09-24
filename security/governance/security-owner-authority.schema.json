@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://codestra.internal/schemas/security-owner-authority.v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "company", "authority_id", "role", "authorized_identity",
+    "github_identity", "authority_reference", "approved_scopes",
+    "prohibited_scopes", "issued_utc", "not_before_utc", "expires_utc",
+    "approving_authority", "signature_method", "signature_key_id",
+    "detached_signature_path", "document_sha256"
+  ],
+  "properties": {
+    "company": {"const": "Codestra LLC"},
+    "authority_id": {"type": "string", "pattern": "^codestra-security-owner-[0-9]{8}-[0-9a-f]{12}$"},
+    "role": {"const": "Security Owner"},
+    "authorized_identity": {"type": "string", "pattern": "^https://github\\.com/[A-Za-z0-9-]+$"},
+    "github_identity": {"type": "string", "pattern": "^[A-Za-z0-9-]+$"},
+    "authority_reference": {"type": "string", "minLength": 1},
+    "approved_scopes": {"type": "array", "items": {"type": "string"}, "contains": {"const": "server_a_isolated_staging"}, "minItems": 1, "uniqueItems": true},
+    "prohibited_scopes": {"type": "array", "items": {"type": "string"}, "minItems": 7, "uniqueItems": true},
+    "issued_utc": {"type": "string", "format": "date-time", "pattern": "Z$"},
+    "not_before_utc": {"type": "string", "format": "date-time", "pattern": "Z$"},
+    "expires_utc": {"type": "string", "format": "date-time", "pattern": "Z$"},
+    "approving_authority": {"type": "string", "minLength": 1},
+    "signature_method": {"const": "sigstore-keyless-oidc"},
+    "signature_key_id": {"const": "https://token.actions.githubusercontent.com"},
+    "detached_signature_path": {"const": "security-owner-authority.sigstore.json"},
+    "document_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  }
+}

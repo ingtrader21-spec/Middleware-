@@ -1,0 +1,220 @@
+{
+  "schema_version": "1.0",
+  "safety_version": "2026-09-19.1",
+  "description": "Safety Gate switch table for the V3 command kernel. Evaluated after the Policy Engine and before any command is persisted or executed. A config switch alone never activates an effect: the capability registry (config/capabilities.v2.json), the Settings effect gates and umbrella controls, a registered ready adapter, the environment and a valid identity must all agree. Kill switches here can only deny.",
+  "global_kill_switch": false,
+  "provider_kill_switches": {
+    "ai-provider": false,
+    "beyvra-nonfinancial": false,
+    "klyrow-alert-email": false,
+    "klyrow-email": false,
+    "kyqra-crawler": false,
+    "marketing-provider": false,
+    "n8n-automation": false,
+    "odoo-19": false,
+    "postly-social": false,
+    "provisioning-service": false,
+    "telnexa-sms": false,
+    "test-syn": false,
+    "vicidial-restricted": false
+  },
+  "synthetic_tenants": [
+    "TEST_SYN"
+  ],
+  "capability_gates": {
+    "BEYVRA_OPERATIONS_WRITE": {
+      "classification": "external_effect",
+      "effect_flags": [],
+      "umbrella_controls": [
+        "EXTERNAL_DELIVERY_ENABLED"
+      ],
+      "environments": [
+        "staging",
+        "production"
+      ],
+      "campaign_scoped": false
+    },
+    "CRAWLER_EXECUTION": {
+      "classification": "external_effect",
+      "effect_flags": [
+        "ENABLE_EXTERNAL_DELIVERY",
+        "CRAWLER_EXECUTION_ENABLED"
+      ],
+      "umbrella_controls": [
+        "EXTERNAL_DELIVERY_ENABLED"
+      ],
+      "environments": [
+        "staging",
+        "production"
+      ],
+      "campaign_scoped": false
+    },
+    "EMAIL_DELIVERY": {
+      "classification": "external_effect",
+      "effect_flags": [
+        "ENABLE_EXTERNAL_DELIVERY",
+        "EMAIL_DELIVERY_ENABLED"
+      ],
+      "umbrella_controls": [
+        "EXTERNAL_DELIVERY_ENABLED"
+      ],
+      "environments": [
+        "staging",
+        "production"
+      ],
+      "campaign_scoped": true
+    },
+    "EXTERNAL_MODEL_CALLS": {
+      "classification": "external_effect",
+      "effect_flags": [],
+      "umbrella_controls": [
+        "EXTERNAL_MODEL_CALLS_ENABLED"
+      ],
+      "environments": [
+        "staging",
+        "production"
+      ],
+      "campaign_scoped": false
+    },
+    "INTERNAL_TELEPHONY_CALLS": {
+      "classification": "external_effect",
+      "effect_flags": [
+        "VICIDIAL_WRITES_ENABLED"
+      ],
+      "umbrella_controls": [],
+      "environments": [
+        "staging",
+        "production"
+      ],
+      "campaign_scoped": true
+    },
+    "LIVE_ADVERTISING": {
+      "classification": "external_effect",
+      "effect_flags": [],
+      "umbrella_controls": [
+        "LIVE_ADVERTISING_ENABLED"
+      ],
+      "environments": [
+        "production"
+      ],
+      "campaign_scoped": true
+    },
+    "N8N_WORKFLOW_DISPATCH": {
+      "classification": "external_effect",
+      "effect_flags": [
+        "N8N_DELIVERY_ENABLED",
+        "N8N_PRODUCTION_WORKFLOWS_ENABLED"
+      ],
+      "umbrella_controls": [
+        "N8N_EXTERNAL_PROVIDER_WRITES"
+      ],
+      "environments": [
+        "staging",
+        "production"
+      ],
+      "campaign_scoped": false
+    },
+    "OBSERVABILITY_ALERT_EMAIL_DELIVERY": {
+      "classification": "external_effect",
+      "effect_flags": [
+        "ENABLE_EXTERNAL_DELIVERY",
+        "EMAIL_DELIVERY_ENABLED"
+      ],
+      "umbrella_controls": [
+        "EXTERNAL_DELIVERY_ENABLED"
+      ],
+      "environments": [
+        "staging",
+        "production"
+      ],
+      "campaign_scoped": false
+    },
+    "ODOO_WRITE": {
+      "classification": "external_effect",
+      "effect_flags": [
+        "ENABLE_EXTERNAL_DELIVERY",
+        "ODOO_WRITE"
+      ],
+      "umbrella_controls": [
+        "EXTERNAL_DELIVERY_ENABLED"
+      ],
+      "environments": [
+        "staging",
+        "production"
+      ],
+      "campaign_scoped": false
+    },
+    "PRODUCTION_DIALING": {
+      "classification": "external_effect",
+      "effect_flags": [
+        "ENABLE_EXTERNAL_DELIVERY",
+        "EXTERNAL_DIAL_ENABLED"
+      ],
+      "umbrella_controls": [
+        "EXTERNAL_DELIVERY_ENABLED"
+      ],
+      "environments": [
+        "production"
+      ],
+      "campaign_scoped": true
+    },
+    "PROVISIONING_WRITE": {
+      "classification": "external_effect",
+      "effect_flags": [],
+      "umbrella_controls": [],
+      "environments": [
+        "staging",
+        "production"
+      ],
+      "campaign_scoped": false
+    },
+    "SMS_DELIVERY": {
+      "classification": "external_effect",
+      "effect_flags": [
+        "ENABLE_EXTERNAL_DELIVERY",
+        "SMS_DELIVERY_ENABLED"
+      ],
+      "umbrella_controls": [
+        "EXTERNAL_DELIVERY_ENABLED"
+      ],
+      "environments": [
+        "staging",
+        "production"
+      ],
+      "campaign_scoped": true
+    },
+    "SOCIAL_PUBLISH": {
+      "classification": "external_effect",
+      "effect_flags": [
+        "ENABLE_EXTERNAL_DELIVERY",
+        "SOCIAL_DELIVERY_ENABLED"
+      ],
+      "umbrella_controls": [
+        "SOCIAL_PUBLISHING_ENABLED"
+      ],
+      "environments": [
+        "staging",
+        "production"
+      ],
+      "campaign_scoped": true
+    },
+    "TEST_SYN_EXECUTE": {
+      "classification": "synthetic",
+      "effect_flags": [],
+      "umbrella_controls": [],
+      "environments": [
+        "development",
+        "test",
+        "staging",
+        "preproduction"
+      ],
+      "campaign_scoped": false,
+      "synthetic_tenant_required": true
+    }
+  },
+  "limits": {
+    "tenant_commands_per_minute": 600,
+    "tenant_backlog_bound": 1000,
+    "global_backlog_bound": 10000
+  }
+}

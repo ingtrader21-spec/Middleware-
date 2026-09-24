@@ -1,0 +1,35 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://evidence.codestra.invalid/gateway/schema1-correlation-safety-rc1/dc91007162f64410eb97b163502bad013a2adb670a28d0655572326da18f42fb",
+  "author": "Codestra SRL security release process",
+  "role": "Product security evidence issuer",
+  "timestamp": "2026-07-28T19:20:00Z",
+  "last_updated": "2026-07-28T19:20:00Z",
+  "version": 1,
+  "statements": [
+    {
+      "vulnerability": {"name": "CVE-2026-11940"},
+      "products": [{"@id": "pkg:oci/telephony-event-gateway@sha256%3Adc91007162f64410eb97b163502bad013a2adb670a28d0655572326da18f42fb?repository_url=docker.io%2Fcodestra1980%2Ftelephony-event-gateway", "subcomponents": [{"@id": "pkg:generic/python@3.13.14"}]}],
+      "status": "fixed",
+      "timestamp": "2026-07-28T19:20:00Z",
+      "action_statement": "The digest-pinned Codestra Python base contains the reviewed official CPython 3.13 maintained-branch backport 771d12dda5140313db0ac550292987975651bbde and its regression evidence.",
+      "status_notes": "Inherited fixed-backport decision from security/vex/rc3p/security-owner-decision.md; base_image=docker.io/codestra/python@sha256:541d6acdaa39568e8e9ba2a12f707ce167a819e553025256c29918a9509fe0c2; scanner finding retained and not suppressed."
+    },
+    {
+      "vulnerability": {"name": "CVE-2026-15308"},
+      "products": [{"@id": "pkg:oci/telephony-event-gateway@sha256%3Adc91007162f64410eb97b163502bad013a2adb670a28d0655572326da18f42fb?repository_url=docker.io%2Fcodestra1980%2Ftelephony-event-gateway", "subcomponents": [{"@id": "pkg:generic/python@3.13.14"}]}],
+      "status": "fixed",
+      "timestamp": "2026-07-28T19:20:00Z",
+      "action_statement": "The digest-pinned Codestra Python base contains the reviewed official CPython 3.13 maintained-branch backport 7933f4bf7131aa4140750f9404f5de0aa2969ced and its regression evidence.",
+      "status_notes": "Inherited fixed-backport decision from security/vex/rc3p/security-owner-decision.md; base_image=docker.io/codestra/python@sha256:541d6acdaa39568e8e9ba2a12f707ce167a819e553025256c29918a9509fe0c2; scanner finding retained and not suppressed."
+    },
+    {
+      "vulnerability": {"name": "CVE-2026-11972"},
+      "products": [{"@id": "pkg:oci/telephony-event-gateway@sha256%3Adc91007162f64410eb97b163502bad013a2adb670a28d0655572326da18f42fb?repository_url=docker.io%2Fcodestra1980%2Ftelephony-event-gateway", "subcomponents": [{"@id": "pkg:generic/python@3.13.14"}]}],
+      "status": "fixed",
+      "timestamp": "2026-07-28T19:20:00Z",
+      "action_statement": "The digest-pinned Codestra Python base contains the reviewed official CPython 3.13 maintained-branch backport 3f031d431f80668e14f3bc066bbf4369cd9281b9 and its regression evidence.",
+      "status_notes": "Inherited fixed-backport decision from security/vex/rc3p/security-owner-decision.md; base_image=docker.io/codestra/python@sha256:541d6acdaa39568e8e9ba2a12f707ce167a819e553025256c29918a9509fe0c2; scanner finding retained and not suppressed."
+    }
+  ]
+}

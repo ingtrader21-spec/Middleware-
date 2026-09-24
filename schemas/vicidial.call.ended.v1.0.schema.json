@@ -1,0 +1,39 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "call_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_.:-]+$",
+      "title": "Call Id",
+      "type": "string"
+    },
+    "direction": {
+      "enum": [
+        "inbound",
+        "outbound"
+      ],
+      "title": "Direction",
+      "type": "string"
+    },
+    "duration_seconds": {
+      "maximum": 86400,
+      "minimum": 0,
+      "title": "Duration Seconds",
+      "type": "integer"
+    },
+    "ended_at": {
+      "format": "date-time",
+      "title": "Ended At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "call_id",
+    "ended_at",
+    "duration_seconds",
+    "direction"
+  ],
+  "title": "CallEnded",
+  "type": "object"
+}

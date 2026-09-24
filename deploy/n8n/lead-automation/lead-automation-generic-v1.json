@@ -1,0 +1,149 @@
+{
+  "id": "00000000-0000-4000-8000-000000000013",
+  "name": "lead-automation-generic-v1",
+  "active": false,
+  "settings": {"executionOrder": "v1"},
+  "meta": {
+    "contract_version": "1.0",
+    "binding_key": "n8n.leads.ingest",
+    "binding_enabled_default": false,
+    "lead_automation_enabled_default": false,
+    "workflow_active_default": false,
+    "schema_source_head": "da215762375614aa617bf838f9e4974ac2ad7c68",
+    "callback_auth_source_head": "04fa56f4c8bb8caea3e5281816a2986bcb47ba05",
+    "pr65_security_boundary_inherited": true,
+    "odoo_source_head": "384d175eb32bc87f34b9c736453db44c2d151b1a",
+    "hmac_contract_version": 2,
+    "direct_odoo_access": false,
+    "direct_database_access": false,
+    "communication_enabled": false,
+    "calendar_enabled": false,
+    "appointment_enabled": false,
+    "call_enabled": false,
+    "recording_access": false
+  },
+  "nodes": [
+    {
+      "id": "generic-ingress",
+      "name": "Generic lead event ingress",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "notes": "Generic ingress resolves to POST /webhook/v1/events; the source remains inactive and fail-closed.",
+      "disabled": true,
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "v1/events",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "validate-transform-sign",
+      "name": "Validate transform and sign",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [260, 0],
+      "disabled": true,
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\nconst e = $json.body ?? $json;\nconst fail = message => { throw new Error(message); };\nconst canonical = value => Array.isArray(value) ? `[${value.map(canonical).join(',')}]` : value && typeof value === 'object' ? `{${Object.keys(value).sort().map(k => `${JSON.stringify(k)}:${canonical(value[k])}`).join(',')}}` : JSON.stringify(value);\nconst sha = value => crypto.createHash('sha256').update(value).digest('hex');\nconst forbidden = /(phone|email|customer.?name|street.?address|government|payment|credential|provider.?token|hmac.?secret|recording|audio|filesystem|object.?key|presigned|unrestricted.?notes)/i;\nconst walk = value => { if (Array.isArray(value)) return value.forEach(walk); if (value && typeof value === 'object') return Object.entries(value).forEach(([k,v]) => { if (forbidden.test(k)) fail('prohibited field'); walk(v); }); if (typeof value === 'string') { const digits=value.replace(/\\D/g,''); if (/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(value) || (/^\\+?[\\d ().-]+$/.test(value) && digits.length>=7 && digits.length<=15)) fail('prohibited contact value'); } };\nwalk(e);\nconst allowed = new Set(['contract_version','event_id','event_type','occurred_at','environment','business_unit_key','campaign_key','automation_action','idempotency_key','correlation_id','policy_version','lead_uid','source_reference','attributes_schema_key','attributes','consent_snapshot']);\nconst required = ['contract_version','event_id','event_type','occurred_at','environment','business_unit_key','campaign_key','automation_action','idempotency_key','correlation_id','policy_version','attributes_schema_key','attributes','consent_snapshot'];\nif (Object.keys(e).some(k => !allowed.has(k)) || required.some(k => !(k in e))) fail('event envelope rejected');\nconst eventActions = {'lead.creation.requested.v1':['CREATE_LEAD'],'lead.update.requested.v1':['UPDATE_ALLOWLISTED_FIELDS'],'lead.assignment.requested.v1':['ASSIGN_AUTHORIZED_TEAM','ASSIGN_AUTHORIZED_USER'],'lead.status_change.requested.v1':['CHANGE_AUTHORIZED_STAGE'],'lead.callback_requested.v1':['CREATE_INTERNAL_CALLBACK_ACTIVITY']};\nif (e.contract_version !== '1.0' || e.environment !== 'staging' || !eventActions[e.event_type]?.includes(e.automation_action)) fail('contract, environment, event or action rejected');\nif (!/^EVT-[A-Za-z0-9_-]{8,64}$/.test(e.event_id) || !/^[A-Z0-9][A-Z0-9_-]{1,63}$/.test(e.campaign_key) || !/^[a-z0-9][a-z0-9-]{1,62}$/.test(e.business_unit_key) || !/^[A-Fa-f0-9]{64}$/.test(e.idempotency_key) || !/^[A-Za-z0-9._-]{1,32}$/.test(e.policy_version)) fail('identifier rejected');\nif (!/^\\d{4}-\\d{2}-\\d{2}T/.test(e.occurred_at) || !Number.isFinite(Date.parse(e.occurred_at)) || e.occurred_at.length > 35) fail('timestamp rejected');\nif (e.event_type === 'lead.creation.requested.v1') { if (!/^SRC-[A-Za-z0-9_-]{8,64}$/.test(e.source_reference ?? '') || 'lead_uid' in e) fail('creation identity rejected'); } else if (!/^LEAD-[A-Za-z0-9_-]{8,64}$/.test(e.lead_uid ?? '')) fail('lead identity rejected');\nconst schemaRules = {\n 'transportation-logistics-lead-v1':{contact_reference:/^CONTACT-[A-Za-z0-9_-]{8,64}$/,shipment_mode:['GROUND','AIR','SEA','MULTIMODAL'],origin_region:/^[A-Z0-9_-]{2,16}$/,destination_region:/^[A-Z0-9_-]{2,16}$/,load_class:['PARCEL','LTL','FTL','CONTAINER'],estimated_volume_band:['LOW','MEDIUM','HIGH']},\n 'web-mobile-ai-lead-v1':{contact_reference:/^CONTACT-[A-Za-z0-9_-]{8,64}$/,solution_type:['WEB','MOBILE','AI','INTEGRATION'],company_size_band:['MICRO','SMALL','MEDIUM','ENTERPRISE'],budget_band:['LOW','MEDIUM','HIGH'],delivery_window:['IMMEDIATE','QUARTER','HALF_YEAR','UNSPECIFIED']},\n 'senior-citizen-products-lead-v1':{contact_reference:/^CONTACT-[A-Za-z0-9_-]{8,64}$/,product_category:['MOBILITY','SAFETY','WELLNESS','HOME_SUPPORT'],service_region:/^[A-Z0-9_-]{2,16}$/,accessibility_support:'boolean'},\n 'business-loan-lead-v1':{contact_reference:/^CONTACT-[A-Za-z0-9_-]{8,64}$/,loan_purpose:['WORKING_CAPITAL','EQUIPMENT','EXPANSION','REFINANCE'],amount_band:['MICRO','SMALL','MEDIUM','LARGE'],business_age_band:['STARTUP','ONE_TO_THREE','FOUR_PLUS'],industry_key:/^[A-Z0-9_-]{2,24}$/},\n 'real-estate-lead-v1':{contact_reference:/^CONTACT-[A-Za-z0-9_-]{8,64}$/,transaction_type:['BUY','SELL','RENT','INVEST'],property_type:['RESIDENTIAL','COMMERCIAL','LAND'],region_key:/^[A-Z0-9_-]{2,16}$/,budget_band:['LOW','MEDIUM','HIGH','PREMIUM']},\n 'fundraising-lead-v1':{contact_reference:/^CONTACT-[A-Za-z0-9_-]{8,64}$/,campaign_type:['NONPROFIT','COMMUNITY','EDUCATION','MEDICAL'],interest_band:['LOW','MEDIUM','HIGH'],region_key:/^[A-Z0-9_-]{2,16}$/},\n 'trading-ai-lead-v1':{contact_reference:/^CONTACT-[A-Za-z0-9_-]{8,64}$/,experience_band:['BEGINNER','INTERMEDIATE','ADVANCED'],product_interest:['ANALYTICS','AUTOMATION','EDUCATION'],risk_profile_reference:/^RISK-[A-Za-z0-9_-]{8,64}$/},\n 'farming-lead-v1':{contact_reference:/^CONTACT-[A-Za-z0-9_-]{8,64}$/,operation_type:['CROP','LIVESTOCK','MIXED','PROCESSING'],acreage_band:['SMALL','MEDIUM','LARGE'],region_key:/^[A-Z0-9_-]{2,16}$/,solution_interest:['EQUIPMENT','INPUTS','FINANCE','TECHNOLOGY']}\n};\nconst rules = schemaRules[e.attributes_schema_key]; if (!rules || !e.attributes || Array.isArray(e.attributes) || typeof e.attributes !== 'object' || Object.keys(e.attributes).length > 12) fail('attribute schema rejected');\nfor (const [key,value] of Object.entries(e.attributes)) { const rule=rules[key]; if (!rule) fail('attribute allowlist rejected'); if (Array.isArray(rule) && !rule.includes(value)) fail('attribute enum rejected'); if (rule instanceof RegExp && (typeof value !== 'string' || value.length > 96 || !rule.test(value))) fail('attribute format rejected'); if (rule === 'boolean' && typeof value !== 'boolean') fail('attribute type rejected'); }\nconst consentKeys = new Set(['consent_status','consent_purpose','consent_source','consent_updated_at','dnc_status','dnc_updated_at','jurisdiction','source_system']); const c=e.consent_snapshot; if (!c || Object.keys(c).some(k=>!consentKeys.has(k)) || [...consentKeys].some(k=>!(k in c)) || !['granted','denied','expired','unknown'].includes(c.consent_status) || typeof c.dnc_status !== 'boolean' || c.source_system !== 'odoo') fail('consent snapshot rejected');\nconst digest=sha(canonical(e)); const ledger=$getWorkflowStaticData('global'); ledger.events ??= {}; const previous=ledger.events[`${e.environment}:${e.idempotency_key}`]; if (previous) { if (previous.digest !== digest) fail('conflicting idempotency replay'); return [{json:{dispatch:false,acknowledgement:previous.acknowledgement,callback_body:previous.callback_body,callback_headers:previous.callback_headers,event_digest:digest}}]; }\nconst executionId=`N8N-${sha(`${e.event_id}:${e.idempotency_key}`).slice(0,32)}`; const result={contract_version:'1.0',event_id:e.event_id,workflow_execution_id:executionId,binding_key:'n8n.leads.ingest',environment:e.environment,business_unit_key:e.business_unit_key,campaign_key:e.campaign_key,automation_action:e.automation_action,result_status:'SUCCEEDED',result_code:'NO_CHANGE',result_payload:{transformation_version:'1.0'},occurred_at:e.occurred_at,idempotency_key:e.idempotency_key}; const callbackBody=JSON.stringify(result); const timestamp=new Date().toISOString(); const nonce=crypto.randomUUID(); const bodyHash=sha(callbackBody); const version='HMAC-V2'; const method='POST'; const path='/api/v1/lead-automation/results'; const identity='codestra-n8n-lead-automation'; const audience='codestra-middleware-lead-automation'; const scope='lead-automation.results.write'; const material=[version,method,path,timestamp,nonce,identity,audience,e.environment,scope,e.idempotency_key,bodyHash].join('\\n'); const secret=$env.LEAD_AUTOMATION_CALLBACK_HMAC_SECRET; if (!secret) fail('runtime callback secret unavailable'); const signature=crypto.createHmac('sha256',secret).update(material).digest('hex'); const callbackHeaders={'X-Codestra-Signature-Version':version,'X-Service-Identity':identity,'X-Service-Audience':audience,'X-Codestra-Timestamp':timestamp,'X-Codestra-Nonce':nonce,'X-Codestra-Content-SHA256':bodyHash,'X-Codestra-Signature':signature,'Idempotency-Key':e.idempotency_key,'X-Codestra-Environment':e.environment,'X-Codestra-Scope':scope}; const acknowledgement={contract_version:'1.0',event_id:e.event_id,accepted:true,result_code:'ACCEPTED_FOR_RESULT_CALLBACK',correlation_id:e.correlation_id,occurred_at:e.occurred_at}; ledger.events[`${e.environment}:${e.idempotency_key}`]={digest,acknowledgement,callback_body:callbackBody,callback_headers:callbackHeaders}; const keys=Object.keys(ledger.events); if(keys.length>1000) delete ledger.events[keys[0]]; return [{json:{dispatch:true,acknowledgement,callback_body:callbackBody,callback_headers:callbackHeaders,event_digest:digest,callback_attempt:1}}];"
+      }
+    },
+    {
+      "id": "dispatch-required",
+      "name": "Dispatch required",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [520, 0],
+      "disabled": true,
+      "parameters": {"conditions":{"options":{"caseSensitive":true,"typeValidation":"strict"},"conditions":[{"leftValue":"={{ $json.dispatch }}","rightValue":true,"operator":{"type":"boolean","operation":"true","singleValue":true}}],"combinator":"and"}}
+    },
+    {
+      "id": "middleware-result-callback",
+      "name": "Middleware result callback",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [780, -120],
+      "disabled": true,
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.MIDDLEWARE_INTERNAL_URL + '/api/v1/lead-automation/results' }}",
+        "sendHeaders": true,
+        "headerParameters": {"parameters":[
+          {"name":"X-Codestra-Signature-Version","value":"={{ $json.callback_headers['X-Codestra-Signature-Version'] }}"},
+          {"name":"X-Service-Identity","value":"={{ $json.callback_headers['X-Service-Identity'] }}"},
+          {"name":"X-Service-Audience","value":"={{ $json.callback_headers['X-Service-Audience'] }}"},
+          {"name":"X-Codestra-Timestamp","value":"={{ $json.callback_headers['X-Codestra-Timestamp'] }}"},
+          {"name":"X-Codestra-Nonce","value":"={{ $json.callback_headers['X-Codestra-Nonce'] }}"},
+          {"name":"X-Codestra-Content-SHA256","value":"={{ $json.callback_headers['X-Codestra-Content-SHA256'] }}"},
+          {"name":"X-Codestra-Signature","value":"={{ $json.callback_headers['X-Codestra-Signature'] }}"},
+          {"name":"Idempotency-Key","value":"={{ $json.callback_headers['Idempotency-Key'] }}"},
+          {"name":"X-Codestra-Environment","value":"={{ $json.callback_headers['X-Codestra-Environment'] }}"},
+          {"name":"X-Codestra-Scope","value":"={{ $json.callback_headers['X-Codestra-Scope'] }}"}
+        ]},
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.callback_body }}",
+        "options": {"timeout":30000,"response":{"response":{"fullResponse":true,"neverError":true,"responseFormat":"json"}}}
+      }
+    },
+    {
+      "id": "classify-callback",
+      "name": "Classify callback response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1040, -120],
+      "disabled": true,
+      "parameters": {"jsCode":"const status=Number($json.statusCode ?? 0); const base=$('Validate transform and sign').item.json; const retryable=new Set([0,429,500,502,503,504]); if(status>=200 && status<300) return [{json:{...base,retry:false}}]; if(!retryable.has(status)) throw new Error('permanent callback rejection'); const ledger=$getWorkflowStaticData('global'); ledger.attempts ??= {}; const key=base.event_digest; const attempt=(ledger.attempts[key] ?? 1)+1; ledger.attempts[key]=attempt; if(attempt>5) throw new Error('callback retry limit reached'); return [{json:{...base,callback_attempt:attempt,retry:true}}];"}
+    },
+    {
+      "id": "retry-required",
+      "name": "Retry required",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1300, -120],
+      "disabled": true,
+      "parameters": {"conditions":{"options":{"caseSensitive":true,"typeValidation":"strict"},"conditions":[{"leftValue":"={{ $json.retry }}","rightValue":true,"operator":{"type":"boolean","operation":"true","singleValue":true}}],"combinator":"and"}}
+    },
+    {
+      "id": "bounded-backoff",
+      "name": "Bounded callback backoff",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1560, -220],
+      "disabled": true,
+      "parameters": {"amount":"={{ Math.min(16, 2 ** ($json.callback_attempt - 1)) }}","unit":"seconds"}
+    },
+    {
+      "id": "resign-callback-retry",
+      "name": "Re-sign callback retry",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1810, -220],
+      "disabled": true,
+      "parameters": {"jsCode":"const crypto=require('crypto'); const body=$json.callback_body; const timestamp=new Date().toISOString(); const nonce=crypto.randomUUID(); const bodyHash=crypto.createHash('sha256').update(body).digest('hex'); const version='HMAC-V2'; const method='POST'; const path='/api/v1/lead-automation/results'; const identity='codestra-n8n-lead-automation'; const audience='codestra-middleware-lead-automation'; const environment=$json.callback_headers['X-Codestra-Environment']; const scope='lead-automation.results.write'; const key=$json.callback_headers['Idempotency-Key']; const material=[version,method,path,timestamp,nonce,identity,audience,environment,scope,key,bodyHash].join('\\n'); const secret=$env.LEAD_AUTOMATION_CALLBACK_HMAC_SECRET; if(!secret) throw new Error('runtime callback secret unavailable'); const headers={...$json.callback_headers,'X-Codestra-Timestamp':timestamp,'X-Codestra-Nonce':nonce,'X-Codestra-Content-SHA256':bodyHash,'X-Codestra-Signature':crypto.createHmac('sha256',secret).update(material).digest('hex')}; return [{json:{...$json,callback_headers:headers}}];"}
+    },
+    {
+      "id": "deterministic-response",
+      "name": "Deterministic ingress acknowledgement",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [1560, 100],
+      "disabled": true,
+      "parameters": {"respondWith":"json","responseBody":"={{ $('Validate transform and sign').item.json.acknowledgement }}","options":{"responseCode":202}}
+    }
+  ],
+  "connections": {
+    "Generic lead event ingress": {"main":[[{"node":"Validate transform and sign","type":"main","index":0}]]},
+    "Validate transform and sign": {"main":[[{"node":"Dispatch required","type":"main","index":0}]]},
+    "Dispatch required": {"main":[[{"node":"Middleware result callback","type":"main","index":0}],[{"node":"Deterministic ingress acknowledgement","type":"main","index":0}]]},
+    "Middleware result callback": {"main":[[{"node":"Classify callback response","type":"main","index":0}]]},
+    "Classify callback response": {"main":[[{"node":"Retry required","type":"main","index":0}]]},
+    "Retry required": {"main":[[{"node":"Bounded callback backoff","type":"main","index":0}],[{"node":"Deterministic ingress acknowledgement","type":"main","index":0}]]},
+    "Bounded callback backoff": {"main":[[{"node":"Re-sign callback retry","type":"main","index":0}]]},
+    "Re-sign callback retry": {"main":[[{"node":"Middleware result callback","type":"main","index":0}]]}
+  },
+  "pinData": {}
+}

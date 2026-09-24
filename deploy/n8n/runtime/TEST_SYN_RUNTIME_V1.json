@@ -1,0 +1,98 @@
+[
+  {
+    "id": "CodestraTestSynRuntimeV1",
+    "name": "TEST_SYN Codestra Governed Runtime V1",
+    "active": false,
+    "nodes": [
+      {
+        "id": "runtime-webhook",
+        "name": "runtime",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [0, 0],
+        "parameters": {
+          "path": "codestra-runtime/test-syn/v1",
+          "httpMethod": "POST",
+          "responseMode": "onReceived",
+          "options": {"responseCode": 202}
+        }
+      },
+      {
+        "id": "build-result",
+        "name": "Build Strict Result",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [240, 0],
+        "parameters": {
+          "jsCode": "const e = $json.body; const body = {schema_version:'codestra.n8n.result.v1',workflow_code:e.workflow_code,workflow_version:e.workflow_version,execution_id:e.execution_id,correlation_id:e.correlation_id,tenant_id:e.tenant_id,status:'completed',occurred_at:new Date().toISOString(),result:{synthetic:true,event_id:e.event_id}}; return [{json:{...e,body_raw:JSON.stringify(body),timestamp:String(Math.floor(Date.now()/1000)),nonce:`${$execution.id}-${Date.now()}`}}];"
+        }
+      },
+      {
+        "id": "hash-result",
+        "name": "Hash Result Body",
+        "type": "n8n-nodes-base.crypto",
+        "typeVersion": 2,
+        "position": [480, 0],
+        "parameters": {"action":"hash","type":"SHA256","value":"={{$json.body_raw}}","encoding":"hex","dataPropertyName":"body_hash"}
+      },
+      {
+        "id": "build-signature",
+        "name": "Build Signature Envelope",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [720, 0],
+        "parameters": {
+          "jsCode": "const j=$json; j.signature_payload=['v1','n8n-staging',j.tenant_id,j.workflow_code,j.execution_id,j.correlation_id,j.timestamp,j.nonce,j.body_hash].join('\\n'); return [{json:j}];"
+        }
+      },
+      {
+        "id": "sign-result",
+        "name": "Sign Result",
+        "type": "n8n-nodes-base.crypto",
+        "typeVersion": 2,
+        "position": [960, 0],
+        "parameters": {"action":"hmac","type":"SHA256","value":"={{$json.signature_payload}}","encoding":"hex","dataPropertyName":"signature"},
+        "credentials": {"crypto":{"id":"CodestraRuntimeHmac2026","name":"Codestra Runtime HMAC"}}
+      },
+      {
+        "id": "callback",
+        "name": "Authenticated Middleware Callback",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.4,
+        "position": [1200, 0],
+        "retryOnFail": true,
+        "maxTries": 5,
+        "waitBetweenTries": 2000,
+        "parameters": {
+          "url": "http://middleware-n8n-runtime-canary:8095/api/v1/n8n-runtime/results",
+          "method": "POST",
+          "sendHeaders": true,
+          "headerParameters": {"parameters": [
+            {"name":"X-Codestra-Identity","value":"n8n-staging"},
+            {"name":"X-Codestra-Tenant","value":"={{$json.tenant_id}}"},
+            {"name":"X-Codestra-Workflow","value":"={{$json.workflow_code}}"},
+            {"name":"X-Codestra-Execution","value":"={{$json.execution_id}}"},
+            {"name":"X-Codestra-Correlation-ID","value":"={{$json.correlation_id}}"},
+            {"name":"X-Codestra-Timestamp","value":"={{$json.timestamp}}"},
+            {"name":"X-Codestra-Nonce","value":"={{$json.nonce}}"},
+            {"name":"X-Codestra-Body-SHA256","value":"=sha256:{{$json.body_hash}}"},
+            {"name":"X-Codestra-Signature","value":"=sha256={{$json.signature}}"}
+          ]},
+          "sendBody": true,
+          "contentType": "raw",
+          "rawContentType": "application/json",
+          "body": "={{$json.body_raw}}",
+          "options": {"timeout": 10000}
+        }
+      }
+    ],
+    "connections": {
+      "runtime":{"main":[[{"node":"Build Strict Result","type":"main","index":0}]]},
+      "Build Strict Result":{"main":[[{"node":"Hash Result Body","type":"main","index":0}]]},
+      "Hash Result Body":{"main":[[{"node":"Build Signature Envelope","type":"main","index":0}]]},
+      "Build Signature Envelope":{"main":[[{"node":"Sign Result","type":"main","index":0}]]},
+      "Sign Result":{"main":[[{"node":"Authenticated Middleware Callback","type":"main","index":0}]]}
+    },
+    "settings": {"executionOrder":"v1"}
+  }
+]

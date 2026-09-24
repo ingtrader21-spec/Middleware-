@@ -1,0 +1,61 @@
+# Canonical Server B -> Server A listener for the dedicated private proxy.
+{
+	admin off
+}
+
+middleware.internal.codestra.agency {
+	tls /run/secrets/middleware-private-ingress/server.crt /run/secrets/middleware-private-ingress/server.key {
+		client_auth {
+			mode require_and_verify
+			trust_pool file /run/secrets/middleware-private-ingress/client-ca.crt
+		}
+	}
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy no-referrer
+	}
+	route {
+		import /etc/caddy/snippets/breero-private-route
+		@server_b_readiness {
+			remote_ip 10.40.0.2
+			method POST
+			path /api/v1/readiness/server-a/challenge
+		}
+		handle @server_b_readiness {
+			request_body {
+				max_size 4KB
+			}
+			reverse_proxy middleware-event-gateway:8095 {
+				header_up -X-Codestra-Verified-Source-IP
+				header_up -X-Codestra-Client-Certificate-DER
+				header_up X-Codestra-Verified-Source-IP "{http.request.remote.host}"
+				header_up X-Codestra-Client-Certificate-DER "{http.request.tls.client.certificate_der_base64}"
+			}
+		}
+		@server_b_event_ingress {
+			expression `{env.VICIDIAL_EVENT_INGRESS_ROUTING_ENABLED} == "true"`
+			remote_ip 10.40.0.2
+			method POST
+			path /api/v1/events/vicidial /api/v2/telephony/events
+		}
+		handle @server_b_event_ingress {
+			request_body {
+				max_size 256KB
+			}
+			reverse_proxy middleware-event-gateway:8095 {
+				header_up -X-Codestra-Verified-Source-IP
+				header_up -X-Codestra-Client-Certificate-DER
+				header_up X-Codestra-Verified-Source-IP "{http.request.remote.host}"
+				header_up X-Codestra-Client-Certificate-DER "{http.request.tls.client.certificate_der_base64}"
+			}
+		}
+		respond 403
+	}
+	log {
+		output file /var/log/caddy/private-vicidial-access.log {
+			roll_size 20MiB
+			roll_keep 5
+		}
+	}
+}

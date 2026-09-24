@@ -1,0 +1,22 @@
+# Source-only Compose extension. It is not loaded by compose.runtime.yaml.
+# Activation requires a separately reviewed deployment change and protected
+# credential material; the worker remains fail-closed by default.
+services:
+  middleware-telephony-command-worker:
+    extends:
+      file: compose.runtime.yaml
+      service: middleware-sync-worker
+    command: [python, -m, app.entrypoints.telephony_command_worker]
+    profiles: [telephony-command-worker]
+    environment:
+      SERVICE_NAME: middleware-telephony-command-worker
+      QUEUE_NAME: telephony-commands
+      TELEPHONY_COMMAND_WORKER_ENABLED: "false"
+      TELEPHONY_CREDENTIAL_DIRECTORY: /run/secrets/middleware-telephony-client
+    volumes:
+      - /etc/codestra/secrets/middleware-runtime/middleware-telephony-command-worker-database-url:/run/secrets/database_url:ro
+      - /etc/codestra/secrets/middleware-telephony-client:/run/secrets/middleware-telephony-client:ro
+    networks:
+      - middleware_backend
+      - identity_service
+      - provisioning_private

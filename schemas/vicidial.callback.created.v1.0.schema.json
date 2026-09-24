@@ -1,0 +1,30 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "call_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_.:-]+$",
+      "title": "Call Id",
+      "type": "string"
+    },
+    "callback_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Callback Id",
+      "type": "string"
+    },
+    "scheduled_at": {
+      "format": "date-time",
+      "title": "Scheduled At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "call_id",
+    "callback_id",
+    "scheduled_at"
+  ],
+  "title": "Callback",
+  "type": "object"
+}

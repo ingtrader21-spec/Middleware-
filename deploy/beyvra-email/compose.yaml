@@ -1,0 +1,58 @@
+name: codestra-beyvra-email
+services:
+  api:
+    image: ghcr.io/codestra-srl/beyvra-email@sha256:22df1d37e1fd9073a591cda7b5af6980c55577314207e05c112402819d1244c0
+    user: "12001:12001"
+    restart: unless-stopped
+    env_file: [/etc/codestra/beyvra-email/runtime.env]
+    secrets: [database_url, postal_webhook_secret, postal_webhook_token, provider_webhook_secret]
+    networks: [backend, edge]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/v1/email/ready',timeout=2)"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+  worker:
+    image: ghcr.io/codestra-srl/beyvra-email@sha256:22df1d37e1fd9073a591cda7b5af6980c55577314207e05c112402819d1244c0
+    user: "12001:12001"
+    restart: unless-stopped
+    command: [python, -c, "from app.email.runtime import worker_main; worker_main()"]
+    env_file: [/etc/codestra/beyvra-email/runtime.env]
+    secrets: [database_url, klyrow_oidc_client_id, klyrow_oidc_client_secret]
+    volumes: [/etc/codestra/mtls/clients/klyrow:/run/mtls/klyrow:ro]
+    profiles: [live-delivery]
+    networks: [backend, edge]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+  migrate:
+    image: ghcr.io/codestra-srl/beyvra-email@sha256:22df1d37e1fd9073a591cda7b5af6980c55577314207e05c112402819d1244c0
+    user: "12001:12001"
+    restart: "no"
+    command: [python, -m, app.email.schema]
+    env_file: [/etc/codestra/beyvra-email/runtime.env]
+    environment:
+      BEYVRA_EMAIL_MIGRATION_AUTHORIZED: ${BEYVRA_EMAIL_MIGRATION_AUTHORIZED:-false}
+      BEYVRA_EMAIL_PREDEPLOY_BACKUP_ID: ${BEYVRA_EMAIL_PREDEPLOY_BACKUP_ID:-}
+    secrets: [database_url]
+    profiles: [migration]
+    networks: [backend]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+secrets:
+  database_url: {file: /etc/codestra/secrets/beyvra-email/database-url}
+  postal_webhook_secret: {file: /etc/codestra/secrets/beyvra-email/postal-webhook-secret}
+  postal_webhook_token: {file: /etc/codestra/secrets/beyvra-email/postal-webhook-token}
+  provider_webhook_secret: {file: /etc/codestra/secrets/beyvra-email/provider-webhook-secret}
+  klyrow_oidc_client_id: {file: /etc/codestra/secrets/beyvra-email/klyrow-email-adapter-client-id}
+  klyrow_oidc_client_secret: {file: /etc/codestra/secrets/beyvra-email/klyrow-email-adapter-client-secret}
+networks:
+  backend: {name: codestra_backend, external: true}
+  edge: {name: codestra_edge, external: true}

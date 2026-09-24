@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "state": "contract-only-runtime-unverified",
+  "source": {
+    "repository": "appolon1908-hue/beyvra-backend",
+    "eventType": "identity.account.provisioned",
+    "schema": "contracts/beyvra-identity-provisioned.schema.json"
+  },
+  "transport": {
+    "kind": "nats-jetstream",
+    "subject": "identity.account.provisioned",
+    "delivery": "at_least_once",
+    "messageIdField": "event_id",
+    "publisher": "beyvra-backend",
+    "consumer": "middleware-worker",
+    "runtimeUrlEnvironment": "NATS_URL"
+  },
+  "normalization": {
+    "canonicalEnvelope": "contracts/platform/event-envelope.v1.schema.json",
+    "canonicalType": "codestra.identity.account.provisioned",
+    "canonicalSource": "beyvra-backend",
+    "canonicalTenant": "beyvra",
+    "identityReference": "payload.identity_ref",
+    "localUserReference": "payload.local_user_ref"
+  },
+  "privacy": {
+    "allowedPayloadFields": [
+      "identity_ref",
+      "local_user_ref",
+      "roles",
+      "authority"
+    ],
+    "forbiddenFields": [
+      "email",
+      "password",
+      "otp",
+      "reset_token",
+      "authorization_code",
+      "access_token",
+      "refresh_token",
+      "id_token",
+      "code_verifier"
+    ]
+  },
+  "effects": {
+    "middlewareIdentityProjectionAllowed": true,
+    "odooWriteAllowed": false,
+    "n8nDispatchAllowed": false,
+    "passwordOrRecoveryProcessingAllowed": false
+  },
+  "httpBoundary": {
+    "synchronousAuthEndpoint": null,
+    "identityWebhook": null,
+    "reason": "Interactive authentication and password recovery stay between Beyvra and Keycloak."
+  },
+  "activationGates": [
+    "middleware-worker-source-imported",
+    "durable-consumer-and-replay-test-passes",
+    "nats-tls-and-service-identity-verified",
+    "schema-v1-fixture-passes",
+    "dead-letter-and-observability-evidence-attached"
+  ]
+}

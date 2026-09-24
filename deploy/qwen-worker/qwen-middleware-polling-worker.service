@@ -1,0 +1,61 @@
+[Unit]
+Description=Codestra outbound-only Qwen polling worker
+After=network-online.target litellm.service ollama.service qwen-egress-guard.service
+Wants=network-online.target
+Requires=qwen-egress-guard.service
+ConditionPathExists=/etc/codestra/qwen-worker/activation-approved
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=exec
+User=qwen-agent
+Group=qwen-agent
+UMask=0077
+Environment=QWEN_MAX_IN_PROCESS_JOBS=1
+ExecStartPre=+/usr/bin/install -o qwen-agent -g qwen-agent -m 0400 /etc/codestra/mtls/qwen-ai-01/client.crt /run/codestra-qwen-worker/client.crt
+ExecStartPre=+/usr/bin/install -o qwen-agent -g qwen-agent -m 0400 /etc/codestra/mtls/qwen-ai-01/client.key /run/codestra-qwen-worker/client.key
+ExecStartPre=+/usr/bin/install -o qwen-agent -g qwen-agent -m 0400 /etc/codestra/mtls/qwen-ai-01/private-ca.crt /run/codestra-qwen-worker/private-ca.crt
+ExecStartPre=+/usr/bin/install -o qwen-agent -g qwen-agent -m 0400 /etc/codestra/mtls/qwen-ai-01/hmac.key /run/codestra-qwen-worker/hmac.key
+ExecStartPre=+/usr/bin/install -o qwen-agent -g qwen-agent -m 0400 /etc/codestra/secrets/qwen-polling-worker/litellm.key /run/codestra-qwen-worker/litellm.key
+ExecStart=/usr/bin/python3 -I /opt/codestra/qwen-worker/qwen_polling_worker.py
+Restart=on-failure
+RestartSec=15s
+TimeoutStopSec=45s
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+PrivateDevices=yes
+ProtectProc=invisible
+ProcSubset=pid
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+IPAddressDeny=any
+IPAddressAllow=127.0.0.0/8
+IPAddressAllow=10.40.0.1/32
+InaccessiblePaths=/etc/codestra/mtls/qwen-ai-01
+InaccessiblePaths=/etc/codestra/secrets/qwen-polling-worker
+StateDirectory=codestra-qwen-worker
+StateDirectoryMode=0700
+RuntimeDirectory=codestra-qwen-worker
+RuntimeDirectoryMode=0700
+TasksMax=64
+MemoryMax=8G
+MemorySwapMax=0
+CPUQuota=600%
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

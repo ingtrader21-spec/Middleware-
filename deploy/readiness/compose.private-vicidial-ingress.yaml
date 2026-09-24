@@ -1,0 +1,39 @@
+services:
+  reverse-proxy:
+    ports: !override
+      - "65.109.65.169:80:80"
+      - "65.109.65.169:443:443"
+
+  private-vicidial-ingress:
+    image: codestra/caddy:2.11.4-hardened-20260723
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 64
+    cpus: 0.25
+    mem_limit: 128m
+    environment:
+      VICIDIAL_EVENT_INGRESS_ROUTING_ENABLED: "false"
+    ports:
+      - "10.40.0.1:443:443"
+    volumes:
+      - ${MIDDLEWARE_RELEASE_ROOT:?exact release root required}/deploy/readiness/Caddyfile.private-vicidial-ingress:/etc/caddy/Caddyfile:ro
+      - ${MIDDLEWARE_RELEASE_ROOT:?exact release root required}/deploy/breero/Caddyfile.private-route:/etc/caddy/snippets/breero-private-route:ro
+      - /etc/codestra/pki/middleware-private-ingress:/run/secrets/middleware-private-ingress:ro
+      - /opt/codestra/logs/caddy:/var/log/caddy
+    tmpfs:
+      - /config:rw,nosuid,nodev,noexec,size=4m,uid=10001,gid=10001,mode=0700
+      - /data:rw,nosuid,nodev,noexec,size=4m,uid=10001,gid=10001,mode=0700
+    networks: [middleware_edge]
+    healthcheck:
+      test: [CMD, caddy, validate, --config, /etc/caddy/Caddyfile]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+networks:
+  middleware_edge:
+    external: true
+    name: codestra_edge

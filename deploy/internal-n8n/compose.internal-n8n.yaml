@@ -1,0 +1,45 @@
+services:
+  reverse-proxy:
+    networks:
+      codestra-internal-integration:
+        aliases:
+          - n8n.internal.codestra.agency
+          - odoo.internal.codestra.agency
+    secrets:
+      - n8n_internal_tls_cert
+      - n8n_internal_tls_key
+      - odoo_internal_tls_cert
+      - odoo_internal_tls_key
+
+  n8n:
+    networks:
+      - codestra-internal-integration
+    expose:
+      - "5678"
+    environment:
+      N8N_HOST: n8n.internal.codestra.agency
+      N8N_PROTOCOL: https
+      WEBHOOK_URL: https://n8n.internal.codestra.agency/
+      N8N_EDITOR_BASE_URL: https://n8n.codestra.agency/
+      NODE_FUNCTION_ALLOW_BUILTIN: crypto
+
+  odoo:
+    networks:
+      - codestra-internal-integration
+
+networks:
+  codestra-internal-integration:
+    name: codestra-internal-integration
+    internal: true
+
+secrets:
+  n8n_internal_tls_cert:
+    external: true
+  n8n_internal_tls_key:
+    external: true
+  n8n_internal_ca:
+    external: true
+  odoo_internal_tls_cert:
+    external: true
+  odoo_internal_tls_key:
+    external: true

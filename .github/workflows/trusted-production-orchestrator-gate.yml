@@ -1,0 +1,62 @@
+name: Trusted production orchestrator evidence
+
+on:
+  pull_request_target:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: trusted-production-orchestrator-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
+  cancel-in-progress: true
+
+jobs:
+  validate-candidate:
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+    name: trusted-orchestrator-evidence
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+      COMPARISON_SHA: ${{ github.event.pull_request.base.sha }}
+      GITHUB_REPOSITORY_ID: ${{ github.repository_id }}
+      VALIDATION_ROOT: ${{ github.workspace }}/candidate
+    steps:
+      - name: Check out protected-base trust root
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Check out exact candidate source as inert data
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ env.EXPECTED_SHA }}
+          path: candidate
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Import exact protected-base comparison commit
+        run: |
+          set -Eeuo pipefail
+          git -C candidate fetch \
+            --no-tags \
+            --no-write-fetch-head \
+            "$GITHUB_WORKSPACE" \
+            "$COMPARISON_SHA"
+          test "$(git -C candidate rev-parse "$COMPARISON_SHA^{commit}")" = "$COMPARISON_SHA"
+
+      - name: Install pinned workflow parser
+        run: python3 -m pip install --disable-pip-version-check --no-input PyYAML==6.0.3
+
+      - name: Validate exact candidate through protected-base trust root
+        run: |
+          set -Eeuo pipefail
+          python3 -I .codestra/run-trusted-production-orchestrator.py
+          cd candidate
+          git diff --check "$COMPARISON_SHA" "$EXPECTED_SHA"

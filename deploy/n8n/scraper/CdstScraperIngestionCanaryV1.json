@@ -1,0 +1,48 @@
+{
+  "id": "CdstScraperIngestionCanaryV1",
+  "name": "ZZ_CDX_SCRAPER_CANARY_Ingestion_V1",
+  "active": false,
+  "nodes": [
+    {
+      "id": "internal-webhook",
+      "name": "Authenticated Middleware Event",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "parameters": {
+        "path": "internal/scraper-canary/v1",
+        "httpMethod": "POST",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "validate-envelope",
+      "name": "Validate Canary Envelope",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [260, 0],
+      "parameters": {
+        "jsCode": "const e=$json.body||{}; const required=['event_id','payload_hash','correlation_id','tenant_id','campaign_id','synthetic_name']; for (const k of required) if(typeof e[k]!=='string'||!e[k]) throw new Error('INVALID_SCRAPER_CANARY_ENVELOPE'); if(!e.synthetic_name.startsWith('ZZ_CDX_SCRAPER_CANARY_')) throw new Error('CANARY_PREFIX_REQUIRED'); if(e.outbound_automation!==false) throw new Error('OUTBOUND_AUTOMATION_MUST_BE_FALSE'); return [{json:{schema_version:'codestra.scraper-n8n-result.v1',event_id:e.event_id,payload_hash:e.payload_hash,correlation_id:e.correlation_id,tenant_id:e.tenant_id,campaign_id:e.campaign_id,status:'validated_no_message',idempotency_key:e.event_id}}];"
+      }
+    },
+    {
+      "id": "durable-response",
+      "name": "Durable No Message Result",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [520, 0],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}",
+        "options": {"responseCode": 200}
+      }
+    }
+  ],
+  "connections": {
+    "Authenticated Middleware Event": {"main": [[{"node": "Validate Canary Envelope", "type": "main", "index": 0}]]},
+    "Validate Canary Envelope": {"main": [[{"node": "Durable No Message Result", "type": "main", "index": 0}]]}
+  },
+  "settings": {"executionOrder": "v1", "saveDataErrorExecution": "all", "saveDataSuccessExecution": "none"},
+  "tags": [{"name": "scraper-canary"}, {"name": "no-customer-message"}]
+}

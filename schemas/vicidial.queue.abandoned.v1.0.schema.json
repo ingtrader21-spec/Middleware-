@@ -1,0 +1,37 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "abandoned_at": {
+      "format": "date-time",
+      "title": "Abandoned At",
+      "type": "string"
+    },
+    "call_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_.:-]+$",
+      "title": "Call Id",
+      "type": "string"
+    },
+    "queue_id": {
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Queue Id",
+      "type": "string"
+    },
+    "wait_seconds": {
+      "maximum": 86400,
+      "minimum": 0,
+      "title": "Wait Seconds",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "call_id",
+    "queue_id",
+    "abandoned_at",
+    "wait_seconds"
+  ],
+  "title": "QueueAbandoned",
+  "type": "object"
+}

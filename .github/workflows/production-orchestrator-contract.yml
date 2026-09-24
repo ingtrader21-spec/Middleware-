@@ -1,0 +1,68 @@
+name: Production orchestrator contract
+
+on:
+  pull_request_target:
+    branches: [main]
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-orchestrator-contract-${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: orchestrator-contract
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      EXPECTED_SHA: ${{ (github.event_name == 'pull_request_target' || github.event_name == 'pull_request') && github.event.pull_request.head.sha || github.sha }}
+      COMPARISON_SHA: ${{ (github.event_name == 'pull_request_target' || github.event_name == 'pull_request') && github.event.pull_request.base.sha || github.event.before }}
+      GITHUB_REPOSITORY_ID: ${{ github.repository_id }}
+      VALIDATION_ROOT: ${{ github.workspace }}/candidate
+    steps:
+      - name: Check out protected-base trust root
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.base.sha || github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Check out exact candidate source as inert data
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ (github.event_name == 'pull_request_target' || github.event_name == 'pull_request') && github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ env.EXPECTED_SHA }}
+          path: candidate
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Import exact comparison commit from the protected checkout
+        if: ${{ github.event_name == 'pull_request_target' || github.event_name == 'pull_request' }}
+        run: |
+          set -Eeuo pipefail
+          git -C candidate fetch \
+            --no-tags \
+            --no-write-fetch-head \
+            "$GITHUB_WORKSPACE" \
+            "$COMPARISON_SHA"
+          test "$(git -C candidate rev-parse "$COMPARISON_SHA^{commit}")" = "$COMPARISON_SHA"
+      - name: Install pinned workflow parser
+        run: python3 -m pip install --disable-pip-version-check --no-input PyYAML==6.0.3
+      - name: Validate repository-owned contract and no-runtime intent
+        run: python3 -I .codestra/run-trusted-production-orchestrator.py
+      - name: Reject malformed diffs
+        run: |
+          set -Eeuo pipefail
+          cd candidate
+          base="$COMPARISON_SHA"
+          if ! [[ "$base" =~ ^[0-9a-f]{40}$ ]] || [[ "$base" == "0000000000000000000000000000000000000000" ]] || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+            if git rev-parse --verify "$EXPECTED_SHA^" >/dev/null 2>&1; then
+              base="$(git rev-parse "$EXPECTED_SHA^")"
+            else
+              base="$(git hash-object -t tree /dev/null)"
+            fi
+          fi
+          git diff --check "$base" "$EXPECTED_SHA"

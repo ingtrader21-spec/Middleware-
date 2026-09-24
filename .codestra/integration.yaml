@@ -1,0 +1,15 @@
+apiVersion: platform.codestra.co/v1
+kind: Integration
+authority: middleware
+odoo:
+  directDatabaseAccess: false
+  unrestrictedRpcAccess: false
+  writesRequireOutbox: true
+events:
+  idempotencyRequired: true
+  correlationRequired: true
+  signedWebhooksRequired: true
+externalEffects:
+  email: disabled
+  sms: disabled
+  pstn: disabled

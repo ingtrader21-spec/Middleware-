@@ -1,0 +1,20 @@
+FUNCTION,SOURCE_COMPONENT,API,DB_MODEL,UI_COMPONENT,AUTH,CURRENT_STATUS,TEST_STATUS
+incoming popup,middleware + Odoo + gateway,/codestra/api/v1/call-events,codestra.vicidial.call + codestra.vicidial.call.event,CallWorkspace,service JWT + subject-bound ticket,IMPLEMENTED,PBX_BASELINE_PASS
+outgoing popup,middleware + Odoo + gateway,/codestra/api/v1/call-events,codestra.vicidial.call + codestra.vicidial.call.event,CallWorkspace,service JWT + subject-bound ticket,IMPLEMENTED,PBX_BASELINE_PASS
+call creation,Odoo controller,/codestra/api/v1/call-events,codestra.vicidial.call,CallWorkspace,service JWT,IMPLEMENTED,CONTRACT_TEST_PENDING
+ringing lifecycle,Odoo controller,/codestra/api/v1/call-events,codestra.vicidial.call.event,CallWorkspace,service JWT,IMPLEMENTED,ODOO_TEST_PASS
+answered lifecycle,Odoo controller,/codestra/api/v1/call-events,codestra.vicidial.call.event,CallWorkspace,service JWT,IMPLEMENTED,ODOO_TEST_PASS
+connected lifecycle,Odoo controller,/codestra/api/v1/call-events,codestra.vicidial.call.event,CallWorkspace,service JWT,IMPLEMENTED,ODOO_TEST_PASS
+ended lifecycle,Odoo controller,/codestra/api/v1/call-events,codestra.vicidial.call.event,CallWorkspace,service JWT,IMPLEMENTED,ODOO_TEST_PASS
+popup RPC,Odoo controller,/codestra/call-control/v1/calls/{call_id}/workspace,multiple workspace models,CallWorkspace,Odoo user session,IMPLEMENTED,PBX_BASELINE_PASS
+Odoo bus,Odoo publisher,Odoo bus channel,n/a,Realtime receiver,Odoo subject/campaign channel,IMPLEMENTED,PBX_BASELINE_PASS
+application WebSocket,websocket_gateway,/api/v1/realtime/sessions,gateway session/event tables,RealtimeClient,Keycloak token + single-use ticket,IMPLEMENTED,GATEWAY_TEST_EXISTS
+CRM lookup,Odoo call model,/codestra/call-control/v1/match,res.partner + crm.lead,Customer 360,Odoo user session,IMPLEMENTED,ODOO_TEST_PASS
+disposition,Odoo controller,/codestra/call-control/v1/calls/{call_id}/disposition,codestra.vicidial.disposition + codestra.call.sub.disposition,Wrap-up,Odoo user + owner/campaign rules,IMPLEMENTED,UNIT_UI_PASS
+live notes,Odoo controller,/codestra/call-control/v1/calls/{call_id}/notes,codestra.call.note + codestra.call.note.revision,Live notes,Odoo user + owner/tenant rules,IMPLEMENTED,UNIT_UI_ODOO_PASS
+recordings,middleware recording service,/api/v1/recordings/* + Odoo metadata API,recordings + codestra.vicidial.recording,Recording panel,role authorization,PARTIAL,PLAYBACK_CERT_PENDING
+callbacks,Odoo controller,/codestra/call-control/v1/calls/{call_id}/callbacks,codestra.callback,Callback panel,Odoo user + owner/tenant rules,IMPLEMENTED,UNIT_UI_PASS
+user targeting,websocket_gateway,application WebSocket,gateway event tables,RealtimeClient,subject-bound ticket,IMPLEMENTED,GATEWAY_TEST_EXISTS
+campaign targeting,websocket_gateway,application WebSocket,gateway event tables,RealtimeClient,tenant/business/campaign binding,IMPLEMENTED,GATEWAY_TEST_EXISTS
+idempotency,Odoo + gateway,call-events + command APIs,call event + command uniqueness,one workspace per call,service key + user session,IMPLEMENTED,ODOO_AND_PBX_PASS
+reconnect handling,websocket_gateway + Agent Desktop,/api/v1/realtime/sessions,gateway durable cursor,RealtimeClient + current-call recovery,single-use ticket + last event cursor,IMPLEMENTED,BROWSER_E2E_PENDING

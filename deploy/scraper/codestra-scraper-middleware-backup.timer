@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily Codestra middleware encrypted off-server backup
+
+[Timer]
+OnCalendar=*-*-* 04:15:00 UTC
+Persistent=true
+RandomizedDelaySec=10m
+Unit=codestra-scraper-middleware-backup.service
+
+[Install]
+WantedBy=timers.target

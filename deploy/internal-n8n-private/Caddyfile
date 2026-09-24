@@ -1,0 +1,73 @@
+{
+	admin off
+	auto_https off
+}
+
+n8n.internal.codestra.agency:443 {
+	tls /run/secrets/n8n_internal_tls_cert /run/secrets/n8n_internal_tls_key
+
+	@outside_integration_network not remote_ip {$INTEGRATION_CIDR:10.254.41.0/28}
+	handle @outside_integration_network {
+		respond "forbidden" 403
+	}
+
+	@attestation {
+		method GET HEAD
+		path /.well-known/codestra-target/v1
+	}
+	handle @attestation {
+		rewrite * /internal/n8n-target-attestation
+		reverse_proxy http://codestra-middleware-integration-api-1:8095 {
+			header_up Host middleware-integration-api
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Host {http.request.host}
+		}
+	}
+
+	@health {
+		method GET HEAD
+		path /healthz
+	}
+	handle @health {
+		reverse_proxy http://codestra-n8n-1:5678 {
+			header_up Host n8n
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Host {http.request.host}
+		}
+	}
+
+	@ready {
+		method GET HEAD
+		path /readyz
+	}
+	handle @ready {
+		rewrite * /healthz/readiness
+		reverse_proxy http://codestra-n8n-1:5678 {
+			header_up Host n8n
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Host {http.request.host}
+		}
+	}
+
+	@events {
+		method POST
+		path /webhook/codestra/v1/events
+		header Content-Type application/json*
+	}
+	handle @events {
+		request_body {
+			max_size 256KB
+		}
+		reverse_proxy http://codestra-n8n-1:5678 {
+			header_up Host n8n
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Host {http.request.host}
+			header_up X-Correlation-ID {http.request.header.X-Correlation-ID}
+			header_up X-Request-ID {http.request.header.X-Request-ID}
+		}
+	}
+
+	handle {
+		respond "not found" 404
+	}
+}

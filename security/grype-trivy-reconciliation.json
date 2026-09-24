@@ -1,0 +1,35 @@
+{
+  "schema_version": "1.0.0",
+  "status": "DRAFT_UNSIGNED_SECURITY_OWNER_REVIEW_REQUIRED",
+  "subject": {
+    "image": "sha256:a860ebae87ead0885d3cfcd0b3d09e5cead5ce903fe701d59b8f2f4c5cd0c3ec",
+    "platform": "linux/amd64",
+    "source_sha": "c0543bcb04debf07d7db6ee91ceb809726ead7ab",
+    "sbom_sha256": "e4b7da3ed37682866105cacc88e40cf85e289bff8b32724b0ed32c6cfe68948a"
+  },
+  "scanners": {
+    "grype": {"version": "0.116.1", "database_schema": "v6.1.9", "database_built_utc": "2026-08-12T06:38:08Z", "database_sha256": "07a2b6b851eb63490da4d328aa442fbed9b106f6e86a7686f300a1f617b5456d"},
+    "trivy": {"version": "0.72.0", "database_version": 2, "database_updated_utc": "2026-08-12T19:12:05.145200672Z", "database_sha256": "3f37f18b7dc68e576f341c074d114445075e7e33606c680b4536d82dd0bcbae7"},
+    "syft": {"version": "1.50.0"}
+  },
+  "normalization": {"raw_high_rows": 20, "unique_high_findings": 10, "critical_findings": 0, "suppressed_findings": 0},
+  "common_component": {
+    "package": "python", "type": "binary", "installed_version": "3.12.13",
+    "paths": ["/usr/local/bin/python3.12", "/usr/local/lib/libpython3.12.so.1.0"],
+    "layer": "sha256:4544ac0d7dd7d9d2146006c1061aeac627219479069f36605ec908c1ed9e467f",
+    "presence": "runtime", "advisory_source": "NVD via Grype",
+    "disagreement": "Grype matches the unmodified CPython CPE/version and cannot detect source backports; Trivy reports no vulnerability for the rebuilt binary. Neither result alone adjudicates the finding."
+  },
+  "findings": [
+    {"id":"CVE-2026-11940","fixed_versions":["3.13.15","3.14.7","3.15.0b4"],"reported_by":["Grype"],"component_imported":"stdlib present; no direct application import found","reachable":"archive extraction path is executable if invoked by a dependency","code_path_executable":true,"remediation":"CPython maintained-branch correction be13e86f6b9788a6f4d0419dffef72cbae5865c9 is checksum-pinned and applied before compilation","proposed_vex_status":"fixed","evidence":["Dockerfile","security/python312/README.md"],"owner_action":"reproduce patched build and sign exact-image VEX"},
+    {"id":"CVE-2026-11972","fixed_versions":["3.13.15","3.14.7","3.15.0b4"],"reported_by":["Grype"],"component_imported":"stdlib present; no direct application import found","reachable":"streaming tar parser is executable if invoked","code_path_executable":true,"remediation":"correction 7f0dc59c9a70f8f3b4da33d7c4a2ba552a7acc21 is checksum-pinned and applied","proposed_vex_status":"fixed","evidence":["Dockerfile","security/python312/README.md"],"owner_action":"reproduce patched build and sign exact-image VEX"},
+    {"id":"CVE-2026-15308","fixed_versions":["3.15.0"],"reported_by":["Grype"],"component_imported":"stdlib present; no direct application import found","reachable":"HTMLParser is executable if invoked by a dependency","code_path_executable":true,"remediation":"correction 7933f4bf7131aa4140750f9404f5de0aa2969ced is checksum-pinned and applied","proposed_vex_status":"fixed","evidence":["Dockerfile","security/python312/README.md"],"owner_action":"reproduce patched build and sign exact-image VEX"},
+    {"id":"CVE-2026-3298","fixed_versions":["3.13.14","3.14.5rc1","3.15.0b1"],"reported_by":["Grype"],"component_imported":"affected Proactor implementation is absent on Linux","reachable":"Windows-only asyncio path is not present","code_path_executable":false,"remediation":"not applicable to linux/amd64 subject","proposed_vex_status":"not_affected","evidence":["image platform linux/amd64","NVD advisory Windows-only scope"],"owner_action":"independently confirm component absence and sign exact-image VEX"},
+    {"id":"CVE-2026-3644","fixed_versions":["3.13.13","3.14.4","3.15.0a8"],"reported_by":["Grype"],"component_imported":"stdlib present; no direct application import found","reachable":"cookie API is executable","code_path_executable":true,"remediation":"correction dae4b1a21f8df4570e30986affd61bbe4ade4cef is checksum-pinned and applied","proposed_vex_status":"fixed","evidence":["Dockerfile","security/python312/README.md"],"owner_action":"reproduce patched build and sign exact-image VEX"},
+    {"id":"CVE-2026-4224","fixed_versions":["3.13.13","3.14.4","3.15.0a8"],"reported_by":["Grype"],"component_imported":"pyexpat is present; no direct application import found","reachable":"ElementDeclHandler path is executable","code_path_executable":true,"remediation":"correction 642865ddf4b232da1f3b1f7abcfa3254c4bfe785 is checksum-pinned and applied","proposed_vex_status":"fixed","evidence":["Dockerfile","security/python312/README.md"],"owner_action":"reproduce patched build and sign exact-image VEX"},
+    {"id":"CVE-2026-4786","fixed_versions":["3.13.14","3.14.5rc1","3.15.0b1"],"reported_by":["Grype"],"component_imported":"stdlib present; no direct application import found","reachable":"webbrowser API is executable but no browser launcher is configured in the service","code_path_executable":true,"remediation":"minimal 3.12 adaptation of f4654824ae0850ac87227fb270f9057477946769 is applied from webbrowser-action-hardening.patch","proposed_vex_status":"fixed","evidence":["security/python312/webbrowser-action-hardening.patch","security/python312/README.md"],"owner_action":"verify adaptation and sign exact-image VEX"},
+    {"id":"CVE-2026-6100","fixed_versions":["3.13.14","3.14.5rc1","3.15.0b1"],"reported_by":["Grype"],"component_imported":"compression modules are present; no direct application import found","reachable":"decompressor reuse after MemoryError is executable if invoked","code_path_executable":true,"remediation":"correction e20c6c9667c99ecaab96e1a2b3767082841ffc8b is checksum-pinned and applied","proposed_vex_status":"fixed","evidence":["Dockerfile","security/python312/README.md"],"owner_action":"reproduce patched build and sign exact-image VEX"},
+    {"id":"CVE-2026-7210","fixed_versions":["3.13.14","3.14.6","3.15.0b2"],"reported_by":["Grype"],"component_imported":"XML modules and Expat are runtime-present","reachable":"XML parsing path is executable","code_path_executable":true,"remediation":"Expat 2.8.2 plus fc9b11ff49cbc82e6f917d07a61517a2b5f3145f and expat-hash-salt-3.12.patch are applied","proposed_vex_status":"fixed","evidence":["Dockerfile","security/python312/expat-hash-salt-3.12.patch","security/python312/README.md"],"owner_action":"verify combined correction and sign exact-image VEX"},
+    {"id":"CVE-2026-9669","fixed_versions":["3.13.14","3.14.6","3.15.0b3"],"reported_by":["Grype"],"component_imported":"bz2 module is runtime-present; no direct application import found","reachable":"decompressor reuse path is executable if invoked","code_path_executable":true,"remediation":"3.12 correction in 938ec030e90c5e53f1faac6fab1643f14e4f4a79 is checksum-pinned and applied","proposed_vex_status":"fixed","evidence":["Dockerfile","security/python312/README.md"],"owner_action":"reproduce patched build and sign exact-image VEX"}
+  ]
+}

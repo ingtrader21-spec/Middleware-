@@ -1,0 +1,23 @@
+OLD_HOSTNAME,OLD_ROUTE,CALLER,UPSTREAM,CURRENT_REPLACEMENT,STATUS
+api.breero.com,/*,public clients,kong-gateway:8000,host-level Caddy to Kong,REPLACED
+api.codestra.agency,/ws/agent and /api/v1/realtime/sessions,public authenticated clients,codestra-websocket-gateway-gateway-1:8080,host-level Caddy realtime route,REPLACED
+api.codestra.agency,other API routes,public API clients,kong-gateway:8000,host-level Caddy to Kong,REPLACED
+crm.codestra.agency,/reseller*,reseller users,reseller-portal-gateway:4180,host-level Caddy reseller route,REPLACED
+crm.codestra.agency,/*,CRM users,codestra-odoo-1:8069,host-level Caddy Odoo route,REPLACED
+n8n.codestra.agency,staff-private routes,staff operators,codestra-n8n-1:5678,host-level Caddy staff boundary,REPLACED
+n8n.internal.codestra.agency,/.well-known/codestra-target/v1,approved middleware,codestra-middleware-integration-api-1:8095,codestra-n8n-internal-proxy,REPLACED
+n8n.internal.codestra.agency,/healthz and /readyz,approved middleware,codestra-n8n-1:5678,codestra-n8n-internal-proxy,REPLACED
+n8n.internal.codestra.agency,POST /webhook/codestra/v1/events,approved middleware,codestra-n8n-1:5678,codestra-n8n-internal-proxy,REPLACED
+odoo.internal.codestra.agency,POST /api/v1/integration/results,Odoo result worker,codestra-odoo-1:8069,codestra-odoo-internal-proxy,REPLACED
+n8n-staging.codestra.agency,staff-private routes,staging operators,n8n-staging:5678,staging ingress stack,REPLACED
+api.staging.internal.codestra.agency,/*,staging workloads,middleware-staging:8095,certified staging service network,REPLACED
+n8n.staging.internal.codestra.agency,staging health metadata and webhooks,staging workloads,n8n-staging services,certified staging service network,REPLACED
+auth.staging.internal.codestra.agency,/*,staging workloads,keycloak-staging:8080,certified staging identity network,REPLACED
+odoo.staging.internal.codestra.agency,/*,staging workloads,odoo-staging:8069,certified staging service network,REPLACED
+bridge-staging.codestra.agency,staging bridge routes,staging tests,middleware-staging:8095,staging ingress stack,REPLACED
+middleware.internal.codestra.agency,POST /api/v1/events/vicidial,private VICIdial,codestra-middleware-1:8095,dedicated private-vicidial-ingress,REPLACED
+middleware-staging.internal.codestra.agency,POST /api/v1/staging/events/vicidial,staging VICIdial,middleware-staging:8095,dedicated staging private ingress,REPLACED
+phone.codestra.agency,OAuth webphone and realtime routes,staff agents,auth gateway and agent desktop,host-level Caddy agent desktop route,REPLACED
+dialer.codestra.agency,OAuth dialer and realtime routes,staff agents,auth gateway and agent desktop,host-level Caddy dialer route,REPLACED
+monitoring.codestra.co,health readiness alerts and dashboard,monitoring clients,codestra-monitoring-receiver-receiver-1:8080,host-level Caddy monitoring route,REPLACED
+api.codestra.co,realtime and API routes,public reseller clients,websocket gateway and Kong,host-level Caddy public API route,REPLACED

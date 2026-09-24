@@ -1,0 +1,327 @@
+{
+  "owner": "codestra-middleware",
+  "schema_version": "codestra.workflow.registry.v1",
+  "payload_schema": "codestra.order.command.v1",
+  "result_schema": "codestra.order.result.v1",
+  "workflows": [
+    {
+      "workflow_code": "CDST-ORDER-VALIDATE-V1",
+      "workflow_name": "CdstOrderIntakeValidateV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstOrderIntakeValidateV1",
+      "order_types": [
+        "shipping_order",
+        "customer_onboarding",
+        "callback_order",
+        "social_campaign_draft",
+        "internal_report",
+        "document_request"
+      ],
+      "allowed_actions": [
+        "validate_customer",
+        "generate_internal_report",
+        "request_document"
+      ],
+      "required_approval_type": "none",
+      "timeout_seconds": 60,
+      "maximum_attempts": 1,
+      "retry_policy": "none",
+      "concurrency_limit": 8,
+      "feature_flag": "n8n_order_dispatch_enabled",
+      "active": false,
+      "production_authorized": false,
+      "payload_schema": "codestra.order.command.v1",
+      "result_schema": "codestra.order.result.v1"
+    },
+    {
+      "workflow_code": "CDST-ORDER-ROUTER-V1",
+      "workflow_name": "CdstOrderRouterV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstOrderRouterV1",
+      "order_types": [
+        "shipping_order",
+        "customer_onboarding",
+        "callback_order",
+        "social_campaign_draft",
+        "internal_report",
+        "document_request"
+      ],
+      "allowed_actions": [
+        "validate_customer",
+        "notify_internal_team"
+      ],
+      "required_approval_type": "middleware",
+      "timeout_seconds": 60,
+      "maximum_attempts": 1,
+      "retry_policy": "none",
+      "concurrency_limit": 8,
+      "feature_flag": "n8n_order_dispatch_enabled",
+      "active": false,
+      "production_authorized": false,
+      "payload_schema": "codestra.order.command.v1",
+      "result_schema": "codestra.order.result.v1"
+    },
+    {
+      "workflow_code": "CDST-ORDER-SHIPPING-V1",
+      "workflow_name": "CdstOrderShippingV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstOrderShippingV1",
+      "order_types": [
+        "shipping_order"
+      ],
+      "allowed_actions": [
+        "create_fulfillment_task",
+        "request_shipping_quote",
+        "schedule_pickup"
+      ],
+      "required_approval_type": "order",
+      "timeout_seconds": 300,
+      "maximum_attempts": 5,
+      "retry_policy": "exponential_jitter",
+      "concurrency_limit": 4,
+      "feature_flag": "n8n_order_dispatch_enabled",
+      "active": false,
+      "production_authorized": false,
+      "payload_schema": "codestra.order.command.v1",
+      "result_schema": "codestra.order.result.v1"
+    },
+    {
+      "workflow_code": "CDST-ORDER-FULFILLMENT-V1",
+      "workflow_name": "CdstOrderFulfillmentV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstOrderFulfillmentV1",
+      "order_types": [
+        "shipping_order"
+      ],
+      "allowed_actions": [
+        "create_fulfillment_task"
+      ],
+      "required_approval_type": "order",
+      "timeout_seconds": 300,
+      "maximum_attempts": 5,
+      "retry_policy": "exponential_jitter",
+      "concurrency_limit": 4,
+      "feature_flag": "n8n_order_dispatch_enabled",
+      "active": false,
+      "production_authorized": false,
+      "payload_schema": "codestra.order.command.v1",
+      "result_schema": "codestra.order.result.v1"
+    },
+    {
+      "workflow_code": "CDST-ORDER-CUSTOMER-SETUP-V1",
+      "workflow_name": "CdstOrderCustomerSetupV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstOrderCustomerSetupV1",
+      "order_types": [
+        "customer_onboarding"
+      ],
+      "allowed_actions": [
+        "validate_customer",
+        "request_document"
+      ],
+      "required_approval_type": "order",
+      "timeout_seconds": 300,
+      "maximum_attempts": 3,
+      "retry_policy": "exponential_jitter",
+      "concurrency_limit": 4,
+      "feature_flag": "n8n_order_dispatch_enabled",
+      "active": false,
+      "production_authorized": false,
+      "payload_schema": "codestra.order.command.v1",
+      "result_schema": "codestra.order.result.v1"
+    },
+    {
+      "workflow_code": "CDST-ORDER-SOCIAL-CAMPAIGN-V1",
+      "workflow_name": "CdstOrderSocialCampaignV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstOrderSocialCampaignV1",
+      "order_types": [
+        "social_campaign_draft"
+      ],
+      "allowed_actions": [
+        "prepare_campaign_draft",
+        "create_social_draft"
+      ],
+      "required_approval_type": "order",
+      "timeout_seconds": 300,
+      "maximum_attempts": 3,
+      "retry_policy": "exponential_jitter",
+      "concurrency_limit": 2,
+      "feature_flag": "n8n_order_dispatch_enabled",
+      "active": false,
+      "production_authorized": false,
+      "payload_schema": "codestra.order.command.v1",
+      "result_schema": "codestra.order.result.v1"
+    },
+    {
+      "workflow_code": "CDST-ORDER-CALLBACK-V1",
+      "workflow_name": "CdstOrderCallbackV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstOrderCallbackV1",
+      "order_types": [
+        "callback_order"
+      ],
+      "allowed_actions": [
+        "create_callback"
+      ],
+      "required_approval_type": "order",
+      "timeout_seconds": 300,
+      "maximum_attempts": 3,
+      "retry_policy": "exponential_jitter",
+      "concurrency_limit": 2,
+      "feature_flag": "n8n_order_dispatch_enabled",
+      "active": false,
+      "production_authorized": false,
+      "payload_schema": "codestra.order.command.v1",
+      "result_schema": "codestra.order.result.v1"
+    },
+    {
+      "workflow_code": "CDST-ORDER-EXECUTE-V1",
+      "workflow_name": "CdstOrderExecuteV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstOrderExecuteV1",
+      "order_types": [
+        "shipping_order",
+        "internal_report"
+      ],
+      "allowed_actions": [
+        "create_fulfillment_task",
+        "generate_internal_report"
+      ],
+      "required_approval_type": "order",
+      "payload_schema": "codestra.order.command.v1",
+      "result_schema": "codestra.order.result.v1",
+      "timeout_seconds": 300,
+      "maximum_attempts": 5,
+      "retry_policy": "exponential_jitter",
+      "concurrency_limit": 4,
+      "feature_flag": "n8n_order_dispatch_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-ORDER-SOCIAL-DRAFT-V1",
+      "workflow_name": "CdstOrderSocialDraftV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstOrderSocialDraftV1",
+      "order_types": [
+        "social_campaign_draft"
+      ],
+      "allowed_actions": [
+        "create_social_draft"
+      ],
+      "required_approval_type": "order",
+      "payload_schema": "codestra.order.command.v1",
+      "result_schema": "codestra.order.result.v1",
+      "timeout_seconds": 300,
+      "maximum_attempts": 3,
+      "retry_policy": "exponential_jitter",
+      "concurrency_limit": 2,
+      "feature_flag": "n8n_order_dispatch_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-ORDER-INTERNAL-REPORT-V1",
+      "workflow_name": "CdstOrderInternalReportV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstOrderInternalReportV1",
+      "order_types": [
+        "internal_report"
+      ],
+      "allowed_actions": [
+        "generate_internal_report"
+      ],
+      "required_approval_type": "none",
+      "payload_schema": "codestra.order.command.v1",
+      "result_schema": "codestra.order.result.v1",
+      "timeout_seconds": 180,
+      "maximum_attempts": 2,
+      "retry_policy": "exponential_jitter",
+      "concurrency_limit": 4,
+      "feature_flag": "n8n_order_dispatch_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-ORDER-DEAD-LETTER-V1",
+      "workflow_name": "CdstOrderDeadLetterV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstOrderDeadLetterV1",
+      "order_types": [
+        "*"
+      ],
+      "allowed_actions": [],
+      "required_approval_type": "none",
+      "payload_schema": "codestra.order.command.v1",
+      "result_schema": "codestra.order.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 1,
+      "retry_policy": "none",
+      "concurrency_limit": 16,
+      "feature_flag": "n8n_order_dispatch_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-ORDER-RESULT-V1",
+      "workflow_name": "CdstOrderResultV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstOrderResultV1",
+      "order_types": [
+        "*"
+      ],
+      "allowed_actions": [],
+      "required_approval_type": "none",
+      "payload_schema": "codestra.order.command.v1",
+      "result_schema": "codestra.order.result.v1",
+      "timeout_seconds": 60,
+      "maximum_attempts": 1,
+      "retry_policy": "none",
+      "concurrency_limit": 16,
+      "feature_flag": "n8n_order_dispatch_enabled",
+      "active": false,
+      "production_authorized": false
+    },
+    {
+      "workflow_code": "CDST-ORDER-FAILURE-V1",
+      "workflow_name": "CdstOrderFailureV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstOrderFailureV1",
+      "order_types": [
+        "*"
+      ],
+      "allowed_actions": [],
+      "required_approval_type": "none",
+      "timeout_seconds": 60,
+      "maximum_attempts": 1,
+      "retry_policy": "none",
+      "concurrency_limit": 16,
+      "feature_flag": "n8n_order_dispatch_enabled",
+      "active": false,
+      "production_authorized": false,
+      "payload_schema": "codestra.order.command.v1",
+      "result_schema": "codestra.order.result.v1"
+    },
+    {
+      "workflow_code": "CDST-ORDER-RECONCILIATION-V1",
+      "workflow_name": "CdstOrderReconciliationV1",
+      "workflow_version": "1",
+      "n8n_workflow_id": "CdstOrderReconciliationV1",
+      "order_types": [
+        "*"
+      ],
+      "allowed_actions": [],
+      "required_approval_type": "none",
+      "timeout_seconds": 120,
+      "maximum_attempts": 1,
+      "retry_policy": "none",
+      "concurrency_limit": 4,
+      "feature_flag": "n8n_order_dispatch_enabled",
+      "active": false,
+      "production_authorized": false,
+      "payload_schema": "codestra.order.command.v1",
+      "result_schema": "codestra.order.result.v1"
+    }
+  ]
+}

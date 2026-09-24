@@ -1,0 +1,25 @@
+{
+  "schema_version": "codestra.n8n.production-workflow-inventory.v1",
+  "environment": "production",
+  "generated_from": "repository-governance-records",
+  "workflows": [
+    {
+      "workflow_id": "CodReconciliationEventV1",
+      "source": "deploy/n8n/cod-reconciliation-event-v1.workflow.json",
+      "classification": "INACTIVE_UNCLASSIFIED",
+      "event_types": ["reconciliation.run"],
+      "business_units": ["BU-400-COD"],
+      "campaigns": ["CMP-400-COD"],
+      "activation_gate": "SIGNED_PRODUCTION_AUTHORIZATION"
+    },
+    {
+      "workflow_id": "TEST_SYN_RUNTIME_V1",
+      "source": "deploy/n8n/runtime/TEST_SYN_RUNTIME_V1.json",
+      "classification": "TEST_SYN_ONLY",
+      "event_types": ["test.synthetic.odoo_result"],
+      "business_units": [],
+      "campaigns": ["TEST_SYN"],
+      "activation_gate": "STAGING_ONLY"
+    }
+  ]
+}

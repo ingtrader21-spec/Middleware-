@@ -1,0 +1,1 @@
+"""Restricted server-agent implementation."""

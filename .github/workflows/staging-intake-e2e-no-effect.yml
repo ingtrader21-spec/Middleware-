@@ -1,0 +1,77 @@
+name: Staging intake E2E no-effect certification
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: Isolated staging Caddy public API base URL
+        required: true
+        type: string
+      tenant_id:
+        description: Synthetic staging tenant identifier
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  LIVE_WRITES: "false"
+  ODOO_WRITE: "false"
+  N8N_DELIVERY_ENABLED: "false"
+  LIVE_SMS_DELIVERY: "false"
+  LIVE_EMAIL_DELIVERY: "false"
+  LIVE_PSTN_DIALING: "false"
+
+jobs:
+  certify-no-effect:
+    # RUNTIME_MUTATION_DISABLED=true
+    # This job contacts staging APIs; repository preparation does not authorize it.
+    if: ${{ false }}
+    runs-on: ubuntu-24.04
+    environment: intake-staging-certification
+    timeout-minutes: 10
+    steps:
+      - name: Check out exact protected-main source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Prove exact protected-main identity
+        run: |
+          test "$(git rev-parse HEAD)" = "${{ github.sha }}"
+          test -z "$(git status --porcelain)"
+
+      - name: Require protected staging identities
+        env:
+          APPROVED_HOST: ${{ vars.STAGING_INTAKE_APPROVED_HOST }}
+          INTAKE_TOKEN: ${{ secrets.STAGING_SDK_INTAKE_TOKEN }}
+          SAFETY_TOKEN: ${{ secrets.STAGING_RUNTIME_SAFETY_TOKEN }}
+        run: |
+          test -n "$APPROVED_HOST"
+          test -n "$INTAKE_TOKEN"
+          test -n "$SAFETY_TOKEN"
+
+      - name: Run exact-source no-effect intake certification
+        env:
+          STAGING_SDK_INTAKE_TOKEN: ${{ secrets.STAGING_SDK_INTAKE_TOKEN }}
+          STAGING_RUNTIME_SAFETY_TOKEN: ${{ secrets.STAGING_RUNTIME_SAFETY_TOKEN }}
+          STAGING_INTAKE_APPROVED_HOST: ${{ vars.STAGING_INTAKE_APPROVED_HOST }}
+          BASE_URL: ${{ inputs.base_url }}
+          TENANT_ID: ${{ inputs.tenant_id }}
+          EXPECTED_SOURCE_SHA: ${{ github.sha }}
+        run: |
+          python3 scripts/staging-intake-e2e-no-effect.py \
+            --base-url "$BASE_URL" \
+            --tenant "$TENANT_ID" \
+            --expected-source-sha "$EXPECTED_SOURCE_SHA"
+
+      - name: Record non-authorization boundary
+        if: always()
+        run: |
+          echo 'PRODUCTION_DEPLOYMENT_AUTHORIZED=NO'
+          echo 'PRODUCTION_ODOO_WRITES_AUTHORIZED=NO'
+          echo 'PRODUCTION_PSTN_AUTHORIZED=NO'
+          echo 'EXTERNAL_EFFECTS_AUTHORIZED=NONE'

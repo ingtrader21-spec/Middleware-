@@ -1,0 +1,44 @@
+{
+  "id": "CdstScraperDeadLetterCanaryV1",
+  "name": "ZZ_CDX_SCRAPER_CANARY_DeadLetter_V1",
+  "active": false,
+  "nodes": [
+    {
+      "id": "internal-webhook",
+      "name": "Authenticated Dead Letter",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "parameters": {
+        "path": "internal/scraper-canary/dead-letter/v1",
+        "httpMethod": "POST",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "validate-dead-letter",
+      "name": "Validate Redacted Dead Letter",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [260, 0],
+      "parameters": {
+        "jsCode": "const e=$json.body||{}; const allowed=['event_id','payload_hash','correlation_id','tenant_id','campaign_id','error_code','attempts','synthetic_name']; for(const k of Object.keys(e)) if(!allowed.includes(k)) throw new Error('DEAD_LETTER_FIELD_NOT_ALLOWED'); for(const k of ['event_id','payload_hash','correlation_id','tenant_id','campaign_id','error_code','synthetic_name']) if(typeof e[k]!=='string'||!e[k]) throw new Error('INVALID_DEAD_LETTER'); if(!e.synthetic_name.startsWith('ZZ_CDX_SCRAPER_CANARY_')) throw new Error('CANARY_PREFIX_REQUIRED'); return [{json:{schema_version:'codestra.scraper-n8n-dead-letter.v1',event_id:e.event_id,payload_hash:e.payload_hash,correlation_id:e.correlation_id,status:'recorded_no_message',redrive_authorized:false}}];"
+      }
+    },
+    {
+      "id": "durable-response",
+      "name": "Durable Dead Letter Result",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [520, 0],
+      "parameters": {"respondWith": "json", "responseBody": "={{$json}}", "options": {"responseCode": 200}}
+    }
+  ],
+  "connections": {
+    "Authenticated Dead Letter": {"main": [[{"node": "Validate Redacted Dead Letter", "type": "main", "index": 0}]]},
+    "Validate Redacted Dead Letter": {"main": [[{"node": "Durable Dead Letter Result", "type": "main", "index": 0}]]}
+  },
+  "settings": {"executionOrder": "v1", "saveDataErrorExecution": "all", "saveDataSuccessExecution": "none"},
+  "tags": [{"name": "scraper-canary"}, {"name": "no-customer-message"}]
+}

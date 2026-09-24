@@ -1,0 +1,44 @@
+diff --git a/Lib/webbrowser.py b/Lib/webbrowser.py
+--- a/Lib/webbrowser.py
++++ b/Lib/webbrowser.py
+@@ -106,6 +106,12 @@ class BaseBrowser:
+     def open_new_tab(self, url):
+         return self.open(url, 2)
+ 
++    @staticmethod
++    def _check_url(url):
++        """Ensure that a URL is safe to pass as a subprocess parameter."""
++        if url and url.lstrip().startswith("-"):
++            raise ValueError(f"Invalid URL (leading dash disallowed): {url!r}")
++
+ 
+ class GenericBrowser(BaseBrowser):
+ 
+@@ -273,7 +279,9 @@ class UnixBrowser(BaseBrowser):
+             raise Error("Bad 'new' parameter to open(); " +
+                         "expected 0, 1, or 2, got %s" % new)
+ 
+-        args = [arg.replace("%s", url).replace("%action", action)
++        self._check_url(url.replace("%action", action))
++
++        args = [arg.replace("%action", action).replace("%s", url)
+                 for arg in self.remote_args]
+         args = [arg for arg in args if arg]
+         success = self._invoke(args, True, autoraise, url)
+diff --git a/Lib/test/test_webbrowser.py b/Lib/test/test_webbrowser.py
+--- a/Lib/test/test_webbrowser.py
++++ b/Lib/test/test_webbrowser.py
+@@ -119,6 +119,14 @@ class CommandTestMixin:
+                    options=[],
+                    arguments=[URL])
+ 
++    def test_reject_action_dash_prefixes(self):
++        browser = self.browser_class(name=CMD_NAME)
++        with self.assertRaises(ValueError):
++            browser.open('%action--incognito')
++        # new=1 expands %action to a dash-prefixed browser flag.
++        with self.assertRaises(ValueError):
++            browser.open('%action', new=1)
++
+ 
+ class MozillaCommandTest(CommandTestMixin, unittest.TestCase):

@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.codestra.co/provider-canary-run.v1.schema.json",
+  "title": "Codestra provider canary run v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "environment",
+    "middleware_origin",
+    "approval_reference",
+    "started_at",
+    "completed_at",
+    "overall_status",
+    "canaries"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "run_id": {"type": "string", "pattern": "^provider-canary-[0-9a-f]{32}$"},
+    "environment": {"const": "staging"},
+    "middleware_origin": {"type": "string", "format": "uri", "pattern": "^https://"},
+    "approval_reference": {"type": "string", "minLength": 8, "maxLength": 128},
+    "started_at": {"type": "string", "format": "date-time"},
+    "completed_at": {"type": "string", "format": "date-time"},
+    "overall_status": {"enum": ["PASS", "FAIL", "INDETERMINATE"]},
+    "canaries": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name", "channel", "target", "outcome", "command_id",
+          "correlation_id", "idempotency_key_fingerprint",
+          "approval_reference", "approved_destination_reference",
+          "destination_fingerprint", "payload_fingerprint", "submitted_at",
+          "terminal_at", "latency_ms", "terminal_status", "provider_reference",
+          "readback_evidence", "readback_evidence_sha256", "reason"
+        ],
+        "properties": {
+          "name": {"type": "string", "minLength": 1},
+          "channel": {"enum": ["email", "sms", "voice", "social"]},
+          "target": {"enum": ["klyrow-email", "telnexa-sms", "vicidial-restricted", "postly-social"]},
+          "outcome": {"enum": ["PASS", "FAIL", "INDETERMINATE"]},
+          "command_id": {"type": "string", "format": "uuid"},
+          "correlation_id": {"type": "string", "format": "uuid"},
+          "idempotency_key_fingerprint": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+          "approval_reference": {"type": "string", "minLength": 8, "maxLength": 128},
+          "approved_destination_reference": {"type": "string", "minLength": 8, "maxLength": 128},
+          "destination_fingerprint": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+          "payload_fingerprint": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+          "submitted_at": {"type": "string", "format": "date-time"},
+          "terminal_at": {"type": "string", "format": "date-time"},
+          "latency_ms": {"type": "integer", "minimum": 0},
+          "terminal_status": {"type": "string", "minLength": 1},
+          "provider_reference": {"type": ["string", "null"]},
+          "readback_evidence": {"type": ["object", "null"]},
+          "readback_evidence_sha256": {
+            "oneOf": [
+              {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+              {"type": "null"}
+            ]
+          },
+          "reason": {"type": ["string", "null"]}
+        }
+      }
+    }
+  }
+}

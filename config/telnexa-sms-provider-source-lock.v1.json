@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "1.0",
+  "authority": {
+    "sdkRepository": "appolon1908-hue/SDK-repository",
+    "sdkContractSha": "63c793e88cca5daecfb5c8a688b8674ab288c522",
+    "middlewareRepository": "ingtrader21-spec/Middleware-",
+    "middlewareBranch": "feat/communications-api-v1-sms-runtime",
+    "middlewareBaseSha": "d9735422796cb2aa18a39339aad3cc87bdf67ba9",
+    "telnexaRepository": "appolon1908-hue/telnexa",
+    "telnexaSourceBranch": "feat/communications-api-v1-sms-provider",
+    "telnexaProtectedBranch": "main",
+    "telnexaPullRequest": 22,
+    "telnexaSourceSha": "ee4cea8e6d15a5ba24c1f37d0ede60df67eaa151",
+    "telnexaSyntheticMergeSha": "b3e3e09597b5113ba44cef56686025aa1bd0cbbd",
+    "telnexaMergedMainSha": "e68c81f1173d6c0b491b66d353445c397461746e"
+  },
+  "certification": {
+    "exactHeadWorkflow": {
+      "name": "Telnexa exact-head CI",
+      "runId": 33338423307,
+      "conclusion": "success"
+    },
+    "providerWorkflow": {
+      "name": "Step 4 SMS provider certification",
+      "runId": 33338423309,
+      "conclusion": "success"
+    },
+    "reviewThreadsResolved": 4,
+    "independentApprovalPending": false,
+    "independentApprovalBy": "kazan555",
+    "sourcePromotionMerged": true
+  },
+  "contracts": {
+    "commandType": "sms.message.submit.v1",
+    "target": "telnexa-sms",
+    "capability": "SMS_DELIVERY",
+    "providerSubmissionMaximum": 1,
+    "blindProviderResubmission": false,
+    "authoritativeReadbackRequiredAfterUnknownOutcome": true,
+    "durableProviderReferenceRequiredBeforeBillingCommit": true,
+    "staleSubmittingRecovery": "authoritative_readback_only",
+    "reconciliationAttemptClaim": "serialized_row_lock"
+  },
+  "liveEffects": {
+    "SMS_DELIVERY": false,
+    "SMS_DELIVERY_ENABLED": false,
+    "LIVE_SMS_DELIVERY": false,
+    "JASMIN_LIVE_SUBMISSION": false,
+    "CALLBACK_DISPATCH_ENABLED": false,
+    "PRODUCTION_DEPLOYED": false,
+    "SMS_SENT": false
+  }
+}

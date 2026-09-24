@@ -1,0 +1,9 @@
+apiVersion: platform.codestra.co/v1
+kind: Dependencies
+items:
+  - id: postgres
+    requiredForReadiness: true
+  - id: redis
+    requiredForReadiness: true
+  - id: keycloak
+    requiredForReadiness: true

@@ -1,0 +1,79 @@
+[
+  {
+    "id":"CdstSocialPostPublishedV1","name":"CdstSocialPostPublishedV1","active":false,
+    "nodes":[
+      {"id":"trigger","name":"Provider Neutral Event","type":"n8n-nodes-base.executeWorkflowTrigger","typeVersion":1.2,"position":[0,0],"parameters":{"inputSource":"passthrough"}},
+      {"id":"handle","name":"Record Published Result","type":"n8n-nodes-base.code","typeVersion":2,"position":[240,0],"parameters":{"jsCode":"const e=$json.event; if(e.event_type!=='social.post.published') throw new Error('event type mismatch'); return [{json:{...$json,handler_result:{event_id:e.event_id,status:'completed',side_effect:'none'}}}];"}}
+    ],"connections":{"Provider Neutral Event":{"main":[[{"node":"Record Published Result","type":"main","index":0}]]}},"settings":{"executionOrder":"v1"}
+  },
+  {
+    "id":"CdstSocialPostFailedV1","name":"CdstSocialPostFailedV1","active":false,
+    "nodes":[
+      {"id":"trigger","name":"Provider Neutral Event","type":"n8n-nodes-base.executeWorkflowTrigger","typeVersion":1.2,"position":[0,0],"parameters":{"inputSource":"passthrough"}},
+      {"id":"handle","name":"Record Failure Without Provider Retry","type":"n8n-nodes-base.code","typeVersion":2,"position":[240,0],"parameters":{"jsCode":"const e=$json.event; if(e.event_type!=='social.post.failed') throw new Error('event type mismatch'); return [{json:{...$json,handler_result:{event_id:e.event_id,status:'completed',provider_retry:false}}}];"}}
+    ],"connections":{"Provider Neutral Event":{"main":[[{"node":"Record Failure Without Provider Retry","type":"main","index":0}]]}},"settings":{"executionOrder":"v1"}
+  },
+  {
+    "id":"CdstSocialAccountDisconnectedV1","name":"CdstSocialAccountDisconnectedV1","active":false,
+    "nodes":[
+      {"id":"trigger","name":"Provider Neutral Event","type":"n8n-nodes-base.executeWorkflowTrigger","typeVersion":1.2,"position":[0,0],"parameters":{"inputSource":"passthrough"}},
+      {"id":"handle","name":"Pause Automation Intent","type":"n8n-nodes-base.code","typeVersion":2,"position":[240,0],"parameters":{"jsCode":"const e=$json.event; if(e.event_type!=='social.account.disconnected') throw new Error('event type mismatch'); return [{json:{...$json,handler_result:{event_id:e.event_id,status:'completed',automation_paused:true}}}];"}}
+    ],"connections":{"Provider Neutral Event":{"main":[[{"node":"Pause Automation Intent","type":"main","index":0}]]}},"settings":{"executionOrder":"v1"}
+  },
+  {
+    "id":"CdstSocialAccountAuthRequiredV1","name":"CdstSocialAccountAuthRequiredV1","active":false,
+    "nodes":[
+      {"id":"trigger","name":"Provider Neutral Event","type":"n8n-nodes-base.executeWorkflowTrigger","typeVersion":1.2,"position":[0,0],"parameters":{"inputSource":"passthrough"}},
+      {"id":"handle","name":"Create Reauthentication Intent","type":"n8n-nodes-base.code","typeVersion":2,"position":[240,0],"parameters":{"jsCode":"const e=$json.event; if(e.event_type!=='social.account.authentication_required') throw new Error('event type mismatch'); return [{json:{...$json,handler_result:{event_id:e.event_id,status:'completed',action:'reauthentication_required'}}}];"}}
+    ],"connections":{"Provider Neutral Event":{"main":[[{"node":"Create Reauthentication Intent","type":"main","index":0}]]}},"settings":{"executionOrder":"v1"}
+  },
+  {
+    "id":"CdstSocialCommentReceivedV1","name":"CdstSocialCommentReceivedV1","active":false,
+    "nodes":[
+      {"id":"trigger","name":"Provider Neutral Event","type":"n8n-nodes-base.executeWorkflowTrigger","typeVersion":1.2,"position":[0,0],"parameters":{"inputSource":"passthrough"}},
+      {"id":"handle","name":"Capability Gate Comment","type":"n8n-nodes-base.code","typeVersion":2,"position":[240,0],"parameters":{"jsCode":"throw new Error('SOCIAL_COMMENT_POLLING_CAPABILITY_DISABLED');"}}
+    ],"connections":{"Provider Neutral Event":{"main":[[{"node":"Capability Gate Comment","type":"main","index":0}]]}},"settings":{"executionOrder":"v1"}
+  },
+  {
+    "id":"CdstSocialMessageReceivedV1","name":"CdstSocialMessageReceivedV1","active":false,
+    "nodes":[
+      {"id":"trigger","name":"Provider Neutral Event","type":"n8n-nodes-base.executeWorkflowTrigger","typeVersion":1.2,"position":[0,0],"parameters":{"inputSource":"passthrough"}},
+      {"id":"handle","name":"Capability Gate Message","type":"n8n-nodes-base.code","typeVersion":2,"position":[240,0],"parameters":{"jsCode":"throw new Error('SOCIAL_MESSAGE_POLLING_CAPABILITY_DISABLED');"}}
+    ],"connections":{"Provider Neutral Event":{"main":[[{"node":"Capability Gate Message","type":"main","index":0}]]}},"settings":{"executionOrder":"v1"}
+  },
+  {
+    "id":"CdstSocialAnalyticsUpdatedV1","name":"CdstSocialAnalyticsUpdatedV1","active":false,
+    "nodes":[
+      {"id":"trigger","name":"Provider Neutral Event","type":"n8n-nodes-base.executeWorkflowTrigger","typeVersion":1.2,"position":[0,0],"parameters":{"inputSource":"passthrough"}},
+      {"id":"handle","name":"Normalize Analytics","type":"n8n-nodes-base.code","typeVersion":2,"position":[240,0],"parameters":{"jsCode":"const e=$json.event; if(e.event_type!=='social.analytics.updated') throw new Error('event type mismatch'); return [{json:{...$json,handler_result:{event_id:e.event_id,status:'completed',metrics:e.payload.metrics||{}}}}];"}}
+    ],"connections":{"Provider Neutral Event":{"main":[[{"node":"Normalize Analytics","type":"main","index":0}]]}},"settings":{"executionOrder":"v1"}
+  },
+  {
+    "id":"CdstSocialLeadQualificationV1","name":"CdstSocialLeadQualificationV1","active":false,
+    "nodes":[
+      {"id":"trigger","name":"Provider Neutral Event","type":"n8n-nodes-base.executeWorkflowTrigger","typeVersion":1.2,"position":[0,0],"parameters":{"inputSource":"passthrough"}},
+      {"id":"handle","name":"Classify Without Odoo Write","type":"n8n-nodes-base.code","typeVersion":2,"position":[240,0],"parameters":{"jsCode":"const text=String($json.event?.payload?.text||'').toLowerCase(); const classification=/buy|price|quote|demo/.test(text)?'SALES_LEAD':/help|support/.test(text)?'SUPPORT':/spam/.test(text)?'SPAM':'GENERAL'; return [{json:{...$json,handler_result:{event_id:$json.event.event_id,classification,odoo_write:false}}}];"}}
+    ],"connections":{"Provider Neutral Event":{"main":[[{"node":"Classify Without Odoo Write","type":"main","index":0}]]}},"settings":{"executionOrder":"v1"}
+  },
+  {
+    "id":"CdstSocialOdooProjectionV1","name":"CdstSocialOdooProjectionV1","active":false,
+    "nodes":[
+      {"id":"trigger","name":"Provider Neutral Event","type":"n8n-nodes-base.executeWorkflowTrigger","typeVersion":1.2,"position":[0,0],"parameters":{"inputSource":"passthrough"}},
+      {"id":"handle","name":"Dry Run Projection Only","type":"n8n-nodes-base.code","typeVersion":2,"position":[240,0],"parameters":{"jsCode":"return [{json:{...$json,handler_result:{event_id:$json.event.event_id,dry_run:true,odoo_write:false}}}];"}}
+    ],"connections":{"Provider Neutral Event":{"main":[[{"node":"Dry Run Projection Only","type":"main","index":0}]]}},"settings":{"executionOrder":"v1"}
+  },
+  {
+    "id":"CdstSocialNotificationV1","name":"CdstSocialNotificationV1","active":false,
+    "nodes":[
+      {"id":"trigger","name":"Provider Neutral Event","type":"n8n-nodes-base.executeWorkflowTrigger","typeVersion":1.2,"position":[0,0],"parameters":{"inputSource":"passthrough"}},
+      {"id":"handle","name":"Record Notification Intent","type":"n8n-nodes-base.code","typeVersion":2,"position":[240,0],"parameters":{"jsCode":"return [{json:{...$json,handler_result:{event_id:$json.event.event_id,status:'recorded',external_send:false}}}];"}}
+    ],"connections":{"Provider Neutral Event":{"main":[[{"node":"Record Notification Intent","type":"main","index":0}]]}},"settings":{"executionOrder":"v1"}
+  },
+  {
+    "id":"CdstSocialDeadLetterV1","name":"CdstSocialDeadLetterV1","active":false,
+    "nodes":[
+      {"id":"trigger","name":"Provider Neutral Event","type":"n8n-nodes-base.executeWorkflowTrigger","typeVersion":1.2,"position":[0,0],"parameters":{"inputSource":"passthrough"}},
+      {"id":"handle","name":"Safe Dead Letter","type":"n8n-nodes-base.code","typeVersion":2,"position":[240,0],"parameters":{"jsCode":"const e=$json.event||{}; return [{json:{...$json,handler_result:{event_id:e.event_id,event_type:e.event_type,error_code:'SOCIAL_EVENT_UNSUPPORTED',correlation_id:e.correlation_id,timestamp:new Date().toISOString()}}}];"}}
+    ],"connections":{"Provider Neutral Event":{"main":[[{"node":"Safe Dead Letter","type":"main","index":0}]]}},"settings":{"executionOrder":"v1"}
+  }
+]

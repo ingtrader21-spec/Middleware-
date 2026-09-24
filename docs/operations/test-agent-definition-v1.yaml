@@ -1,0 +1,35 @@
+schema_version: 1
+record_environment: TEST
+test_business_unit: BU-400-COD
+test_campaign: CMP-400-COD
+test_campaign_code: COD
+test_agent_display_name: Codestra Test Agent 001
+test_agent_public_id: 400-AGT-90000001
+test_lead_public_id: 400-L-90000001
+test_callback_public_id: 400-CB-90000001
+sequence_policy:
+  agent: [90000000, 99999999]
+  lead: [90000000, 99999999]
+  callback: [90000000, 99999999]
+extension_candidates: [7490, 7491, 7492, 7493, 7494]
+extension_selection: CONFLICT_SCAN_REQUIRED
+states:
+  agent: PROVISIONED_DISABLED
+  campaign: PROVISIONED_DISABLED
+  dialing: NOT_ELIGIBLE
+  extension: RESERVED_DISABLED
+  endpoint: REQUESTED_OR_COMMITTED_DISABLED
+permissions:
+  customer_campaign: false
+  external_destination: false
+  email: false
+  sms: false
+  callback_dispatch: false
+  transfer: false
+retention:
+  durable_identity_records: APPROVAL_REQUIRED
+  immutable_audit: RETAIN
+  temporary_credentials: REVOKE
+  active_contacts: REMOVE
+prohibited_extensions: [6000, 6110, 6197, 6198]
+production_writes: false

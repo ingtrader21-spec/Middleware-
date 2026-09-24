@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 2,
+  "kind": "middleware-runtime-source-authority",
+  "repositoryAuthority": {
+    "repository": "ingtrader21-spec/Middleware-",
+    "protectedSourceRef": "refs/heads/main",
+    "sourceResolution": "resolve the exact protected-main GitHub event SHA at workflow execution",
+    "staticSourceShaAllowed": false,
+    "ruleset": "middleware-main-production-authority"
+  },
+  "artifactAuthority": {
+    "releaseManifestSchema": "contracts/release-manifest.v1.schema.json",
+    "releaseWorkflow": ".github/workflows/release.yml",
+    "productionAdmissionWorkflow": ".github/workflows/automated-production-promotion.yml",
+    "runtimeCertificationWorkflow": ".github/workflows/production-runtime-certification.yml",
+    "runtimeProfileRegistry": "config/runtime-profiles.v1.json"
+  },
+  "runtimeAuthority": {
+    "runtimeState": "must_be_proven_at_execution",
+    "repositoryMetadataClaimsDeployment": false,
+    "certificationIssue": 118,
+    "requiredEvidence": [
+      "signed release manifest bound to exact protected-main source",
+      "immutable image digest and verified provenance",
+      "effective runtime source, digest, schema, profile, and capability read-back",
+      "backup and isolated restore evidence",
+      "rollback rehearsal and data-integrity evidence",
+      "zero live-effect counters"
+    ]
+  },
+  "historicalSnapshots": [
+    {
+      "path": "MIDDLEWARE-AUTHORITY-RECONCILIATION.yaml",
+      "role": "historical source-reconciliation snapshot",
+      "deploymentAuthority": false
+    },
+    {
+      "path": "docs/SERVER-RUNTIME-RECONCILIATION-MAP.md",
+      "role": "historical server-inventory snapshot",
+      "deploymentAuthority": false
+    }
+  ],
+  "safetyBoundary": {
+    "deploymentAuthorizedByThisFile": false,
+    "productionTrafficAuthorizedByThisFile": false,
+    "externalEffectsAuthorizedByThisFile": false,
+    "liveWritesRequired": false,
+    "odooWritesRequired": false,
+    "n8nDeliveryRequired": false,
+    "emailDeliveryRequired": false,
+    "smsDeliveryRequired": false,
+    "pstnDialingRequired": false,
+    "callsPlacedExpected": 0
+  }
+}

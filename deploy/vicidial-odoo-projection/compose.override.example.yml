@@ -1,0 +1,51 @@
+services:
+  vicidial-odoo-projection-state-init:
+    image: ${MIDDLEWARE_IMAGE:?pin an immutable middleware image@sha256 digest}
+    command: ["-m", "workers.init_vicidial_odoo_projection_state"]
+    environment:
+      VICIDIAL_ODOO_STATE_DIRECTORY: /state
+    restart: "no"
+    read_only: true
+    user: "0:0"
+    cap_drop: ["ALL"]
+    cap_add: ["CHOWN", "DAC_OVERRIDE", "FOWNER"]
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      disable: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=16m
+    volumes:
+      - vicidial_odoo_projection_state:/state
+
+  vicidial-odoo-projection:
+    image: ${MIDDLEWARE_IMAGE:?pin an immutable middleware image@sha256 digest}
+    command: ["-m", "workers.run_vicidial_odoo_projection"]
+    restart: unless-stopped
+    read_only: true
+    user: "65532:65532"
+    cap_drop: ["ALL"]
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      disable: true
+    depends_on:
+      vicidial-odoo-projection-state-init:
+        condition: service_completed_successfully
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=32m
+    env_file:
+      - ./vicidial-odoo-projection.env
+    volumes:
+      - vicidial_odoo_projection_state:/var/lib/codestra-middleware
+      - ${NATS_VICIDIAL_ODOO_CREDS_FILE:?host NATS credentials file}:/run/secrets/middleware-staging-vicidial-odoo-nats.creds:ro
+      - ${ODOO_CALL_EVENT_HMAC_FILE:?host Odoo HMAC file}:/run/secrets/middleware-staging-vicidial-odoo-hmac:ro
+    networks:
+      - middleware_private
+
+volumes:
+  vicidial_odoo_projection_state:
+
+networks:
+  middleware_private:
+    external: true

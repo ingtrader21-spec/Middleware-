@@ -1,0 +1,453 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Codestra companion service contracts",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "dependencies.yaml",
+    "observability.yaml",
+    "permissions.yaml",
+    "integration.yaml",
+    "slo.yaml"
+  ],
+  "properties": {
+    "dependencies.yaml": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "apiVersion",
+        "kind",
+        "items"
+      ],
+      "properties": {
+        "apiVersion": {
+          "const": "platform.codestra.co/v1",
+          "type": "string"
+        },
+        "kind": {
+          "const": "Dependencies",
+          "type": "string"
+        },
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "requiredForReadiness"
+            ],
+            "properties": {
+              "id": {
+                "enum": [
+                  "alertmanager",
+                  "alloy",
+                  "caddy",
+                  "grafana",
+                  "keycloak",
+                  "kong",
+                  "loki",
+                  "middleware",
+                  "n8n",
+                  "odoo",
+                  "openbao",
+                  "postgres",
+                  "prometheus",
+                  "redis",
+                  "superset",
+                  "tempo",
+                  "telemetry",
+                  "vicidial"
+                ]
+              },
+              "requiredForReadiness": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      }
+    },
+    "observability.yaml": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "apiVersion",
+        "kind",
+        "metrics",
+        "logs",
+        "traces",
+        "nativeBackends"
+      ],
+      "properties": {
+        "apiVersion": {
+          "const": "platform.codestra.co/v1",
+          "type": "string"
+        },
+        "kind": {
+          "const": "Observability",
+          "type": "string"
+        },
+        "metrics": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path"
+          ],
+          "properties": {
+            "path": {
+              "const": "/metrics",
+              "type": "string"
+            }
+          }
+        },
+        "logs": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "format",
+            "redact"
+          ],
+          "properties": {
+            "format": {
+              "const": "json",
+              "type": "string"
+            },
+            "redact": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "allOf": [
+                {
+                  "contains": {
+                    "const": "authorization",
+                    "type": "string"
+                  }
+                },
+                {
+                  "contains": {
+                    "const": "cookie",
+                    "type": "string"
+                  }
+                },
+                {
+                  "contains": {
+                    "const": "password",
+                    "type": "string"
+                  }
+                },
+                {
+                  "contains": {
+                    "const": "token",
+                    "type": "string"
+                  }
+                },
+                {
+                  "contains": {
+                    "const": "connection_string",
+                    "type": "string"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "traces": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "propagation"
+          ],
+          "properties": {
+            "propagation": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "allOf": [
+                {
+                  "contains": {
+                    "const": "traceparent",
+                    "type": "string"
+                  }
+                },
+                {
+                  "contains": {
+                    "const": "x-correlation-id",
+                    "type": "string"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "nativeBackends": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "prometheus",
+              "alertmanager",
+              "loki",
+              "tempo",
+              "alloy",
+              "telemetry",
+              "grafana"
+            ]
+          }
+        }
+      }
+    },
+    "permissions.yaml": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "apiVersion",
+        "kind",
+        "scopes",
+        "production"
+      ],
+      "properties": {
+        "apiVersion": {
+          "const": "platform.codestra.co/v1",
+          "type": "string"
+        },
+        "kind": {
+          "const": "Permissions",
+          "type": "string"
+        },
+        "scopes": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "read",
+            "write",
+            "review",
+            "operate"
+          ],
+          "properties": {
+            "read": {
+              "type": "array",
+              "minItems": 2,
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "platform.services.read",
+                  "platform.provisioning.read"
+                ]
+              },
+              "maxItems": 2
+            },
+            "write": {
+              "type": "array",
+              "minItems": 2,
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "platform.services.write",
+                  "platform.provisioning.request"
+                ]
+              },
+              "maxItems": 2
+            },
+            "review": {
+              "type": "array",
+              "minItems": 2,
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "platform.provisioning.validate",
+                  "platform.provisioning.approve"
+                ]
+              },
+              "maxItems": 2
+            },
+            "operate": {
+              "type": "array",
+              "minItems": 2,
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "platform.provisioning.apply",
+                  "platform.provisioning.rollback"
+                ]
+              },
+              "maxItems": 2
+            }
+          }
+        },
+        "production": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "approvalRequired",
+            "selfApprovalAllowed"
+          ],
+          "properties": {
+            "approvalRequired": {
+              "const": true,
+              "type": "boolean"
+            },
+            "selfApprovalAllowed": {
+              "const": false,
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    },
+    "integration.yaml": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "apiVersion",
+        "kind",
+        "authority",
+        "odoo",
+        "events",
+        "externalEffects"
+      ],
+      "properties": {
+        "apiVersion": {
+          "const": "platform.codestra.co/v1",
+          "type": "string"
+        },
+        "kind": {
+          "const": "Integration",
+          "type": "string"
+        },
+        "authority": {
+          "const": "middleware",
+          "type": "string"
+        },
+        "odoo": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "directDatabaseAccess",
+            "unrestrictedRpcAccess",
+            "writesRequireOutbox"
+          ],
+          "properties": {
+            "directDatabaseAccess": {
+              "const": false,
+              "type": "boolean"
+            },
+            "unrestrictedRpcAccess": {
+              "const": false,
+              "type": "boolean"
+            },
+            "writesRequireOutbox": {
+              "const": true,
+              "type": "boolean"
+            }
+          }
+        },
+        "events": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "idempotencyRequired",
+            "correlationRequired",
+            "signedWebhooksRequired"
+          ],
+          "properties": {
+            "idempotencyRequired": {
+              "const": true,
+              "type": "boolean"
+            },
+            "correlationRequired": {
+              "const": true,
+              "type": "boolean"
+            },
+            "signedWebhooksRequired": {
+              "const": true,
+              "type": "boolean"
+            }
+          }
+        },
+        "externalEffects": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "email",
+            "sms",
+            "pstn"
+          ],
+          "properties": {
+            "email": {
+              "const": "disabled",
+              "type": "string"
+            },
+            "sms": {
+              "const": "disabled",
+              "type": "string"
+            },
+            "pstn": {
+              "const": "disabled",
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "slo.yaml": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "apiVersion",
+        "kind",
+        "profile",
+        "objectives"
+      ],
+      "properties": {
+        "apiVersion": {
+          "const": "platform.codestra.co/v1",
+          "type": "string"
+        },
+        "kind": {
+          "const": "ServiceLevelObjective",
+          "type": "string"
+        },
+        "profile": {
+          "type": "string",
+          "minLength": 2
+        },
+        "objectives": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "availability",
+            "latencyP95Milliseconds",
+            "windowDays"
+          ],
+          "properties": {
+            "availability": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 100
+            },
+            "latencyP95Milliseconds": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "windowDays": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 366
+            }
+          }
+        }
+      }
+    }
+  }
+}

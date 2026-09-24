@@ -1,0 +1,10 @@
+services:
+  reverse-proxy:
+    networks:
+      qwen_auth_private:
+        ipv4_address: 10.250.241.2
+
+networks:
+  qwen_auth_private:
+    external: true
+    name: codestra_qwen_auth_private

@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://codestra.internal/schemas/candidate-image-manifest.v1.json",
+  "title": "Codestra staging candidate image manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "manifest_version",
+    "company",
+    "repository",
+    "pr_number",
+    "head_sha",
+    "image_repository",
+    "image_digest",
+    "candidate_scope",
+    "production_release_provenance_assigned",
+    "sbom_sha256",
+    "trivy_sha256",
+    "grype_sha256",
+    "vulnerability_matrix_sha256",
+    "vulnerability_summary_sha256",
+    "provenance_sha256",
+    "build_run_id",
+    "build_run_attempt",
+    "created_utc"
+  ],
+  "properties": {
+    "$schema": {"const": "https://codestra.internal/schemas/candidate-image-manifest.v1.json"},
+    "manifest_version": {"const": 1},
+    "company": {"const": "Codestra LLC"},
+    "repository": {"const": "ingtrader21-spec/Middleware-"},
+    "pr_number": {"type": "integer", "minimum": 1},
+    "head_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "image_repository": {"enum": [
+      "ghcr.io/ingtrader21-spec/codestra-middleware",
+      "ghcr.io/codestra-srl/codestra-agent-desktop",
+      "ghcr.io/codestra-srl/codestra-websocket-gateway"
+    ]},
+    "image_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "candidate_scope": {"const": "server_a_isolated_staging_candidate"},
+    "production_release_provenance_assigned": {"const": false},
+    "sbom_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "trivy_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "grype_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "vulnerability_matrix_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "vulnerability_summary_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "provenance_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "build_run_id": {"type": "string", "pattern": "^[1-9][0-9]*$"},
+    "build_run_attempt": {"type": "string", "pattern": "^[1-9][0-9]*$"},
+    "created_utc": {"type": "string", "format": "date-time", "pattern": "Z$"}
+  }
+}

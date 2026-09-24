@@ -1,0 +1,19 @@
+# Root-owned configuration for /usr/local/sbin/codestra-middleware-deploy.
+# Copy to /etc/codestra-middleware/deploy.conf, adjust only verified host values,
+# and retain root:root ownership with mode 0600.
+
+DEPLOY_USER=middleware-deploy
+INCOMING_DIR=/home/middleware-deploy/incoming
+RELEASES_DIR=/srv/codestra-middleware/releases
+RUNTIME_ENV_FILE=/etc/codestra-middleware/runtime.env
+RUNTIME_NETWORK=AUTO
+POSTGRES_CONTAINER=codestra-postgres-1
+REDIS_CONTAINER=redis
+POSTGRES_DATABASE=codestra_middleware_appolon
+BACKUP_COMMAND=/usr/local/sbin/codestra-middleware-backup
+BACKUP_DIR=/var/backups/codestra-middleware
+OFFHOST_BACKUP_DIR=
+EVIDENCE_DIR=/var/lib/codestra-middleware/deployments
+GHCR_USERNAME=appolon1908-hue
+FORWARDED_ALLOW_IPS=127.0.0.1
+OBSERVATION_SECONDS=30

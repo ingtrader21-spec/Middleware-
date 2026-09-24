@@ -1,0 +1,1 @@
+{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["s3:GetObjectRetention","s3:GetObjectLegalHold","s3:ListBucketVersions"],"Resource":["arn:aws:s3:::codestra-recordings-*","arn:aws:s3:::codestra-recordings-*/*"]}]}

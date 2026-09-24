@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.codestra.co/platform/release-manifest.v1.schema.json",
+  "title": "Codestra Middleware Release Manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "release_id", "service", "repository", "source", "image", "runtime", "build", "artifacts", "verification", "promotion"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "release_id": {"type": "string", "pattern": "^[0-9a-f]{12}-[0-9a-f]{12}$"},
+    "service": {"const": "middleware-api"},
+    "repository": {"enum": ["ingtrader21-spec/Middleware-", "appolon1908-hue/Middleware-"]},
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["git_sha", "git_tree_id", "ref"],
+      "properties": {
+        "git_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "git_tree_id": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "ref": {"const": "refs/heads/main"}
+      }
+    },
+    "image": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "digest", "reference", "platforms", "base_image"],
+      "properties": {
+        "repository": {"enum": ["ghcr.io/ingtrader21-spec/codestra-middleware", "ghcr.io/appolon1908-hue/codestra-middleware"]},
+        "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "reference": {"type": "string", "pattern": "^ghcr\\.io/(ingtrader21-spec|appolon1908-hue)/codestra-middleware@sha256:[0-9a-f]{64}$"},
+        "platforms": {"const": ["linux/amd64"]},
+        "base_image": {"const": "python:3.14.7-slim-bookworm@sha256:82bc3c539b8813ada9d68c63b40158fa002f7f33de9bf3312a3dfdc0620dff56"}
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_or_migration_head", "runtime_profile_ids", "external_effects_default"],
+      "properties": {
+        "schema_or_migration_head": {"type": "string", "pattern": "^[0-9]{4}_[a-z0-9_]+$"},
+        "runtime_profile_ids": {"const": ["codestra-middleware-production-compose-v1", "codestra-middleware-production-v1", "codestra-middleware-staging-v1"]},
+        "external_effects_default": {"const": "disabled"}
+      }
+    },
+    "build": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["workflow_path", "workflow_identity", "run_id", "run_attempt", "built_at", "runner_image", "provenance"],
+      "properties": {
+        "workflow_path": {"const": ".github/workflows/release.yml"},
+        "workflow_identity": {"enum": ["https://github.com/ingtrader21-spec/Middleware-/.github/workflows/release.yml@refs/heads/main", "https://github.com/appolon1908-hue/Middleware-/.github/workflows/release.yml@refs/heads/main"]},
+        "run_id": {"type": "integer", "minimum": 1},
+        "run_attempt": {"type": "integer", "minimum": 1},
+        "built_at": {"type": "string", "format": "date-time", "pattern": "Z$"},
+        "runner_image": {"const": "ubuntu-24.04"},
+        "provenance": {"const": "buildkit-mode-max"}
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dependency_input", "dependency_lock", "test_dependency_input", "test_dependency_lock", "dockerfile", "runtime_profiles", "contracts_bundle", "migrations_bundle", "sbom", "vulnerability_report"],
+      "properties": {
+        "dependency_input": {"$ref": "#/$defs/artifact"},
+        "dependency_lock": {"$ref": "#/$defs/artifact"},
+        "test_dependency_input": {"$ref": "#/$defs/artifact"},
+        "test_dependency_lock": {"$ref": "#/$defs/artifact"},
+        "dockerfile": {"$ref": "#/$defs/artifact"},
+        "runtime_profiles": {"$ref": "#/$defs/artifact"},
+        "contracts_bundle": {"$ref": "#/$defs/artifact"},
+        "migrations_bundle": {"$ref": "#/$defs/artifact"},
+        "sbom": {"$ref": "#/$defs/artifact"},
+        "vulnerability_report": {"$ref": "#/$defs/artifact"}
+      }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["image_signature", "manifest_signature", "oidc_issuer", "certificate_identity", "transparency_log_required", "vulnerability_policy"],
+      "properties": {
+        "image_signature": {"const": "sigstore-keyless"},
+        "manifest_signature": {"const": "sigstore-keyless-bundle"},
+        "oidc_issuer": {"const": "https://token.actions.githubusercontent.com"},
+        "certificate_identity": {"enum": ["https://github.com/ingtrader21-spec/Middleware-/.github/workflows/release.yml@refs/heads/main", "https://github.com/appolon1908-hue/Middleware-/.github/workflows/release.yml@refs/heads/main"]},
+        "transparency_log_required": {"const": true},
+        "vulnerability_policy": {"const": "fail-high-or-critical-with-fix"}
+      }
+    },
+    "promotion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["staging_and_production_same_digest", "mutable_tags_authoritative"],
+      "properties": {
+        "staging_and_production_same_digest": {"const": true},
+        "mutable_tags_authoritative": {"const": false}
+      }
+    }
+  },
+  "if": {"properties": {"repository": {"const": "appolon1908-hue/Middleware-"}}},
+  "then": {
+    "$comment": "Pre-transfer releases keep their historical repository name, workflow identity and GHCR package only for these exact pinned source SHA / image digest pairs; every other manifest must name ingtrader21-spec/Middleware-, its workflow identity and its package.",
+    "properties": {
+      "image": {"properties": {"repository": {"const": "ghcr.io/appolon1908-hue/codestra-middleware"}, "reference": {"pattern": "^ghcr\\.io/appolon1908-hue/codestra-middleware@sha256:[0-9a-f]{64}$"}}},
+      "build": {"properties": {"workflow_identity": {"const": "https://github.com/appolon1908-hue/Middleware-/.github/workflows/release.yml@refs/heads/main"}}},
+      "verification": {"properties": {"certificate_identity": {"const": "https://github.com/appolon1908-hue/Middleware-/.github/workflows/release.yml@refs/heads/main"}}}
+    },
+    "anyOf": [
+      {"properties": {"source": {"properties": {"git_sha": {"const": "164969b4824fb4d2eb38b232bfb7abc18e33d8ac"}}}, "image": {"properties": {"digest": {"const": "sha256:18017a1a40a7969495661446badd8b43d1d4153c2036d89b0fb3065469e27941"}}}}},
+      {"properties": {"source": {"properties": {"git_sha": {"const": "29b25cba8302cd15ef4d87b68f501da6347f2f17"}}}, "image": {"properties": {"digest": {"const": "sha256:0f5a5b3b1c8166d6509b228541bee01533f5feb1dbef24ed2d241194ba610802"}}}}},
+      {"properties": {"source": {"properties": {"git_sha": {"const": "4668de7d7ddc6f98968c06b7dc02d7650ff5e88a"}}}, "image": {"properties": {"digest": {"const": "sha256:41ae78d368b5e2db2e9fe9be50fd5041b3f1a07ae4837170a76a68889be565e6"}}}}},
+      {"properties": {"source": {"properties": {"git_sha": {"const": "b03b378f3a358de333e37cf6cc7a37668f004b4f"}}}, "image": {"properties": {"digest": {"const": "sha256:dfdcfb92538242df9c9e81c27f15f9bd14b2cb840ea4c16d91dccc8f0eed7a3c"}}}}}
+    ]
+  },
+  "else": {
+    "properties": {
+      "image": {"properties": {"repository": {"const": "ghcr.io/ingtrader21-spec/codestra-middleware"}, "reference": {"pattern": "^ghcr\\.io/ingtrader21-spec/codestra-middleware@sha256:[0-9a-f]{64}$"}}},
+      "build": {"properties": {"workflow_identity": {"const": "https://github.com/ingtrader21-spec/Middleware-/.github/workflows/release.yml@refs/heads/main"}}},
+      "verification": {"properties": {"certificate_identity": {"const": "https://github.com/ingtrader21-spec/Middleware-/.github/workflows/release.yml@refs/heads/main"}}}
+    }
+  },
+  "$defs": {
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1, "maxLength": 200},
+        "sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+      }
+    }
+  }
+}

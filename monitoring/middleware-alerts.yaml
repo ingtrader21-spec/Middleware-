@@ -1,0 +1,186 @@
+groups:
+  - name: codestra-scraper-pipeline
+    rules:
+      - alert: CodestraScraperInboxBacklog
+        expr: sum(codestra_delivery_queue_depth{target="scraper"}) > 50
+        for: 10m
+        labels: {severity: warning, owner: integration-operations, service: middleware, component: scraper, environment: production-readiness}
+        annotations: {summary: "Scraper inbox backlog exceeds the bounded threshold", runbook_url: "https://monitoring.codestra.co/runbooks/scraper-pipeline"}
+      - alert: CodestraScraperOldestPending
+        expr: codestra_delivery_oldest_seconds{target="scraper"} > 900
+        for: 10m
+        labels: {severity: warning, owner: integration-operations, service: middleware, component: scraper, environment: production-readiness}
+        annotations: {summary: "Oldest scraper event exceeds 15 minutes", runbook_url: "https://monitoring.codestra.co/runbooks/scraper-pipeline"}
+      - alert: CodestraScraperDeadLetter
+        expr: codestra_dlq_depth{target="scraper"} > 0
+        for: 1m
+        labels: {severity: critical, owner: integration-operations, service: middleware, component: scraper, environment: production-readiness}
+        annotations: {summary: "A scraper event entered dead letter", runbook_url: "https://monitoring.codestra.co/runbooks/scraper-pipeline"}
+      - alert: CodestraScraperAuthenticationFailures
+        expr: sum(increase(codestra_auth_failures_total{kind=~"scraper.*"}[5m])) > 5
+        for: 2m
+        labels: {severity: warning, owner: security-operations, service: middleware, component: scraper, environment: production-readiness}
+        annotations: {summary: "Scraper authentication or replay failures increased", runbook_url: "https://monitoring.codestra.co/runbooks/scraper-authentication"}
+      - alert: CodestraScraperRedisErrors
+        expr: sum(increase(redis_errors_total{operation=~"scraper.*"}[5m])) > 0
+        for: 2m
+        labels: {severity: warning, owner: integration-operations, service: redis, component: scraper, environment: production-readiness}
+        annotations: {summary: "Scraper Redis signaling is degraded to PostgreSQL recovery", runbook_url: "https://monitoring.codestra.co/runbooks/scraper-redis-recovery"}
+  - name: codestra-middleware-fast-ack
+    rules:
+      - alert: MiddlewareFastAckP99High
+        expr: histogram_quantile(0.99, sum by (le) (rate(codestra_fast_ack_seconds_bucket[5m]))) > 0.25
+        for: 10m
+        labels: {severity: warning}
+        annotations: {runbook_url: "https://monitoring.codestra.co/runbooks/middleware-fast-ack"}
+      - alert: MiddlewareDeliveryDeadLetters
+        expr: sum(codestra_dlq_depth) > 0
+        for: 5m
+        labels: {severity: critical}
+        annotations: {runbook_url: "https://monitoring.codestra.co/runbooks/middleware-dlq"}
+      - alert: MiddlewareDeliveryQueueOld
+        expr: max(codestra_delivery_oldest_seconds) > 900
+        for: 10m
+        labels: {severity: warning}
+        annotations: {runbook_url: "https://monitoring.codestra.co/runbooks/middleware-backpressure"}
+      - alert: MiddlewareAuthenticationFailures
+        expr: sum(rate(codestra_auth_failures_total[5m])) > 1
+        for: 5m
+        labels: {severity: warning}
+        annotations: {runbook_url: "https://monitoring.codestra.co/runbooks/middleware-authentication"}
+  - name: codestra-invalid-event-quarantine
+    rules:
+      - alert: MiddlewareQuarantineRateHigh
+        expr: sum(increase(quarantine_events_total[10m])) > 25
+        for: 5m
+        labels: {severity: warning}
+        annotations: {runbook_url: "https://monitoring.codestra.co/runbooks/invalid-event-quarantine"}
+      - alert: MiddlewareQuarantineRatioHigh
+        expr: sum(rate(quarantine_events_total[15m])) / clamp_min(sum(rate(quarantine_events_total[15m])) + sum(rate(canonical_events_accepted_total[15m])), 0.001) > 0.05
+        for: 10m
+        labels: {severity: warning}
+        annotations: {runbook_url: "https://monitoring.codestra.co/runbooks/invalid-event-quarantine"}
+      - alert: MiddlewareQuarantineOldPending
+        expr: quarantine_oldest_pending_seconds > 3600
+        for: 15m
+        labels: {severity: warning}
+        annotations: {runbook_url: "https://monitoring.codestra.co/runbooks/invalid-event-quarantine"}
+      - alert: MiddlewareQuarantineReprocessingFailures
+        expr: sum(increase(quarantine_reprocessing_failures_total[10m])) > 0
+        for: 1m
+        labels: {severity: critical}
+        annotations: {runbook_url: "https://monitoring.codestra.co/runbooks/quarantine-reprocessing"}
+      - alert: MiddlewareQuarantineCleanupFailures
+        expr: sum(increase(quarantine_cleanup_total{result="failure"}[30m])) > 0
+        for: 1m
+        labels: {severity: warning}
+        annotations: {runbook_url: "https://monitoring.codestra.co/runbooks/quarantine-retention"}
+      - alert: MiddlewareSecurityRejectionSpike
+        expr: sum(increase(security_rejections_total[5m])) > 50
+        for: 2m
+        labels: {severity: warning}
+        annotations: {runbook_url: "https://monitoring.codestra.co/runbooks/middleware-authentication"}
+  - name: codestra-approved-order-orchestration
+    rules:
+      - alert: CodestraOrderFailureRateHigh
+        expr: sum(rate(codestra_orders_failed_total[5m])) / clamp_min(sum(rate(codestra_orders_received_total[5m])), 1) > 0.25
+        for: 10m
+        labels: {severity: warning, service: middleware, component: order-orchestration, environment: production}
+        annotations: {summary: "Approved-order failure rate is high", description: "Order failures exceed the sustained safety threshold.", runbook_url: "https://monitoring.codestra.co/runbooks/order-orchestration"}
+      - alert: CodestraOrderQueueBacklog
+        expr: codestra_order_queue_depth > 50
+        for: 10m
+        labels: {severity: warning, service: middleware, component: order-orchestration, environment: production}
+        annotations: {summary: "Approved-order queue backlog is high", description: "Approved orders are waiting beyond the safe queue threshold.", runbook_url: "https://monitoring.codestra.co/runbooks/order-orchestration"}
+      - alert: CodestraOrderExecutionStale
+        expr: codestra_order_stale_running_total > 0
+        for: 10m
+        labels: {severity: warning, service: middleware, component: order-orchestration, environment: production}
+        annotations: {summary: "Approved-order execution is stale", description: "A running order has exceeded its heartbeat or progress interval.", runbook_url: "https://monitoring.codestra.co/runbooks/order-orchestration"}
+      - alert: CodestraOrderDeadLetterIncrease
+        expr: increase(codestra_orders_dead_lettered_total[15m]) > 0
+        for: 5m
+        labels: {severity: critical, service: middleware, component: order-orchestration, environment: production}
+        annotations: {summary: "Approved orders entered dead letter", description: "One or more approved orders exhausted retry policy and entered dead letter.", runbook_url: "https://monitoring.codestra.co/runbooks/order-orchestration"}
+      - alert: CodestraOrderCallbackFailures
+        expr: increase(codestra_order_callback_failure_total[10m]) > 0
+        for: 5m
+        labels: {severity: critical, service: middleware, component: order-orchestration, environment: production}
+        annotations: {summary: "Approved-order callback failures detected", description: "n8n callback delivery or validation is failing.", runbook_url: "https://monitoring.codestra.co/runbooks/order-orchestration"}
+      - alert: CodestraOrderReconciliationMismatch
+        expr: increase(codestra_order_reconciliation_mismatch_total[10m]) > 0
+        for: 5m
+        labels: {severity: critical, service: middleware, component: order-orchestration, environment: production}
+        annotations: {summary: "Approved-order reconciliation mismatch", description: "Middleware and n8n execution state disagree.", runbook_url: "https://monitoring.codestra.co/runbooks/order-orchestration"}
+      - alert: CodestraN8nOrderWorkflowUnavailable
+        expr: absent(up{job="n8n-order-workflows"})
+        for: 5m
+        labels: {severity: critical, service: n8n, component: order-orchestration, environment: production}
+        annotations: {summary: "n8n approved-order workflow target unavailable", description: "The approved n8n order workflow target is absent or unavailable.", runbook_url: "https://monitoring.codestra.co/runbooks/order-orchestration"}
+      - alert: CodestraOrderRetryRateHigh
+        expr: sum(rate(codestra_orders_retried_total[10m])) / clamp_min(sum(rate(codestra_orders_dispatched_total[10m])), 1) > 0.20
+        for: 10m
+        labels: {severity: warning, service: middleware, component: order-orchestration, environment: production}
+        annotations: {summary: "Approved-order retry rate is high", description: "Temporary dependency failures are causing elevated retries.", runbook_url: "https://monitoring.codestra.co/runbooks/order-orchestration"}
+      - alert: CodestraOrderApprovalBacklog
+        expr: increase(codestra_orders_received_total[15m]) - increase(codestra_orders_approved_total[15m]) > 25
+        for: 15m
+        labels: {severity: warning, service: middleware, component: order-orchestration, environment: production}
+        annotations: {summary: "Approved-order approval backlog is high", description: "Orders are waiting for approval beyond the defined SLA.", runbook_url: "https://monitoring.codestra.co/runbooks/order-orchestration"}
+  - name: codestra-cross-system-providers
+    rules:
+      - alert: CodestraQwenUnavailable
+        expr: absent(up{job="qwen"})
+        for: 5m
+        labels: {severity: critical, service: middleware, component: qwen}
+        annotations: {summary: "Qwen unavailable", description: "The approved Qwen provider target is unavailable.", runbook_url: "https://monitoring.codestra.co/runbooks/cross-system-providers"}
+      - alert: CodestraQwenFailureRateHigh
+        expr: rate(codestra_ai_task_failures_total[10m]) > 0.2
+        for: 10m
+        labels: {severity: warning, service: middleware, component: qwen}
+        annotations: {summary: "Qwen failure rate high", description: "AI task failures exceed the safe threshold.", runbook_url: "https://monitoring.codestra.co/runbooks/cross-system-providers"}
+      - alert: CodestraVicidialAdapterUnavailable
+        expr: absent(up{job="vicidial-adapter"})
+        for: 5m
+        labels: {severity: critical, service: middleware, component: vicidial}
+        annotations: {summary: "VICIdial adapter unavailable", description: "The VICIdial adapter target is unavailable.", runbook_url: "https://monitoring.codestra.co/runbooks/cross-system-providers"}
+      - alert: CodestraVicidialCommandFailures
+        expr: rate(codestra_vicidial_command_failures_total[10m]) > 0.2
+        for: 10m
+        labels: {severity: warning, service: middleware, component: vicidial}
+        annotations: {summary: "VICIdial command failures high", description: "VICIdial command failures exceed the safe threshold.", runbook_url: "https://monitoring.codestra.co/runbooks/cross-system-providers"}
+      - alert: CodestraPostizAdapterUnavailable
+        expr: absent(up{job="postiz-adapter"})
+        for: 5m
+        labels: {severity: critical, service: middleware, component: postiz}
+        annotations: {summary: "Postiz adapter unavailable", description: "The Postiz adapter target is unavailable.", runbook_url: "https://monitoring.codestra.co/runbooks/cross-system-providers"}
+      - alert: CodestraPostizCommandFailures
+        expr: rate(codestra_postiz_command_failures_total[10m]) > 0.2
+        for: 10m
+        labels: {severity: warning, service: middleware, component: postiz}
+        annotations: {summary: "Postiz command failures high", description: "Postiz command failures exceed the safe threshold.", runbook_url: "https://monitoring.codestra.co/runbooks/cross-system-providers"}
+      - alert: CodestraCrossSystemQueueBacklog
+        expr: codestra_cross_system_queue_depth > 50
+        for: 10m
+        labels: {severity: warning, service: middleware, component: cross-system}
+        annotations: {summary: "Cross-system queue backlog", description: "Cross-system commands are queued beyond the safe threshold.", runbook_url: "https://monitoring.codestra.co/runbooks/cross-system-providers"}
+      - alert: CodestraCrossSystemCallbackFailures
+        expr: rate(codestra_cross_system_callback_failures_total[10m]) > 0
+        for: 5m
+        labels: {severity: critical, service: middleware, component: cross-system}
+        annotations: {summary: "Cross-system callback failures", description: "Provider callback delivery is failing.", runbook_url: "https://monitoring.codestra.co/runbooks/cross-system-providers"}
+      - alert: CodestraCrossSystemDeadLetterIncrease
+        expr: increase(codestra_cross_system_dead_letter_total[15m]) > 0
+        for: 5m
+        labels: {severity: critical, service: middleware, component: cross-system}
+        annotations: {summary: "Cross-system dead letters increased", description: "Cross-system commands entered dead letter.", runbook_url: "https://monitoring.codestra.co/runbooks/cross-system-providers"}
+      - alert: CodestraCrossSystemReconciliationMismatch
+        expr: increase(codestra_cross_system_reconciliation_mismatch_total[10m]) > 0
+        for: 5m
+        labels: {severity: critical, service: middleware, component: cross-system}
+        annotations: {summary: "Cross-system reconciliation mismatch", description: "Provider and middleware states disagree.", runbook_url: "https://monitoring.codestra.co/runbooks/cross-system-providers"}
+      - alert: CodestraCrossSystemExecutionStale
+        expr: codestra_cross_system_stale_execution_total > 0
+        for: 10m
+        labels: {severity: warning, service: middleware, component: cross-system}
+        annotations: {summary: "Cross-system execution stale", description: "A cross-system execution has stopped progressing.", runbook_url: "https://monitoring.codestra.co/runbooks/cross-system-providers"}

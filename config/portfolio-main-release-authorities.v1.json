@@ -1,0 +1,79 @@
+{
+  "schema_version": "1.0",
+  "authority_id": "codestra.portfolio-main-release-authorities.v1",
+  "owner": "appolon1908-hue",
+  "ruleset_name": "Codestra protected default-branch release gates",
+  "reviewer": {
+    "login": "kazan555",
+    "user_id": 77101516,
+    "permission": "push"
+  },
+  "required_approvals": 1,
+  "dismiss_stale_reviews": true,
+  "require_last_push_approval": true,
+  "require_review_thread_resolution": true,
+  "require_branch_up_to_date": true,
+  "allowed_merge_methods": [
+    "squash"
+  ],
+  "repositories": [
+    {
+      "repository": "appolon1908-hue/codestra",
+      "repository_id": 1319808791,
+      "default_branch": "main",
+      "required_status_checks": [
+        "verify",
+        "container"
+      ]
+    },
+    {
+      "repository": "appolon1908-hue/backend2",
+      "repository_id": 1319903950,
+      "default_branch": "main",
+      "required_status_checks": [
+        "validate",
+        "container"
+      ]
+    },
+    {
+      "repository": "appolon1908-hue/Telnexa-web",
+      "repository_id": 1346958528,
+      "default_branch": "main",
+      "required_status_checks": [
+        "validate-build-smoke",
+        "docker-build"
+      ]
+    },
+    {
+      "repository": "appolon1908-hue/scrapper",
+      "repository_id": 1329513537,
+      "default_branch": "main",
+      "required_status_checks": [
+        "deployment-policy",
+        "validate"
+      ]
+    },
+    {
+      "repository": "appolon1908-hue/Breero.com",
+      "repository_id": 1331354808,
+      "default_branch": "main",
+      "required_status_checks": [
+        "quality"
+      ]
+    },
+    {
+      "repository": "appolon1908-hue/Moneybee-Backend",
+      "repository_id": 1343760409,
+      "default_branch": "main",
+      "required_status_checks": [
+        "verify",
+        "postgres-identity-tenancy",
+        "containers (api)",
+        "containers (worker)",
+        "containers (migrate)",
+        "application",
+        "deployment-policy"
+      ]
+    }
+  ]
+}

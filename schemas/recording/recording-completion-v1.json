@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.codestra.internal/recording/recording-completion-v1.json",
+  "title": "Recording Completion v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "recording_uid",
+    "idempotency_key",
+    "environment",
+    "campaign_key",
+    "sha256",
+    "file_size_bytes",
+    "format",
+    "duration_seconds"
+  ],
+  "properties": {
+    "contract_version": {"const": "1.0"},
+    "recording_uid": {"type": "string", "pattern": "^REC-[0-9a-f]{32}$"},
+    "idempotency_key": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "environment": {"enum": ["staging", "production"]},
+    "campaign_key": {"$ref": "recording-contract-v1.json#/properties/campaign_key"},
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "file_size_bytes": {"type": "integer", "minimum": 1},
+    "format": {"enum": ["mp3", "wav", "gsm"]},
+    "duration_seconds": {"type": "number", "minimum": 0}
+  }
+}

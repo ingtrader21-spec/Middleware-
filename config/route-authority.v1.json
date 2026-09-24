@@ -1,0 +1,32 @@
+{
+  "schema_version": "1.0",
+  "decision": "middleware_adopts_automation_v2",
+  "automation": {
+    "canonical_command_submit": "POST /v2/automation/commands",
+    "canonical_command_read": "GET /v2/automation/commands/{command_id}",
+    "compatibility_aliases": [
+      {
+        "route": "POST /v1/integrations/n8n/commands",
+        "status": "deprecated",
+        "sunset": "2027-06-30T23:59:59Z",
+        "successor": "POST /v2/automation/commands"
+      },
+      {
+        "route": "GET /v1/integrations/n8n/operations/{command_id}",
+        "status": "deprecated",
+        "sunset": "2027-06-30T23:59:59Z",
+        "successor": "GET /v2/automation/commands/{command_id}"
+      }
+    ],
+    "separate_non_automation_api": [
+      {
+        "route": "POST /v1/commands",
+        "purpose": "product and service control-plane command API"
+      },
+      {
+        "route": "GET /v1/operations/{command_id}",
+        "purpose": "product and service command status API"
+      }
+    ]
+  }
+}

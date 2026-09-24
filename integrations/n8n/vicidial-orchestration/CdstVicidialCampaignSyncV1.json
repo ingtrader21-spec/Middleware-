@@ -1,0 +1,57 @@
+{
+  "name": "CdstVicidialCampaignSyncV1",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "nodes": [
+    {
+      "id": "vicidial-vicidialcampaignsync-trigger",
+      "name": "Middleware command",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "path": "vicidial/command",
+        "httpMethod": "POST"
+      }
+    },
+    {
+      "id": "vicidial-vicidialcampaignsync-callback",
+      "name": "Middleware callback",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        300,
+        0
+      ],
+      "parameters": {
+        "url": "={{$env.CODESTRA_MIDDLEWARE_BASE_URL}}/api/v1/integrations/vicidial/commands",
+        "method": "POST",
+        "sendBody": true,
+        "jsonBody": "={{$json}}"
+      }
+    }
+  ],
+  "connections": {
+    "Middleware command": {
+      "main": [
+        [
+          {
+            "node": "Middleware callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "tags": [
+    {
+      "name": "offline-mock"
+    }
+  ]
+}

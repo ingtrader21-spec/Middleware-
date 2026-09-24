@@ -1,0 +1,28 @@
+{
+  "gateway": {
+    "repository": "Codestra-SRL/telephony-event-gateway",
+    "forensics_pull_request": 4,
+    "forensics_approved_head": "c8efb658e27981c577444ff88a52f0c3690d881e",
+    "safety_pull_request": 5,
+    "safety_approved_head": "1c08d8c796f29728adcb3d511a3803307cf8f67c",
+    "merge_commit": "d4abfac9b60f996b8853e0f838cf2f97f2095ee0",
+    "image": "docker.io/codestra1980/telephony-event-gateway@sha256:3b2c702d9cb86c0028b26c32ea5c78c394fa7b7889b6cef5f0f2f7821fd30171",
+    "platform_manifest": "sha256:3b2c702d9cb86c0028b26c32ea5c78c394fa7b7889b6cef5f0f2f7821fd30171"
+  },
+  "patched_python": {
+    "image": "codestra/python@sha256:541d6acdaa39568e8e9ba2a12f707ce167a819e553025256c29918a9509fe0c2",
+    "version": "3.13.14",
+    "backports": {
+      "CVE-2026-11940": "771d12dda5140313db0ac550292987975651bbde",
+      "CVE-2026-15308": "7933f4bf7131aa4140750f9404f5de0aa2969ced",
+      "CVE-2026-11972": "3f031d431f80668e14f3bc066bbf4369cd9281b9"
+    }
+  },
+  "release_evidence": {
+    "root": "/opt/codestra/compose/telephony-gateway-ack-forensics-release-20260728",
+    "spdx_sha256": "e3f1e3f30068987bd96da8efa3d9e232fe4ff2e9bccfda1ee507eec3f2e0b122",
+    "cyclonedx_sha256": "55d5f7afe97c8227f04e99c77556e3e07ccaa46fd3fdc9cc74e4863a4304d99f",
+    "grype_sha256": "8b6ccb7502c5e473bf63ca71b24f9107495c33b607909799c26bf4542c375d0e",
+    "trivy_sha256": "2d596c65b74a0abdf5b16179539de3335c3ec8f3fbbeae85d28705f76a5099c4"
+  }
+}

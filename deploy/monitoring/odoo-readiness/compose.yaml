@@ -1,0 +1,56 @@
+services:
+  postgres-exporter:
+    image: docker.io/prometheuscommunity/postgres-exporter@sha256:9fca39a4307092387b7de884bed4b62205cb88a6a5fdb423b9a70ea80b34efb3
+    environment:
+      DATA_SOURCE_URI: codestra-postgres-1:5432/postgres?sslmode=disable
+      DATA_SOURCE_USER: codestra_monitoring
+      DATA_SOURCE_PASS_FILE: /run/secrets/postgres_monitoring_password
+    secrets: [postgres_monitoring_password]
+    networks: [monitoring, backend]
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    restart: unless-stopped
+
+  redis-exporter:
+    image: docker.io/oliver006/redis_exporter@sha256:178f95efe97b733ab10e8721c54bee838c125e1e666734dc27a956886fff7a8a
+    environment:
+      REDIS_ADDR: redis://redis:6379
+      REDIS_USER: redis-monitoring
+      REDIS_PASSWORD_FILE: /run/secrets/redis_monitoring_password
+    secrets: [redis_monitoring_password]
+    networks: [monitoring, backend]
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    restart: unless-stopped
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor@sha256:3de2bd5203120b866d74a9b283b2ffb8ec382fbf9dc321814700c6ea6f44ec57
+    devices: [/dev/kmsg:/dev/kmsg]
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+    networks: [monitoring]
+    read_only: true
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    cap_add: [DAC_READ_SEARCH]
+    restart: unless-stopped
+
+networks:
+  monitoring:
+    internal: true
+  backend:
+    external: true
+    name: codestra_backend
+
+secrets:
+  postgres_monitoring_password:
+    file: /etc/codestra/secrets/monitoring/postgres_exporter_password
+  redis_monitoring_password:
+    file: /etc/codestra/secrets/monitoring/redis_exporter_password

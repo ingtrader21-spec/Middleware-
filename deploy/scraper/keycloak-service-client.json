@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "status": "ENROLLMENT_REQUIRED",
+  "client_id": "codestra-scraper-production",
+  "service_accounts_enabled": true,
+  "interactive_flows_enabled": false,
+  "direct_access_grants_enabled": false,
+  "public_client": false,
+  "token_signature_algorithm": "RS256",
+  "access_token_lifespan_seconds": 300,
+  "audience": "codestra-scraper-ingress",
+  "realm_roles": ["scraper-publisher"],
+  "scopes": ["scraper.events.write"],
+  "claims": {
+    "environment": "production",
+    "tenant_id": "TENANT-SYNTHETIC",
+    "campaigns": ["TEST_SYN"]
+  },
+  "credential_reference_id": "secret://codestra/production/keycloak/codestra-scraper-production",
+  "rotation_days": 30,
+  "revocable": true
+}

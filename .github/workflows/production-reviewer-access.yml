@@ -1,0 +1,186 @@
+name: Apply production reviewer access
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/production-reviewer-access.yml"
+      - "config/production-reviewer-access.v1.json"
+      - "scripts/apply_production_reviewer_access.py"
+      - "scripts/apply_production_reviewer_access_base.py"
+      - "tests/test_production_reviewer_access.py"
+      - "tests/test_release_workflow_regressions.py"
+      - "Dockerfile.runtime"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/production-reviewer-access.yml"
+      - "config/production-reviewer-access.v1.json"
+      - "scripts/apply_production_reviewer_access.py"
+      - "scripts/apply_production_reviewer_access_base.py"
+      - "tests/test_production_reviewer_access.py"
+      - "tests/test_release_workflow_regressions.py"
+      - "Dockerfile.runtime"
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-reviewer-access-${{ github.event_name }}-${{ github.event.issue.number || github.ref }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  policy:
+    name: production-reviewer-access-policy
+    if: >-
+      github.event_name != 'issue_comment' ||
+      (
+        github.event.action == 'created' &&
+        github.event.repository.id == 1347559071 &&
+        github.event.repository.full_name == 'ingtrader21-spec/Middleware-' &&
+        github.event.repository.default_branch == 'main' &&
+        github.event.issue.number == 130 &&
+        github.event.issue.pull_request == null &&
+        github.event.comment.body == '/apply-production-reviewer-access v1' &&
+        github.event.sender.id == 275410064 &&
+        github.event.sender.login == 'appolon1908-hue' &&
+        github.event.comment.user.id == 275410064 &&
+        github.event.comment.user.login == 'appolon1908-hue'
+      )
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      EXPECTED_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Check out exact source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.EXPECTED_SHA }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Verify exact clean source
+        run: |
+          set -Eeuo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          test -z "$(git status --porcelain)"
+      - name: Validate fixed least-privilege reviewer policy
+        run: |
+          set -Eeuo pipefail
+          python3 -m py_compile \
+            scripts/apply_production_reviewer_access.py \
+            scripts/apply_production_reviewer_access_base.py \
+            tests/test_production_reviewer_access.py
+          python3 -m unittest -v tests.test_production_reviewer_access
+          python3 -m unittest -v tests.test_release_workflow_regressions
+          python3 -I scripts/apply_production_reviewer_access.py --mode validate
+          python3 -m json.tool config/production-reviewer-access.v1.json >/dev/null
+          git diff --check
+      - name: Upload secret-free policy evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: production-reviewer-access-policy-${{ env.EXPECTED_SHA }}
+          path: artifacts/production-reviewer-access/
+          if-no-files-found: error
+          retention-days: 30
+
+  apply:
+    name: apply-and-verify-production-reviewer-access
+    needs: [policy]
+    # CONTROL_PLANE_MUTATION=repository-administration. This is not runtime
+    # authority: it is bound to one owner command, immutable main, and the
+    # independently reviewed repository-administration environment.
+    if: >-
+      needs.policy.result == 'success' &&
+      github.event_name == 'issue_comment' &&
+      github.event.action == 'created' &&
+      github.event.repository.id == 1347559071 &&
+      github.event.repository.full_name == 'ingtrader21-spec/Middleware-' &&
+      github.event.repository.default_branch == 'main' &&
+      github.event.issue.number == 130 &&
+      github.event.issue.pull_request == null &&
+      github.event.comment.body == '/apply-production-reviewer-access v1' &&
+      github.event.sender.id == 275410064 &&
+      github.event.sender.login == 'appolon1908-hue' &&
+      github.event.comment.user.id == 275410064 &&
+      github.event.comment.user.login == 'appolon1908-hue'
+    permissions:
+      contents: read
+      issues: write
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment:
+      name: repository-administration
+    steps:
+      - name: Check out exact protected main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Require current protected main and exact command
+        run: |
+          set -Eeuo pipefail
+          test "$GITHUB_EVENT_NAME" = issue_comment
+          test "$GITHUB_REF" = refs/heads/main
+          test "$GITHUB_ACTOR" = "$GITHUB_REPOSITORY_OWNER"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          current_main="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          test -n "$current_main"
+          test "$current_main" = "$GITHUB_SHA"
+      - id: rollout
+        name: Apply and read back fixed reviewer access
+        continue-on-error: true
+        env:
+          CODESTRA_REPOSITORY_ADMIN_TOKEN: ${{ secrets.CODESTRA_REPOSITORY_ADMIN_TOKEN }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$CODESTRA_REPOSITORY_ADMIN_TOKEN"
+          python3 -I scripts/apply_production_reviewer_access.py \
+            --mode apply \
+            --confirm APPLY_PRODUCTION_REVIEWER_ACCESS_V1
+      - name: Upload bounded rollout evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: production-reviewer-access-rollout-${{ github.sha }}
+          path: artifacts/production-reviewer-access/
+          if-no-files-found: error
+          retention-days: 90
+      - name: Publish issue result
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ROLLOUT_OUTCOME: ${{ steps.rollout.outcome }}
+        run: |
+          set -Eeuo pipefail
+          if [ "$ROLLOUT_OUTCOME" = success ]; then
+            result=PASS
+            detail='All 19 stable repository identities read back exact write-level reviewer access.'
+          else
+            result=BLOCKED
+            detail='At least one token, administration, invitation-acceptance, stable identity, exact-write, or permission readback gate is incomplete.'
+          fi
+          gh issue comment 130 --repo "$GITHUB_REPOSITORY" --body "## Production reviewer access — $result
+
+          \`SOURCE_SHA=$GITHUB_SHA\`
+
+          $detail
+
+          No runtime, deployment, credential value, route, traffic, provider, business write, or external effect was changed."
+      - name: Fail closed until every exact readback passes
+        if: steps.rollout.outcome != 'success'
+        run: |
+          echo 'PRODUCTION_REVIEWER_ACCESS=BLOCKED' >&2
+          exit 1
+      - name: Confirm no runtime effect
+        if: always()
+        run: |
+          echo 'RUNTIME_CONTACTED=NO'
+          echo 'PRODUCTION_CHANGED=NO'
+          echo 'EXTERNAL_EFFECTS_ENABLED=NO'
+          echo 'CALLS_PLACED=0'

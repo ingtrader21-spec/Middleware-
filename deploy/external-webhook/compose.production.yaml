@@ -1,0 +1,63 @@
+services:
+  middleware-event-gateway:
+    image: ghcr.io/codestra-srl/middleware-source-lock@sha256:1b7e79142389b9c1a8ca4149aeed2003876252d5d1f84b3190e44e0a9d0bdb1d
+    environment:
+      EXTERNAL_WEBHOOK_ENABLED: "true"
+      EXTERNAL_WEBHOOK_KEYS_DIRECTORY: /run/secrets/external-webhooks
+      EXTERNAL_WEBHOOK_TIMESTAMP_TOLERANCE_SECONDS: "300"
+    volumes:
+      - /etc/codestra/secrets/external-webhooks:/run/secrets/external-webhooks:ro
+
+  middleware-external-webhook-worker:
+    image: ghcr.io/codestra-srl/middleware-source-lock@sha256:1b7e79142389b9c1a8ca4149aeed2003876252d5d1f84b3190e44e0a9d0bdb1d
+    command: [python, -m, app.entrypoints.external_webhook_worker]
+    healthcheck:
+      test: [CMD, python, -c, "import os; os.kill(1, 0)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    user: "10001:10001"
+    group_add: ["3999"]
+    init: true
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: [/tmp:rw,noexec,nosuid,size=32m,uid=10001,gid=10001]
+    env_file: [/opt/codestra/env/middleware.env]
+    environment:
+      SERVICE_NAME: middleware-external-webhook-worker
+      DATABASE_URL_FILE: /run/secrets/database_url
+      EXTERNAL_WEBHOOK_ENABLED: "true"
+      EXTERNAL_WEBHOOK_KEYS_DIRECTORY: /run/secrets/external-webhooks
+      EXTERNAL_WEBHOOK_WORKER_ENABLED: "true"
+      EXTERNAL_WEBHOOK_N8N_URL: http://webhook:5678/webhook/CodestraExternalWebhookCertV1/ingress/codestra-external-certification-v1
+      EXTERNAL_WEBHOOK_N8N_TOKEN_FILE: /run/secrets/n8n-header-token
+      EXTERNAL_WEBHOOK_MAX_ATTEMPTS: "3"
+      LIVE_WRITES_ENABLED: "false"
+      ODOO_WRITE_ENABLED: "false"
+      ALLOW_LIVE_SMS: "false"
+      ALLOW_LIVE_EMAIL: "false"
+      SEND_EVENTS: "false"
+      BROAD_EVENT_DELIVERY_ENABLED: "false"
+      PRODUCTION_N8N_ENABLED: "false"
+      N8N_PRODUCTION_WORKFLOWS_ENABLED: "false"
+      ENABLE_EXTERNAL_DELIVERY: "false"
+    volumes:
+      - /etc/codestra/secrets/middleware-runtime/middleware-event-gateway-database-url:/run/secrets/database_url:ro
+      - /etc/codestra/secrets/codestra-compose/redis_url:/run/secrets/redis_url:ro
+      - /etc/codestra/secrets/codestra-compose/middleware_secret:/run/secrets/middleware_secret:ro
+      - /etc/codestra/secrets/codestra-compose/webhook_shared_secret:/run/secrets/webhook_shared_secret:ro
+      - /etc/codestra/secrets/vicidial-callback-hmac:/run/secrets/vicidial-callback-hmac:ro
+      - /etc/codestra/secrets/middleware-runtime/quarantine-fingerprint-key:/run/secrets/quarantine-fingerprint-key:ro
+      - /etc/codestra/secrets/middleware-runtime/quarantine-encryption-key:/run/secrets/quarantine-encryption-key:ro
+      - /etc/codestra/secrets/external-webhooks:/run/secrets/external-webhooks:ro
+      - /etc/codestra/secrets/external-webhooks/n8n-header-token:/run/secrets/n8n-header-token:ro
+    logging:
+      driver: json-file
+      options: {max-size: 20m, max-file: "5"}
+    cpus: 0.25
+    mem_limit: 256m
+    pids_limit: 64
+    stop_grace_period: 30s
+    networks: [middleware_backend, n8n_staging_control]

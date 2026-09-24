@@ -1,0 +1,31 @@
+groups:
+  - name: codestra-call-workspace
+    rules:
+      - alert: CallWorkspacePopupDeliveryFailures
+        expr: rate(websocket_delivery_failures_total[5m]) / clamp_min(rate(call_workspace_events_received_total{event_type="call.ringing"}[5m]), 0.001) > 0.02
+        for: 5m
+        labels: {severity: critical, service: call-workspace}
+        annotations:
+          summary: "Call workspace popup delivery failure rate exceeds 2%"
+          runbook: "docs/call-workspace/CALL_WORKSPACE_RUNBOOK.md#popup-delivery-failures"
+      - alert: CallWorkspaceEventIngestionRejected
+        expr: increase(call_workspace_events_rejected_total[5m]) > 0
+        for: 2m
+        labels: {severity: warning, service: call-workspace}
+        annotations:
+          summary: "Call workspace realtime events are being rejected"
+          runbook: "docs/call-workspace/CALL_WORKSPACE_RUNBOOK.md#event-ingestion-rejections"
+      - alert: CallWorkspaceWebSocketFailureSpike
+        expr: increase(websocket_delivery_failures_total[5m]) + increase(websocket_backpressure_disconnects_total[5m]) > 3
+        for: 5m
+        labels: {severity: critical, service: call-workspace}
+        annotations:
+          summary: "Call workspace WebSocket delivery failures are elevated"
+          runbook: "docs/call-workspace/CALL_WORKSPACE_RUNBOOK.md#websocket-failures"
+      - alert: CallWorkspaceDuplicateSpike
+        expr: increase(call_workspace_event_duplicates_total[10m]) > 20
+        for: 5m
+        labels: {severity: warning, service: call-workspace}
+        annotations:
+          summary: "Call workspace duplicate suppression spiked"
+          runbook: "docs/call-workspace/CALL_WORKSPACE_RUNBOOK.md#duplicate-spike"

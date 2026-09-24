@@ -1,0 +1,826 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+umask 077
+
+CONTRACT_VERSION="1.0"
+SERVER_ROLE="CODESTRA_APPLICATION_SERVER_A"
+COMPOSE_PROJECT="codestra-middleware-production-canary"
+COMPOSE_SERVICE="middleware-api-canary"
+EXPECTED_SCHEMA_HEAD="0067_service_catalog_monitoring_state"
+CONFIG_FILE="${CODESTRA_MIDDLEWARE_DEPLOY_CONFIG:-/etc/codestra-middleware/deploy.conf}"
+STAGE="arguments"
+LOCK_FD=9
+WORK_DIR=""
+DOCKER_AUTH_DIR=""
+COMPOSE_ENV_FILE=""
+COMPOSE_FILE=""
+CANARY_STARTED_BY_THIS_RUN="false"
+PREEXISTING_CANARY="false"
+POSTGRES_CONTAINER=""
+
+fail() {
+  local reason="${1:-unspecified}"
+  printf 'DEPLOYMENT_CONTRACT_VERSION=%s\n' "$CONTRACT_VERSION" >&2
+  printf 'DEPLOYMENT_STATUS=FAIL\n' >&2
+  printf 'FAILURE_STAGE=%s\n' "$STAGE" >&2
+  printf 'FAILURE_REASON=%s\n' "$reason" >&2
+  exit 1
+}
+
+cleanup() {
+  local exit_code=$?
+  if [[ "$exit_code" -ne 0 && "$CANARY_STARTED_BY_THIS_RUN" == "true" && "$PREEXISTING_CANARY" == "false" && -n "$COMPOSE_ENV_FILE" ]]; then
+    docker compose \
+      --project-name "$COMPOSE_PROJECT" \
+      --env-file "$COMPOSE_ENV_FILE" \
+      -f "$COMPOSE_FILE" \
+      rm -sf "$COMPOSE_SERVICE" >/dev/null 2>&1 || true
+  fi
+  [[ -z "$WORK_DIR" ]] || rm -rf -- "$WORK_DIR"
+  [[ -z "$DOCKER_AUTH_DIR" ]] || rm -rf -- "$DOCKER_AUTH_DIR"
+  exit "$exit_code"
+}
+trap cleanup EXIT
+
+config_value() {
+  local key="$1"
+  awk -F= -v wanted="$key" '
+    /^[[:space:]]*#/ || /^[[:space:]]*$/ { next }
+    $1 == wanted {
+      sub(/^[^=]*=/, "")
+      print
+      found = 1
+    }
+    END { if (!found) exit 1 }
+  ' "$CONFIG_FILE"
+}
+
+kv_value() {
+  local text="$1"
+  local key="$2"
+  printf '%s\n' "$text" | awk -F= -v wanted="$key" '$1 == wanted {sub(/^[^=]*=/, ""); print; found=1} END {if (!found) exit 1}'
+}
+
+SOURCE_SHA=""
+IMAGE_REFERENCE=""
+RELEASE_RUN_ID=""
+RELEASE_ID=""
+BUNDLE_PATH=""
+BUNDLE_SHA256=""
+CONTROLLER_SHA256=""
+MODE=""
+READ_REGISTRY_TOKEN="false"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --source-sha) [[ $# -ge 2 ]] || fail "missing_source_sha"; SOURCE_SHA="$2"; shift 2 ;;
+    --image-reference) [[ $# -ge 2 ]] || fail "missing_image_reference"; IMAGE_REFERENCE="$2"; shift 2 ;;
+    --release-run-id) [[ $# -ge 2 ]] || fail "missing_release_run_id"; RELEASE_RUN_ID="$2"; shift 2 ;;
+    --release-id) [[ $# -ge 2 ]] || fail "missing_release_id"; RELEASE_ID="$2"; shift 2 ;;
+    --bundle-path) [[ $# -ge 2 ]] || fail "missing_bundle_path"; BUNDLE_PATH="$2"; shift 2 ;;
+    --bundle-sha256) [[ $# -ge 2 ]] || fail "missing_bundle_sha256"; BUNDLE_SHA256="$2"; shift 2 ;;
+    --controller-sha256) [[ $# -ge 2 ]] || fail "missing_controller_sha256"; CONTROLLER_SHA256="$2"; shift 2 ;;
+    --mode) [[ $# -ge 2 ]] || fail "missing_mode"; MODE="$2"; shift 2 ;;
+    --registry-token-stdin) READ_REGISTRY_TOKEN="true"; shift ;;
+    *) fail "unexpected_argument" ;;
+  esac
+done
+
+[[ "$(id -u)" -eq 0 ]] || fail "root_required"
+[[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]] || fail "invalid_source_sha"
+[[ "$IMAGE_REFERENCE" =~ ^ghcr\.io/ingtrader21-spec/codestra-middleware@sha256:[0-9a-f]{64}$ ]] || fail "invalid_image_reference"
+[[ "$RELEASE_RUN_ID" =~ ^[1-9][0-9]{5,19}$ ]] || fail "invalid_release_run_id"
+[[ "$RELEASE_ID" =~ ^[0-9a-f]{12}-[0-9a-f]{12}$ ]] || fail "invalid_release_id"
+[[ "$BUNDLE_SHA256" =~ ^sha256:[0-9a-f]{64}$ ]] || fail "invalid_bundle_sha256"
+[[ "$CONTROLLER_SHA256" =~ ^sha256:[0-9a-f]{64}$ ]] || fail "invalid_controller_sha256"
+[[ "$MODE" == "READ_ONLY_CANARY" ]] || fail "unsupported_mode"
+[[ "$READ_REGISTRY_TOKEN" == "true" ]] || fail "registry_token_stdin_required"
+IMAGE_DIGEST="${IMAGE_REFERENCE##*@}"
+
+STAGE="controller_identity"
+actual_controller_sha256="sha256:$(sha256sum "$0" | awk '{print $1}')"
+[[ "$actual_controller_sha256" == "$CONTROLLER_SHA256" ]] || fail "installed_controller_checksum_mismatch"
+
+STAGE="config"
+[[ -f "$CONFIG_FILE" && ! -L "$CONFIG_FILE" ]] || fail "config_missing_or_symlink"
+[[ "$(stat -c '%u' "$CONFIG_FILE")" -eq 0 ]] || fail "config_not_root_owned"
+if find "$CONFIG_FILE" -perm /077 -print -quit | grep -q .; then
+  fail "config_permissions_too_broad"
+fi
+
+DEPLOY_USER="$(config_value DEPLOY_USER)" || fail "deploy_user_missing"
+INCOMING_DIR="$(config_value INCOMING_DIR)" || fail "incoming_dir_missing"
+RELEASES_DIR="$(config_value RELEASES_DIR)" || fail "releases_dir_missing"
+RUNTIME_ENV_FILE="$(config_value RUNTIME_ENV_FILE)" || fail "runtime_env_file_missing"
+RUNTIME_NETWORK="$(config_value RUNTIME_NETWORK)" || fail "runtime_network_missing"
+POSTGRES_CONTAINER="$(config_value POSTGRES_CONTAINER)" || fail "postgres_container_missing"
+REDIS_CONTAINER="$(config_value REDIS_CONTAINER)" || fail "redis_container_missing"
+POSTGRES_DATABASE="$(config_value POSTGRES_DATABASE)" || fail "postgres_database_missing"
+BACKUP_COMMAND="$(config_value BACKUP_COMMAND)" || fail "backup_command_missing"
+EVIDENCE_DIR="$(config_value EVIDENCE_DIR)" || fail "evidence_dir_missing"
+GHCR_USERNAME="$(config_value GHCR_USERNAME)" || fail "ghcr_username_missing"
+FORWARDED_ALLOW_IPS="$(config_value FORWARDED_ALLOW_IPS)" || fail "forwarded_allow_ips_missing"
+OBSERVATION_SECONDS="$(config_value OBSERVATION_SECONDS)" || fail "observation_seconds_missing"
+
+[[ "$DEPLOY_USER" == "middleware-deploy" ]] || fail "unexpected_deploy_user"
+[[ "${SUDO_USER:-}" == "$DEPLOY_USER" ]] || fail "restricted_sudo_caller_required"
+[[ "$INCOMING_DIR" == /home/middleware-deploy/incoming && "$INCOMING_DIR" != *".."* ]] || fail "unsafe_incoming_dir"
+[[ "$RELEASES_DIR" == /srv/codestra-middleware/releases && "$RELEASES_DIR" != *".."* ]] || fail "unsafe_releases_dir"
+[[ "$RUNTIME_ENV_FILE" == /etc/codestra-middleware/runtime.env ]] || fail "unsafe_runtime_env_path"
+[[ "$POSTGRES_CONTAINER" =~ ^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$ ]] || fail "invalid_postgres_container"
+[[ "$REDIS_CONTAINER" =~ ^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$ ]] || fail "invalid_redis_container"
+[[ "$POSTGRES_DATABASE" =~ ^[A-Za-z_][A-Za-z0-9_]{0,62}$ ]] || fail "invalid_postgres_database"
+[[ "$BACKUP_COMMAND" == /usr/local/sbin/codestra-middleware-backup ]] || fail "unexpected_backup_command"
+[[ -x "$BACKUP_COMMAND" && ! -L "$BACKUP_COMMAND" ]] || fail "backup_command_missing_or_symlink"
+[[ "$EVIDENCE_DIR" == /var/lib/codestra-middleware/deployments && "$EVIDENCE_DIR" != *".."* ]] || fail "unsafe_evidence_dir"
+[[ "$GHCR_USERNAME" == "appolon1908-hue" ]] || fail "unexpected_registry_username"
+[[ "$FORWARDED_ALLOW_IPS" =~ ^[A-Za-z0-9:.,/-]+$ ]] || fail "invalid_forwarded_allow_ips"
+[[ "$OBSERVATION_SECONDS" =~ ^[0-9]+$ && "$OBSERVATION_SECONDS" -ge 30 && "$OBSERVATION_SECONDS" -le 300 ]] || fail "invalid_observation_seconds"
+
+install -d -m 0700 -o "$DEPLOY_USER" -g "$DEPLOY_USER" "$INCOMING_DIR"
+install -d -m 0700 -o root -g root "$RELEASES_DIR" "$EVIDENCE_DIR"
+[[ -f "$RUNTIME_ENV_FILE" && ! -L "$RUNTIME_ENV_FILE" ]] || fail "runtime_env_missing_or_symlink"
+[[ "$(stat -c '%u' "$RUNTIME_ENV_FILE")" -eq 0 ]] || fail "runtime_env_not_root_owned"
+if find "$RUNTIME_ENV_FILE" -perm /077 -print -quit | grep -q .; then
+  fail "runtime_env_permissions_too_broad"
+fi
+
+STAGE="runtime_environment"
+python3 - "$RUNTIME_ENV_FILE" <<'PY'
+from pathlib import Path
+import re
+import sys
+
+path = Path(sys.argv[1])
+values: dict[str, str] = {}
+for number, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+    line = raw.strip()
+    if not line or line.startswith("#"):
+        continue
+    if line.startswith("export "):
+        line = line[7:].strip()
+    if "=" not in line:
+        raise SystemExit(f"invalid runtime env line {number}")
+    key, value = line.split("=", 1)
+    key = key.strip()
+    value = value.strip()
+    if not re.fullmatch(r"[A-Z][A-Z0-9_]*", key) or key in values:
+        raise SystemExit(f"invalid or duplicate runtime env key at line {number}")
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in {'"', "'"}:
+        value = value[1:-1]
+    values[key] = value
+
+exact = {
+    "APP_ENV": "production",
+    "RUNTIME_PROFILE_ID": "codestra-middleware-production-compose-v1",
+    "ALLOW_IN_MEMORY_STORAGE": "false",
+    "NATS_DISPATCH_MODE": "disabled",
+    "TEMPORAL_WORKER_MODE": "disabled",
+    "OUTBOX_DISPATCH_ENABLED": "false",
+    "SEND_EVENTS": "false",
+    "ENABLE_EXTERNAL_DELIVERY": "false",
+    "LIVE_WRITE": "false",
+    "LIVE_WRITES": "false",
+    "ODOO_WRITE": "false",
+    "KLYROW_EVENT_INGRESS_ENABLED": "false",
+    "KLYROW_ODOO_PROJECTION_ENABLED": "false",
+    "FORM_ODOO_DELIVERY_ENABLED": "false",
+    "CRAWLER_ODOO_DELIVERY_ENABLED": "false",
+    "SCRAPPER_ODOO_DELIVERY_ENABLED": "false",
+    "CALLBACK_DISPATCH": "false",
+    "N8N_DELIVERY_ENABLED": "false",
+    "VICIDIAL_WRITES_ENABLED": "false",
+    "EXTERNAL_DIAL_ENABLED": "false",
+    "PRODUCTION_CALLBACKS_ENABLED": "false",
+    "N8N_PRODUCTION_WORKFLOWS_ENABLED": "false",
+    "PRODUCTION_DIALING": "DISABLED",
+    "SMS_DELIVERY_ENABLED": "false",
+    "EMAIL_DELIVERY_ENABLED": "false",
+    "SOCIAL_DELIVERY_ENABLED": "false",
+    "CRAWLER_EXECUTION_ENABLED": "false",
+    "SCRAPPER_EXECUTION_ENABLED": "false",
+    "CRAWLER_EXTERNAL_CONTACT_ENABLED": "false",
+    "SCRAPPER_EXTERNAL_CONTACT_ENABLED": "false",
+    "LIVE_SMS_DELIVERY": "false",
+    "LIVE_EMAIL_DELIVERY": "false",
+    "UNRESTRICTED_CRAWLING": "false",
+    "LIVE_ADVERTISING_ENABLED": "false",
+    "EXTERNAL_DELIVERY_ENABLED": "false",
+    "SOCIAL_PUBLISHING_ENABLED": "false",
+    "EXTERNAL_MODEL_CALLS_ENABLED": "false",
+    "N8N_EXTERNAL_PROVIDER_WRITES": "false",
+}
+for key, expected in exact.items():
+    if values.get(key, "").lower() != expected.lower():
+        raise SystemExit(f"unsafe runtime setting: {key}")
+for key in ("DATABASE_URL", "REDIS_URL"):
+    value = values.get(key, "")
+    if not value or "<inject-secret>" in value or "REPLACE_" in value:
+        raise SystemExit(f"runtime dependency setting missing: {key}")
+for producer in (
+    "ODOO_INTEGRATION", "N8N_AUTOMATION", "VICIDIAL_ADAPTER",
+    "TELNEXA_GATEWAY", "KLYROW_GATEWAY", "KYQRA_GATEWAY", "POSTLY_ADAPTER",
+):
+    key = f"WEBHOOK_SECRET_{producer}"
+    if len(values.get(key, "")) < 32:
+        raise SystemExit(f"runtime webhook secret missing: {key}")
+print("RUNTIME_ENVIRONMENT=PASS")
+PY
+
+STAGE="bundle_preflight"
+[[ -f "$BUNDLE_PATH" && ! -L "$BUNDLE_PATH" ]] || fail "bundle_missing_or_symlink"
+incoming_real="$(realpath -e -- "$INCOMING_DIR")" || fail "incoming_dir_unresolved"
+bundle_real="$(realpath -e -- "$BUNDLE_PATH")" || fail "bundle_unresolved"
+case "$bundle_real" in "$incoming_real"/*) ;; *) fail "bundle_outside_incoming_dir" ;; esac
+[[ "$(stat -c '%U' "$bundle_real")" == "$DEPLOY_USER" ]] || fail "bundle_owner_invalid"
+if find "$bundle_real" -perm /022 -print -quit | grep -q .; then
+  fail "bundle_permissions_too_broad"
+fi
+actual_bundle_sha256="sha256:$(sha256sum "$bundle_real" | awk '{print $1}')"
+[[ "$actual_bundle_sha256" == "$BUNDLE_SHA256" ]] || fail "bundle_checksum_mismatch"
+
+exec {LOCK_FD}>/run/lock/codestra-middleware-production.lock
+flock -n "$LOCK_FD" || fail "deployment_lock_busy"
+
+WORK_DIR="$(mktemp -d "$RELEASES_DIR/.incoming-${RELEASE_ID}.XXXXXX")"
+python3 - "$bundle_real" "$WORK_DIR" <<'PY'
+from pathlib import Path, PurePosixPath
+import shutil
+import sys
+import tarfile
+
+archive = Path(sys.argv[1])
+destination = Path(sys.argv[2]).resolve()
+with tarfile.open(archive, "r:gz") as bundle:
+    members = bundle.getmembers()
+    if not members or len(members) > 10000:
+        raise SystemExit("unsafe bundle member count")
+    for member in members:
+        relative = PurePosixPath(member.name)
+        if relative.is_absolute() or ".." in relative.parts:
+            raise SystemExit("unsafe bundle path")
+        if not (member.isdir() or member.isfile()):
+            raise SystemExit("bundle links and special files are forbidden")
+        target = (destination / Path(*relative.parts)).resolve()
+        if destination != target and destination not in target.parents:
+            raise SystemExit("bundle path escapes destination")
+    bundle.extractall(destination)
+PY
+
+MANIFEST_FILE="$WORK_DIR/release/release-manifest.v1.json"
+MANIFEST_BUNDLE_FILE="$WORK_DIR/release/release-manifest.v1.sigstore.json"
+COMPOSE_FILE="$WORK_DIR/deployment/compose.canary.yaml"
+CONTRACT_FILE="$WORK_DIR/deployment/server-command-contract.v1.json"
+for required_file in "$MANIFEST_FILE" "$MANIFEST_BUNDLE_FILE" "$COMPOSE_FILE" "$CONTRACT_FILE"; do
+  [[ -f "$required_file" && ! -L "$required_file" ]] || fail "required_bundle_file_missing"
+done
+
+STAGE="release_manifest"
+BUILD_TIME="$(python3 - "$WORK_DIR/release" "$SOURCE_SHA" "$IMAGE_REFERENCE" "$RELEASE_RUN_ID" "$RELEASE_ID" <<'PY'
+from pathlib import Path
+import hashlib
+import json
+import re
+import sys
+
+release_dir = Path(sys.argv[1])
+source_sha, image_reference, run_id, release_id = sys.argv[2:]
+manifest_path = release_dir / "release-manifest.v1.json"
+value = json.loads(manifest_path.read_text(encoding="utf-8"))
+required = {
+    "schema_version": "1.0",
+    "repository": "appolon1908-hue/Middleware-",
+    "service": "middleware-api",
+    "release_id": release_id,
+}
+for key, expected in required.items():
+    if value.get(key) != expected:
+        raise SystemExit(f"release manifest mismatch: {key}")
+source = value.get("source", {})
+if source != {
+    "git_sha": source_sha,
+    "git_tree_id": source.get("git_tree_id"),
+    "ref": "refs/heads/main",
+} or not re.fullmatch(r"[0-9a-f]{40}", str(source.get("git_tree_id", ""))):
+    raise SystemExit("release source authority mismatch")
+image = value.get("image", {})
+if image.get("reference") != image_reference or image.get("digest") != image_reference.rsplit("@", 1)[1]:
+    raise SystemExit("release image authority mismatch")
+build = value.get("build", {})
+if str(build.get("run_id")) != run_id or build.get("workflow_path") != ".github/workflows/release.yml":
+    raise SystemExit("release workflow authority mismatch")
+runtime = value.get("runtime", {})
+if runtime.get("schema_or_migration_head") != "0067_service_catalog_monitoring_state" or runtime.get("external_effects_default") != "disabled":
+    raise SystemExit("release runtime authority mismatch")
+promotion = value.get("promotion", {})
+if promotion.get("mutable_tags_authoritative") is not False or promotion.get("staging_and_production_same_digest") is not True:
+    raise SystemExit("release promotion authority mismatch")
+verification = value.get("verification", {})
+identity = "https://github.com/appolon1908-hue/Middleware-/.github/workflows/release.yml@refs/heads/main"
+if verification.get("certificate_identity") != identity or verification.get("oidc_issuer") != "https://token.actions.githubusercontent.com":
+    raise SystemExit("release signer authority mismatch")
+for artifact_name in ("sbom", "vulnerability_report"):
+    artifact = value.get("artifacts", {}).get(artifact_name, {})
+    path = release_dir / str(artifact.get("path", ""))
+    expected_digest = str(artifact.get("sha256", ""))
+    if not path.is_file() or not re.fullmatch(r"sha256:[0-9a-f]{64}", expected_digest):
+        raise SystemExit(f"release artifact missing: {artifact_name}")
+    actual = "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+    if actual != expected_digest:
+        raise SystemExit(f"release artifact checksum mismatch: {artifact_name}")
+built_at = str(build.get("built_at", ""))
+if not built_at.endswith("Z"):
+    raise SystemExit("release build time invalid")
+print(built_at)
+PY
+)" || fail "release_manifest_invalid"
+
+STAGE="runtime_network"
+for dependency_container in "$POSTGRES_CONTAINER" "$REDIS_CONTAINER"; do
+  [[ "$(docker inspect "$dependency_container" --format '{{.State.Status}}' 2>/dev/null || true)" == "running" ]] || fail "dependency_container_not_running"
+done
+if [[ "$RUNTIME_NETWORK" == "AUTO" ]]; then
+  postgres_networks="$(mktemp)"
+  redis_networks="$(mktemp)"
+  docker inspect "$POSTGRES_CONTAINER" --format '{{range $name, $_ := .NetworkSettings.Networks}}{{println $name}}{{end}}' | sort -u >"$postgres_networks"
+  docker inspect "$REDIS_CONTAINER" --format '{{range $name, $_ := .NetworkSettings.Networks}}{{println $name}}{{end}}' | sort -u >"$redis_networks"
+  mapfile -t common_networks < <(comm -12 "$postgres_networks" "$redis_networks" | grep -Ev '^(bridge|host|none)$' || true)
+  rm -f "$postgres_networks" "$redis_networks"
+  [[ "${#common_networks[@]}" -eq 1 ]] || fail "runtime_network_auto_detection_not_unique"
+  RUNTIME_NETWORK="${common_networks[0]}"
+fi
+[[ "$RUNTIME_NETWORK" =~ ^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$ ]] || fail "invalid_runtime_network"
+docker network inspect "$RUNTIME_NETWORK" >/dev/null 2>&1 || fail "runtime_network_missing"
+
+STAGE="configuration_identity"
+CONFIGURATION_CHECKSUM="$(python3 - "$RUNTIME_ENV_FILE" "$COMPOSE_FILE" "$CONTRACT_FILE" "$MANIFEST_FILE" "$RUNTIME_NETWORK" <<'PYCONF'
+from pathlib import Path
+import hashlib
+import json
+import re
+import sys
+
+env_path = Path(sys.argv[1])
+compose_path = Path(sys.argv[2])
+contract_path = Path(sys.argv[3])
+manifest_path = Path(sys.argv[4])
+network = sys.argv[5]
+values: dict[str, str] = {}
+for raw in env_path.read_text(encoding="utf-8").splitlines():
+    line = raw.strip()
+    if not line or line.startswith("#"):
+        continue
+    if line.startswith("export "):
+        line = line[7:].strip()
+    key, value = line.split("=", 1)
+    value = value.strip()
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in {'"', "'"}:
+        value = value[1:-1]
+    sensitive = re.search(
+        r"(PASSWORD|TOKEN|SECRET|PRIVATE|CREDENTIAL|DATABASE_URL|REDIS_URL|NATS_URL|CERT|KEY)",
+        key,
+        re.IGNORECASE,
+    )
+    values[key] = "<redacted-present>" if sensitive and value else "<redacted-empty>" if sensitive else value
+payload = {
+    "runtime_environment": dict(sorted(values.items())),
+    "runtime_network": network,
+    "compose_sha256": hashlib.sha256(compose_path.read_bytes()).hexdigest(),
+    "contract_sha256": hashlib.sha256(contract_path.read_bytes()).hexdigest(),
+    "release_manifest_sha256": hashlib.sha256(manifest_path.read_bytes()).hexdigest(),
+}
+print(hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()).hexdigest())
+PYCONF
+)" || fail "configuration_checksum_failed"
+[[ "$CONFIGURATION_CHECKSUM" =~ ^[0-9a-f]{64}$ ]] || fail "configuration_checksum_invalid"
+
+STAGE="deployment_source_integrity"
+BUNDLED_BACKUP="$WORK_DIR/deployment/server/codestra-middleware-backup"
+[[ -f "$BUNDLED_BACKUP" && ! -L "$BUNDLED_BACKUP" ]] || fail "bundled_backup_missing"
+[[ "sha256:$(sha256sum "$BUNDLED_BACKUP" | awk '{print $1}')" == "sha256:$(sha256sum "$BACKUP_COMMAND" | awk '{print $1}')" ]] || fail "installed_backup_checksum_mismatch"
+
+COMPOSE_ENV_FILE="$WORK_DIR/compose.env"
+cat >"$COMPOSE_ENV_FILE" <<EOFENV
+MIDDLEWARE_IMAGE_REFERENCE=$IMAGE_REFERENCE
+MIDDLEWARE_RUNTIME_ENV_FILE=$RUNTIME_ENV_FILE
+MIDDLEWARE_SOURCE_SHA=$SOURCE_SHA
+MIDDLEWARE_IMAGE_DIGEST=$IMAGE_DIGEST
+MIDDLEWARE_RELEASE_ID=$RELEASE_ID
+MIDDLEWARE_APP_VERSION=sha-$SOURCE_SHA
+MIDDLEWARE_BUILD_TIME=$BUILD_TIME
+MIDDLEWARE_CONFIGURATION_CHECKSUM=$CONFIGURATION_CHECKSUM
+MIDDLEWARE_RUNTIME_NETWORK=$RUNTIME_NETWORK
+MIDDLEWARE_FORWARDED_ALLOW_IPS=$FORWARDED_ALLOW_IPS
+EOFENV
+chmod 0600 "$COMPOSE_ENV_FILE"
+
+python3 - "$COMPOSE_FILE" <<'PYCOMPOSE'
+from pathlib import Path
+import re
+import sys
+text = Path(sys.argv[1]).read_text(encoding="utf-8")
+required = (
+    "name: codestra-middleware-production-canary",
+    "middleware-api-canary:",
+    "middleware-migrate-canary:",
+    "read_only: true",
+    "no-new-privileges:true",
+    "pull_policy: never",
+    'PRODUCTION_DIALING: DISABLED',
+    'OUTBOX_DISPATCH_ENABLED: "false"',
+)
+for item in required:
+    if item not in text:
+        raise SystemExit(f"compose requirement missing: {item}")
+for pattern in (
+    r"(?m)^\s*ports:\s*$",
+    r"privileged:\s*true",
+    r"/var/run/docker\.sock",
+    r"network_mode:\s*host",
+    r"pid:\s*host",
+    r"image:\s*[^\n]*:latest(?:\s|$)",
+):
+    if re.search(pattern, text, re.IGNORECASE):
+        raise SystemExit(f"unsafe compose pattern: {pattern}")
+PYCOMPOSE
+
+declare -a COMPOSE=(
+  docker compose
+  --project-name "$COMPOSE_PROJECT"
+  --env-file "$COMPOSE_ENV_FILE"
+  -f "$COMPOSE_FILE"
+)
+"${COMPOSE[@]}" config --quiet || fail "compose_render_failed"
+
+STAGE="registry_authentication"
+IFS= read -r registry_token || fail "registry_token_read_failed"
+[[ ${#registry_token} -ge 8 ]] || fail "registry_token_empty"
+DOCKER_AUTH_DIR="$(mktemp -d)"
+printf '%s' "$registry_token" | docker --config "$DOCKER_AUTH_DIR" login ghcr.io --username "$GHCR_USERNAME" --password-stdin >/dev/null
+unset registry_token
+
+STAGE="immutable_image"
+docker --config "$DOCKER_AUTH_DIR" pull "$IMAGE_REFERENCE" >/dev/null || fail "immutable_image_pull_failed"
+docker --config "$DOCKER_AUTH_DIR" logout ghcr.io >/dev/null 2>&1 || true
+rm -rf "$DOCKER_AUTH_DIR"
+DOCKER_AUTH_DIR=""
+image_revision="$(docker image inspect "$IMAGE_REFERENCE" --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' 2>/dev/null || true)"
+image_version="$(docker image inspect "$IMAGE_REFERENCE" --format '{{index .Config.Labels "org.opencontainers.image.version"}}' 2>/dev/null || true)"
+image_user="$(docker image inspect "$IMAGE_REFERENCE" --format '{{.Config.User}}' 2>/dev/null || true)"
+image_arch="$(docker image inspect "$IMAGE_REFERENCE" --format '{{.Architecture}}' 2>/dev/null || true)"
+[[ "$image_revision" == "$SOURCE_SHA" ]] || fail "image_revision_label_mismatch"
+[[ "$image_version" == "sha-$SOURCE_SHA" ]] || fail "image_version_label_mismatch"
+[[ "$image_user" == "65532:65532" || "$image_user" == "65532" || "$image_user" == "nonroot" ]] || fail "image_user_not_nonroot"
+[[ "$image_arch" == "amd64" ]] || fail "image_architecture_mismatch"
+
+existing_canary_id="$("${COMPOSE[@]}" ps -q "$COMPOSE_SERVICE" 2>/dev/null || true)"
+PREVIOUS_IMAGE_REFERENCE="NONE"
+if [[ -n "$existing_canary_id" ]]; then
+  PREEXISTING_CANARY="true"
+  PREVIOUS_IMAGE_REFERENCE="$(docker inspect "$existing_canary_id" --format '{{.Config.Image}}')"
+  [[ "$PREVIOUS_IMAGE_REFERENCE" == "$IMAGE_REFERENCE" ]] || fail "different_existing_canary_requires_separate_rollback_plan"
+fi
+
+STAGE="backup_restore"
+backup_output="$("$BACKUP_COMMAND" --reference "$RELEASE_ID")" || fail "backup_or_restore_rehearsal_failed"
+BACKUP_STATUS="$(kv_value "$backup_output" BACKUP_STATUS)" || fail "backup_status_missing"
+BACKUP_REFERENCE="$(kv_value "$backup_output" BACKUP_REFERENCE)" || fail "backup_reference_missing"
+BACKUP_SHA256="$(kv_value "$backup_output" BACKUP_SHA256)" || fail "backup_sha_missing"
+RESTORE_STATUS="$(kv_value "$backup_output" RESTORE_STATUS)" || fail "restore_status_missing"
+[[ "$BACKUP_STATUS" == "PASS" && "$RESTORE_STATUS" == "PASS" ]] || fail "backup_restore_not_pass"
+[[ "$BACKUP_SHA256" =~ ^sha256:[0-9a-f]{64}$ ]] || fail "backup_sha_invalid"
+
+EVIDENCE_RUN_DIR="$EVIDENCE_DIR/$RELEASE_ID-$(date -u +'%Y%m%dT%H%M%SZ')"
+install -d -m 0700 -o root -g root "$EVIDENCE_RUN_DIR"
+printf '%s\n' "$backup_output" >"$EVIDENCE_RUN_DIR/backup-restore.txt"
+chmod 0600 "$EVIDENCE_RUN_DIR/backup-restore.txt"
+
+STAGE="migration"
+set +e
+"${COMPOSE[@]}" run --rm --no-deps middleware-migrate-canary >"$EVIDENCE_RUN_DIR/migration.log" 2>&1
+migration_exit=$?
+set -e
+[[ "$migration_exit" -eq 0 ]] || fail "migration_command_failed"
+grep -q '^RUNTIME_MIGRATION=PASS$' "$EVIDENCE_RUN_DIR/migration.log" || fail "migration_pass_marker_missing"
+migration_versions="$(
+  docker exec -u postgres "$POSTGRES_CONTAINER" \
+    psql -X -v ON_ERROR_STOP=1 --dbname="$POSTGRES_DATABASE" --tuples-only --no-align \
+    --command="SELECT string_agg(version::text, ',' ORDER BY version) FROM middleware_schema_migrations"
+)"
+[[ "$migration_versions" == "1,2,3,4,5,6,7,8,9,10" ]] || fail "middleware_migration_head_mismatch"
+# A reported schema label or core SQL receipt cannot certify the Alembic graph.
+grep -q '^RUNTIME_SCHEMA_VERIFIED=PASS$' "$EVIDENCE_RUN_DIR/migration.log" || fail "schema_verification_marker_missing"
+actual_alembic_head="$(
+  docker exec -u postgres "$POSTGRES_CONTAINER" \
+    psql -X -v ON_ERROR_STOP=1 --dbname="$POSTGRES_DATABASE" --tuples-only --no-align \
+    --command="SELECT string_agg(version_num, ',' ORDER BY version_num) FROM public.alembic_version"
+)" || fail "alembic_readback_failed"
+[[ "$actual_alembic_head" == "$EXPECTED_SCHEMA_HEAD" ]] || fail "actual_alembic_head_mismatch"
+automation_versions="$(
+  docker exec -u postgres "$POSTGRES_CONTAINER" \
+    psql -X -v ON_ERROR_STOP=1 --dbname="$POSTGRES_DATABASE" --tuples-only --no-align \
+    --command="SELECT string_agg(version::text, ',' ORDER BY version) FROM public.middleware_automation_schema_migrations"
+)" || fail "automation_schema_readback_failed"
+[[ "$automation_versions" == "1" ]] || fail "automation_schema_head_mismatch"
+platform_table_count="$(
+  docker exec -u postgres "$POSTGRES_CONTAINER" \
+    psql -X -v ON_ERROR_STOP=1 --dbname="$POSTGRES_DATABASE" --tuples-only --no-align \
+    --command="SELECT count(*) FROM pg_catalog.pg_tables WHERE schemaname='public' AND tablename IN ('platform_services', 'platform_service_environments', 'platform_provisioning_requests', 'platform_provisioning_audit')"
+)" || fail "platform_schema_readback_failed"
+[[ "$platform_table_count" == "4" ]] || fail "platform_schema_incomplete"
+
+
+snapshot_counts() {
+  local output="$1"
+  : >"$output"
+  mapfile -t tables < <(
+    docker exec -u postgres "$POSTGRES_CONTAINER" \
+      psql -X -v ON_ERROR_STOP=1 --dbname="$POSTGRES_DATABASE" --tuples-only --no-align \
+      --command="SELECT tablename FROM pg_tables WHERE schemaname='public' AND (tablename LIKE 'middleware_%' OR tablename LIKE 'observability_%' OR tablename LIKE 'platform_%') ORDER BY tablename"
+  )
+  local table count
+  for table in "${tables[@]}"; do
+    [[ "$table" =~ ^[a-z0-9_]+$ ]] || fail "unsafe_database_table_name"
+    count="$(
+      docker exec -u postgres "$POSTGRES_CONTAINER" \
+        psql -X -v ON_ERROR_STOP=1 --dbname="$POSTGRES_DATABASE" --tuples-only --no-align \
+        --command="SELECT count(*) FROM public.\"$table\""
+    )"
+    [[ "$count" =~ ^[0-9]+$ ]] || fail "invalid_database_row_count"
+    printf '%s\t%s\n' "$table" "$count" >>"$output"
+  done
+  sort -o "$output" "$output"
+}
+
+snapshot_counts "$EVIDENCE_RUN_DIR/data-counts-before.tsv"
+
+wait_for_canary() {
+  local timeout_seconds=120
+  local started now container_id status health
+  started="$(date +%s)"
+  while true; do
+    container_id="$("${COMPOSE[@]}" ps -q "$COMPOSE_SERVICE" 2>/dev/null || true)"
+    if [[ -n "$container_id" ]]; then
+      status="$(docker inspect "$container_id" --format '{{.State.Status}}' 2>/dev/null || true)"
+      health="$(docker inspect "$container_id" --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' 2>/dev/null || true)"
+      if [[ "$status" == "running" && "$health" == "healthy" ]]; then
+        printf '%s' "$container_id"
+        return 0
+      fi
+    fi
+    now="$(date +%s)"
+    (( now - started < timeout_seconds )) || return 1
+    sleep 3
+  done
+}
+
+fetch_endpoint() {
+  local container_id="$1"
+  local endpoint="$2"
+  local output="$3"
+  docker exec "$container_id" /usr/local/bin/python3.14 -c \
+    'import sys,urllib.request; r=urllib.request.urlopen("http://127.0.0.1:8095"+sys.argv[1],timeout=5); assert r.status==200; sys.stdout.write(r.read().decode("utf-8"))' \
+    "$endpoint" >"$output"
+}
+
+verify_runtime() {
+  local container_id="$1"
+  local prefix="$2"
+  fetch_endpoint "$container_id" /health "$EVIDENCE_RUN_DIR/${prefix}-health.json"
+  fetch_endpoint "$container_id" /readiness "$EVIDENCE_RUN_DIR/${prefix}-readiness.json"
+  fetch_endpoint "$container_id" /version "$EVIDENCE_RUN_DIR/${prefix}-version.json"
+  fetch_endpoint "$container_id" /capabilities "$EVIDENCE_RUN_DIR/${prefix}-capabilities.json"
+  python3 - \
+    "$EVIDENCE_RUN_DIR/${prefix}-health.json" \
+    "$EVIDENCE_RUN_DIR/${prefix}-readiness.json" \
+    "$EVIDENCE_RUN_DIR/${prefix}-version.json" \
+    "$EVIDENCE_RUN_DIR/${prefix}-capabilities.json" \
+    "$SOURCE_SHA" "$IMAGE_DIGEST" "$RELEASE_ID" "$CONFIGURATION_CHECKSUM" <<'PYVERIFY'
+from pathlib import Path
+import json
+import sys
+health, readiness, version, capabilities = [json.loads(Path(path).read_text()) for path in sys.argv[1:5]]
+source_sha, image_digest, release_id, configuration_checksum = sys.argv[5:]
+if health != {"status": "ok", "service": "middleware-api", "component": "api"}:
+    raise SystemExit("health projection mismatch")
+if readiness.get("status") != "ready" or readiness.get("environment") != "production":
+    raise SystemExit("readiness is not production-ready")
+if readiness.get("release_sha") != source_sha or readiness.get("image_digest") != image_digest:
+    raise SystemExit("readiness source or image mismatch")
+if readiness.get("schema_or_migration_head") != "0067_service_catalog_monitoring_state":
+    raise SystemExit("readiness migration head mismatch")
+expected_version = {
+    "environment": "production",
+    "runtime_profile_id": "codestra-middleware-production-compose-v1",
+    "source_sha": source_sha,
+    "git_sha": source_sha,
+    "image_digest": image_digest,
+    "schema_head": "0067_service_catalog_monitoring_state",
+    "schema_version": "0067_service_catalog_monitoring_state",
+    "release_id": release_id,
+    "configuration_checksum": configuration_checksum,
+}
+for key, expected in expected_version.items():
+    if version.get(key) != expected:
+        raise SystemExit(f"version mismatch: {key}")
+values = capabilities.get("capabilities")
+if capabilities.get("environment") != "production" or not isinstance(values, dict) or not values:
+    raise SystemExit("capability projection invalid")
+if any(value is not False for value in values.values()):
+    raise SystemExit("an external capability is enabled")
+PYVERIFY
+
+  docker inspect "$container_id" >"$EVIDENCE_RUN_DIR/${prefix}-container-inspect.json"
+  python3 - "$EVIDENCE_RUN_DIR/${prefix}-container-inspect.json" "$IMAGE_REFERENCE" <<'PYINSPECT'
+from pathlib import Path
+import json
+import sys
+rows = json.loads(Path(sys.argv[1]).read_text())
+if len(rows) != 1:
+    raise SystemExit("container inspect cardinality mismatch")
+row = rows[0]
+expected_image = sys.argv[2]
+if row.get("Config", {}).get("Image") != expected_image:
+    raise SystemExit("container image reference mismatch")
+host = row.get("HostConfig", {})
+if host.get("Privileged") is not False or host.get("ReadonlyRootfs") is not True:
+    raise SystemExit("container privilege or rootfs policy mismatch")
+if set(host.get("CapDrop") or []) != {"ALL"}:
+    raise SystemExit("container capability drop mismatch")
+if "no-new-privileges:true" not in (host.get("SecurityOpt") or []):
+    raise SystemExit("container no-new-privileges missing")
+if host.get("PortBindings") not in (None, {}):
+    raise SystemExit("canary publishes a port")
+labels = row.get("Config", {}).get("Labels") or {}
+if labels.get("com.codestra.gateway.exposure") != "none":
+    raise SystemExit("gateway exposure label mismatch")
+for key in labels:
+    lowered = key.lower()
+    if lowered.startswith(("traefik.", "caddy.", "kong.")):
+        raise SystemExit("proxy discovery label is forbidden")
+state = row.get("State", {})
+if state.get("Status") != "running" or (state.get("Health") or {}).get("Status") != "healthy":
+    raise SystemExit("container is not healthy")
+PYINSPECT
+}
+
+STAGE="canary_start"
+"${COMPOSE[@]}" up -d --no-build --no-deps "$COMPOSE_SERVICE" >/dev/null
+CANARY_STARTED_BY_THIS_RUN="true"
+CANARY_ID="$(wait_for_canary)" || fail "canary_health_timeout"
+verify_runtime "$CANARY_ID" initial
+
+STAGE="observation"
+sleep "$OBSERVATION_SECONDS"
+verify_runtime "$CANARY_ID" observed
+
+STAGE="rollback_rehearsal"
+rollback_started="$(date +%s)"
+"${COMPOSE[@]}" rm -sf "$COMPOSE_SERVICE" >/dev/null
+[[ -z "$("${COMPOSE[@]}" ps -q "$COMPOSE_SERVICE" 2>/dev/null || true)" ]] || fail "rollback_container_removal_failed"
+rollback_finished="$(date +%s)"
+ROLLBACK_RTO_SECONDS="$((rollback_finished - rollback_started))"
+ROLLBACK_TARGET="ABSENT_CANARY"
+if [[ "$PREEXISTING_CANARY" == "true" ]]; then
+  ROLLBACK_TARGET="SAME_IMMUTABLE_CANDIDATE"
+fi
+
+STAGE="candidate_redeploy"
+"${COMPOSE[@]}" up -d --no-build --no-deps "$COMPOSE_SERVICE" >/dev/null
+FINAL_CANARY_ID="$(wait_for_canary)" || fail "candidate_redeploy_health_timeout"
+verify_runtime "$FINAL_CANARY_ID" final
+snapshot_counts "$EVIDENCE_RUN_DIR/data-counts-after.tsv"
+cmp -s "$EVIDENCE_RUN_DIR/data-counts-before.tsv" "$EVIDENCE_RUN_DIR/data-counts-after.tsv" || fail "business_data_changed_during_canary"
+
+STAGE="evidence"
+cp -f "$MANIFEST_FILE" "$EVIDENCE_RUN_DIR/release-manifest.v1.json"
+cp -f "$MANIFEST_BUNDLE_FILE" "$EVIDENCE_RUN_DIR/release-manifest.v1.sigstore.json"
+cp -f "$COMPOSE_FILE" "$EVIDENCE_RUN_DIR/compose.canary.yaml"
+cp -f "$CONTRACT_FILE" "$EVIDENCE_RUN_DIR/server-command-contract.v1.json"
+chmod 0600 "$EVIDENCE_RUN_DIR"/*
+DEPLOYED_AT="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+
+export E_SOURCE_SHA="$SOURCE_SHA" E_IMAGE_REFERENCE="$IMAGE_REFERENCE" E_IMAGE_DIGEST="$IMAGE_DIGEST"
+export E_RELEASE_RUN_ID="$RELEASE_RUN_ID" E_RELEASE_ID="$RELEASE_ID" E_DEPLOYED_AT="$DEPLOYED_AT"
+export E_BACKUP_REFERENCE="$BACKUP_REFERENCE" E_BACKUP_SHA256="$BACKUP_SHA256"
+export E_CONFIGURATION_CHECKSUM="$CONFIGURATION_CHECKSUM" E_OBSERVATION_SECONDS="$OBSERVATION_SECONDS"
+export E_ROLLBACK_RTO_SECONDS="$ROLLBACK_RTO_SECONDS" E_ROLLBACK_TARGET="$ROLLBACK_TARGET"
+export E_PREVIOUS_IMAGE_REFERENCE="$PREVIOUS_IMAGE_REFERENCE" E_RUNTIME_NETWORK="$RUNTIME_NETWORK"
+python3 - "$EVIDENCE_RUN_DIR/result.json" "$EVIDENCE_RUN_DIR/result.md" <<'PYRESULT'
+from pathlib import Path
+import json
+import os
+import sys
+value = {
+    "schema_version": "1.0",
+    "result": "PASS",
+    "deployment_mode": "READ_ONLY_CANARY",
+    "server_role": "CODESTRA_APPLICATION_SERVER_A",
+    "deployed_at": os.environ["E_DEPLOYED_AT"],
+    "source_sha": os.environ["E_SOURCE_SHA"],
+    "image_reference": os.environ["E_IMAGE_REFERENCE"],
+    "image_digest": os.environ["E_IMAGE_DIGEST"],
+    "release_run_id": int(os.environ["E_RELEASE_RUN_ID"]),
+    "release_id": os.environ["E_RELEASE_ID"],
+    "configuration_checksum": os.environ["E_CONFIGURATION_CHECKSUM"],
+    "runtime_network": os.environ["E_RUNTIME_NETWORK"],
+    "backup": {
+        "status": "PASS",
+        "reference": os.environ["E_BACKUP_REFERENCE"],
+        "sha256": os.environ["E_BACKUP_SHA256"],
+        "restore_rehearsal": "PASS",
+    },
+    "migration": {"status": "PASS", "head": "0067_service_catalog_monitoring_state"},
+    "runtime": {
+        "health": "PASS",
+        "readiness": "PASS",
+        "version": "PASS",
+        "capabilities": "PASS",
+        "container_status": "running",
+        "container_health": "healthy",
+        "gateway_exposure": "NONE",
+        "external_effects_enabled": "NONE",
+        "business_writes_enabled": False,
+        "calls_placed": 0,
+    },
+    "observation_seconds": int(os.environ["E_OBSERVATION_SECONDS"]),
+    "rollback": {
+        "status": "PASS",
+        "rto_seconds": int(os.environ["E_ROLLBACK_RTO_SECONDS"]),
+        "target": os.environ["E_ROLLBACK_TARGET"],
+        "previous_image_reference": os.environ["E_PREVIOUS_IMAGE_REFERENCE"],
+    },
+    "data_integrity": "PASS",
+}
+Path(sys.argv[1]).write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+lines = [
+    "# Middleware production read-only canary certification",
+    "",
+    "- Result: `PASS`",
+    f"- Source SHA: `{value['source_sha']}`",
+    f"- Image: `{value['image_reference']}`",
+    f"- Release ID: `{value['release_id']}`",
+    f"- Backup/restore: `PASS`",
+    f"- Migration head: `{value['migration']['head']}`",
+    f"- Health/readiness/version/capabilities: `PASS`",
+    f"- External effects: `NONE`",
+    f"- Calls placed: `0`",
+    f"- Gateway exposure: `NONE`",
+    f"- Rollback rehearsal: `PASS` (RTO {value['rollback']['rto_seconds']}s)",
+    f"- Data integrity: `PASS`",
+]
+Path(sys.argv[2]).write_text("\n".join(lines) + "\n", encoding="utf-8")
+PYRESULT
+
+RESULT_BUNDLE="$INCOMING_DIR/middleware-production-certification-$RELEASE_ID-$(date -u +'%Y%m%dT%H%M%SZ').tar.gz"
+tar --format=posix -C "$EVIDENCE_RUN_DIR" -czf "$RESULT_BUNDLE" .
+chown "$DEPLOY_USER:$DEPLOY_USER" "$RESULT_BUNDLE"
+chmod 0600 "$RESULT_BUNDLE"
+EVIDENCE_BUNDLE_SHA256="sha256:$(sha256sum "$RESULT_BUNDLE" | awk '{print $1}')"
+
+STAGE="complete"
+CANARY_STARTED_BY_THIS_RUN="false"
+trap - EXIT
+rm -rf -- "$WORK_DIR"
+WORK_DIR=""
+
+printf 'DEPLOYMENT_CONTRACT_VERSION=%s\n' "$CONTRACT_VERSION"
+printf 'DEPLOYMENT_STATUS=PASS\n'
+printf 'DEPLOYMENT_MODE=READ_ONLY_CANARY\n'
+printf 'SERVER_ROLE=%s\n' "$SERVER_ROLE"
+printf 'DEPLOYED_AT=%s\n' "$DEPLOYED_AT"
+printf 'SOURCE_SHA=%s\n' "$SOURCE_SHA"
+printf 'IMAGE_REFERENCE=%s\n' "$IMAGE_REFERENCE"
+printf 'IMAGE_DIGEST=%s\n' "$IMAGE_DIGEST"
+printf 'RELEASE_RUN_ID=%s\n' "$RELEASE_RUN_ID"
+printf 'RELEASE_ID=%s\n' "$RELEASE_ID"
+printf 'COMPOSE_PROJECT=%s\n' "$COMPOSE_PROJECT"
+printf 'COMPOSE_SERVICE=%s\n' "$COMPOSE_SERVICE"
+printf 'BACKUP_STATUS=PASS\n'
+printf 'BACKUP_REFERENCE=%s\n' "$BACKUP_REFERENCE"
+printf 'BACKUP_SHA256=%s\n' "$BACKUP_SHA256"
+printf 'RESTORE_STATUS=PASS\n'
+printf 'MIGRATION_STATUS=PASS\n'
+printf 'MIGRATION_HEAD=%s\n' "$EXPECTED_SCHEMA_HEAD"
+printf 'CONTAINER_STATUS=running\n'
+printf 'CONTAINER_HEALTH=healthy\n'
+printf 'HEALTH_STATUS=PASS\n'
+printf 'READINESS_STATUS=PASS\n'
+printf 'VERSION_STATUS=PASS\n'
+printf 'VERSION_SOURCE_SHA=%s\n' "$SOURCE_SHA"
+printf 'VERSION_IMAGE_DIGEST=%s\n' "$IMAGE_DIGEST"
+printf 'VERSION_SCHEMA_HEAD=%s\n' "$EXPECTED_SCHEMA_HEAD"
+printf 'CAPABILITIES_STATUS=PASS\n'
+printf 'BUSINESS_WRITES_ENABLED=NO\n'
+printf 'EXTERNAL_EFFECTS_ENABLED=NONE\n'
+printf 'CALLS_PLACED=0\n'
+printf 'GATEWAY_EXPOSURE=NONE\n'
+printf 'ROLLBACK_STATUS=PASS\n'
+printf 'ROLLBACK_RTO_SECONDS=%s\n' "$ROLLBACK_RTO_SECONDS"
+printf 'ROLLBACK_TARGET=%s\n' "$ROLLBACK_TARGET"
+printf 'PREVIOUS_IMAGE_REFERENCE=%s\n' "$PREVIOUS_IMAGE_REFERENCE"
+printf 'CONFIGURATION_CHECKSUM=%s\n' "$CONFIGURATION_CHECKSUM"
+printf 'OBSERVATION_SECONDS=%s\n' "$OBSERVATION_SECONDS"
+printf 'DATA_INTEGRITY_STATUS=PASS\n'
+printf 'EVIDENCE_BUNDLE_PATH=%s\n' "$RESULT_BUNDLE"
+printf 'EVIDENCE_BUNDLE_SHA256=%s\n' "$EVIDENCE_BUNDLE_SHA256"

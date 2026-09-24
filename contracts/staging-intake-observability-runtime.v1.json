@@ -1,0 +1,96 @@
+{
+  "schema_version": "1.1",
+  "contract_id": "codestra-middleware-staging-intake-observability-v1",
+  "purpose": "Deploy and certify one immutable Middleware image on a private staging network without enabling any external effect.",
+  "immutable_release": {
+    "source_sha": "f6748a58f8d2590520a4f28776770957061cdea1",
+    "image_reference": "ghcr.io/appolon1908-hue/codestra-middleware@sha256:695fa3ce3f50ba4d0ae0784976b946a0a683ca731155e4bd3bd9e90a4670b820",
+    "image_digest": "sha256:695fa3ce3f50ba4d0ae0784976b946a0a683ca731155e4bd3bd9e90a4670b820",
+    "release_run_id": 33314094004,
+    "release_id": "f6748a58f8d2-695fa3ce3f50",
+    "schema_head": "0003_immutable_event_ledger",
+    "build_time": "2026-08-30T13:24:37Z",
+    "embedded_runtime_profile": {
+      "profile_id": "codestra-middleware-staging-v1",
+      "database_host": "postgresql.middleware-staging.svc.cluster.local",
+      "database_name": "codestra_staging",
+      "database_username": "middleware_staging",
+      "database_sslmode": "verify-full",
+      "redis_host": "redis.middleware-staging.svc.cluster.local",
+      "redis_username": "middleware-staging",
+      "redis_database": 14,
+      "redis_tls_required": true,
+      "production_activation_allowed": false
+    }
+  },
+  "runtime": {
+    "environment": "staging",
+    "profile_id": "codestra-middleware-staging-v1",
+    "allow_in_memory_storage": false,
+    "host_ports_published": false,
+    "private_network_only": true,
+    "dependencies": ["postgresql-tls", "redis-tls", "keycloak-jwks"],
+    "nats_dispatch_mode": "disabled",
+    "temporal_worker_mode": "disabled",
+    "outbox_dispatch_enabled": false,
+    "production_dialing": "DISABLED",
+    "production_activation_configured": false
+  },
+  "authenticated_read_endpoints": [
+    {"method": "GET", "path": "/metrics", "client_id": "monitoring-readonly", "scope": "metrics.read", "audience": "middleware-api", "public_exposure": false},
+    {"method": "GET", "path": "/v1/runtime/safety", "client_id": "monitoring-readonly", "scope": "health.read", "audience": "middleware-api", "public_exposure": false}
+  ],
+  "token_policy": {
+    "issuer": "Keycloak",
+    "maximum_lifetime_seconds": 300,
+    "minimum_independent_tokens": 2,
+    "storage": "outside-git-0600-files",
+    "token_values_in_logs_or_artifacts": false
+  },
+  "runtime_recognized_external_effects": {
+    "SEND_EVENTS": false,
+    "ENABLE_EXTERNAL_DELIVERY": false,
+    "LIVE_WRITE": false,
+    "LIVE_WRITES": false,
+    "ODOO_WRITE": false,
+    "CALLBACK_DISPATCH": false,
+    "N8N_DELIVERY_ENABLED": false,
+    "VICIDIAL_WRITES_ENABLED": false,
+    "EXTERNAL_DIAL_ENABLED": false,
+    "PRODUCTION_CALLBACKS_ENABLED": false,
+    "N8N_PRODUCTION_WORKFLOWS_ENABLED": false,
+    "FORM_ODOO_DELIVERY_ENABLED": false,
+    "CRAWLER_ODOO_DELIVERY_ENABLED": false,
+    "SCRAPPER_ODOO_DELIVERY_ENABLED": false,
+    "CRAWLER_EXTERNAL_CONTACT_ENABLED": false,
+    "SCRAPPER_EXTERNAL_CONTACT_ENABLED": false,
+    "SMS_DELIVERY_ENABLED": false,
+    "EMAIL_DELIVERY_ENABLED": false,
+    "SOCIAL_DELIVERY_ENABLED": false,
+    "CRAWLER_EXECUTION_ENABLED": false,
+    "SCRAPPER_EXECUTION_ENABLED": false,
+    "LIVE_SMS_DELIVERY": false,
+    "LIVE_EMAIL_DELIVERY": false,
+    "UNRESTRICTED_CRAWLING": false
+  },
+  "dispatch_controls": {
+    "OUTBOX_DISPATCH_ENABLED": false,
+    "NATS_DISPATCH_MODE": "disabled",
+    "TEMPORAL_WORKER_MODE": "disabled",
+    "PRODUCTION_DIALING": "DISABLED"
+  },
+  "defense_in_depth_compatibility_flags": {
+    "ENABLE_VICIDIAL_WRITES": false,
+    "LIVE_PSTN_DIALING": false,
+    "LIVE_CALL_CONTROL": false,
+    "GENERAL_AI_DIALING": false
+  },
+  "evidence": {
+    "collector_repository": "appolon1908-hue/Codestra-Prometheus",
+    "collector_path": "codestra/scripts/collect_staging_intake_evidence.py",
+    "checksum_state": "PENDING_RUNTIME_EXECUTION",
+    "prometheus_target_state": "pending",
+    "blackbox_target_state": "pending"
+  },
+  "production_authorized": false
+}

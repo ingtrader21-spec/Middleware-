@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.codestra.internal/recording/recording-reservation-v1.json",
+  "title": "Recording Upload Reservation v1",
+  "oneOf": [
+    {
+      "title": "Request",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract_version", "idempotency_key", "recording"],
+      "properties": {
+        "contract_version": {"const": "1.0"},
+        "idempotency_key": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "recording": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "contract_version",
+            "vicidial_recording_id",
+            "vicidial_call_id",
+            "asterisk_uniqueid",
+            "campaign_key",
+            "agent_key",
+            "started_at",
+            "duration_seconds",
+            "format",
+            "codec",
+            "channels",
+            "sample_rate_hz",
+            "file_size_bytes",
+            "sha256",
+            "environment",
+            "retention_class"
+          ],
+          "properties": {
+            "contract_version": {"const": "1.0"},
+            "vicidial_recording_id": {
+              "$ref": "recording-contract-v1.json#/properties/vicidial_recording_id"
+            },
+            "vicidial_call_id": {
+              "$ref": "recording-contract-v1.json#/properties/vicidial_call_id"
+            },
+            "asterisk_uniqueid": {
+              "$ref": "recording-contract-v1.json#/properties/asterisk_uniqueid"
+            },
+            "campaign_key": {
+              "$ref": "recording-contract-v1.json#/properties/campaign_key"
+            },
+            "agent_key": {"$ref": "recording-contract-v1.json#/properties/agent_key"},
+            "started_at": {"$ref": "recording-contract-v1.json#/properties/started_at"},
+            "duration_seconds": {
+              "$ref": "recording-contract-v1.json#/properties/duration_seconds"
+            },
+            "format": {"$ref": "recording-contract-v1.json#/properties/format"},
+            "codec": {"$ref": "recording-contract-v1.json#/properties/codec"},
+            "channels": {"$ref": "recording-contract-v1.json#/properties/channels"},
+            "sample_rate_hz": {
+              "$ref": "recording-contract-v1.json#/properties/sample_rate_hz"
+            },
+            "file_size_bytes": {
+              "$ref": "recording-contract-v1.json#/properties/file_size_bytes"
+            },
+            "sha256": {"$ref": "recording-contract-v1.json#/properties/sha256"},
+            "environment": {
+              "$ref": "recording-contract-v1.json#/properties/environment"
+            },
+            "retention_class": {
+              "$ref": "recording-contract-v1.json#/properties/retention_class"
+            }
+          }
+        }
+      }
+    },
+    {
+      "title": "Response",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "recording_uid",
+        "upload_url",
+        "upload_url_expires_at",
+        "required_checksum_header",
+        "required_content_type",
+        "opaque_object_identifier"
+      ],
+      "properties": {
+        "contract_version": {"const": "1.0"},
+        "recording_uid": {"type": "string", "pattern": "^REC-[0-9a-f]{32}$"},
+        "upload_url": {"type": "string", "format": "uri"},
+        "upload_url_expires_at": {"type": "string", "format": "date-time"},
+        "required_checksum_header": {"const": "x-amz-checksum-sha256"},
+        "required_content_type": {"enum": ["audio/mpeg", "audio/wav", "audio/gsm"]},
+        "opaque_object_identifier": {"type": "string", "minLength": 16, "maxLength": 128}
+      }
+    }
+  ]
+}

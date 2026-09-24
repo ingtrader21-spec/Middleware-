@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.breero.com/integrations/middleware-ack-v1.json",
+  "title": "BREERO Middleware CRM Acknowledgement V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["event_id", "status"],
+  "properties": {
+    "event_id": {"type": "string", "format": "uuid"},
+    "status": {"enum": ["queued", "delivered", "replayed"]},
+    "middleware_receipt_id": {"type": "string", "maxLength": 128},
+    "odoo_model": {"type": "string", "maxLength": 128},
+    "odoo_record_id": {"type": ["integer", "null"], "minimum": 1}
+  }
+}

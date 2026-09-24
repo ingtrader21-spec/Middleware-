@@ -1,0 +1,624 @@
+{
+    "version": 2,
+    "canonical_contract_branch": "core/integration-contracts",
+    "canonical_event_schema": "contracts/platform/event-envelope.v1.schema.json",
+    "http_conventions": "contracts/http-conventions.md",
+    "observability_conventions": "contracts/observability-conventions.md",
+    "policies": {
+        "all_workstreams_must_depend_on_canonical_contracts": true,
+        "all_links_require_explicit_authentication": true,
+        "all_effectful_delivery_requires_idempotency": true,
+        "webhooks_require_signature_timestamp_and_replay_protection": true,
+        "tenant_correlation_and_causation_metadata_required": true,
+        "external_effects_disabled_by_default": true,
+        "runtime_verification_required_before_activation": true,
+        "direct_deployment_from_workstream_branches": false
+    },
+    "workstream_dependencies": {
+        "integration/odoo-19": [
+            "core/integration-contracts",
+            "core/event-ledger-outbox",
+            "core/webhook-inbox-replay",
+            "core/workers-scheduler",
+            "integration/keycloak"
+        ],
+        "integration/n8n": [
+            "core/integration-contracts",
+            "core/event-ledger-outbox",
+            "core/webhook-inbox-replay",
+            "core/workers-scheduler",
+            "integration/keycloak"
+        ],
+        "integration/vicidial": [
+            "core/integration-contracts",
+            "core/event-ledger-outbox",
+            "core/webhook-inbox-replay",
+            "core/workers-scheduler",
+            "integration/keycloak"
+        ],
+        "integration/asterisk-pjsip": [
+            "core/integration-contracts",
+            "core/event-ledger-outbox",
+            "core/webhook-inbox-replay",
+            "core/workers-scheduler",
+            "integration/keycloak"
+        ],
+        "integration/telnexa-sms": [
+            "core/integration-contracts",
+            "core/event-ledger-outbox",
+            "core/webhook-inbox-replay",
+            "core/workers-scheduler",
+            "integration/keycloak"
+        ],
+        "integration/klyrow-email": [
+            "core/integration-contracts",
+            "core/event-ledger-outbox",
+            "core/webhook-inbox-replay",
+            "core/workers-scheduler",
+            "integration/keycloak"
+        ],
+        "integration/postly-social": [
+            "core/integration-contracts",
+            "core/event-ledger-outbox",
+            "core/webhook-inbox-replay",
+            "core/workers-scheduler",
+            "integration/keycloak"
+        ],
+        "integration/keycloak": [
+            "core/integration-contracts"
+        ],
+        "platform/kong": [
+            "core/integration-contracts",
+            "integration/keycloak"
+        ],
+        "platform/caddy": [
+            "core/integration-contracts",
+            "platform/kong"
+        ],
+        "platform/postgresql": [
+            "core/integration-contracts"
+        ],
+        "platform/redis": [
+            "core/integration-contracts"
+        ],
+        "platform/nats-jetstream": [
+            "core/integration-contracts"
+        ],
+        "platform/temporal": [
+            "core/integration-contracts",
+            "platform/postgresql"
+        ],
+        "platform/rabbitmq": [
+            "core/integration-contracts"
+        ],
+        "integration/mautic": [
+            "core/integration-contracts",
+            "core/event-ledger-outbox",
+            "core/webhook-inbox-replay",
+            "core/workers-scheduler",
+            "integration/keycloak"
+        ],
+        "integration/postal-email": [
+            "core/integration-contracts",
+            "core/event-ledger-outbox",
+            "core/webhook-inbox-replay",
+            "core/workers-scheduler",
+            "integration/keycloak"
+        ],
+        "integration/jasmin-sms": [
+            "core/integration-contracts",
+            "core/event-ledger-outbox",
+            "core/webhook-inbox-replay",
+            "core/workers-scheduler",
+            "integration/keycloak"
+        ],
+        "integration/crawlee": [
+            "core/integration-contracts",
+            "core/event-ledger-outbox",
+            "core/webhook-inbox-replay",
+            "core/workers-scheduler",
+            "integration/keycloak"
+        ],
+        "testing/playwright": [
+            "core/integration-contracts",
+            "platform/caddy",
+            "platform/kong",
+            "integration/keycloak"
+        ],
+        "observability/prometheus": [
+            "core/integration-contracts",
+            "observability/node-exporter",
+            "observability/cadvisor",
+            "observability/postgresql-exporter",
+            "observability/redis-exporter",
+            "observability/blackbox-exporter"
+        ],
+        "observability/grafana": [
+            "core/integration-contracts",
+            "observability/prometheus",
+            "observability/loki"
+        ],
+        "observability/alertmanager": [
+            "core/integration-contracts",
+            "observability/prometheus"
+        ],
+        "observability/loki": [
+            "core/integration-contracts"
+        ],
+        "observability/blackbox-exporter": [
+            "core/integration-contracts",
+            "platform/caddy",
+            "platform/kong"
+        ],
+        "observability/node-exporter": [
+            "core/integration-contracts"
+        ],
+        "observability/cadvisor": [
+            "core/integration-contracts"
+        ],
+        "observability/postgresql-exporter": [
+            "core/integration-contracts",
+            "platform/postgresql"
+        ],
+        "observability/redis-exporter": [
+            "core/integration-contracts",
+            "platform/redis"
+        ],
+        "core/integration-contracts": [],
+        "core/event-ledger-outbox": [
+            "core/integration-contracts",
+            "platform/postgresql",
+            "platform/redis",
+            "platform/nats-jetstream"
+        ],
+        "core/webhook-inbox-replay": [
+            "core/integration-contracts",
+            "platform/postgresql",
+            "platform/redis",
+            "integration/keycloak"
+        ],
+        "core/workers-scheduler": [
+            "core/integration-contracts",
+            "platform/postgresql",
+            "platform/redis",
+            "platform/nats-jetstream",
+            "platform/temporal"
+        ],
+        "integration/kyqra": [
+            "core/integration-contracts",
+            "core/event-ledger-outbox",
+            "core/webhook-inbox-replay",
+            "core/workers-scheduler",
+            "integration/keycloak"
+        ],
+        "integration/beyvra": [
+            "core/integration-contracts",
+            "core/event-ledger-outbox",
+            "core/webhook-inbox-replay",
+            "core/workers-scheduler",
+            "integration/keycloak"
+        ]
+    },
+    "connections": [
+        {
+            "id": "caddy-to-kong",
+            "source_branch": "platform/caddy",
+            "target_branch": "platform/kong",
+            "direction": "request_response",
+            "transport": "https",
+            "authentication": "mtls_or_oidc_jwt",
+            "reliability": "synchronous",
+            "owner_branch": "platform/caddy",
+            "runtime_status": "declared",
+            "contract": "contracts/http-conventions.md"
+        },
+        {
+            "id": "kong-to-contracts",
+            "source_branch": "platform/kong",
+            "target_branch": "core/integration-contracts",
+            "direction": "request_response",
+            "transport": "https",
+            "authentication": "oidc_jwt",
+            "reliability": "synchronous",
+            "owner_branch": "platform/kong",
+            "runtime_status": "declared",
+            "contract": "contracts/http-conventions.md"
+        },
+        {
+            "id": "keycloak-to-contracts",
+            "source_branch": "integration/keycloak",
+            "target_branch": "core/integration-contracts",
+            "direction": "identity",
+            "transport": "oidc_jwks",
+            "authentication": "service_identity",
+            "reliability": "read_only",
+            "owner_branch": "integration/keycloak",
+            "runtime_status": "declared",
+            "contract": "contracts/http-conventions.md"
+        },
+        {
+            "id": "contracts-to-postgresql",
+            "source_branch": "core/integration-contracts",
+            "target_branch": "platform/postgresql",
+            "direction": "state",
+            "transport": "postgresql",
+            "authentication": "database_role",
+            "reliability": "transactional_outbox",
+            "owner_branch": "platform/postgresql",
+            "runtime_status": "declared",
+            "contract": "contracts/event-envelope.schema.json"
+        },
+        {
+            "id": "contracts-to-redis",
+            "source_branch": "core/integration-contracts",
+            "target_branch": "platform/redis",
+            "direction": "lease",
+            "transport": "redis",
+            "authentication": "redis_acl",
+            "reliability": "lease_retry",
+            "owner_branch": "platform/redis",
+            "runtime_status": "declared",
+            "contract": "contracts/event-envelope.schema.json"
+        },
+        {
+            "id": "contracts-to-event-ledger",
+            "source_branch": "core/integration-contracts",
+            "target_branch": "core/event-ledger-outbox",
+            "direction": "internal",
+            "transport": "internal",
+            "authentication": "internal_service_policy",
+            "reliability": "transactional_outbox",
+            "owner_branch": "core/integration-contracts",
+            "runtime_status": "declared",
+            "contract": "contracts/event-envelope.schema.json"
+        },
+        {
+            "id": "contracts-to-webhook-inbox",
+            "source_branch": "core/integration-contracts",
+            "target_branch": "core/webhook-inbox-replay",
+            "direction": "internal",
+            "transport": "internal",
+            "authentication": "internal_service_policy",
+            "reliability": "durable_inbox",
+            "owner_branch": "core/integration-contracts",
+            "runtime_status": "declared",
+            "contract": "contracts/event-envelope.schema.json"
+        },
+        {
+            "id": "contracts-to-workers",
+            "source_branch": "core/integration-contracts",
+            "target_branch": "core/workers-scheduler",
+            "direction": "internal",
+            "transport": "internal",
+            "authentication": "internal_service_policy",
+            "reliability": "lease_retry",
+            "owner_branch": "core/integration-contracts",
+            "runtime_status": "declared",
+            "contract": "contracts/event-envelope.schema.json"
+        },
+        {
+            "id": "event-ledger-to-nats",
+            "source_branch": "core/event-ledger-outbox",
+            "target_branch": "platform/nats-jetstream",
+            "direction": "queue",
+            "transport": "nats_jetstream",
+            "authentication": "nats_tls_service_identity",
+            "reliability": "at_least_once",
+            "owner_branch": "platform/nats-jetstream",
+            "runtime_status": "declared",
+            "contract": "contracts/event-envelope.schema.json"
+        },
+        {
+            "id": "workers-to-temporal",
+            "source_branch": "core/workers-scheduler",
+            "target_branch": "platform/temporal",
+            "direction": "workflow",
+            "transport": "temporal_rpc",
+            "authentication": "mtls_or_oidc_jwt",
+            "reliability": "durable_workflow",
+            "owner_branch": "platform/temporal",
+            "runtime_status": "declared",
+            "contract": "contracts/http-conventions.md"
+        },
+        {
+            "id": "contracts-to-odoo-19",
+            "source_branch": "core/integration-contracts",
+            "target_branch": "integration/odoo-19",
+            "direction": "contract",
+            "transport": "internal",
+            "authentication": "internal_service_policy",
+            "reliability": "synchronous",
+            "owner_branch": "integration/odoo-19",
+            "runtime_status": "declared",
+            "contract": "contracts/http-conventions.md"
+        },
+        {
+            "id": "contracts-to-n8n",
+            "source_branch": "core/integration-contracts",
+            "target_branch": "integration/n8n",
+            "direction": "contract",
+            "transport": "internal",
+            "authentication": "internal_service_policy",
+            "reliability": "synchronous",
+            "owner_branch": "integration/n8n",
+            "runtime_status": "declared",
+            "contract": "contracts/http-conventions.md"
+        },
+        {
+            "id": "contracts-to-vicidial",
+            "source_branch": "core/integration-contracts",
+            "target_branch": "integration/vicidial",
+            "direction": "contract",
+            "transport": "internal",
+            "authentication": "internal_service_policy",
+            "reliability": "synchronous",
+            "owner_branch": "integration/vicidial",
+            "runtime_status": "declared",
+            "contract": "contracts/http-conventions.md"
+        },
+        {
+            "id": "contracts-to-asterisk-pjsip",
+            "source_branch": "core/integration-contracts",
+            "target_branch": "integration/asterisk-pjsip",
+            "direction": "contract",
+            "transport": "internal",
+            "authentication": "internal_service_policy",
+            "reliability": "synchronous",
+            "owner_branch": "integration/asterisk-pjsip",
+            "runtime_status": "declared",
+            "contract": "contracts/http-conventions.md"
+        },
+        {
+            "id": "contracts-to-telnexa-sms",
+            "source_branch": "core/integration-contracts",
+            "target_branch": "integration/telnexa-sms",
+            "direction": "contract",
+            "transport": "internal",
+            "authentication": "internal_service_policy",
+            "reliability": "synchronous",
+            "owner_branch": "integration/telnexa-sms",
+            "runtime_status": "declared",
+            "contract": "contracts/http-conventions.md"
+        },
+        {
+            "id": "contracts-to-klyrow-email",
+            "source_branch": "core/integration-contracts",
+            "target_branch": "integration/klyrow-email",
+            "direction": "contract",
+            "transport": "internal",
+            "authentication": "internal_service_policy",
+            "reliability": "synchronous",
+            "owner_branch": "integration/klyrow-email",
+            "runtime_status": "declared",
+            "contract": "contracts/http-conventions.md"
+        },
+        {
+            "id": "contracts-to-postly-social",
+            "source_branch": "core/integration-contracts",
+            "target_branch": "integration/postly-social",
+            "direction": "contract",
+            "transport": "internal",
+            "authentication": "internal_service_policy",
+            "reliability": "synchronous",
+            "owner_branch": "integration/postly-social",
+            "runtime_status": "declared",
+            "contract": "contracts/http-conventions.md"
+        },
+        {
+            "id": "contracts-to-mautic",
+            "source_branch": "core/integration-contracts",
+            "target_branch": "integration/mautic",
+            "direction": "contract",
+            "transport": "internal",
+            "authentication": "internal_service_policy",
+            "reliability": "synchronous",
+            "owner_branch": "integration/mautic",
+            "runtime_status": "verification_only",
+            "contract": "contracts/http-conventions.md"
+        },
+        {
+            "id": "contracts-to-postal-email",
+            "source_branch": "core/integration-contracts",
+            "target_branch": "integration/postal-email",
+            "direction": "contract",
+            "transport": "internal",
+            "authentication": "internal_service_policy",
+            "reliability": "synchronous",
+            "owner_branch": "integration/postal-email",
+            "runtime_status": "verification_only",
+            "contract": "contracts/http-conventions.md"
+        },
+        {
+            "id": "contracts-to-jasmin-sms",
+            "source_branch": "core/integration-contracts",
+            "target_branch": "integration/jasmin-sms",
+            "direction": "contract",
+            "transport": "internal",
+            "authentication": "internal_service_policy",
+            "reliability": "synchronous",
+            "owner_branch": "integration/jasmin-sms",
+            "runtime_status": "verification_only",
+            "contract": "contracts/http-conventions.md"
+        },
+        {
+            "id": "contracts-to-crawlee",
+            "source_branch": "core/integration-contracts",
+            "target_branch": "integration/crawlee",
+            "direction": "contract",
+            "transport": "internal",
+            "authentication": "internal_service_policy",
+            "reliability": "synchronous",
+            "owner_branch": "integration/crawlee",
+            "runtime_status": "verification_only",
+            "contract": "contracts/http-conventions.md"
+        },
+        {
+            "id": "contracts-to-kyqra",
+            "source_branch": "core/integration-contracts",
+            "target_branch": "integration/kyqra",
+            "direction": "contract",
+            "transport": "internal",
+            "authentication": "internal_service_policy",
+            "reliability": "synchronous",
+            "owner_branch": "integration/kyqra",
+            "runtime_status": "verification_only",
+            "contract": "contracts/http-conventions.md"
+        },
+        {
+            "id": "contracts-to-beyvra",
+            "source_branch": "core/integration-contracts",
+            "target_branch": "integration/beyvra",
+            "direction": "contract",
+            "transport": "internal",
+            "authentication": "internal_service_policy",
+            "reliability": "synchronous",
+            "owner_branch": "integration/beyvra",
+            "runtime_status": "verification_only",
+            "contract": "contracts/http-conventions.md"
+        },
+        {
+            "id": "playwright-to-caddy",
+            "source_branch": "testing/playwright",
+            "target_branch": "platform/caddy",
+            "direction": "test",
+            "transport": "https",
+            "authentication": "test_identity",
+            "reliability": "read_only",
+            "owner_branch": "testing/playwright",
+            "runtime_status": "verification_only",
+            "contract": "contracts/http-conventions.md"
+        },
+        {
+            "id": "node-exporter-to-prometheus",
+            "source_branch": "observability/node-exporter",
+            "target_branch": "observability/prometheus",
+            "direction": "scrape",
+            "transport": "prometheus_scrape",
+            "authentication": "none_private_network",
+            "reliability": "read_only",
+            "owner_branch": "observability/node-exporter",
+            "runtime_status": "declared",
+            "contract": "contracts/observability-conventions.md"
+        },
+        {
+            "id": "cadvisor-to-prometheus",
+            "source_branch": "observability/cadvisor",
+            "target_branch": "observability/prometheus",
+            "direction": "scrape",
+            "transport": "prometheus_scrape",
+            "authentication": "none_private_network",
+            "reliability": "read_only",
+            "owner_branch": "observability/cadvisor",
+            "runtime_status": "declared",
+            "contract": "contracts/observability-conventions.md"
+        },
+        {
+            "id": "postgresql-exporter-to-prometheus",
+            "source_branch": "observability/postgresql-exporter",
+            "target_branch": "observability/prometheus",
+            "direction": "scrape",
+            "transport": "prometheus_scrape",
+            "authentication": "database_role",
+            "reliability": "read_only",
+            "owner_branch": "observability/postgresql-exporter",
+            "runtime_status": "declared",
+            "contract": "contracts/observability-conventions.md"
+        },
+        {
+            "id": "redis-exporter-to-prometheus",
+            "source_branch": "observability/redis-exporter",
+            "target_branch": "observability/prometheus",
+            "direction": "scrape",
+            "transport": "prometheus_scrape",
+            "authentication": "redis_acl",
+            "reliability": "read_only",
+            "owner_branch": "observability/redis-exporter",
+            "runtime_status": "declared",
+            "contract": "contracts/observability-conventions.md"
+        },
+        {
+            "id": "blackbox-to-caddy",
+            "source_branch": "observability/blackbox-exporter",
+            "target_branch": "platform/caddy",
+            "direction": "probe",
+            "transport": "https",
+            "authentication": "none_private_network",
+            "reliability": "best_effort_observation",
+            "owner_branch": "observability/blackbox-exporter",
+            "runtime_status": "declared",
+            "contract": "contracts/observability-conventions.md"
+        },
+        {
+            "id": "contracts-to-prometheus",
+            "source_branch": "core/integration-contracts",
+            "target_branch": "observability/prometheus",
+            "direction": "scrape",
+            "transport": "prometheus_scrape",
+            "authentication": "none_private_network",
+            "reliability": "read_only",
+            "owner_branch": "observability/prometheus",
+            "runtime_status": "declared",
+            "contract": "contracts/observability-conventions.md"
+        },
+        {
+            "id": "prometheus-to-alertmanager",
+            "source_branch": "observability/prometheus",
+            "target_branch": "observability/alertmanager",
+            "direction": "alert",
+            "transport": "https",
+            "authentication": "service_identity",
+            "reliability": "at_least_once",
+            "owner_branch": "observability/alertmanager",
+            "runtime_status": "declared",
+            "contract": "contracts/observability-conventions.md"
+        },
+        {
+            "id": "prometheus-to-grafana",
+            "source_branch": "observability/prometheus",
+            "target_branch": "observability/grafana",
+            "direction": "query",
+            "transport": "https",
+            "authentication": "service_identity",
+            "reliability": "read_only",
+            "owner_branch": "observability/grafana",
+            "runtime_status": "declared",
+            "contract": "contracts/observability-conventions.md"
+        },
+        {
+            "id": "contracts-to-loki",
+            "source_branch": "core/integration-contracts",
+            "target_branch": "observability/loki",
+            "direction": "log",
+            "transport": "https",
+            "authentication": "service_identity",
+            "reliability": "at_least_once",
+            "owner_branch": "observability/loki",
+            "runtime_status": "declared",
+            "contract": "contracts/observability-conventions.md"
+        },
+        {
+            "id": "loki-to-grafana",
+            "source_branch": "observability/loki",
+            "target_branch": "observability/grafana",
+            "direction": "query",
+            "transport": "https",
+            "authentication": "service_identity",
+            "reliability": "read_only",
+            "owner_branch": "observability/grafana",
+            "runtime_status": "declared",
+            "contract": "contracts/observability-conventions.md"
+        },
+        {
+            "id": "beyvra-to-workers-identity-events",
+            "source_branch": "integration/beyvra",
+            "target_branch": "core/workers-scheduler",
+            "direction": "queue",
+            "transport": "nats_jetstream",
+            "authentication": "nats_tls_service_identity",
+            "reliability": "at_least_once",
+            "owner_branch": "integration/beyvra",
+            "runtime_status": "verification_only",
+            "contract": "contracts/beyvra-identity-provisioned.schema.json"
+        }
+    ]
+}

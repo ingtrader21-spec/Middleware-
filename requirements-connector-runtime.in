@@ -1,0 +1,10 @@
+alembic==1.18.4
+fastapi==0.141.1
+httpx==0.28.1
+psycopg[binary]==3.3.3
+pydantic==2.13.4
+pydantic-settings==2.14.2
+PyJWT[crypto]==2.13.0
+SQLAlchemy==2.0.50
+structlog==26.1.0
+uvicorn[standard]==0.48.0

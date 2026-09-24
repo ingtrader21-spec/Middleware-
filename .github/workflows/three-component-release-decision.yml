@@ -1,0 +1,218 @@
+name: Three-component M05 release decision
+
+on:
+  workflow_dispatch:
+    inputs:
+      artifact_source_sha:
+        description: Exact source SHA that produced all three artifacts
+        required: true
+        type: string
+      production_authority_run_id:
+        required: true
+        type: string
+      production_authority_artifact:
+        required: true
+        type: string
+      production_authority_sha256:
+        required: true
+        type: string
+      candidate_run_id:
+        required: true
+        type: string
+      candidate_run_attempt:
+        required: true
+        default: "1"
+        type: string
+      signing_run_id:
+        required: true
+        type: string
+      signing_run_attempt:
+        required: true
+        default: "1"
+        type: string
+      middleware_digest:
+        required: true
+        type: string
+      agent_desktop_digest:
+        required: true
+        type: string
+      websocket_gateway_digest:
+        required: true
+        type: string
+      release_expiry:
+        description: Expiring RFC3339 decision boundary
+        required: true
+        type: string
+      test_scope:
+        description: Must be TEST_SYN/6101
+        required: true
+        default: TEST_SYN/6101
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: three-component-m05-${{ inputs.artifact_source_sha }}
+  cancel-in-progress: false
+
+env:
+  COSIGN_VERSION: v3.1.2
+  COSIGN_SHA256: f7622ed3cf22e55e1ae6377c080979ff77a22da9981c11df222a2e444991e7cf
+  SIGNING_IDENTITY: https://github.com/ingtrader21-spec/Middleware-/.github/workflows/release-component-candidate.yml@refs/heads/main
+  AUTHORITY_IDENTITY: https://github.com/ingtrader21-spec/Middleware-/.github/workflows/security-owner-authority-sign.yml@refs/heads/main
+  DECISION_IDENTITY: https://github.com/ingtrader21-spec/Middleware-/.github/workflows/three-component-release-decision.yml@refs/heads/main
+  OIDC_ISSUER: https://token.actions.githubusercontent.com
+
+jobs:
+  release-decision:
+    name: Verify and sign complete release tuple
+    if: github.repository == 'ingtrader21-spec/Middleware-' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: production-release-decision
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+      id-token: write
+      packages: read
+    steps:
+      - name: Check out exact M05 governance workflow
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Validate immutable inputs and workflow identity
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_SOURCE_SHA: ${{ inputs.artifact_source_sha }}
+          AUTHORITY_RUN: ${{ inputs.production_authority_run_id }}
+          AUTHORITY_ARTIFACT: ${{ inputs.production_authority_artifact }}
+          AUTHORITY_SHA256: ${{ inputs.production_authority_sha256 }}
+          CANDIDATE_RUN: ${{ inputs.candidate_run_id }}
+          CANDIDATE_ATTEMPT: ${{ inputs.candidate_run_attempt }}
+          SIGNING_RUN: ${{ inputs.signing_run_id }}
+          SIGNING_ATTEMPT: ${{ inputs.signing_run_attempt }}
+          MIDDLEWARE_DIGEST: ${{ inputs.middleware_digest }}
+          AGENT_DESKTOP_DIGEST: ${{ inputs.agent_desktop_digest }}
+          WEBSOCKET_GATEWAY_DIGEST: ${{ inputs.websocket_gateway_digest }}
+          TEST_SCOPE: ${{ inputs.test_scope }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          test -z "$(git status --porcelain)"
+          [[ "${ARTIFACT_SOURCE_SHA}" =~ ^[0-9a-f]{40}$ ]]
+          for value in "${AUTHORITY_RUN}" "${CANDIDATE_RUN}" "${CANDIDATE_ATTEMPT}" "${SIGNING_RUN}" "${SIGNING_ATTEMPT}"; do
+            [[ "${value}" =~ ^[1-9][0-9]*$ ]]
+          done
+          [[ "${AUTHORITY_ARTIFACT}" =~ ^security-owner-authority-${AUTHORITY_RUN}-[1-9][0-9]*$ ]]
+          [[ "${AUTHORITY_SHA256}" =~ ^[0-9a-f]{64}$ ]]
+          for digest in "${MIDDLEWARE_DIGEST}" "${AGENT_DESKTOP_DIGEST}" "${WEBSOCKET_GATEWAY_DIGEST}"; do
+            [[ "${digest}" =~ ^sha256:[0-9a-f]{64}$ ]]
+          done
+          test "${TEST_SCOPE}" = TEST_SYN/6101
+          gh api "repos/${GITHUB_REPOSITORY}/commits/${ARTIFACT_SOURCE_SHA}" >/dev/null
+          test "$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${AUTHORITY_RUN}" --jq .conclusion)" = success
+          test "$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${AUTHORITY_RUN}" --jq .head_sha)" = "${ARTIFACT_SOURCE_SHA}"
+          test "$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${CANDIDATE_RUN}" --jq .conclusion)" = success
+          test "$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${CANDIDATE_RUN}" --jq .head_sha)" = "${ARTIFACT_SOURCE_SHA}"
+          test "$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${SIGNING_RUN}" --jq .conclusion)" = success
+
+      - name: Download exact authority, candidate, and signing evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/authority evidence/candidates evidence/signing
+          gh run download "${{ inputs.production_authority_run_id }}" --name "${{ inputs.production_authority_artifact }}" --dir evidence/authority
+          for component in middleware agent-desktop websocket-gateway; do
+            mkdir -p "evidence/candidates/${component}" "evidence/signing/${component}"
+            gh run download "${{ inputs.candidate_run_id }}" \
+              --name "release-${component}-candidate-${{ inputs.artifact_source_sha }}-${{ inputs.candidate_run_id }}-${{ inputs.candidate_run_attempt }}" \
+              --dir "evidence/candidates/${component}"
+            gh run download "${{ inputs.signing_run_id }}" \
+              --name "release-${component}-signing-${{ inputs.artifact_source_sha }}-${{ inputs.signing_run_id }}-${{ inputs.signing_run_attempt }}" \
+              --dir "evidence/signing/${component}"
+          done
+
+      - name: Install checksum-pinned Cosign
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location --proto '=https' --tlsv1.2 \
+            --output "${RUNNER_TEMP}/cosign" \
+            "https://github.com/sigstore/cosign/releases/download/${COSIGN_VERSION}/cosign-linux-amd64"
+          echo "${COSIGN_SHA256}  ${RUNNER_TEMP}/cosign" | sha256sum -c -
+          chmod 0755 "${RUNNER_TEMP}/cosign"
+
+      - name: Verify authority and three-component signatures and attestations
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MIDDLEWARE_DIGEST: ${{ inputs.middleware_digest }}
+          AGENT_DESKTOP_DIGEST: ${{ inputs.agent_desktop_digest }}
+          WEBSOCKET_GATEWAY_DIGEST: ${{ inputs.websocket_gateway_digest }}
+        run: |
+          set -euo pipefail
+          echo "${GH_TOKEN}" | docker login ghcr.io -u "${GITHUB_ACTOR}" --password-stdin
+          "${RUNNER_TEMP}/cosign" verify-blob \
+            --bundle evidence/authority/security-owner-authority.sigstore.json \
+            --certificate-identity "${AUTHORITY_IDENTITY}" --certificate-oidc-issuer "${OIDC_ISSUER}" \
+            evidence/authority/security-owner-authority.json
+          for component in middleware agent-desktop websocket-gateway; do
+            case "${component}" in
+              middleware) image=ghcr.io/ingtrader21-spec/codestra-middleware; digest="${MIDDLEWARE_DIGEST}" ;;
+              agent-desktop) image=ghcr.io/codestra-srl/codestra-agent-desktop; digest="${AGENT_DESKTOP_DIGEST}" ;;
+              websocket-gateway) image=ghcr.io/codestra-srl/codestra-websocket-gateway; digest="${WEBSOCKET_GATEWAY_DIGEST}" ;;
+            esac
+            subject="${image}@${digest}"
+            "${RUNNER_TEMP}/cosign" verify --certificate-identity "${SIGNING_IDENTITY}" --certificate-oidc-issuer "${OIDC_ISSUER}" "${subject}" >/dev/null
+            "${RUNNER_TEMP}/cosign" verify-attestation --type cyclonedx --certificate-identity "${SIGNING_IDENTITY}" --certificate-oidc-issuer "${OIDC_ISSUER}" "${subject}" >/dev/null
+            "${RUNNER_TEMP}/cosign" verify-attestation --type slsaprovenance --certificate-identity "${SIGNING_IDENTITY}" --certificate-oidc-issuer "${OIDC_ISSUER}" "${subject}" >/dev/null
+            docker buildx imagetools inspect "${subject}" --format '{{json .Manifest}}' >/dev/null
+          done
+
+      - name: Generate fail-closed three-component release decision
+        run: |
+          set -euo pipefail
+          python3 scripts/validate_three_component_release_decision.py \
+            --artifact-source-sha "${{ inputs.artifact_source_sha }}" \
+            --m05-workflow-sha "${GITHUB_SHA}" \
+            --production-authority-run-id "${{ inputs.production_authority_run_id }}" \
+            --production-authority-sha256 "${{ inputs.production_authority_sha256 }}" \
+            --candidate-run-id "${{ inputs.candidate_run_id }}" \
+            --candidate-run-attempt "${{ inputs.candidate_run_attempt }}" \
+            --signing-run-id "${{ inputs.signing_run_id }}" \
+            --signing-run-attempt "${{ inputs.signing_run_attempt }}" \
+            --middleware-digest "${{ inputs.middleware_digest }}" \
+            --agent-desktop-digest "${{ inputs.agent_desktop_digest }}" \
+            --websocket-gateway-digest "${{ inputs.websocket_gateway_digest }}" \
+            --authority-dir evidence/authority --candidate-root evidence/candidates \
+            --signing-root evidence/signing --expires-at "${{ inputs.release_expiry }}" \
+            --output three-component-production-release-decision.json
+
+      - name: Sign and verify M05 decision
+        run: |
+          set -euo pipefail
+          "${RUNNER_TEMP}/cosign" sign-blob --yes \
+            --bundle three-component-production-release-decision.sigstore.json \
+            three-component-production-release-decision.json
+          "${RUNNER_TEMP}/cosign" verify-blob \
+            --bundle three-component-production-release-decision.sigstore.json \
+            --certificate-identity "${DECISION_IDENTITY}" --certificate-oidc-issuer "${OIDC_ISSUER}" \
+            three-component-production-release-decision.json > release-decision-cosign-verification.txt
+          sha256sum three-component-production-release-decision.json \
+            three-component-production-release-decision.sigstore.json \
+            release-decision-cosign-verification.txt > release-decision-SHA256SUMS
+          sha256sum -c release-decision-SHA256SUMS
+
+      - name: Upload immutable M05 decision evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: three-component-release-decision-${{ inputs.artifact_source_sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 90
+          path: |
+            three-component-production-release-decision.json
+            three-component-production-release-decision.sigstore.json
+            release-decision-cosign-verification.txt
+            release-decision-SHA256SUMS

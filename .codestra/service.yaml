@@ -1,0 +1,46 @@
+apiVersion: platform.codestra.co/v1
+kind: Service
+metadata:
+  name: middleware-integration-api
+spec:
+  owner: codestra-platform
+  repository: ingtrader21-spec/Middleware-
+  tenantMode: multi-tenant
+  type: api
+  runtime:
+    kind: container
+    port: 8095
+    imageMustUseDigest: true
+  environments: [development, staging, production]
+  ingress:
+    edge: caddy
+    authentication: keycloak
+    gateway: kong
+  contracts:
+    liveness: /health/live
+    readiness: /health/ready
+    dependencies: /health/dependencies
+    metrics: /metrics
+    version: /version
+    capabilities: /capabilities
+    openapi: /openapi.json
+  telemetry:
+    metrics: true
+    logs: true
+    traces: true
+  dependencies: [postgres, redis, keycloak]
+  integration:
+    authority: middleware
+    directOdooDatabaseAccess: false
+  safety:
+    liveEmailDelivery: false
+    liveSmsDelivery: false
+    livePstnDialing: false
+  secrets:
+    - name: database
+      openbaoRole: middleware-integration-api
+    - name: redis
+      openbaoRole: middleware-integration-api
+  dataClassification: confidential
+  sloProfile: customer-api
+  alertProfile: business-critical

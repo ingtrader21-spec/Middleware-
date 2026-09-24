@@ -1,0 +1,22 @@
+package_version: fixture-6198-server-b-v2-20260727
+authority: PATH_A_RECOVERED_AUTHENTICATED_SOURCE
+host: static
+extension: 6198
+endpoint: endpoint-6198
+auth: auth-6198
+aor: "6198"
+identify: identify-6198
+source: 10.40.0.1/32
+context: cs-synth-6198
+destinations: ["*43"]
+applications: [Answer, Echo, Hangup]
+transport: transport-codestra-test
+vicidial_activation: false
+outbound_trunk: null
+reload_commands:
+  - module reload res_pjsip.so
+  - dialplan reload
+files:
+  pjsip: {destination: /etc/asterisk/pjsip-codestra-synthetic-6198.conf, owner: root, group: asterisk, mode: "0640"}
+  auth: {destination: /etc/asterisk/private/pjsip-auth-6198.conf, owner: asterisk, group: asterisk, mode: "0600"}
+  dialplan: {destination: /etc/asterisk/extensions-codestra-synthetic-6198.conf, owner: root, group: asterisk, mode: "0640"}

@@ -1,0 +1,21 @@
+# Source-controlled, fail-closed extension. Enable only in the reviewed release
+# manifest after the JetStream streams, consumers and service identity exist.
+services:
+  middleware-jetstream-dlq-worker:
+    extends:
+      file: compose.runtime.yaml
+      service: middleware-sync-worker
+    command: [python, -m, app.entrypoints.jetstream_dlq_worker]
+    profiles: [jetstream-dlq-worker]
+    environment:
+      SERVICE_NAME: middleware-jetstream-dlq-worker
+      JETSTREAM_DLQ_WORKER_ENABLED: "false"
+      NATS_URL_FILE: /run/secrets/nats-url
+      NATS_CA_FILE: /run/secrets/nats-ca
+      NATS_CLIENT_CERT_FILE: /run/secrets/nats-client-cert
+      NATS_CLIENT_KEY_FILE: /run/secrets/nats-client-key
+    volumes:
+      - /etc/codestra/nats/url:/run/secrets/nats-url:ro
+      - /etc/codestra/pki/nats/ca.crt:/run/secrets/nats-ca:ro
+      - /etc/codestra/pki/nats/client.crt:/run/secrets/nats-client-cert:ro
+      - /etc/codestra/pki/nats/client.key:/run/secrets/nats-client-key:ro

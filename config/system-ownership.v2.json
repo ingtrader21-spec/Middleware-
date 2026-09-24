@@ -1,0 +1,19 @@
+{
+  "schema_version": "2.0",
+  "systems": {
+    "caddy": {"owns": ["public_tls", "host_allowlist", "https_redirects"], "forbidden": ["tenant_authorization", "business_routing"]},
+    "kong": {"owns": ["api_routing", "traffic_policy", "rate_limits", "upstream_health"], "forbidden": ["business_logic", "workflow_state", "provider_credentials"]},
+    "keycloak": {"owns": ["human_identity", "machine_identity", "sessions", "token_issuance"], "forbidden": ["business_records", "delivery_truth"]},
+    "middleware": {"owns": ["tenant_authorization", "contracts", "idempotency", "inbox", "outbox", "commands", "operations", "adapters", "audit", "reconciliation"], "forbidden": ["passwords", "provider_business_records", "financial_ledgers"]},
+    "nats": {"owns": ["durable_event_transport"], "forbidden": ["business_state"]},
+    "temporal": {"owns": ["critical_long_running_state_machines"], "forbidden": ["human_identity", "product_records"]},
+    "n8n": {"owns": ["business_orchestration", "timers", "branching", "human_approval_coordination"], "forbidden": ["direct_provider_write", "direct_database_write", "identity_authority", "financial_effects"]},
+    "odoo": {"owns": ["crm", "activities", "campaigns", "appointments", "business_history"], "forbidden": ["provider_credentials", "gateway_policy"]},
+    "klyrow": {"owns": ["email_domains", "senders", "messages", "postal_mappings", "email_delivery_state"], "forbidden": ["cross_platform_authorization"]},
+    "telnexa": {"owns": ["sms_senders", "messages", "jasmin_mappings", "sms_delivery_state"], "forbidden": ["cross_platform_authorization"]},
+    "postly": {"owns": ["social_accounts", "provider_tokens", "content", "publication_state"], "forbidden": ["global_identity", "crm_truth"]},
+    "kyqra": {"owns": ["crawler_jobs", "raw_results", "normalized_results", "review_state"], "forbidden": ["unapproved_odoo_writeback"]},
+    "vicidial": {"owns": ["telephony_execution", "call_state", "recordings"], "forbidden": ["crm_truth", "public_admin_api"]},
+    "beyvra": {"owns": ["financial_domain_state", "trading", "wallets", "ledgers"], "forbidden": ["n8n_financial_mutation"]}
+  }
+}

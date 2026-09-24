@@ -1,0 +1,68 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://evidence.codestra.invalid/rc3p/vex/d48b4f2a6d1804b0fce14fdeaccfcdb976171c32c0c5704efadb8a6651c62ebe",
+  "author": "Codestra RC3P automated evidence builder; human security-owner approval pending",
+  "role": "Automated provenance and regression-test evidence issuer",
+  "timestamp": "2026-07-26T23:30:00Z",
+  "last_updated": "2026-07-26T23:30:00Z",
+  "version": 1,
+  "statements": [
+    {
+      "vulnerability": {
+        "name": "CVE-2026-11940"
+      },
+      "products": [
+        {
+          "@id": "codestra/middleware@sha256:d48b4f2a6d1804b0fce14fdeaccfcdb976171c32c0c5704efadb8a6651c62ebe",
+          "subcomponents": [
+            {
+              "@id": "pkg:generic/python@3.13.14"
+            }
+          ]
+        }
+      ],
+      "status": "fixed",
+      "timestamp": "2026-07-26T23:30:00Z",
+      "action_statement": "The vulnerable CPython 3.13.14 tarfile hardlink fallback was remediated with the exact official python/cpython:3.13 backport 771d12dda5140313db0ac550292987975651bbde. The applied source commit has stable patch ID 1bce799cf24dc239a02ad39f3ba7bde16ca6d91f, identical to the official backport. TestExtractionFilters.test_sneaky_hardlink_fallback_deep passed against the interpreter in the final middleware image.",
+      "status_notes": "statement_version=1; upstream_commit=771d12dda5140313db0ac550292987975651bbde; regression_test=TestExtractionFilters.test_sneaky_hardlink_fallback_deep PASS; middleware_image=codestra/middleware@sha256:d48b4f2a6d1804b0fce14fdeaccfcdb976171c32c0c5704efadb8a6651c62ebe; custom_python_image=codestra/python@sha256:541d6acdaa39568e8e9ba2a12f707ce167a819e553025256c29918a9509fe0c2; source_tree_sha256=f0fa46f5602f41f425aa008f7f3e0063ac5b2001431ffd78cbfde424851b53a5; binary_sha256=ff64d2e8c3cd0b70a45fb5dc882863226da1f72ae252cf4fe742204d983a0d87; provenance_evidence_sha256=79ed5410de4ea0b693e8e716d3e6854accc8574ce737282011767e1f9b764b93; backport_evidence_sha256=7e976b5306066f428b3fa7d698e4a63e7fe1b6ed79af63a6e38b9a7c0af3ce77; runtime_test_evidence_sha256=169479a6a5672c2420b2ed2b355b7b5fe50d20bd1e9f815d874deb7e31b85d27"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-15308"
+      },
+      "products": [
+        {
+          "@id": "codestra/middleware@sha256:d48b4f2a6d1804b0fce14fdeaccfcdb976171c32c0c5704efadb8a6651c62ebe",
+          "subcomponents": [
+            {
+              "@id": "pkg:generic/python@3.13.14"
+            }
+          ]
+        }
+      ],
+      "status": "fixed",
+      "timestamp": "2026-07-26T23:30:00Z",
+      "action_statement": "The vulnerable CPython 3.13.14 incremental HTML parser behavior was remediated with the exact official python/cpython:3.13 backport 7933f4bf7131aa4140750f9404f5de0aa2969ced. The applied source commit has stable patch ID 3e8c5ad70d6a515107352d8779269240a0553f54, identical to the official backport. HTMLParserTestCase.test_incremental_no_quadratic_complexity passed against the interpreter in the final middleware image.",
+      "status_notes": "statement_version=1; upstream_commit=7933f4bf7131aa4140750f9404f5de0aa2969ced; regression_test=HTMLParserTestCase.test_incremental_no_quadratic_complexity PASS; middleware_image=codestra/middleware@sha256:d48b4f2a6d1804b0fce14fdeaccfcdb976171c32c0c5704efadb8a6651c62ebe; custom_python_image=codestra/python@sha256:541d6acdaa39568e8e9ba2a12f707ce167a819e553025256c29918a9509fe0c2; source_tree_sha256=f0fa46f5602f41f425aa008f7f3e0063ac5b2001431ffd78cbfde424851b53a5; binary_sha256=ff64d2e8c3cd0b70a45fb5dc882863226da1f72ae252cf4fe742204d983a0d87; provenance_evidence_sha256=79ed5410de4ea0b693e8e716d3e6854accc8574ce737282011767e1f9b764b93; backport_evidence_sha256=7e976b5306066f428b3fa7d698e4a63e7fe1b6ed79af63a6e38b9a7c0af3ce77; runtime_test_evidence_sha256=169479a6a5672c2420b2ed2b355b7b5fe50d20bd1e9f815d874deb7e31b85d27"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-11972"
+      },
+      "products": [
+        {
+          "@id": "codestra/middleware@sha256:d48b4f2a6d1804b0fce14fdeaccfcdb976171c32c0c5704efadb8a6651c62ebe",
+          "subcomponents": [
+            {
+              "@id": "pkg:generic/python@3.13.14"
+            }
+          ]
+        }
+      ],
+      "status": "fixed",
+      "timestamp": "2026-07-26T23:30:00Z",
+      "action_statement": "The vulnerable CPython 3.13.14 tar streaming seek loop was remediated with the exact official python/cpython:3.13 backport 3f031d431f80668e14f3bc066bbf4369cd9281b9. The applied source commit has stable patch ID 7332bc0dfb1780ce2b43943936ef13b963b11bcf, identical to the official backport. TestExtractionFilters.test_getmembers_big_size passed for GNU and PAX formats against the interpreter in the final middleware image.",
+      "status_notes": "statement_version=1; upstream_commit=3f031d431f80668e14f3bc066bbf4369cd9281b9; regression_test=TestExtractionFilters.test_getmembers_big_size PASS; middleware_image=codestra/middleware@sha256:d48b4f2a6d1804b0fce14fdeaccfcdb976171c32c0c5704efadb8a6651c62ebe; custom_python_image=codestra/python@sha256:541d6acdaa39568e8e9ba2a12f707ce167a819e553025256c29918a9509fe0c2; source_tree_sha256=f0fa46f5602f41f425aa008f7f3e0063ac5b2001431ffd78cbfde424851b53a5; binary_sha256=ff64d2e8c3cd0b70a45fb5dc882863226da1f72ae252cf4fe742204d983a0d87; provenance_evidence_sha256=79ed5410de4ea0b693e8e716d3e6854accc8574ce737282011767e1f9b764b93; backport_evidence_sha256=7e976b5306066f428b3fa7d698e4a63e7fe1b6ed79af63a6e38b9a7c0af3ce77; runtime_test_evidence_sha256=169479a6a5672c2420b2ed2b355b7b5fe50d20bd1e9f815d874deb7e31b85d27"
+    }
+  ]
+}

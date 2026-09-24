@@ -1,0 +1,239 @@
+{
+  "schema_version": "1.0",
+  "title": "Kyyow observability to Odoo projection contract",
+  "authority": {
+    "api_owner": "ingtrader21-spec/Middleware-",
+    "business_record_owner": "appolon1908-hue/Odoo",
+    "external_write_authority": "Middleware only",
+    "source_commit": "feature-branch",
+    "runtime_activation": "ODOO_RESULT_DELIVERY_ENABLED and Odoo registry route approval"
+  },
+  "safety": {
+    "allowed_payload": [
+      "tenant_id",
+      "event_id",
+      "metric_code",
+      "service_id",
+      "environment",
+      "period_reference",
+      "period_start",
+      "period_end",
+      "value",
+      "unit",
+      "dimensions",
+      "source",
+      "source_revision",
+      "source_payload_hash",
+      "observed_at",
+      "reconciliation_state",
+      "incident_id",
+      "fingerprint",
+      "alertname",
+      "group_key",
+      "severity",
+      "state",
+      "host",
+      "summary",
+      "labels",
+      "first_seen_at",
+      "last_seen_at",
+      "resolved_at",
+      "source_deployment",
+      "resource_version",
+      "correlation_id",
+      "projection_hash"
+    ],
+    "forbidden_payload": [
+      "raw Prometheus samples",
+      "Alertmanager notification bodies",
+      "logs",
+      "traces",
+      "message bodies",
+      "phone numbers",
+      "email addresses",
+      "access tokens",
+      "secrets",
+      "private keys"
+    ],
+    "idempotency": {
+      "transport": "Idempotency-Key",
+      "event_identity": "event_id",
+      "replay_rule": "same event_id and projection_hash returns the original receipt",
+      "conflict_rule": "same event_id with a different projection_hash is rejected"
+    },
+    "incident_rule": "incident_id is stable across firing, acknowledgement, resolution and reopen; resource_version must increase"
+  },
+  "middleware_endpoints": [
+    {
+      "method": "POST",
+      "path": "/v1/observability/kpis",
+      "operation_id": "submitKyyowKpiSnapshot",
+      "authorization": "observability.kpis.write",
+      "allowed_roles": ["platform_admin", "platform_operator", "platform_reviewer", "monitoring_collector"],
+      "effect": "enqueue local projection and Odoo delivery"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/observability/kpis",
+      "operation_id": "listKyyowKpiSnapshots",
+      "authorization": "observability.kpis.read",
+      "effect": "read Middleware's latest KPI projection"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/observability/kpis/{event_id}",
+      "operation_id": "getKyyowKpiSnapshot",
+      "authorization": "observability.kpis.read",
+      "effect": "read event and Odoo delivery state"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/observability/incidents",
+      "operation_id": "enqueueKyyowIncidentState",
+      "authorization": "observability.incidents.write",
+      "allowed_roles": ["platform_admin", "platform_operator", "platform_reviewer", "monitoring_collector"],
+      "effect": "enqueue Odoo incident upsert"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/observability/odoo-sync",
+      "operation_id": "getKyyowOdooSyncStatus",
+      "authorization": "observability.kpis.read",
+      "effect": "read durable delivery queue state"
+    }
+  ],
+  "odoo_endpoints": [
+    {
+      "method": "POST",
+      "path": "/api/v1/integration/observability/kpis",
+      "operation": "odoo.observability.kpis.create",
+      "scope": "odoo.observability.kpis.write",
+      "result": "APPLIED with event_id, operation, correlation_id and receipt_id"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/integration/observability/incidents",
+      "operation": "odoo.observability.incidents.upsert",
+      "scope": "odoo.observability.incidents.write",
+      "result": "APPLIED with stable incident_id and resource_version"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/integration/observability/kpis",
+      "operation": "odoo.observability.kpis.read",
+      "scope": "odoo.observability.read"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/integration/observability/incidents",
+      "operation": "odoo.observability.incidents.read",
+      "scope": "odoo.observability.read"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/integration/observability/sync-status",
+      "operation": "odoo.observability.sync.read",
+      "scope": "odoo.observability.read"
+    }
+  ],
+  "schemas": {
+    "kpi_snapshot": {
+      "type": "object",
+      "required": [
+        "event_id",
+        "schema_version",
+        "tenant_id",
+        "metric_code",
+        "service_id",
+        "environment",
+        "period_reference",
+        "period_start",
+        "period_end",
+        "value",
+        "unit",
+        "dimensions",
+        "source",
+        "source_revision",
+        "source_payload_hash",
+        "observed_at",
+        "reconciliation_state",
+        "correlation_id",
+        "projection_hash"
+      ],
+      "properties": {
+        "schema_version": {"const": "kyyow.observability.kpi.v1"},
+        "event_id": {"type": "string", "maxLength": 128},
+        "tenant_id": {"type": "string", "maxLength": 128},
+        "metric_code": {"type": "string", "maxLength": 96},
+        "service_id": {"type": "string", "maxLength": 128},
+        "environment": {"enum": ["development", "test", "staging", "production"]},
+        "period_reference": {"type": "string", "maxLength": 128},
+        "period_start": {"type": "string", "format": "date-time"},
+        "period_end": {"type": "string", "format": "date-time"},
+        "value": {"type": "number"},
+        "unit": {"type": "string", "maxLength": 32},
+        "dimensions": {"type": "object", "maxProperties": 32},
+        "source": {"type": "string", "maxLength": 96},
+        "source_revision": {"type": "integer", "minimum": 1},
+        "source_payload_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "observed_at": {"type": "string", "format": "date-time"},
+        "reconciliation_state": {"enum": ["accepted", "reconciled", "drifted", "pending"]},
+        "correlation_id": {"type": "string", "maxLength": 128},
+        "projection_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+      }
+    },
+    "incident_state": {
+      "type": "object",
+      "required": [
+        "event_id",
+        "schema_version",
+        "tenant_id",
+        "incident_id",
+        "fingerprint",
+        "alertname",
+        "group_key",
+        "severity",
+        "state",
+        "service_id",
+        "environment",
+        "host",
+        "summary",
+        "labels",
+        "first_seen_at",
+        "last_seen_at",
+        "resolved_at",
+        "source_deployment",
+        "resource_version",
+        "source_payload_hash",
+        "observed_at",
+        "correlation_id",
+        "projection_hash"
+      ],
+      "properties": {
+        "schema_version": {"const": "kyyow.observability.incident.v1"},
+        "event_id": {"type": "string", "maxLength": 128},
+        "tenant_id": {"type": "string", "maxLength": 128},
+        "incident_id": {"type": "string", "maxLength": 128},
+        "fingerprint": {"type": "string", "maxLength": 128},
+        "alertname": {"type": "string", "maxLength": 128},
+        "group_key": {"type": "string", "maxLength": 2048},
+        "severity": {"enum": ["critical", "high", "warning", "info"]},
+        "state": {"enum": ["firing", "acknowledged", "resolved", "inhibited", "silenced"]},
+        "service_id": {"type": "string", "maxLength": 128},
+        "environment": {"enum": ["development", "test", "staging", "production"]},
+        "host": {"type": "string", "maxLength": 128},
+        "summary": {"type": "string", "maxLength": 512},
+        "labels": {"type": "object", "maxProperties": 32},
+        "first_seen_at": {"type": "string", "format": "date-time"},
+        "last_seen_at": {"type": "string", "format": "date-time"},
+        "resolved_at": {"type": ["string", "null"], "format": "date-time"},
+        "source_deployment": {"type": "string", "maxLength": 128},
+        "resource_version": {"type": "integer", "minimum": 1},
+        "source_payload_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "observed_at": {"type": "string", "format": "date-time"},
+        "correlation_id": {"type": "string", "maxLength": 128},
+        "projection_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+      }
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "$id": "https://contracts.codestra.co/klyrow/klyrow-usage-daily-v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "date": {
+      "format": "date",
+      "title": "Date",
+      "type": "string"
+    },
+    "quantity": {
+      "minimum": 0,
+      "title": "Quantity",
+      "type": "integer"
+    },
+    "snapshot_at": {
+      "format": "date-time",
+      "title": "Snapshot At",
+      "type": "string"
+    },
+    "unit": {
+      "const": "accepted_message",
+      "title": "Unit",
+      "type": "string"
+    }
+  },
+  "required": [
+    "date",
+    "unit",
+    "quantity",
+    "snapshot_at"
+  ],
+  "title": "DailyUsageData",
+  "type": "object"
+}

@@ -1,0 +1,3452 @@
+{
+  "components": {
+    "schemas": {
+      "BrowserEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "environment": {
+            "enum": [
+              "development",
+              "test",
+              "staging",
+              "production"
+            ],
+            "title": "Environment",
+            "type": "string"
+          },
+          "event_id": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+            "title": "Event Id",
+            "type": "string"
+          },
+          "event_type": {
+            "enum": [
+              "error",
+              "performance"
+            ],
+            "title": "Event Type",
+            "type": "string"
+          },
+          "metric": {
+            "enum": [
+              "lcp_ms",
+              "inp_ms",
+              "cls",
+              "error_count"
+            ],
+            "title": "Metric",
+            "type": "string"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "release": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+            "title": "Release",
+            "type": "string"
+          },
+          "route_template": {
+            "maxLength": 256,
+            "pattern": "^/[A-Za-z0-9_/{}:.-]*$",
+            "title": "Route Template",
+            "type": "string"
+          },
+          "service_id": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+            "title": "Service Id",
+            "type": "string"
+          },
+          "value": {
+            "maximum": 1000000.0,
+            "minimum": 0.0,
+            "title": "Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "service_id",
+          "environment",
+          "event_id",
+          "event_type",
+          "release",
+          "route_template",
+          "metric",
+          "value",
+          "occurred_at"
+        ],
+        "title": "BrowserEvent",
+        "type": "object"
+      },
+      "ContractRefresh": {
+        "additionalProperties": false,
+        "properties": {
+          "artifact_id": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+            "title": "Artifact Id",
+            "type": "string"
+          },
+          "environment": {
+            "enum": [
+              "development",
+              "test",
+              "staging",
+              "production"
+            ],
+            "title": "Environment",
+            "type": "string"
+          },
+          "expected_revision": {
+            "minimum": 0.0,
+            "title": "Expected Revision",
+            "type": "integer"
+          },
+          "sha256": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Sha256",
+            "type": "string"
+          }
+        },
+        "required": [
+          "environment",
+          "expected_revision",
+          "artifact_id",
+          "sha256"
+        ],
+        "title": "ContractRefresh",
+        "type": "object"
+      },
+      "Envelope": {
+        "properties": {
+          "correlation_id": {
+            "title": "Correlation Id",
+            "type": "string"
+          },
+          "data": {
+            "title": "Data"
+          },
+          "freshness": {
+            "enum": [
+              "fresh",
+              "stale",
+              "unknown",
+              "not-applicable"
+            ],
+            "title": "Freshness",
+            "type": "string"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "observed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observed At"
+          },
+          "source_revision": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Revision"
+          }
+        },
+        "required": [
+          "data",
+          "observed_at",
+          "freshness",
+          "correlation_id"
+        ],
+        "title": "Envelope",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "Heartbeat": {
+        "additionalProperties": false,
+        "properties": {
+          "environment": {
+            "enum": [
+              "development",
+              "test",
+              "staging",
+              "production"
+            ],
+            "title": "Environment",
+            "type": "string"
+          },
+          "observed_at": {
+            "format": "date-time",
+            "title": "Observed At",
+            "type": "string"
+          },
+          "sequence": {
+            "minimum": 1.0,
+            "title": "Sequence",
+            "type": "integer"
+          },
+          "service_id": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+            "title": "Service Id",
+            "type": "string"
+          },
+          "signals": {
+            "items": {
+              "enum": [
+                "metrics",
+                "logs",
+                "traces"
+              ],
+              "type": "string"
+            },
+            "maxItems": 3,
+            "title": "Signals",
+            "type": "array"
+          },
+          "source_deployment": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+            "title": "Source Deployment",
+            "type": "string"
+          }
+        },
+        "required": [
+          "service_id",
+          "environment",
+          "source_deployment",
+          "sequence",
+          "observed_at",
+          "signals"
+        ],
+        "title": "Heartbeat",
+        "type": "object"
+      },
+      "Observation": {
+        "additionalProperties": false,
+        "properties": {
+          "campaign_id": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Campaign Id"
+          },
+          "data": {
+            "additionalProperties": true,
+            "title": "Data",
+            "type": "object"
+          },
+          "environment": {
+            "enum": [
+              "development",
+              "test",
+              "staging",
+              "production"
+            ],
+            "title": "Environment",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "host",
+              "deployment",
+              "health",
+              "integration",
+              "agent",
+              "campaign",
+              "certificate",
+              "backup",
+              "slo",
+              "dashboard",
+              "security",
+              "error",
+              "config"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "observed_at": {
+            "format": "date-time",
+            "title": "Observed At",
+            "type": "string"
+          },
+          "resource_id": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+            "title": "Resource Id",
+            "type": "string"
+          },
+          "sequence": {
+            "minimum": 1.0,
+            "title": "Sequence",
+            "type": "integer"
+          },
+          "service_id": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+            "title": "Service Id",
+            "type": "string"
+          },
+          "source_deployment": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+            "title": "Source Deployment",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "resource_id",
+          "service_id",
+          "environment",
+          "source_deployment",
+          "sequence",
+          "observed_at",
+          "data"
+        ],
+        "title": "Observation",
+        "type": "object"
+      },
+      "ProbeRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "environment": {
+            "enum": [
+              "development",
+              "test",
+              "staging",
+              "production"
+            ],
+            "title": "Environment",
+            "type": "string"
+          },
+          "service_id": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+            "title": "Service Id",
+            "type": "string"
+          },
+          "target_id": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+            "title": "Target Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "service_id",
+          "environment",
+          "target_id"
+        ],
+        "title": "ProbeRequest",
+        "type": "object"
+      },
+      "Profile": {
+        "additionalProperties": false,
+        "properties": {
+          "config_digest": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Config Digest",
+            "type": "string"
+          },
+          "dashboard_ids": {
+            "items": {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Dashboard Ids",
+            "type": "array"
+          },
+          "environment": {
+            "enum": [
+              "development",
+              "test",
+              "staging",
+              "production"
+            ],
+            "title": "Environment",
+            "type": "string"
+          },
+          "expected_revision": {
+            "minimum": 0.0,
+            "title": "Expected Revision",
+            "type": "integer"
+          },
+          "logs_owner": {
+            "enum": [
+              "alloy",
+              "otel",
+              "not-applicable"
+            ],
+            "title": "Logs Owner",
+            "type": "string"
+          },
+          "metrics_owner": {
+            "enum": [
+              "prometheus",
+              "otel",
+              "not-applicable"
+            ],
+            "title": "Metrics Owner",
+            "type": "string"
+          },
+          "traces_owner": {
+            "enum": [
+              "otel",
+              "not-applicable"
+            ],
+            "title": "Traces Owner",
+            "type": "string"
+          }
+        },
+        "required": [
+          "environment",
+          "expected_revision",
+          "config_digest",
+          "metrics_owner",
+          "logs_owner",
+          "traces_owner"
+        ],
+        "title": "Profile",
+        "type": "object"
+      },
+      "QueryRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "end": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End"
+          },
+          "environment": {
+            "enum": [
+              "development",
+              "test",
+              "staging",
+              "production"
+            ],
+            "title": "Environment",
+            "type": "string"
+          },
+          "limit": {
+            "default": 100,
+            "maximum": 1000.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "query_id": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+            "title": "Query Id",
+            "type": "string"
+          },
+          "service_id": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+            "title": "Service Id",
+            "type": "string"
+          },
+          "start": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start"
+          },
+          "step_seconds": {
+            "default": 60,
+            "maximum": 86400.0,
+            "minimum": 1.0,
+            "title": "Step Seconds",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "service_id",
+          "environment",
+          "query_id"
+        ],
+        "title": "QueryRequest",
+        "type": "object"
+      },
+      "Reconciliation": {
+        "additionalProperties": false,
+        "properties": {
+          "environment": {
+            "enum": [
+              "development",
+              "test",
+              "staging",
+              "production"
+            ],
+            "title": "Environment",
+            "type": "string"
+          },
+          "service_ids": {
+            "items": {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+              "type": "string"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "title": "Service Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "environment",
+          "service_ids"
+        ],
+        "title": "Reconciliation",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "title": "Integrated monitoring API",
+    "version": "1.0.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/platform/v1/hosts": {
+      "get": {
+        "description": "Runtime coverage requires fresh evidence. See INTEGRATED-MONITORING-DESIGN.md and app/monitoring/README.md.",
+        "operationId": "hosts_platform_v1_hosts_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 512,
+              "title": "Cursor",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Missing authenticated identity"
+          },
+          "403": {
+            "description": "Authority denied"
+          },
+          "404": {
+            "description": "Scoped resource not found"
+          },
+          "409": {
+            "description": "Revision, ordering or replay conflict"
+          },
+          "413": {
+            "description": "Payload budget exceeded"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "502": {
+            "description": "Backend response exceeds contract budget"
+          },
+          "503": {
+            "description": "Identity, persistence or backend configuration unavailable"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Registered hosts and freshness",
+        "tags": [
+          "integrated-monitoring"
+        ],
+        "x-required-authority": "platform.services.read"
+      }
+    },
+    "/platform/v1/hosts/{host_id}": {
+      "get": {
+        "description": "Runtime coverage requires fresh evidence. See INTEGRATED-MONITORING-DESIGN.md and app/monitoring/README.md.",
+        "operationId": "host_platform_v1_hosts__host_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "host_id",
+            "required": true,
+            "schema": {
+              "title": "Host Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 512,
+              "title": "Cursor",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Missing authenticated identity"
+          },
+          "403": {
+            "description": "Authority denied"
+          },
+          "404": {
+            "description": "Scoped resource not found"
+          },
+          "409": {
+            "description": "Revision, ordering or replay conflict"
+          },
+          "413": {
+            "description": "Payload budget exceeded"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "502": {
+            "description": "Backend response exceeds contract budget"
+          },
+          "503": {
+            "description": "Identity, persistence or backend configuration unavailable"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Host identity, placements and collector status",
+        "tags": [
+          "integrated-monitoring"
+        ],
+        "x-required-authority": "platform.services.read"
+      }
+    },
+    "/platform/v1/integrations/github/events": {
+      "post": {
+        "description": "Runtime coverage requires fresh evidence. See INTEGRATED-MONITORING-DESIGN.md and app/monitoring/README.md.",
+        "operationId": "github_event_platform_v1_integrations_github_events_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Hub-Signature-256",
+            "required": true,
+            "schema": {
+              "maxLength": 256,
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-GitHub-Event",
+            "required": true,
+            "schema": {
+              "maxLength": 256,
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-GitHub-Delivery",
+            "required": true,
+            "schema": {
+              "maxLength": 256,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Missing authenticated identity"
+          },
+          "403": {
+            "description": "Authority denied"
+          },
+          "404": {
+            "description": "Scoped resource not found"
+          },
+          "409": {
+            "description": "Revision, ordering or replay conflict"
+          },
+          "413": {
+            "description": "Payload budget exceeded"
+          },
+          "422": {
+            "description": "Invalid request or unapproved template"
+          },
+          "502": {
+            "description": "Backend response exceeds contract budget"
+          },
+          "503": {
+            "description": "Identity, persistence or backend configuration unavailable"
+          }
+        },
+        "summary": "Signed GitHub webhook ingestion for inventory/release state",
+        "tags": [
+          "integrated-monitoring"
+        ],
+        "x-required-authority": "GitHub webhook signature; repository allowlist"
+      }
+    },
+    "/platform/v1/repositories": {
+      "get": {
+        "description": "Runtime coverage requires fresh evidence. See INTEGRATED-MONITORING-DESIGN.md and app/monitoring/README.md.",
+        "operationId": "repositories_platform_v1_repositories_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Missing authenticated identity"
+          },
+          "403": {
+            "description": "Authority denied"
+          },
+          "404": {
+            "description": "Scoped resource not found"
+          },
+          "409": {
+            "description": "Revision, ordering or replay conflict"
+          },
+          "413": {
+            "description": "Payload budget exceeded"
+          },
+          "422": {
+            "description": "Invalid request or unapproved template"
+          },
+          "502": {
+            "description": "Backend response exceeds contract budget"
+          },
+          "503": {
+            "description": "Identity, persistence or backend configuration unavailable"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Repository ownership, CI and release inventory",
+        "tags": [
+          "integrated-monitoring"
+        ],
+        "x-required-authority": "platform.services.read"
+      }
+    },
+    "/platform/v1/runtime/observations": {
+      "post": {
+        "description": "Runtime coverage requires fresh evidence. See INTEGRATED-MONITORING-DESIGN.md and app/monitoring/README.md.",
+        "operationId": "observe_platform_v1_runtime_observations_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 256,
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Correlation-ID",
+            "required": true,
+            "schema": {
+              "maxLength": 256,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Observation"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Missing authenticated identity"
+          },
+          "403": {
+            "description": "Authority denied"
+          },
+          "404": {
+            "description": "Scoped resource not found"
+          },
+          "409": {
+            "description": "Revision, ordering or replay conflict"
+          },
+          "413": {
+            "description": "Payload budget exceeded"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "502": {
+            "description": "Backend response exceeds contract budget"
+          },
+          "503": {
+            "description": "Identity, persistence or backend configuration unavailable"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Signed controller observations of deployment identities",
+        "tags": [
+          "integrated-monitoring"
+        ],
+        "x-required-authority": "platform.runtime.observe"
+      }
+    },
+    "/platform/v1/services/{service_id}/contract-refresh": {
+      "post": {
+        "description": "Runtime coverage requires fresh evidence. See INTEGRATED-MONITORING-DESIGN.md and app/monitoring/README.md.",
+        "operationId": "contract_refresh_platform_v1_services__service_id__contract_refresh_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service_id",
+            "required": true,
+            "schema": {
+              "title": "Service Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 256,
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Correlation-ID",
+            "required": true,
+            "schema": {
+              "maxLength": 256,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContractRefresh"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Missing authenticated identity"
+          },
+          "403": {
+            "description": "Authority denied"
+          },
+          "404": {
+            "description": "Scoped resource not found"
+          },
+          "409": {
+            "description": "Revision, ordering or replay conflict"
+          },
+          "413": {
+            "description": "Payload budget exceeded"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "502": {
+            "description": "Backend response exceeds contract budget"
+          },
+          "503": {
+            "description": "Identity, persistence or backend configuration unavailable"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Import contract only from an approved release artifact/target",
+        "tags": [
+          "integrated-monitoring"
+        ],
+        "x-required-authority": "platform.services.write"
+      }
+    },
+    "/platform/v1/services/{service_id}/coverage": {
+      "get": {
+        "description": "Runtime coverage requires fresh evidence. See INTEGRATED-MONITORING-DESIGN.md and app/monitoring/README.md.",
+        "operationId": "coverage_platform_v1_services__service_id__coverage_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service_id",
+            "required": true,
+            "schema": {
+              "title": "Service Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "environment",
+            "required": false,
+            "schema": {
+              "default": "production",
+              "title": "Environment",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Missing authenticated identity"
+          },
+          "403": {
+            "description": "Authority denied"
+          },
+          "404": {
+            "description": "Scoped resource not found"
+          },
+          "409": {
+            "description": "Revision, ordering or replay conflict"
+          },
+          "413": {
+            "description": "Payload budget exceeded"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "502": {
+            "description": "Backend response exceeds contract budget"
+          },
+          "503": {
+            "description": "Identity, persistence or backend configuration unavailable"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Applicable monitoring requirements and evidence",
+        "tags": [
+          "integrated-monitoring"
+        ],
+        "x-required-authority": "observability.health.read"
+      }
+    },
+    "/platform/v1/services/{service_id}/dependencies": {
+      "get": {
+        "description": "Runtime coverage requires fresh evidence. See INTEGRATED-MONITORING-DESIGN.md and app/monitoring/README.md.",
+        "operationId": "dependencies_platform_v1_services__service_id__dependencies_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service_id",
+            "required": true,
+            "schema": {
+              "title": "Service Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Missing authenticated identity"
+          },
+          "403": {
+            "description": "Authority denied"
+          },
+          "404": {
+            "description": "Scoped resource not found"
+          },
+          "409": {
+            "description": "Revision, ordering or replay conflict"
+          },
+          "413": {
+            "description": "Payload budget exceeded"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "502": {
+            "description": "Backend response exceeds contract budget"
+          },
+          "503": {
+            "description": "Identity, persistence or backend configuration unavailable"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Declared and observed integration edges",
+        "tags": [
+          "integrated-monitoring"
+        ],
+        "x-required-authority": "platform.services.read"
+      }
+    },
+    "/platform/v1/services/{service_id}/deployments": {
+      "get": {
+        "description": "Runtime coverage requires fresh evidence. See INTEGRATED-MONITORING-DESIGN.md and app/monitoring/README.md.",
+        "operationId": "deployments_platform_v1_services__service_id__deployments_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service_id",
+            "required": true,
+            "schema": {
+              "title": "Service Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "environment",
+            "required": false,
+            "schema": {
+              "default": "production",
+              "title": "Environment",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Missing authenticated identity"
+          },
+          "403": {
+            "description": "Authority denied"
+          },
+          "404": {
+            "description": "Scoped resource not found"
+          },
+          "409": {
+            "description": "Revision, ordering or replay conflict"
+          },
+          "413": {
+            "description": "Payload budget exceeded"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "502": {
+            "description": "Backend response exceeds contract budget"
+          },
+          "503": {
+            "description": "Identity, persistence or backend configuration unavailable"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Desired and observed service releases",
+        "tags": [
+          "integrated-monitoring"
+        ],
+        "x-required-authority": "platform.services.read"
+      }
+    },
+    "/platform/v1/services/{service_id}/endpoints": {
+      "get": {
+        "description": "Runtime coverage requires fresh evidence. See INTEGRATED-MONITORING-DESIGN.md and app/monitoring/README.md.",
+        "operationId": "endpoints_platform_v1_services__service_id__endpoints_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service_id",
+            "required": true,
+            "schema": {
+              "title": "Service Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "environment",
+            "required": false,
+            "schema": {
+              "default": "production",
+              "title": "Environment",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Missing authenticated identity"
+          },
+          "403": {
+            "description": "Authority denied"
+          },
+          "404": {
+            "description": "Scoped resource not found"
+          },
+          "409": {
+            "description": "Revision, ordering or replay conflict"
+          },
+          "413": {
+            "description": "Payload budget exceeded"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "502": {
+            "description": "Backend response exceeds contract budget"
+          },
+          "503": {
+            "description": "Identity, persistence or backend configuration unavailable"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Method/path inventory from the release OpenAPI document",
+        "tags": [
+          "integrated-monitoring"
+        ],
+        "x-required-authority": "platform.services.read"
+      }
+    },
+    "/platform/v1/services/{service_id}/telemetry-profile": {
+      "post": {
+        "description": "Runtime coverage requires fresh evidence. See INTEGRATED-MONITORING-DESIGN.md and app/monitoring/README.md.",
+        "operationId": "profile_platform_v1_services__service_id__telemetry_profile_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service_id",
+            "required": true,
+            "schema": {
+              "title": "Service Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 256,
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Correlation-ID",
+            "required": true,
+            "schema": {
+              "maxLength": 256,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Profile"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Missing authenticated identity"
+          },
+          "403": {
+            "description": "Authority denied"
+          },
+          "404": {
+            "description": "Scoped resource not found"
+          },
+          "409": {
+            "description": "Revision, ordering or replay conflict"
+          },
+          "413": {
+            "description": "Payload budget exceeded"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "502": {
+            "description": "Backend response exceeds contract budget"
+          },
+          "503": {
+            "description": "Identity, persistence or backend configuration unavailable"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Stage a versioned monitoring-profile change",
+        "tags": [
+          "integrated-monitoring"
+        ],
+        "x-required-authority": "platform.services.write"
+      }
+    },
+    "/platform/v1/sync/reconciliations": {
+      "post": {
+        "description": "Runtime coverage requires fresh evidence. See INTEGRATED-MONITORING-DESIGN.md and app/monitoring/README.md.",
+        "operationId": "reconcile_platform_v1_sync_reconciliations_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 256,
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Correlation-ID",
+            "required": true,
+            "schema": {
+              "maxLength": 256,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Reconciliation"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Missing authenticated identity"
+          },
+          "403": {
+            "description": "Authority denied"
+          },
+          "404": {
+            "description": "Scoped resource not found"
+          },
+          "409": {
+            "description": "Revision, ordering or replay conflict"
+          },
+          "413": {
+            "description": "Payload budget exceeded"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "502": {
+            "description": "Backend response exceeds contract budget"
+          },
+          "503": {
+            "description": "Identity, persistence or backend configuration unavailable"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Request a bounded reconciliation of approved monitoring configuration",
+        "tags": [
+          "integrated-monitoring"
+        ],
+        "x-required-authority": "platform.sync.reconcile"
+      }
+    },
+    "/platform/v1/sync/reconciliations/{reconciliation_id}": {
+      "get": {
+        "description": "Runtime coverage requires fresh evidence. See INTEGRATED-MONITORING-DESIGN.md and app/monitoring/README.md.",
+        "operationId": "reconciliation_result_platform_v1_sync_reconciliations__reconciliation_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "reconciliation_id",
+            "required": true,
+            "schema": {
+              "title": "Reconciliation Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Missing authenticated identity"
+          },
+          "403": {
+            "description": "Authority denied"
+          },
+          "404": {
+            "description": "Scoped resource not found"
+          },
+          "409": {
+            "description": "Revision, ordering or replay conflict"
+          },
+          "413": {
+            "description": "Payload budget exceeded"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "502": {
+            "description": "Backend response exceeds contract budget"
+          },
+          "503": {
+            "description": "Identity, persistence or backend configuration unavailable"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Per-component reconcile result and evidence",
+        "tags": [
+          "integrated-monitoring"
+        ],
+        "x-required-authority": "platform.sync.read"
+      }
+    },
+    "/platform/v1/sync/status": {
+      "get": {
+        "description": "Runtime coverage requires fresh evidence. See INTEGRATED-MONITORING-DESIGN.md and app/monitoring/README.md.",
+        "operationId": "sync_status_platform_v1_sync_status_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "environment",
+            "required": false,
+            "schema": {
+              "default": "production",
+              "title": "Environment",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Missing authenticated identity"
+          },
+          "403": {
+            "description": "Authority denied"
+          },
+          "404": {
+            "description": "Scoped resource not found"
+          },
+          "409": {
+            "description": "Revision, ordering or replay conflict"
+          },
+          "413": {
+            "description": "Payload budget exceeded"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "502": {
+            "description": "Backend response exceeds contract budget"
+          },
+          "503": {
+            "description": "Identity, persistence or backend configuration unavailable"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Desired/observed revisions, lag and drift",
+        "tags": [
+          "integrated-monitoring"
+        ],
+        "x-required-authority": "platform.sync.read"
+      }
+    },
+    "/platform/v1/telemetry/heartbeats": {
+      "post": {
+        "description": "Runtime coverage requires fresh evidence. See INTEGRATED-MONITORING-DESIGN.md and app/monitoring/README.md.",
+        "operationId": "heartbeat_platform_v1_telemetry_heartbeats_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 256,
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Correlation-ID",
+            "required": true,
+            "schema": {
+              "maxLength": 256,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Heartbeat"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Missing authenticated identity"
+          },
+          "403": {
+            "description": "Authority denied"
+          },
+          "404": {
+            "description": "Scoped resource not found"
+          },
+          "409": {
+            "description": "Revision, ordering or replay conflict"
+          },
+          "413": {
+            "description": "Payload budget exceeded"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "502": {
+            "description": "Backend response exceeds contract budget"
+          },
+          "503": {
+            "description": "Identity, persistence or backend configuration unavailable"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Collector/service freshness and collection offsets",
+        "tags": [
+          "integrated-monitoring"
+        ],
+        "x-required-authority": "telemetry.heartbeat.write"
+      }
+    },
+    "/v1/observability/agents": {
+      "get": {
+        "description": "Runtime coverage requires fresh evidence. See INTEGRATED-MONITORING-DESIGN.md and app/monitoring/README.md.",
+        "operationId": "agents_v1_observability_agents_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "campaign_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Campaign Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 512,
+              "title": "Cursor",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Missing authenticated identity"
+          },
+          "403": {
+            "description": "Authority denied"
+          },
+          "404": {
+            "description": "Scoped resource not found"
+          },
+          "409": {
+            "description": "Revision, ordering or replay conflict"
+          },
+          "413": {
+            "description": "Payload budget exceeded"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "502": {
+            "description": "Backend response exceeds contract budget"
+          },
+          "503": {
+            "description": "Identity, persistence or backend configuration unavailable"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Odoo/VICIdial username, campaign and presence projection",
+        "tags": [
+          "integrated-monitoring"
+        ],
+        "x-required-authority": "observability.agents.read; tenant/campaign authorization"
+      }
+    },
+    "/v1/observability/backups": {
+      "get": {
+        "description": "Runtime coverage requires fresh evidence. See INTEGRATED-MONITORING-DESIGN.md and app/monitoring/README.md.",
+        "operationId": "list_monitoring_backup_v1_observability_backups_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 512,
+              "title": "Cursor",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Missing authenticated identity"
+          },
+          "403": {
+            "description": "Authority denied"
+          },
+          "404": {
+            "description": "Scoped resource not found"
+          },
+          "409": {
+            "description": "Revision, ordering or replay conflict"
+          },
+          "413": {
+            "description": "Payload budget exceeded"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "502": {
+            "description": "Backend response exceeds contract budget"
+          },
+          "503": {
+            "description": "Identity, persistence or backend configuration unavailable"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Backup freshness and latest verified restore evidence",
+        "tags": [
+          "integrated-monitoring"
+        ],
+        "x-required-authority": "observability.backups.read"
+      }
+    },
+    "/v1/observability/campaigns/{campaign_id}": {
+      "get": {
+        "description": "Runtime coverage requires fresh evidence. See INTEGRATED-MONITORING-DESIGN.md and app/monitoring/README.md.",
+        "operationId": "campaign_v1_observability_campaigns__campaign_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "campaign_id",
+            "required": true,
+            "schema": {
+              "title": "Campaign Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Missing authenticated identity"
+          },
+          "403": {
+            "description": "Authority denied"
+          },
+          "404": {
+            "description": "Scoped resource not found"
+          },
+          "409": {
+            "description": "Revision, ordering or replay conflict"
+          },
+          "413": {
+            "description": "Payload budget exceeded"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "502": {
+            "description": "Backend response exceeds contract budget"
+          },
+          "503": {
+            "description": "Identity, persistence or backend configuration unavailable"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Campaign-scoped queue and integration summary",
+        "tags": [
+          "integrated-monitoring"
+        ],
+        "x-required-authority": "observability.campaigns.read; tenant/campaign authorization"
+      }
+    },
+    "/v1/observability/certificates": {
+      "get": {
+        "description": "Runtime coverage requires fresh evidence. See INTEGRATED-MONITORING-DESIGN.md and app/monitoring/README.md.",
+        "operationId": "list_monitoring_certificate_v1_observability_certificates_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 512,
+              "title": "Cursor",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Missing authenticated identity"
+          },
+          "403": {
+            "description": "Authority denied"
+          },
+          "404": {
+            "description": "Scoped resource not found"
+          },
+          "409": {
+            "description": "Revision, ordering or replay conflict"
+          },
+          "413": {
+            "description": "Payload budget exceeded"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "502": {
+            "description": "Backend response exceeds contract budget"
+          },
+          "503": {
+            "description": "Identity, persistence or backend configuration unavailable"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "DNS/TLS inventory, issuer and expiry",
+        "tags": [
+          "integrated-monitoring"
+        ],
+        "x-required-authority": "observability.health.read"
+      }
+    },
+    "/v1/observability/dashboards": {
+      "get": {
+        "description": "Runtime coverage requires fresh evidence. See INTEGRATED-MONITORING-DESIGN.md and app/monitoring/README.md.",
+        "operationId": "list_monitoring_dashboard_v1_observability_dashboards_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 512,
+              "title": "Cursor",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Missing authenticated identity"
+          },
+          "403": {
+            "description": "Authority denied"
+          },
+          "404": {
+            "description": "Scoped resource not found"
+          },
+          "409": {
+            "description": "Revision, ordering or replay conflict"
+          },
+          "413": {
+            "description": "Payload budget exceeded"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "502": {
+            "description": "Backend response exceeds contract budget"
+          },
+          "503": {
+            "description": "Identity, persistence or backend configuration unavailable"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Authorized dashboard links and provisioning version",
+        "tags": [
+          "integrated-monitoring"
+        ],
+        "x-required-authority": "observability.health.read"
+      }
+    },
+    "/v1/observability/events/stream": {
+      "get": {
+        "description": "Runtime coverage requires fresh evidence. See INTEGRATED-MONITORING-DESIGN.md and app/monitoring/README.md.",
+        "operationId": "stream_v1_observability_events_stream_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Last-Event-ID",
+            "required": false,
+            "schema": {
+              "default": "0",
+              "title": "Last-Event-Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Missing authenticated identity"
+          },
+          "403": {
+            "description": "Authority denied"
+          },
+          "404": {
+            "description": "Scoped resource not found"
+          },
+          "409": {
+            "description": "Revision, ordering or replay conflict"
+          },
+          "413": {
+            "description": "Payload budget exceeded"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "502": {
+            "description": "Backend response exceeds contract budget"
+          },
+          "503": {
+            "description": "Identity, persistence or backend configuration unavailable"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Authorized server-sent events for incident/health changes",
+        "tags": [
+          "integrated-monitoring"
+        ],
+        "x-required-authority": "observability.health.read; session cookie"
+      }
+    },
+    "/v1/observability/integrations": {
+      "get": {
+        "description": "Runtime coverage requires fresh evidence. See INTEGRATED-MONITORING-DESIGN.md and app/monitoring/README.md.",
+        "operationId": "integrations_v1_observability_integrations_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Missing authenticated identity"
+          },
+          "403": {
+            "description": "Authority denied"
+          },
+          "404": {
+            "description": "Scoped resource not found"
+          },
+          "409": {
+            "description": "Revision, ordering or replay conflict"
+          },
+          "413": {
+            "description": "Payload budget exceeded"
+          },
+          "422": {
+            "description": "Invalid request or unapproved template"
+          },
+          "502": {
+            "description": "Backend response exceeds contract budget"
+          },
+          "503": {
+            "description": "Identity, persistence or backend configuration unavailable"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Contract, auth, queue, delivery and reconciliation status",
+        "tags": [
+          "integrated-monitoring"
+        ],
+        "x-required-authority": "observability.integrations.read"
+      }
+    },
+    "/v1/observability/integrations/{integration_id}": {
+      "get": {
+        "description": "Runtime coverage requires fresh evidence. See INTEGRATED-MONITORING-DESIGN.md and app/monitoring/README.md.",
+        "operationId": "integration_v1_observability_integrations__integration_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "integration_id",
+            "required": true,
+            "schema": {
+              "title": "Integration Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 512,
+              "title": "Cursor",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Missing authenticated identity"
+          },
+          "403": {
+            "description": "Authority denied"
+          },
+          "404": {
+            "description": "Scoped resource not found"
+          },
+          "409": {
+            "description": "Revision, ordering or replay conflict"
+          },
+          "413": {
+            "description": "Payload budget exceeded"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "502": {
+            "description": "Backend response exceeds contract budget"
+          },
+          "503": {
+            "description": "Identity, persistence or backend configuration unavailable"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "One integration, including desired/observed revision",
+        "tags": [
+          "integrated-monitoring"
+        ],
+        "x-required-authority": "observability.integrations.read"
+      }
+    },
+    "/v1/observability/logs/query": {
+      "post": {
+        "description": "Runtime coverage requires fresh evidence. See INTEGRATED-MONITORING-DESIGN.md and app/monitoring/README.md.",
+        "operationId": "query_logs_v1_observability_logs_query_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 256,
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Correlation-ID",
+            "required": true,
+            "schema": {
+              "maxLength": 256,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QueryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Missing authenticated identity"
+          },
+          "403": {
+            "description": "Authority denied"
+          },
+          "404": {
+            "description": "Scoped resource not found"
+          },
+          "409": {
+            "description": "Revision, ordering or replay conflict"
+          },
+          "413": {
+            "description": "Payload budget exceeded"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "502": {
+            "description": "Backend response exceeds contract budget"
+          },
+          "503": {
+            "description": "Identity, persistence or backend configuration unavailable"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Bounded and redacted log search",
+        "tags": [
+          "integrated-monitoring"
+        ],
+        "x-required-authority": "observability.logs.read"
+      }
+    },
+    "/v1/observability/metrics/query": {
+      "post": {
+        "description": "Runtime coverage requires fresh evidence. See INTEGRATED-MONITORING-DESIGN.md and app/monitoring/README.md.",
+        "operationId": "query_metrics_v1_observability_metrics_query_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 256,
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Correlation-ID",
+            "required": true,
+            "schema": {
+              "maxLength": 256,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QueryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Missing authenticated identity"
+          },
+          "403": {
+            "description": "Authority denied"
+          },
+          "404": {
+            "description": "Scoped resource not found"
+          },
+          "409": {
+            "description": "Revision, ordering or replay conflict"
+          },
+          "413": {
+            "description": "Payload budget exceeded"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "502": {
+            "description": "Backend response exceeds contract budget"
+          },
+          "503": {
+            "description": "Identity, persistence or backend configuration unavailable"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Bounded instant query or named query template",
+        "tags": [
+          "integrated-monitoring"
+        ],
+        "x-required-authority": "observability.metrics.read"
+      }
+    },
+    "/v1/observability/metrics/query-range": {
+      "post": {
+        "description": "Runtime coverage requires fresh evidence. See INTEGRATED-MONITORING-DESIGN.md and app/monitoring/README.md.",
+        "operationId": "query_metrics_range_v1_observability_metrics_query_range_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 256,
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Correlation-ID",
+            "required": true,
+            "schema": {
+              "maxLength": 256,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QueryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Missing authenticated identity"
+          },
+          "403": {
+            "description": "Authority denied"
+          },
+          "404": {
+            "description": "Scoped resource not found"
+          },
+          "409": {
+            "description": "Revision, ordering or replay conflict"
+          },
+          "413": {
+            "description": "Payload budget exceeded"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "502": {
+            "description": "Backend response exceeds contract budget"
+          },
+          "503": {
+            "description": "Identity, persistence or backend configuration unavailable"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Bounded time-series query",
+        "tags": [
+          "integrated-monitoring"
+        ],
+        "x-required-authority": "observability.metrics.read"
+      }
+    },
+    "/v1/observability/overview": {
+      "get": {
+        "description": "Runtime coverage requires fresh evidence. See INTEGRATED-MONITORING-DESIGN.md and app/monitoring/README.md.",
+        "operationId": "overview_v1_observability_overview_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Missing authenticated identity"
+          },
+          "403": {
+            "description": "Authority denied"
+          },
+          "404": {
+            "description": "Scoped resource not found"
+          },
+          "409": {
+            "description": "Revision, ordering or replay conflict"
+          },
+          "413": {
+            "description": "Payload budget exceeded"
+          },
+          "422": {
+            "description": "Invalid request or unapproved template"
+          },
+          "502": {
+            "description": "Backend response exceeds contract budget"
+          },
+          "503": {
+            "description": "Identity, persistence or backend configuration unavailable"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "System coverage, freshness and active incidents",
+        "tags": [
+          "integrated-monitoring"
+        ],
+        "x-required-authority": "observability.health.read"
+      }
+    },
+    "/v1/observability/probe-runs": {
+      "post": {
+        "description": "Runtime coverage requires fresh evidence. See INTEGRATED-MONITORING-DESIGN.md and app/monitoring/README.md.",
+        "operationId": "probe_v1_observability_probe_runs_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 256,
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Correlation-ID",
+            "required": true,
+            "schema": {
+              "maxLength": 256,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProbeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Missing authenticated identity"
+          },
+          "403": {
+            "description": "Authority denied"
+          },
+          "404": {
+            "description": "Scoped resource not found"
+          },
+          "409": {
+            "description": "Revision, ordering or replay conflict"
+          },
+          "413": {
+            "description": "Payload budget exceeded"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "502": {
+            "description": "Backend response exceeds contract budget"
+          },
+          "503": {
+            "description": "Identity, persistence or backend configuration unavailable"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Request a read-only probe against a registered target ID",
+        "tags": [
+          "integrated-monitoring"
+        ],
+        "x-required-authority": "observability.probes.run"
+      }
+    },
+    "/v1/observability/probe-runs/{probe_run_id}": {
+      "get": {
+        "description": "Runtime coverage requires fresh evidence. See INTEGRATED-MONITORING-DESIGN.md and app/monitoring/README.md.",
+        "operationId": "probe_result_v1_observability_probe_runs__probe_run_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "probe_run_id",
+            "required": true,
+            "schema": {
+              "title": "Probe Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Missing authenticated identity"
+          },
+          "403": {
+            "description": "Authority denied"
+          },
+          "404": {
+            "description": "Scoped resource not found"
+          },
+          "409": {
+            "description": "Revision, ordering or replay conflict"
+          },
+          "413": {
+            "description": "Payload budget exceeded"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "502": {
+            "description": "Backend response exceeds contract budget"
+          },
+          "503": {
+            "description": "Identity, persistence or backend configuration unavailable"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Read bounded synthetic-probe evidence",
+        "tags": [
+          "integrated-monitoring"
+        ],
+        "x-required-authority": "observability.health.read"
+      }
+    },
+    "/v1/observability/secrets/health": {
+      "get": {
+        "description": "Runtime coverage requires fresh evidence. See INTEGRATED-MONITORING-DESIGN.md and app/monitoring/README.md.",
+        "operationId": "secrets_health_v1_observability_secrets_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Missing authenticated identity"
+          },
+          "403": {
+            "description": "Authority denied"
+          },
+          "404": {
+            "description": "Scoped resource not found"
+          },
+          "409": {
+            "description": "Revision, ordering or replay conflict"
+          },
+          "413": {
+            "description": "Payload budget exceeded"
+          },
+          "422": {
+            "description": "Invalid request or unapproved template"
+          },
+          "502": {
+            "description": "Backend response exceeds contract budget"
+          },
+          "503": {
+            "description": "Identity, persistence or backend configuration unavailable"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "OpenBao availability/seal/lease health with no secret values",
+        "tags": [
+          "integrated-monitoring"
+        ],
+        "x-required-authority": "observability.secrets.health.read"
+      }
+    },
+    "/v1/observability/services/{service_id}/health": {
+      "get": {
+        "description": "Runtime coverage requires fresh evidence. See INTEGRATED-MONITORING-DESIGN.md and app/monitoring/README.md.",
+        "operationId": "health_v1_observability_services__service_id__health_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "service_id",
+            "required": true,
+            "schema": {
+              "title": "Service Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "environment",
+            "required": false,
+            "schema": {
+              "default": "production",
+              "title": "Environment",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Missing authenticated identity"
+          },
+          "403": {
+            "description": "Authority denied"
+          },
+          "404": {
+            "description": "Scoped resource not found"
+          },
+          "409": {
+            "description": "Revision, ordering or replay conflict"
+          },
+          "413": {
+            "description": "Payload budget exceeded"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "502": {
+            "description": "Backend response exceeds contract budget"
+          },
+          "503": {
+            "description": "Identity, persistence or backend configuration unavailable"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Separate liveness, readiness and dependency health",
+        "tags": [
+          "integrated-monitoring"
+        ],
+        "x-required-authority": "observability.health.read"
+      }
+    },
+    "/v1/observability/slo": {
+      "get": {
+        "description": "Runtime coverage requires fresh evidence. See INTEGRATED-MONITORING-DESIGN.md and app/monitoring/README.md.",
+        "operationId": "list_monitoring_slo_v1_observability_slo_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 512,
+              "title": "Cursor",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Missing authenticated identity"
+          },
+          "403": {
+            "description": "Authority denied"
+          },
+          "404": {
+            "description": "Scoped resource not found"
+          },
+          "409": {
+            "description": "Revision, ordering or replay conflict"
+          },
+          "413": {
+            "description": "Payload budget exceeded"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "502": {
+            "description": "Backend response exceeds contract budget"
+          },
+          "503": {
+            "description": "Identity, persistence or backend configuration unavailable"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "SLO compliance and remaining error budget",
+        "tags": [
+          "integrated-monitoring"
+        ],
+        "x-required-authority": "observability.health.read"
+      }
+    },
+    "/v1/observability/topology": {
+      "get": {
+        "description": "Runtime coverage requires fresh evidence. See INTEGRATED-MONITORING-DESIGN.md and app/monitoring/README.md.",
+        "operationId": "topology_v1_observability_topology_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Missing authenticated identity"
+          },
+          "403": {
+            "description": "Authority denied"
+          },
+          "404": {
+            "description": "Scoped resource not found"
+          },
+          "409": {
+            "description": "Revision, ordering or replay conflict"
+          },
+          "413": {
+            "description": "Payload budget exceeded"
+          },
+          "422": {
+            "description": "Invalid request or unapproved template"
+          },
+          "502": {
+            "description": "Backend response exceeds contract budget"
+          },
+          "503": {
+            "description": "Identity, persistence or backend configuration unavailable"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Scoped service/dependency topology",
+        "tags": [
+          "integrated-monitoring"
+        ],
+        "x-required-authority": "observability.health.read"
+      }
+    },
+    "/v1/observability/traces/search": {
+      "post": {
+        "description": "Runtime coverage requires fresh evidence. See INTEGRATED-MONITORING-DESIGN.md and app/monitoring/README.md.",
+        "operationId": "query_traces_search_v1_observability_traces_search_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 256,
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Correlation-ID",
+            "required": true,
+            "schema": {
+              "maxLength": 256,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QueryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Missing authenticated identity"
+          },
+          "403": {
+            "description": "Authority denied"
+          },
+          "404": {
+            "description": "Scoped resource not found"
+          },
+          "409": {
+            "description": "Revision, ordering or replay conflict"
+          },
+          "413": {
+            "description": "Payload budget exceeded"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "502": {
+            "description": "Backend response exceeds contract budget"
+          },
+          "503": {
+            "description": "Identity, persistence or backend configuration unavailable"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Bounded trace search",
+        "tags": [
+          "integrated-monitoring"
+        ],
+        "x-required-authority": "observability.traces.read"
+      }
+    },
+    "/v1/observability/traces/{trace_id}": {
+      "get": {
+        "description": "Runtime coverage requires fresh evidence. See INTEGRATED-MONITORING-DESIGN.md and app/monitoring/README.md.",
+        "operationId": "trace_v1_observability_traces__trace_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "trace_id",
+            "required": true,
+            "schema": {
+              "title": "Trace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Missing authenticated identity"
+          },
+          "403": {
+            "description": "Authority denied"
+          },
+          "404": {
+            "description": "Scoped resource not found"
+          },
+          "409": {
+            "description": "Revision, ordering or replay conflict"
+          },
+          "413": {
+            "description": "Payload budget exceeded"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "502": {
+            "description": "Backend response exceeds contract budget"
+          },
+          "503": {
+            "description": "Identity, persistence or backend configuration unavailable"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Authorized trace lookup with tenant verification",
+        "tags": [
+          "integrated-monitoring"
+        ],
+        "x-required-authority": "observability.traces.read"
+      }
+    },
+    "/v1/telemetry/browser-events": {
+      "post": {
+        "description": "Runtime coverage requires fresh evidence. See INTEGRATED-MONITORING-DESIGN.md and app/monitoring/README.md.",
+        "operationId": "browser_event_v1_telemetry_browser_events_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 256,
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Correlation-ID",
+            "required": true,
+            "schema": {
+              "maxLength": 256,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BrowserEvent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Missing authenticated identity"
+          },
+          "403": {
+            "description": "Authority denied"
+          },
+          "404": {
+            "description": "Scoped resource not found"
+          },
+          "409": {
+            "description": "Revision, ordering or replay conflict"
+          },
+          "413": {
+            "description": "Payload budget exceeded"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "502": {
+            "description": "Backend response exceeds contract budget"
+          },
+          "503": {
+            "description": "Identity, persistence or backend configuration unavailable"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Same-origin browser error/performance intake via app BFF",
+        "tags": [
+          "integrated-monitoring"
+        ],
+        "x-required-authority": "Anonymous rate-limited or authenticated same-origin session; never service credentials"
+      }
+    }
+  }
+}

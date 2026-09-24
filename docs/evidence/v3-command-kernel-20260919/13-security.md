@@ -1,0 +1,5 @@
+# 13 — Security
+
+tests/test_platform_security_matrix.py (real KeycloakJwtVerifier, RS256 key pair, JWKS patched): no token 401; wrong issuer 401; wrong audience 401; expired 401; alg=none 401; HS256 confusion 401; foreign key 401; unregistered azp 401; wrong (registered) azp 403 policy_denied; missing scope 403; lifetime > 300 s 403; tenant mismatch 403; wildcard tenant 403; wrong subject 403; forged identity headers ignored (403); unknown capability 403; disabled capability 403; production capability in TEST_SYN 403; mismatched target/capability 403; malformed / extra field / oversized payload 400 (canonical control-plane envelope); missing idempotency 400; collision 409; unauthorized cancel 403 / cross-tenant cancel 404; unauthorized replay 403 / no operator role 409; non-replayable state 409; terminal cancel 409; provider-uncertainty REEXECUTE 409 (REPROCESS 202). Nothing persisted on any denial.
+
+Static: app/platform never reads the environment, opens pools/clients or JWKS clients; body size bound 262144; strict pydantic schemas; no eval/exec/pickle/dynamic import in app/platform. SECRET_LEAKS: describe/timeline/status responses are secret-free by test.

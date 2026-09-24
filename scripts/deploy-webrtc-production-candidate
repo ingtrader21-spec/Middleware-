@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+MANIFEST="${1:-$ROOT/evidence/webrtc-release-manifest.json}"
+AUTH="${2:-}"
+test -f "$MANIFEST"
+"$ROOT/scripts/webrtc-production-preflight" --release "$MANIFEST"
+sha256sum -c "$ROOT/evidence/webrtc-release-SHA256SUMS"
+openssl pkeyutl -verify -rawin -pubin -inkey "$ROOT/evidence/release/webrtc-release-signing.pub" -sigfile "$ROOT/evidence/release/webrtc-release.sig" -in "$ROOT/evidence/release/webrtc-release.tar.gz" >/dev/null
+if [[ "$AUTH" != "--authorize-deployment" ]]; then
+  echo "DEPLOYMENT_AUTHORIZED=NO"
+  echo "INACTIVE_CANDIDATE_VALIDATION=READY_FOR_ISOLATED_DEPLOYMENT"
+  exit 0
+fi
+echo "Refusing production cutover: human activation manifest enforcement is intentionally separate."
+exit 2

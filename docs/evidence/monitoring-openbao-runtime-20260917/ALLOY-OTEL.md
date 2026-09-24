@@ -1,0 +1,8 @@
+# Alloy / OpenTelemetry (2026-09-17) — Alloy @ `f1be1cd3c70d`, Telemetry @ `bf48a9c1c410`
+
+- Local OTLP ingress: OTel agent profile (`codestra/collector-agent.yaml`) on loopback `127.0.0.1:4317/4318` (decision R9), `attributes/redact` + `transform/secret_shaped`, `otlp/gateway` mTLS export, `file_storage` persistent queue (bounded; degraded gateway → local buffering, never data invention).
+- Gateway (`codestra/collector.yaml`): receives `/v1/traces|metrics|logs`; `transform/correlation` **keeps** `traceparent`/`tracestate`-derived context and `correlation_id`, `service_id`, `environment`, `deployment_id` on spans and logs (decision R10); redaction of `Authorization`, `Cookie`, API keys, passwords, private keys, OpenBao tokens, JWTs, DB/SMTP passwords, provider credentials before export; exports to Tempo (mTLS receiver, TLS ≥ 1.2), Loki, Prometheus remote (8889 pending job).
+- Alloy (`codestra/config.alloy`): service log files → `stage.json` → structured metadata `correlation_id trace_id span_id`; OpenBao audit file source with structured metadata; redact stages for `hvs./hvb./s.` tokens, JWTs, `x-vault-token`/`x-openbao-token`/`vault_token`/`openbao_token`/`id_token`; WAL/positions bounded on local disk (outage of Loki → bounded retry, then drop with metric, never blocking the application).
+- Collector readers: `read_alloy` (`/-/ready`, `/api/v0/web/components` health digest), `read_otel_gateway` (health extension :13133).
+
+Validation: Telemetry `validate_codestra_telemetry.py` (correlation preservation, agent profile, secret references) PASS, `otelcol-contrib 0.159.0 validate` PASS at source stage; Alloy three validators synced PASS (binary run CI-only on this host). Runtime component list / OTLP acceptance on staging: **not observed**.

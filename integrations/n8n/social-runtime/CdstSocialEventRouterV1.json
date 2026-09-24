@@ -1,0 +1,145 @@
+[
+  {
+    "id": "CdstSocialEventRouterV1",
+    "name": "CdstSocialEventRouterV1",
+    "active": false,
+    "nodes": [
+      {
+        "id": "webhook",
+        "name": "social-ingress",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [0, 0],
+        "parameters": {"path":"codestra-social-router-v1","httpMethod":"POST","responseMode":"onReceived","options":{"responseCode":202}}
+      },
+      {
+        "id": "authorize",
+        "name": "Durable Middleware Authorization",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.4,
+        "position": [240, 0],
+        "parameters": {
+          "url": "http://middleware-integration-api:8095/api/v1/n8n-runtime/social-authorize",
+          "method": "POST",
+          "sendHeaders": true,
+          "headerParameters": {"parameters": [
+            {"name":"X-Codestra-Identity","value":"={{$json.headers['x-codestra-identity']}}"},
+            {"name":"X-Codestra-Tenant","value":"={{$json.headers['x-codestra-tenant']}}"},
+            {"name":"X-Codestra-Workflow","value":"={{$json.headers['x-codestra-workflow']}}"},
+            {"name":"X-Codestra-Execution","value":"={{$json.headers['x-codestra-execution']}}"},
+            {"name":"X-Codestra-Correlation-ID","value":"={{$json.headers['x-codestra-correlation-id']}}"},
+            {"name":"X-Codestra-Timestamp","value":"={{$json.headers['x-codestra-timestamp']}}"},
+            {"name":"X-Codestra-Nonce","value":"={{$json.headers['x-codestra-nonce']}}"},
+            {"name":"X-Codestra-Body-SHA256","value":"={{$json.headers['x-codestra-body-sha256']}}"},
+            {"name":"X-Codestra-Signature","value":"={{$json.headers['x-codestra-signature']}}"}
+          ]},
+          "sendBody": true,
+          "contentType": "raw",
+          "rawContentType": "application/json",
+          "body": "={{JSON.stringify($json.body)}}",
+          "options": {"timeout":10000}
+        }
+      },
+      {
+        "id": "route",
+        "name": "Provider Neutral Route",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [480, 0],
+        "parameters": {
+          "jsCode": "const j=$json; if(!j.authorized||j.duplicate) return []; const routes={'social.post.published':'CdstSocialPostPublishedV1','social.post.failed':'CdstSocialPostFailedV1','social.account.disconnected':'CdstSocialAccountDisconnectedV1','social.account.authentication_required':'CdstSocialAccountAuthRequiredV1','social.comment.received':'CdstSocialCommentReceivedV1','social.message.received':'CdstSocialMessageReceivedV1','social.analytics.updated':'CdstSocialAnalyticsUpdatedV1'}; j.handler=routes[j.route]||'CdstSocialDeadLetterV1'; j.result_status=routes[j.route]?'completed':'dead_letter'; j.error_code=routes[j.route]?null:'SOCIAL_EVENT_UNSUPPORTED'; return [{json:j}];"
+        }
+      },
+      {
+        "id": "handler",
+        "name": "Execute Provider Neutral Handler",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1.3,
+        "position": [720, 0],
+        "parameters": {
+          "workflowId": {"__rl":true,"value":"={{$json.handler}}","mode":"id"},
+          "workflowInputs": {"mappingMode":"defineBelow","value":{},"matchingColumns":[],"schema":[],"attemptToConvertTypes":false,"convertFieldsToString":false},
+          "options": {"waitForSubWorkflow":true}
+        }
+      },
+      {
+        "id": "result",
+        "name": "Build Strict Result",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [960, 0],
+        "parameters": {
+          "jsCode": "const j=$json; const body={schema_version:'codestra.n8n.result.v1',workflow_code:j.workflow_code,workflow_version:j.workflow_version,execution_id:j.execution_id,correlation_id:j.correlation_id,tenant_id:j.tenant_id,status:j.result_status,occurred_at:new Date().toISOString(),result:{event_id:j.event_id,handler:j.handler,provider:j.event.provider},error_code:j.error_code}; return [{json:{...j,body_raw:JSON.stringify(body),timestamp:String(Math.floor(Date.now()/1000)),nonce:`social-${$execution.id}-${Date.now()}`}}];"
+        }
+      },
+      {
+        "id": "hash",
+        "name": "Hash Result Body",
+        "type": "n8n-nodes-base.crypto",
+        "typeVersion": 2,
+        "position": [1200, 0],
+        "parameters": {"action":"hash","type":"SHA256","value":"={{$json.body_raw}}","encoding":"hex","dataPropertyName":"body_hash"}
+      },
+      {
+        "id": "signature-payload",
+        "name": "Build Callback Signature",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [1440, 0],
+        "parameters": {"jsCode":"const j=$json; j.signature_payload=['v1','n8n-staging',j.tenant_id,j.workflow_code,j.execution_id,j.correlation_id,j.timestamp,j.nonce,j.body_hash].join('\\n'); return [{json:j}];"}
+      },
+      {
+        "id": "sign",
+        "name": "Sign Callback",
+        "type": "n8n-nodes-base.crypto",
+        "typeVersion": 2,
+        "position": [1680, 0],
+        "parameters": {"action":"hmac","type":"SHA256","value":"={{$json.signature_payload}}","encoding":"hex","dataPropertyName":"signature"},
+        "credentials": {"crypto":{"id":"CodestraRuntimeHmac2026","name":"Codestra Runtime HMAC"}}
+      },
+      {
+        "id": "callback",
+        "name": "Authenticated Result Callback",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.4,
+        "position": [1920, 0],
+        "retryOnFail": true,
+        "maxTries": 5,
+        "waitBetweenTries": 2000,
+        "parameters": {
+          "url": "http://middleware-integration-api:8095/api/v1/n8n-runtime/results",
+          "method": "POST",
+          "sendHeaders": true,
+          "headerParameters": {"parameters": [
+            {"name":"X-Codestra-Identity","value":"n8n-staging"},
+            {"name":"X-Codestra-Tenant","value":"={{$json.tenant_id}}"},
+            {"name":"X-Codestra-Workflow","value":"={{$json.workflow_code}}"},
+            {"name":"X-Codestra-Execution","value":"={{$json.execution_id}}"},
+            {"name":"X-Codestra-Correlation-ID","value":"={{$json.correlation_id}}"},
+            {"name":"X-Codestra-Timestamp","value":"={{$json.timestamp}}"},
+            {"name":"X-Codestra-Nonce","value":"={{$json.nonce}}"},
+            {"name":"X-Codestra-Body-SHA256","value":"=sha256:{{$json.body_hash}}"},
+            {"name":"X-Codestra-Signature","value":"=sha256={{$json.signature}}"}
+          ]},
+          "sendBody": true,
+          "contentType": "raw",
+          "rawContentType": "application/json",
+          "body": "={{$json.body_raw}}",
+          "options": {"timeout":10000}
+        }
+      }
+    ],
+    "connections": {
+      "social-ingress":{"main":[[{
+        "node":"Durable Middleware Authorization","type":"main","index":0}]]},
+      "Durable Middleware Authorization":{"main":[[{"node":"Provider Neutral Route","type":"main","index":0}]]},
+      "Provider Neutral Route":{"main":[[{"node":"Execute Provider Neutral Handler","type":"main","index":0}]]},
+      "Execute Provider Neutral Handler":{"main":[[{"node":"Build Strict Result","type":"main","index":0}]]},
+      "Build Strict Result":{"main":[[{"node":"Hash Result Body","type":"main","index":0}]]},
+      "Hash Result Body":{"main":[[{"node":"Build Callback Signature","type":"main","index":0}]]},
+      "Build Callback Signature":{"main":[[{"node":"Sign Callback","type":"main","index":0}]]},
+      "Sign Callback":{"main":[[{"node":"Authenticated Result Callback","type":"main","index":0}]]}
+    },
+    "settings": {"executionOrder":"v1"}
+  }
+]

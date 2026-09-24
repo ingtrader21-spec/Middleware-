@@ -1,0 +1,49 @@
+services:
+  odoo-internal-proxy:
+    image: codestra/caddy:2.11.4-hardened-20260723
+    container_name: codestra-odoo-internal-proxy
+    restart: unless-stopped
+    init: true
+    environment:
+      KLYROW_MAIL_RPC_CLIENT_IP: ${KLYROW_MAIL_RPC_CLIENT_IP:-127.0.0.1}
+    pids_limit: 256
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    expose:
+      - "443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - /etc/codestra/pki/internal-integration/odoo.crt:/run/secrets/odoo_internal_tls_cert:ro
+      - /etc/codestra/pki/internal-integration/odoo.key:/run/secrets/odoo_internal_tls_key:ro
+      - /etc/codestra/pki/internal-integration/ca.crt:/run/secrets/internal_integration_ca:ro
+    tmpfs:
+      - /config:mode=0700
+      - /data:mode=0700
+      - /tmp:mode=0700
+    networks:
+      codestra-internal-integration:
+        aliases:
+          - odoo.internal.codestra.agency
+      codestra_backend: {}
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          SSL_CERT_FILE=/run/secrets/internal_integration_ca
+          wget -q --spider
+          https://odoo.internal.codestra.agency/web/health
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  codestra-internal-integration:
+    external: true
+    name: codestra-internal-integration
+  codestra_backend:
+    external: true
+    name: codestra_backend

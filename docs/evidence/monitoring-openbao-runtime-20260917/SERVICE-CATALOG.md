@@ -1,0 +1,11 @@
+# Service catalog (2026-09-17)
+
+Middleware `platform_services` (Alembic `0067_service_catalog_monitoring_state`, `migration_history_sha256 = sha256:b476993b0b56216765d6858417a78ccae47aef75f6855154c839b64d01482d86`, computed over LF index blobs).
+
+Fields per service: `service_id`, `owner`, `repository`, `environment`, `runtime_host` (private name; **no invented public URLs** — public exposure is only what the edge contract already routes), `metrics_endpoint`, `health_endpoint`, `logs_source`, `traces_source`, `secret_references[]`, `grafana_dashboard_ids[]`, `alert_rules_ref`, desired `{git_sha, image_digest, config_digest, migration_head}`, observed `{git_sha, image_digest, config_digest, migration_head, last_observed_at, last_observation_source}`, `monitoring_state`, `monitoring_state_reason`, certification evidence, audit table `platform_service_monitoring_audit`.
+
+Monitoring states (CHECK-constrained): `not_monitored`, `configured`, `partially_monitored`, `monitored`, `degraded`, `unknown`, `certification_pending`, `certified`, `decommissioned`. `derive_state` never yields `certified` from Git alone: certification requires `POST …/monitoring-state/certification` by `platform_admin|platform_reviewer` with runtime evidence (health endpoints, metrics scraped, logs/traces observed, alerts routed, dashboards rendered, no secret leak), and the observed state must be fresh (≤ 15 min) and matching.
+
+Runtime feed (this stage): the collector posts observed `git_sha`/`image_digest`/`migration_head` from `/version` to `POST /platform/v1/services/{id}/monitoring-state/observations` (scope `platform.runtime.observe`, `X-Correlation-ID` required, 409 on an older observation). Values are shape-checked (40-hex, `sha256:` + 64-hex, bounded identifier) before posting.
+
+Catalog rows for the monitoring components themselves (Prometheus, Alertmanager, Grafana, Loki, Tempo, Alloy, OTel gateway, OpenBao, node/cAdvisor/redis/postgres/blackbox exporters, Superset) are described by `config/monitoring/collector.staging.v1.json.example` (`service_components`, expected private endpoints, authentication method, contract SHA placeholders). Runtime population of these rows: **not performed** (staging blocked).

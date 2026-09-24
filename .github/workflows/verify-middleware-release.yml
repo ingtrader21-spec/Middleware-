@@ -1,0 +1,145 @@
+name: Verify middleware release (read-only)
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_repository:
+        description: Exact allowlisted middleware image repository
+        required: true
+        type: string
+      image_digest:
+        description: Exact sha256 image digest
+        required: true
+        type: string
+      source_commit:
+        description: Exact reviewed source commit on main
+        required: true
+        type: string
+      release_tag:
+        description: Immutable image tag published by release.yml (sha-<source>-run-<id>-attempt-<n>)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: none
+  packages: read
+
+concurrency:
+  group: verify-middleware-${{ inputs.image_digest }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: security-verification
+    timeout-minutes: 15
+    env:
+      IMAGE_REPOSITORY: ${{ inputs.image_repository }}
+      IMAGE_DIGEST: ${{ inputs.image_digest }}
+      SOURCE_COMMIT: ${{ inputs.source_commit }}
+      RELEASE_TAG: ${{ inputs.release_tag }}
+      COSIGN_VERSION: v3.1.2
+      COSIGN_SHA256: f7622ed3cf22e55e1ae6377c080979ff77a22da9981c11df222a2e444991e7cf
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Check out protected main independently
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate verification inputs and source ancestry
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${GITHUB_REPOSITORY}" = "ingtrader21-spec/Middleware-"
+          test "${IMAGE_REPOSITORY}" = \
+            "ghcr.io/ingtrader21-spec/codestra-middleware"
+          [[ "${IMAGE_DIGEST}" =~ ^sha256:[0-9a-f]{64}$ ]]
+          [[ "${SOURCE_COMMIT}" =~ ^[0-9a-f]{40}$ ]]
+          [[ "${RELEASE_TAG}" =~ ^sha-[0-9a-f]{40}-run-[1-9][0-9]*-attempt-[1-9][0-9]*$ ]]
+          test "${RELEASE_TAG:4:40}" = "${SOURCE_COMMIT}"
+          git cat-file -e "${SOURCE_COMMIT}^{commit}"
+          git merge-base --is-ancestor "${SOURCE_COMMIT}" origin/main
+
+      - name: Verify immutable registry tag binding
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "${GH_TOKEN}" | docker login ghcr.io \
+            --username "${GITHUB_ACTOR}" --password-stdin
+          digest="$(
+            docker buildx imagetools inspect \
+              "${IMAGE_REPOSITORY}:${RELEASE_TAG}" \
+              --format '{{json .Manifest.Digest}}' | tr -d '"'
+          )"
+          test "${digest}" = "${IMAGE_DIGEST}"
+
+      - name: Install checksum-pinned Cosign independently
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="https://github.com/sigstore/cosign/releases/download/${COSIGN_VERSION}/cosign-linux-amd64"
+          curl --fail --location --proto '=https' --tlsv1.2 \
+            --output "${RUNNER_TEMP}/cosign" "${url}"
+          echo "${COSIGN_SHA256}  ${RUNNER_TEMP}/cosign" | sha256sum -c -
+          install -m 0755 "${RUNNER_TEMP}/cosign" "${RUNNER_TEMP}/bin-cosign"
+          "${RUNNER_TEMP}/bin-cosign" version > cosign-version.txt
+
+      - name: Independently verify signature and all attestations
+        shell: bash
+        env:
+          EXPECTED_ISSUER: https://token.actions.githubusercontent.com
+          # The single forward publisher is the only identity that may sign a
+          # production Middleware digest; this verifier never signs anything.
+          EXPECTED_SIGNER: https://github.com/ingtrader21-spec/Middleware-/.github/workflows/release.yml@refs/heads/main
+        run: |
+          set -euo pipefail
+          subject="${IMAGE_REPOSITORY}@${IMAGE_DIGEST}"
+          cosign="${RUNNER_TEMP}/bin-cosign"
+          "${cosign}" verify \
+            --certificate-identity "${EXPECTED_SIGNER}" \
+            --certificate-oidc-issuer "${EXPECTED_ISSUER}" \
+            "${subject}" | tee image-verification.txt
+          for type in spdxjson slsaprovenance1
+          do
+            safe_type="$(printf '%s' "${type}" | tr '/:' '__')"
+            "${cosign}" verify-attestation \
+              --certificate-identity "${EXPECTED_SIGNER}" \
+              --certificate-oidc-issuer "${EXPECTED_ISSUER}" \
+              --type "${type}" \
+              "${subject}" | tee "attestation-${safe_type}.txt"
+            test -s "attestation-${safe_type}.txt"
+          done
+
+      - name: Seal independent verification evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq "${IMAGE_DIGEST}" image-verification.txt
+          sha256sum image-verification.txt attestation-*.txt \
+            cosign-version.txt > verification-SHA256SUMS
+          {
+            printf 'image=%s@%s\n' "${IMAGE_REPOSITORY}" "${IMAGE_DIGEST}"
+            printf 'source_commit=%s\n' "${SOURCE_COMMIT}"
+            printf 'release_tag=%s\n' "${RELEASE_TAG}"
+            printf 'verification_run=%s\n' "${GITHUB_RUN_ID}"
+          } > verification-summary.txt
+
+      - name: Upload independent verification evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: middleware-verification-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          overwrite: false
+          retention-days: 90
+          path: |
+            image-verification.txt
+            attestation-*.txt
+            cosign-version.txt
+            verification-summary.txt
+            verification-SHA256SUMS

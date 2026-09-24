@@ -1,0 +1,12 @@
+{
+  "schema_version": "1.0",
+  "default_policy": "DENY",
+  "capabilities": {
+    "CONNECTOR_INSTALL": false,
+    "CONNECTOR_UPGRADE": false,
+    "CONNECTOR_DISABLE": false,
+    "WEBHOOK_SECRET_ROTATION": false,
+    "WEBHOOK_REPLAY_REQUEST": false,
+    "PROVISIONING_WRITE": false
+  }
+}

@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"; OUT="$ROOT/evidence/release"; KEY_DIR="/etc/codestra/webrtc-release-signing"
+mkdir -p "$OUT" "$KEY_DIR"; chmod 0700 "$KEY_DIR"
+SOURCE_SHA="$(git -C "$ROOT" rev-parse HEAD)"; TREE_SHA="$(git -C "$ROOT" status --porcelain=v1 | sha256sum | cut -d' ' -f1)"
+tar --exclude=.git --exclude=node_modules --exclude=dist --exclude=test-results --exclude=evidence -C "$ROOT" -czf "$OUT/webrtc-release.tar.gz" .
+ARTIFACT_SHA="$(sha256sum "$OUT/webrtc-release.tar.gz" | cut -d' ' -f1)"
+syft "$OUT/webrtc-release.tar.gz" -o cyclonedx-json="$OUT/webrtc-release.cdx.json" >/dev/null
+SBOM_SHA="$(sha256sum "$OUT/webrtc-release.cdx.json" | cut -d' ' -f1)"
+if [[ ! -f "$KEY_DIR/signing.key" ]]; then openssl genpkey -algorithm Ed25519 -out "$KEY_DIR/signing.key" >/dev/null 2>&1; chmod 0600 "$KEY_DIR/signing.key"; fi
+openssl pkey -in "$KEY_DIR/signing.key" -pubout -out "$OUT/webrtc-release-signing.pub" >/dev/null 2>&1
+openssl pkeyutl -sign -rawin -inkey "$KEY_DIR/signing.key" -in "$OUT/webrtc-release.tar.gz" -out "$OUT/webrtc-release.sig"
+openssl pkeyutl -verify -rawin -pubin -inkey "$OUT/webrtc-release-signing.pub" -sigfile "$OUT/webrtc-release.sig" -in "$OUT/webrtc-release.tar.gz" >/dev/null
+cat > "$OUT/webrtc-provenance.json" <<EOF
+{"repository":"$(git -C "$ROOT" config --get remote.origin.url || echo local)","protected_source_sha":"$SOURCE_SHA","working_tree_state_sha256":"$TREE_SHA","workflow_identity":"scripts/build-webrtc-release-candidate","build_environment":"$(uname -srm)","artifact_sha256":"$ARTIFACT_SHA","sbom_sha256":"$SBOM_SHA","timestamp":"$(date -u +%FT%TZ)","production_cutover":false}
+EOF
+cat > "$ROOT/evidence/webrtc-release-manifest.json" <<EOF
+{"protected_source_sha":"$SOURCE_SHA","working_tree_state_sha256":"$TREE_SHA","artifact_file":"$OUT/webrtc-release.tar.gz","artifact_sha256":"$ARTIFACT_SHA","sbom_file":"$OUT/webrtc-release.cdx.json","sbom_sha256":"$SBOM_SHA","signature_file":"$OUT/webrtc-release.sig","public_key_file":"$OUT/webrtc-release-signing.pub","provenance_file":"$OUT/webrtc-provenance.json","signature_verified":true,"inactive_candidate_only":true,"deployment_authorized":false}
+EOF
+sha256sum "$OUT/webrtc-release.tar.gz" > "$ROOT/evidence/webrtc-release-SHA256SUMS"
+echo RELEASE_CANDIDATE_BUILD=PASS; echo PRODUCTION_CUTOVER=NOT_AUTHORIZED

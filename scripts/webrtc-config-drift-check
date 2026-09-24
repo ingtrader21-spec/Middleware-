@@ -1,0 +1,12 @@
+#!/usr/bin/env python3
+import argparse, hashlib, json, subprocess
+from pathlib import Path
+p=argparse.ArgumentParser();p.add_argument("--manifest",required=True);p.add_argument("--container",default="codestra-agent-desktop-sipjs-candidate");a=p.parse_args()
+m=json.loads(Path(a.manifest).read_text()); failures=[]
+if m["keycloak_issuer"]!="https://auth.codestra.co/realms/codestra":failures.append("issuer")
+if m["wss_host"]!="wss.codestra.agency":failures.append("wss")
+try: running=subprocess.check_output(["docker","inspect",a.container,"--format","{{.Image}}"],text=True).strip().removeprefix("sha256:")
+except subprocess.CalledProcessError:running=""
+expected=m["artifact_sha256"]
+if running and running!=expected:failures.append("artifact_digest")
+print("CONFIG_DRIFT_CHECK="+("FAIL" if failures else "PASS"));print("DRIFT_FIELDS="+(",".join(failures) or "NONE"));raise SystemExit(bool(failures))

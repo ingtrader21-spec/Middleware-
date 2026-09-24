@@ -1,0 +1,117 @@
+name: Apply portfolio production branch ruleset
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/portfolio-production-ruleset-apply.yml"
+      - "config/ai-production-branch-ruleset.v1.json"
+      - "config/portfolio-repositories.v1.json"
+      - "scripts/apply_portfolio_production_ruleset.py"
+      - "scripts/portfolio_ruleset/**"
+      - "tests/test_portfolio_production_ruleset.py"
+  issue_comment:
+    types:
+      - created
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: portfolio-production-ruleset-apply
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    if: >-
+      github.repository == 'ingtrader21-spec/Middleware-' &&
+      (
+        (
+          github.event_name == 'push' &&
+          github.ref == 'refs/heads/main' &&
+          contains(github.event.head_commit.message, 'governance: apply production branch ruleset across all repositories')
+        ) ||
+        (
+          github.event_name == 'issue_comment' &&
+          github.event.issue.number == 116 &&
+          github.event.issue.pull_request == null &&
+          github.event.comment.user.login == 'appolon1908-hue' &&
+          github.event.comment.user.id == 275410064 &&
+          github.event.comment.author_association == 'OWNER' &&
+          github.event.comment.body == '/apply-portfolio-production-ruleset v1'
+        )
+      )
+    name: Apply and verify all production-branch rulesets
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out the exact default-branch event SHA
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify immutable source identity
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        run: |
+          set -Eeuo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          test -z "$(git status --porcelain)"
+          printf 'PORTFOLIO_RULESET_SOURCE_SHA=%s\n' "$EXPECTED_SHA"
+
+      - name: Validate committed policy and inventory
+        run: |
+          set -Eeuo pipefail
+          python3 scripts/apply_portfolio_production_ruleset.py --mode validate
+          python3 -m unittest tests.test_portfolio_production_ruleset
+
+      - name: Apply and independently verify every repository
+        id: rollout
+        continue-on-error: true
+        env:
+          CODESTRA_REPOSITORY_ADMIN_TOKEN: ${{ secrets.CODESTRA_REPOSITORY_ADMIN_TOKEN }}
+        run: |
+          set -Eeuo pipefail
+          python3 scripts/apply_portfolio_production_ruleset.py \
+            --mode apply \
+            --confirm APPLY_AI_PRODUCTION_RULESET_TO_ALL_OWNER_REPOSITORIES
+
+      - name: Upload non-secret rollout evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: portfolio-production-ruleset-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/portfolio-production-ruleset/
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 6
+
+      - name: Publish evidence to the authority issue
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ROLLOUT_OUTCOME: ${{ steps.rollout.outcome }}
+        run: |
+          set -Eeuo pipefail
+          evidence='artifacts/portfolio-production-ruleset/portfolio-production-ruleset-result.md'
+          test -s "$evidence"
+          {
+            cat "$evidence"
+            printf '\n- Workflow run: `%s`\n' "$GITHUB_RUN_ID"
+            printf -- '- Workflow outcome: `%s`\n' "$ROLLOUT_OUTCOME"
+          } > /tmp/portfolio-ruleset-comment.md
+          gh issue comment 116 \
+            --repo ingtrader21-spec/Middleware- \
+            --body-file /tmp/portfolio-ruleset-comment.md
+
+      - name: Preserve fail-closed result
+        if: always()
+        env:
+          ROLLOUT_OUTCOME: ${{ steps.rollout.outcome }}
+        run: |
+          test "$ROLLOUT_OUTCOME" = success

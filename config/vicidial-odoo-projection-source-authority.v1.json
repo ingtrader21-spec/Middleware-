@@ -1,0 +1,43 @@
+{
+  "schema_version": "1.0",
+  "kind": "vicidial-odoo-projection-source-authority",
+  "dependencies": {
+    "keycloak": {
+      "repository": "appolon1908-hue/Keycloak",
+      "pull_request": 86,
+      "state_at_lock": "merged",
+      "base_ref": "refs/heads/main",
+      "source_sha": "922d039b5143f3ac738e88998036355562a8dd5d",
+      "merge_sha": "922d039b5143f3ac738e88998036355562a8dd5d",
+      "runtime_env": "KEYCLOAK_LIFECYCLE_SOURCE_SHA",
+      "merge_required_before_activation": true
+    },
+    "odoo": {
+      "repository": "appolon1908-hue/Odoo",
+      "pull_request": 78,
+      "state_at_lock": "open_candidate",
+      "base_sha": "4daa1be3be8c2475b79db6e51a8b12d66823fdff",
+      "source_sha": "9f38f87138f2914622b8ac1243c7969691ac5317",
+      "runtime_env": "ODOO_CALL_EVENT_SOURCE_SHA",
+      "merge_required_before_activation": true
+    },
+    "vicidial": {
+      "repository": "appolon1908-hue/Vicidialer-Codestra",
+      "pull_request": 17,
+      "state_at_lock": "open_candidate",
+      "base_sha": "72ab7a1edf8c76169b0e03aadbea742e4cb2196e",
+      "source_sha": "8007f9550a933c1cb17f21da6028dcfc41b47b0a",
+      "runtime_env": "VICIDIAL_EVENT_SOURCE_SHA",
+      "merge_required_before_activation": true
+    }
+  },
+  "activation_boundary": {
+    "source_merge_authorized_by_this_file": false,
+    "runtime_activation_authorized_by_this_file": false,
+    "production_dialing_authorized_by_this_file": false,
+    "external_effects_authorized_by_this_file": false,
+    "requires_exact_runtime_source_readback": true,
+    "requires_protected_dependency_merges": true,
+    "calls_placed_expected": 0
+  }
+}

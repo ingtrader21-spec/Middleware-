@@ -1,0 +1,172 @@
+name: Sign gateway schema1 correlation safety RC1
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: sign-gateway-schema1-correlation-safety-rc1
+  cancel-in-progress: false
+
+jobs:
+  sign:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: security-release
+    timeout-minutes: 15
+    steps:
+      - name: Check out immutable workflow revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify reviewed source and release inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${GITHUB_REPOSITORY}" = "appolon1908-hue/Middleware-"
+          test "${GITHUB_REF}" = "refs/heads/main"
+          test "$(git rev-parse --is-shallow-repository)" = "false"
+          sha256sum -c security/vex/gateway-schema1-correlation-safety-rc1/openvex.json.sha256
+          sha256sum -c security/vex/gateway-schema1-correlation-safety-rc1/candidate-provenance.json.sha256
+          test "$(jq -r .gateway_source_commit security/vex/gateway-schema1-correlation-safety-rc1/candidate-provenance.json)" = \
+            "b9ffcedca23628c16d8b046e8ec555d13186cf59"
+          test "$(jq -r .gateway_image security/vex/gateway-schema1-correlation-safety-rc1/candidate-provenance.json)" = \
+            "docker.io/codestra1980/telephony-event-gateway@sha256:dc91007162f64410eb97b163502bad013a2adb670a28d0655572326da18f42fb"
+          test "$(jq -r .registry_index_digest security/vex/gateway-schema1-correlation-safety-rc1/candidate-provenance.json)" = \
+            "sha256:dc91007162f64410eb97b163502bad013a2adb670a28d0655572326da18f42fb"
+          test "$(jq -r .linux_amd64_manifest_digest security/vex/gateway-schema1-correlation-safety-rc1/candidate-provenance.json)" = \
+            "sha256:76f349b4edb65aac257e460c0cdd03d249dff3fec48466104e64d5b7fd259288"
+          jq -e '
+            .artifacts == {
+              "release_inputs_manifest_sha256":"9ced07744b092b4309512313daa0c33db15dc86d3c75d7640d0d243bb9a5422a",
+              "sbom_spdx_sha256":"c05557240589c8592eb4dba5872b86c12b9dd86c55ebd79e81fbecefbb1cd66f",
+              "sbom_cyclonedx_sha256":"26487470e10d3687152fbe88c411811ce20b8accf9f1fd082a7d5b37b8a84632",
+              "grype_sha256":"8865efdb53472a9a2beed2bfe4b7b547efbe304fbc7f8c44874495f48e193756",
+              "trivy_sha256":"7e61c55c9b083fc0680b474d13cc28e2810123c6cf38ce06a11fe8189a94f34b"
+            } and
+            .scanner_summary.trivy_high == 0 and
+            .scanner_summary.trivy_critical == 0 and
+            .scanner_summary.grype_high == 3 and
+            .scanner_summary.grype_critical == 0 and
+            (.scanner_summary.grype_high_ids | sort) ==
+              ["CVE-2026-11940","CVE-2026-11972","CVE-2026-15308"] and
+            .excluded_rejected_image ==
+              "docker.io/codestra1980/telephony-event-gateway@sha256:09b7fef5207d25bfd336cd6ba239ab433ac00f5fadac6f1b79077297662f5c19"
+          ' security/vex/gateway-schema1-correlation-safety-rc1/candidate-provenance.json
+          grep -Fx 'Decision: APPROVED_FIXED_BACKPORT' \
+            security/vex/gateway-schema1-correlation-safety-rc1/security-owner-decision.md
+          ! grep -Eiq 'PENDING|PLACEHOLDER|TODO' \
+            security/vex/gateway-schema1-correlation-safety-rc1/security-owner-decision.md
+          jq -e '
+            (.statements | length) == 3 and
+            ([.statements[].vulnerability.name] | sort) ==
+              ["CVE-2026-11940","CVE-2026-11972","CVE-2026-15308"] and
+            all(.statements[];
+              .status == "fixed" and
+              .products[0]["@id"] ==
+                "pkg:oci/telephony-event-gateway@sha256%3Adc91007162f64410eb97b163502bad013a2adb670a28d0655572326da18f42fb?repository_url=docker.io%2Fcodestra1980%2Ftelephony-event-gateway")
+          ' security/vex/gateway-schema1-correlation-safety-rc1/openvex.json
+
+      - name: Verify exact registry identity
+        shell: bash
+        env:
+          IMAGE: docker.io/codestra1980/telephony-event-gateway@sha256:dc91007162f64410eb97b163502bad013a2adb670a28d0655572326da18f42fb
+        run: |
+          set -euo pipefail
+          docker buildx imagetools inspect "${IMAGE}" | tee registry-image-inspect.txt
+          grep -Fx 'Digest:    sha256:dc91007162f64410eb97b163502bad013a2adb670a28d0655572326da18f42fb' \
+            registry-image-inspect.txt
+          docker buildx imagetools inspect --raw "${IMAGE}" > registry-image-index.json
+          test "$(jq -r '[.manifests[] | select(.platform.os=="linux" and .platform.architecture=="amd64") | .digest] | length' registry-image-index.json)" = 1
+          test "$(jq -r '.manifests[] | select(.platform.os=="linux" and .platform.architecture=="amd64") | .digest' registry-image-index.json)" = \
+            "sha256:76f349b4edb65aac257e460c0cdd03d249dff3fec48466104e64d5b7fd259288"
+
+      - name: Install checksum-pinned cosign
+        shell: bash
+        env:
+          COSIGN_VERSION: v3.1.2
+          COSIGN_SHA256: f7622ed3cf22e55e1ae6377c080979ff77a22da9981c11df222a2e444991e7cf
+        run: |
+          set -euo pipefail
+          url="https://github.com/sigstore/cosign/releases/download/${COSIGN_VERSION}/cosign-linux-amd64"
+          curl --fail --location --proto '=https' --tlsv1.2 --output "${RUNNER_TEMP}/cosign" "${url}"
+          echo "${COSIGN_SHA256}  ${RUNNER_TEMP}/cosign" | sha256sum -c -
+          install -m 0755 "${RUNNER_TEMP}/cosign" "${RUNNER_TEMP}/bin-cosign"
+          "${RUNNER_TEMP}/bin-cosign" version | tee cosign-version.txt
+
+      - name: Generate and keylessly sign immutable image identity
+        shell: bash
+        env:
+          IMAGE: docker.io/codestra1980/telephony-event-gateway@sha256:dc91007162f64410eb97b163502bad013a2adb670a28d0655572326da18f42fb
+          COSIGN_EXPERIMENTAL: "1"
+        run: |
+          set -euo pipefail
+          "${RUNNER_TEMP}/bin-cosign" generate "${IMAGE}" > gateway-image-payload.json
+          test "$(jq -r '.critical.image["docker-manifest-digest"]' gateway-image-payload.json)" = \
+            "sha256:dc91007162f64410eb97b163502bad013a2adb670a28d0655572326da18f42fb"
+          test "$(jq -r '.critical.identity["docker-reference"]' gateway-image-payload.json)" = \
+            "index.docker.io/codestra1980/telephony-event-gateway"
+          "${RUNNER_TEMP}/bin-cosign" sign-blob --yes --bundle gateway-image.sigstore.json gateway-image-payload.json
+
+      - name: Keylessly sign exact OpenVEX
+        shell: bash
+        env:
+          COSIGN_EXPERIMENTAL: "1"
+        run: |
+          set -euo pipefail
+          cp security/vex/gateway-schema1-correlation-safety-rc1/openvex.json gateway-openvex.json
+          "${RUNNER_TEMP}/bin-cosign" sign-blob --yes --bundle gateway-openvex.sigstore.json gateway-openvex.json
+
+      - name: Independently verify identity issuer and transparency bundles
+        shell: bash
+        env:
+          EXPECTED_IDENTITY: https://github.com/appolon1908-hue/Middleware-/.github/workflows/sign-gateway-schema1-correlation-safety-rc1.yml@refs/heads/main
+          EXPECTED_ISSUER: https://token.actions.githubusercontent.com
+        run: |
+          set -euo pipefail
+          "${RUNNER_TEMP}/bin-cosign" verify-blob \
+            --bundle gateway-image.sigstore.json \
+            --certificate-identity "${EXPECTED_IDENTITY}" \
+            --certificate-oidc-issuer "${EXPECTED_ISSUER}" \
+            gateway-image-payload.json | tee gateway-image.verification.txt
+          "${RUNNER_TEMP}/bin-cosign" verify-blob \
+            --bundle gateway-openvex.sigstore.json \
+            --certificate-identity "${EXPECTED_IDENTITY}" \
+            --certificate-oidc-issuer "${EXPECTED_ISSUER}" \
+            gateway-openvex.json | tee gateway-openvex.verification.txt
+          sha256sum \
+            gateway-image-payload.json \
+            gateway-image.sigstore.json \
+            gateway-image.verification.txt \
+            gateway-openvex.json \
+            gateway-openvex.sigstore.json \
+            gateway-openvex.verification.txt \
+            registry-image-inspect.txt \
+            registry-image-index.json \
+            cosign-version.txt \
+            > signed-artifacts.sha256
+
+      - name: Upload immutable run-scoped evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: gateway-schema1-correlation-safety-rc1-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          overwrite: false
+          retention-days: 90
+          path: |
+            gateway-image-payload.json
+            gateway-image.sigstore.json
+            gateway-image.verification.txt
+            gateway-openvex.json
+            gateway-openvex.sigstore.json
+            gateway-openvex.verification.txt
+            registry-image-inspect.txt
+            registry-image-index.json
+            signed-artifacts.sha256
+            cosign-version.txt

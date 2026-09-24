@@ -1,0 +1,89 @@
+{
+  "schema_version": "1.1",
+  "contract_id": "codestra.platform-control-plane",
+  "status": "PREPARED_DISABLED",
+  "decision": "middleware_adopts_automation_v2",
+  "repositories": {
+    "orchestration": "appolon1908-hue/N8N",
+    "write_authority": "ingtrader21-spec/Middleware-",
+    "business_authority": "appolon1908-hue/Odoo",
+    "gateway_authority": "appolon1908-hue/Kong"
+  },
+  "flow": [
+    "n8n -> kong -> middleware-v2",
+    "middleware -> temporal -> odoo-command",
+    "odoo-command-status -> middleware-reconciliation",
+    "middleware-command-status -> kong -> n8n"
+  ],
+  "n8n_to_middleware": {
+    "gateway_host": "api.codestra.co",
+    "canonical_submit_path": "/v2/automation/commands",
+    "canonical_read_path": "/v2/automation/commands/{command_id}",
+    "client_id": "n8n-crm-automation",
+    "audience": "middleware-api",
+    "submit_scope": "automation.command.crm",
+    "read_scope": "automation.command.read",
+    "required_headers": [
+      "Authorization",
+      "X-Tenant-ID",
+      "X-Request-ID",
+      "X-Correlation-ID",
+      "Idempotency-Key"
+    ],
+    "tenant_authority": "verified_token_and_durable_job",
+    "header_body_agreement_required": true,
+    "direct_provider_access": false,
+    "compatibility_aliases": [
+      {
+        "path": "/v1/integrations/n8n/commands",
+        "status": "deprecated",
+        "sunset": "2027-06-30T23:59:59Z",
+        "successor": "/v2/automation/commands"
+      },
+      {
+        "path": "/v1/integrations/n8n/operations/{command_id}",
+        "status": "deprecated",
+        "sunset": "2027-06-30T23:59:59Z",
+        "successor": "/v2/automation/commands/{command_id}"
+      }
+    ]
+  },
+  "middleware_to_odoo": {
+    "target": "odoo-19",
+    "capability": "ODOO_WRITE",
+    "bridge_module": "codestra_middleware_bridge",
+    "base_url_env": "ODOO_INTEGRATION_BASE_URL",
+    "hmac_secret_env": "ODOO_INBOUND_HMAC_SECRET",
+    "canonical_command_type": "crm.lead.upsert",
+    "canonical_command_version": "1.0",
+    "canonical_command_path": "/codestra/middleware/v1/commands/crm.lead.upsert",
+    "canonical_status_path": "/codestra/middleware/v1/commands/{command_id}/status",
+    "hmac_algorithm": "hmac-sha256",
+    "hmac_canonical_fields_in_order": [
+      "X-Codestra-Timestamp",
+      "X-Codestra-Event-ID",
+      "HTTP_METHOD_UPPERCASE",
+      "REQUEST_PATH",
+      "X-Tenant-ID",
+      "X-Correlation-ID",
+      "Idempotency-Key",
+      "RAW_REQUEST_BODY"
+    ],
+    "readback_required": true,
+    "unknown_outcome_policy": "query_command_status_before_any_retry",
+    "blind_resubmission_allowed": false,
+    "compatibility_aliases": [
+      "/codestra/middleware/v1/crm/leads",
+      "/codestra/middleware/v1/crm/leads/{external_id}",
+      "/codestra/middleware/v1/crm/activities"
+    ]
+  },
+  "safety": {
+    "workflows_active": false,
+    "ODOO_WRITE": false,
+    "ENABLE_EXTERNAL_DELIVERY": false,
+    "LIVE_WRITE": false,
+    "secrets_in_git": false,
+    "deployment_permitted_by_contract": false
+  }
+}

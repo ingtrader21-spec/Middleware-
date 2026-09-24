@@ -1,0 +1,25 @@
+{
+  "vicidial": [
+    {"operation":"transcription","call_id":"SYN-CALL-001","input":{"transcript":"Synthetic example.invalid call text"}},
+    {"operation":"summary","call_id":"SYN-CALL-002","input":{"text":"Synthetic example.invalid call text"}},
+    {"operation":"qa","call_id":"SYN-CALL-003","input":{"text":"Synthetic example.invalid call text"}},
+    {"operation":"disposition","call_id":"SYN-CALL-004","input":{"text":"Synthetic example.invalid call text"}},
+    {"operation":"callback","call_id":"SYN-CALL-005","input":{"text":"Synthetic example.invalid call text"}},
+    {"operation":"coaching","call_id":"SYN-CALL-006","input":{"text":"Synthetic example.invalid call text"}}
+  ],
+  "odoo": [
+    {"operation":"lead_score","record_ref":"SYN-LEAD-001"},
+    {"operation":"lead_summary","record_ref":"SYN-LEAD-002"},
+    {"operation":"email_draft","record_ref":"SYN-LEAD-003"},
+    {"operation":"activity_proposal","record_ref":"SYN-LEAD-004"},
+    {"operation":"follow_up_proposal","record_ref":"SYN-LEAD-005"},
+    {"operation":"automation_recommendation","record_ref":"SYN-LEAD-006"},
+    {"operation":"call_note_draft","record_ref":"SYN-LEAD-007"}
+  ],
+  "invariants": {
+    "approval_required": true,
+    "dispatch_enabled": false,
+    "real_odoo_writes": 0,
+    "real_vicidial_commands": 0
+  }
+}

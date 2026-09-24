@@ -1,0 +1,14 @@
+EXECUTION_SERVER=Codestra Middleware Server A
+HOSTNAME=middleware
+PUBLIC_IP=65.109.65.169
+PRIVATE_IP=10.40.0.1
+REPOSITORY=Codestra-SRL/codestra-middleware
+DEFAULT_BRANCH=main
+CURRENT_BRANCH=feature/sales-lead-foundation
+CURRENT_HEAD=289047c9a2a2e0585df2faca37270ae4c0a4a9bc
+WORKTREE_STATUS=clean at branch creation
+DOCKER_AVAILABLE=Docker 29.6.2
+DATABASE_MIGRATION_HEAD=0033_tts_job_runtime
+TEST_COMMANDS=make test; pytest -q tests
+LINT_COMMANDS=make format-check; make lint
+TYPECHECK_COMMANDS=make typecheck

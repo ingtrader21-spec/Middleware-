@@ -1,0 +1,129 @@
+name: codestra-middleware-production-canary
+
+x-middleware-canary-runtime: &middleware-canary-runtime
+  image: ${MIDDLEWARE_IMAGE_REFERENCE:?exact signed image reference required}
+  env_file:
+    - ${MIDDLEWARE_RUNTIME_ENV_FILE:?root-owned production runtime environment required}
+  environment:
+    APP_ENV: production
+    RUNTIME_PROFILE_ID: codestra-middleware-production-compose-v1
+    APP_VERSION: ${MIDDLEWARE_APP_VERSION:?immutable application version required}
+    APP_SOURCE_SHA: ${MIDDLEWARE_SOURCE_SHA:?exact protected source SHA required}
+    IMAGE_DIGEST: ${MIDDLEWARE_IMAGE_DIGEST:?exact signed image digest required}
+    SCHEMA_HEAD: 0067_service_catalog_monitoring_state
+    BUILD_TIME: ${MIDDLEWARE_BUILD_TIME:?signed build timestamp required}
+    RELEASE_ID: ${MIDDLEWARE_RELEASE_ID:?signed release identifier required}
+    CONFIGURATION_CHECKSUM: ${MIDDLEWARE_CONFIGURATION_CHECKSUM:?sanitized configuration checksum required}
+    ALLOW_IN_MEMORY_STORAGE: "false"
+    NATS_DISPATCH_MODE: disabled
+    TEMPORAL_WORKER_MODE: disabled
+    OUTBOX_DISPATCH_ENABLED: "false"
+    SEND_EVENTS: "false"
+    ENABLE_EXTERNAL_DELIVERY: "false"
+    LIVE_WRITE: "false"
+    LIVE_WRITES: "false"
+    ODOO_WRITE: "false"
+    KLYROW_EVENT_INGRESS_ENABLED: "false"
+    KLYROW_ODOO_PROJECTION_ENABLED: "false"
+    FORM_ODOO_DELIVERY_ENABLED: "false"
+    CRAWLER_ODOO_DELIVERY_ENABLED: "false"
+    SCRAPPER_ODOO_DELIVERY_ENABLED: "false"
+    CALLBACK_DISPATCH: "false"
+    N8N_DELIVERY_ENABLED: "false"
+    VICIDIAL_WRITES_ENABLED: "false"
+    EXTERNAL_DIAL_ENABLED: "false"
+    PRODUCTION_CALLBACKS_ENABLED: "false"
+    N8N_PRODUCTION_WORKFLOWS_ENABLED: "false"
+    PRODUCTION_DIALING: DISABLED
+    SMS_DELIVERY_ENABLED: "false"
+    EMAIL_DELIVERY_ENABLED: "false"
+    SOCIAL_DELIVERY_ENABLED: "false"
+    CRAWLER_EXECUTION_ENABLED: "false"
+    SCRAPPER_EXECUTION_ENABLED: "false"
+    CRAWLER_EXTERNAL_CONTACT_ENABLED: "false"
+    SCRAPPER_EXTERNAL_CONTACT_ENABLED: "false"
+    LIVE_SMS_DELIVERY: "false"
+    LIVE_EMAIL_DELIVERY: "false"
+    UNRESTRICTED_CRAWLING: "false"
+    LIVE_ADVERTISING_ENABLED: "false"
+    EXTERNAL_DELIVERY_ENABLED: "false"
+    SOCIAL_PUBLISHING_ENABLED: "false"
+    EXTERNAL_MODEL_CALLS_ENABLED: "false"
+    N8N_EXTERNAL_PROVIDER_WRITES: "false"
+  user: "65532:65532"
+  init: true
+  read_only: true
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+  pids_limit: 256
+  mem_limit: 768m
+  cpus: 1.5
+  tmpfs:
+    - /tmp:rw,noexec,nosuid,nodev,size=64m
+  networks:
+    - middleware_runtime
+  pull_policy: never
+  stop_grace_period: 30s
+  logging:
+    driver: json-file
+    options:
+      max-size: 10m
+      max-file: "5"
+
+services:
+  middleware-migrate-canary:
+    <<: *middleware-canary-runtime
+    command:
+      - /app/scripts/migrate_runtime.py
+    restart: "no"
+    labels:
+      com.codestra.service: middleware-migrate-canary
+      com.codestra.environment: production
+      com.codestra.deployment.mode: read-only-canary
+      com.codestra.source.repository: ingtrader21-spec/Middleware-
+      com.codestra.source.sha: ${MIDDLEWARE_SOURCE_SHA:?exact protected source SHA required}
+      com.codestra.image.digest: ${MIDDLEWARE_IMAGE_DIGEST:?exact signed image digest required}
+
+  middleware-api-canary:
+    <<: *middleware-canary-runtime
+    # The canonical deployed process (app.entrypoints.integration_api on
+    # 8095, the image's /usr/local/bin/python3.14), read-only canary mode.
+    command:
+      - -m
+      - uvicorn
+      - app.entrypoints.integration_api:app
+      - --host=0.0.0.0
+      - --port=8095
+      - --workers=2
+      - --proxy-headers
+      - --forwarded-allow-ips=${MIDDLEWARE_FORWARDED_ALLOW_IPS:-127.0.0.1}
+    restart: unless-stopped
+    expose:
+      - "8095"
+    healthcheck:
+      test:
+        - CMD
+        - /usr/local/bin/python3.14
+        - -c
+        - >-
+          import urllib.request;
+          urllib.request.urlopen('http://127.0.0.1:8095/health', timeout=3).read()
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 25s
+    labels:
+      com.codestra.service: middleware-api-canary
+      com.codestra.environment: production
+      com.codestra.deployment.mode: read-only-canary
+      com.codestra.gateway.exposure: none
+      com.codestra.source.repository: ingtrader21-spec/Middleware-
+      com.codestra.source.sha: ${MIDDLEWARE_SOURCE_SHA:?exact protected source SHA required}
+      com.codestra.image.digest: ${MIDDLEWARE_IMAGE_DIGEST:?exact signed image digest required}
+
+networks:
+  middleware_runtime:
+    external: true
+    name: ${MIDDLEWARE_RUNTIME_NETWORK:?confirmed shared runtime network required}

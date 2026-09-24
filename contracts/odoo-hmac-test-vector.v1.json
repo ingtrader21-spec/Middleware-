@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "purpose": "Synthetic cross-repository contract vector; never a runtime secret or customer payload.",
+  "secret": "test-secret-not-production",
+  "timestamp": "1788105600",
+  "event_id": "00000000-0000-4000-8000-000000000001",
+  "method": "POST",
+  "path": "/codestra/middleware/v1/commands/crm.lead.upsert",
+  "tenant_id": "tenant-test",
+  "correlation_id": "corr-test",
+  "idempotency_key": "idem-test-0001",
+  "body_utf8": "{\"capability\":\"ODOO_WRITE\",\"command_id\":\"00000000-0000-4000-8000-000000000001\",\"command_type\":\"crm.lead.upsert\",\"command_version\":\"1.0\",\"correlation_id\":\"corr-test\",\"idempotency_key\":\"idem-test-0001\",\"payload\":{\"allow_external_contact\":false,\"consent\":{\"captured_at\":\"2026-08-30T16:00:00+00:00\",\"channels\":{\"email\":false,\"phone\":false,\"sms\":false},\"policy_version\":\"test-v1\",\"status\":\"unknown\"},\"initial_stage\":\"review_pending\",\"lead\":{\"campaign_code\":null,\"company\":{\"domain\":\"example.invalid\",\"industry\":\"Testing\",\"name\":\"Test Company\"},\"contact\":{\"email\":\"test@example.invalid\",\"name\":\"Test Contact\",\"phone\":\"+18095550199\",\"preferred_language\":\"en\"},\"description\":\"Synthetic contract test only.\",\"name\":\"HMAC Vector Lead\",\"tags\":[]},\"lead_source\":\"synthetic-form\",\"provenance\":{\"captured_by\":\"test-suite\",\"content_digest\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"legal_basis\":\"unknown_review_required\",\"method\":\"submitted_by_person\",\"source_reference\":\"synthetic://hmac-vector\"},\"review_required\":true,\"source_record_id\":\"source-test-1\"},\"requested_by\":\"test-service\",\"target\":\"odoo-19\",\"tenant_id\":\"tenant-test\"}",
+  "canonical_join": "timestamp\\nevent_id\\nmethod\\npath\\ntenant_id\\ncorrelation_id\\nidempotency_key\\nbody_utf8",
+  "expected_hmac_sha256_hex": "051789fb081157d391769f9f20e0a07cbbc917fe9855dfa8832514e5563a69ff"
+}

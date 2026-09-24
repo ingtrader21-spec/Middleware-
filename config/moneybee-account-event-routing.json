@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 2,
+  "eventType": "codestra.moneybee.account.provisioned",
+  "eventSchemaVersion": 1,
+  "source": {
+    "system": "moneybee-backend",
+    "repository": "appolon1908-hue/Moneybee-Backend",
+    "transport": "middleware-api",
+    "identityContract": "config/moneybee-backend-producer-identity.json",
+    "requiredAudience": "middleware-api",
+    "requiredScope": "moneybee.events.publish",
+    "idempotencyKey": "idempotency_key",
+    "canonicalEnvelope": "contracts/event-envelope.schema.json"
+  },
+  "authoritativeBoundaries": {
+    "humanIdentityAuthority": "keycloak",
+    "moneybeeAccountAuthority": "moneybee-backend",
+    "crossSystemMutationBoundary": "middleware",
+    "crmAuthority": "odoo",
+    "automationAuthority": "n8n"
+  },
+  "orchestrationOwnership": {
+    "baseCrmProjection": {
+      "owner": "middleware",
+      "destination": "odoo-integration",
+      "command": "crm.contact.upsert.v1",
+      "n8nMustNotDuplicate": true
+    },
+    "borrowerOnboarding": {
+      "owner": "n8n",
+      "trigger": "onboarding.started.v1",
+      "mayRequestBaseCrmProjection": false,
+      "allowedResponsibilities": [
+        "onboarding.tasks",
+        "document.followup",
+        "operations.escalation",
+        "marketing.consent.branch"
+      ]
+    }
+  },
+  "prohibitedPayloadFields": [
+    "password",
+    "password_hash",
+    "verification_code",
+    "otp",
+    "otp_hash",
+    "reset_token",
+    "reset_url",
+    "access_token",
+    "refresh_token",
+    "smtp_password",
+    "keycloak_admin_credential"
+  ],
+  "routes": [
+    {
+      "destination": "odoo-integration",
+      "command": "crm.contact.upsert.v1",
+      "requiredAudience": "odoo-integration",
+      "requiredScope": "odoo.leads.write",
+      "delivery": "transactional-outbox"
+    },
+    {
+      "destination": "n8n-automation",
+      "command": "onboarding.started.v1",
+      "requiredAudience": "n8n-automation",
+      "requiredScope": "workflow.trigger",
+      "delivery": "transactional-outbox"
+    }
+  ],
+  "marketing": {
+    "allowedOnlyWhen": "data.marketing_consent == true",
+    "securityEmailPath": "prohibited",
+    "mauticSynchronousIdentityMail": false
+  }
+}

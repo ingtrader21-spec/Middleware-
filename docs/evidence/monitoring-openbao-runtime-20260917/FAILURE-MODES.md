@@ -1,0 +1,15 @@
+# Failure-mode certification (2026-09-17)
+
+| Failure | Expected behaviour | Source proof | Runtime proof |
+| --- | --- | --- | --- |
+| OpenBao unavailable | workloads keep already-rendered leases until expiry; missing/expired credential fails startup (`missingSecretFailsStartup`); no Git/env fallback; Middleware records `last_reconciliation_status=openbao_unavailable`; collector marks component `failed`, service `failed`; alerts OpenBaoMetricsMissing/HealthProbeFailure | OpenBao authority flags; `test_sealed_openbao_is_failed_and_never_unsealed`; `test_collector_reported_failure_folds_to_failed` | not executed |
+| OpenBao sealed | probe failure + OpenBaoSealed alert; **no automatic unseal** anywhere | certifier `health-unauthenticated` stops the run; collector never issues non-GET; failure-mode test asserts no unseal call | not executed |
+| Middleware unavailable | Alertmanager retries (10 s timeout, durable queue), incidents catch up; collector fails closed without advancing sequence state; Grafana Middleware datasource unhealthy (reported by collector); TEST_SYN runner cannot start (safety read-back first) | `test_middleware_unavailable_fails_closed_without_advancing_state`, `test_middleware_server_error_fails_closed`, `test_unsafe_runtime_sends_no_synthetic_traffic` | not executed |
+| Prometheus unavailable | Middleware readiness unaffected; metrics queries 503 (no fabricated data); reconciler `unknown` never `synced`; TEST_SYN metrics step fails | `test_readiness_never_consults_telemetry_backends`, `test_backend_outage_answers_503_and_never_fabricates_data[prometheus]`, `test_no_observation_means_unknown_not_synced`, `test_stale_success_can_never_keep_a_service_synced` | not executed |
+| Loki unavailable | Alloy WAL/positions retry bounded then drop-with-metric; OTel agent file_storage queue bounded; logs queries 503; readiness unaffected | Alloy `runtime.v1.json`, Telemetry agent profile validator; `[loki]` outage test | not executed |
+| Tempo unavailable | gateway exporter queue bounded, retries; traces search 503; readiness unaffected | Telemetry collector.yaml; `[tempo]` outage test | not executed |
+| Alertmanager unavailable | Prometheus `AlertmanagerDown`/notification-failure rules (`monitoring-platform-alerts.yml`); incidents not created — reconciler shows Alertmanager `failed`/`unknown` | Prometheus rules; collector `read_alertmanager` failure path | not executed |
+| Grafana unavailable | dashboards unavailable only; no control-plane effect | collector `read_grafana` failure path | not executed |
+| Collector stops | observations age past 90 s → `unknown`; catalog observed state stale past 15 min → certification blocked | `test_stale_success_can_never_keep_a_service_synced`; `certification_blockers` tests | not executed |
+
+Runtime failure injection on staging (stopping each component and observing alerts/incidents/reconciler states) was **not performed**; the source proofs above bound the behaviour, and the runtime matrix must be executed during staging certification.

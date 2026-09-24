@@ -1,0 +1,11 @@
+{
+  "schema_version": "1.0",
+  "authority": "reviewed-git-source",
+  "alembic_version_table": "public.alembic_version",
+  "revisions": [
+    {"revision": "20260828_0001", "down_revisions": []},
+    {"revision": "20260828_0002", "down_revisions": ["20260828_0001"]},
+    {"revision": "20260828_0003", "down_revisions": ["20260828_0002"]},
+    {"revision": "20260828_0004", "down_revisions": ["20260828_0003"]}
+  ]
+}

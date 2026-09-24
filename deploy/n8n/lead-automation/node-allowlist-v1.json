@@ -1,0 +1,12 @@
+{
+  "contract_version": "1.0",
+  "approved_node_types": [
+    "n8n-nodes-base.code",
+    "n8n-nodes-base.httpRequest",
+    "n8n-nodes-base.if",
+    "n8n-nodes-base.respondToWebhook",
+    "n8n-nodes-base.wait",
+    "n8n-nodes-base.webhook"
+  ],
+  "community_nodes_allowed": false
+}

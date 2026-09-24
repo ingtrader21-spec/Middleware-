@@ -1,0 +1,18 @@
+{
+  "schema_version": "webrtc-human-approval-manifest.v1",
+  "approved_release_digest": null,
+  "approvals": {
+    "business_owner": {"name": null,"role":"Business owner","decision":null,"scope":null,"timestamp":null,"evidence_reference":null,"approved_campaign":null,"approved_destination_class":null},
+    "telephony_owner": {"name":null,"role":"Telephony owner","decision":null,"scope":null,"timestamp":null,"evidence_reference":null,"approved_campaign":null,"approved_destination_class":null},
+    "security_owner": {"name":"Ralph Appolon","github_username":"appolon1908-hue","role":"Security owner","decision":null,"scope":null,"timestamp":null,"evidence_reference":null,"approved_campaign":null,"approved_destination_class":null},
+    "compliance_owner": {"name":null,"role":"Compliance owner","decision":null,"scope":null,"timestamp":null,"evidence_reference":null,"approved_campaign":null,"approved_destination_class":null},
+    "supervisor": {"name":null,"role":"Pilot supervisor","decision":null,"scope":null,"timestamp":null,"evidence_reference":null,"approved_campaign":null,"approved_destination_class":null},
+    "carrier_authorization": {"name":null,"role":"Carrier account owner","decision":null,"scope":null,"timestamp":null,"evidence_reference":null,"approved_campaign":null,"approved_destination_class":null},
+    "caller_id_ownership": {"name":null,"role":"Number owner","decision":null,"scope":null,"timestamp":null,"evidence_reference":null,"approved_campaign":null,"approved_destination_class":null},
+    "destination_consent": {"name":null,"role":"Destination owner","decision":null,"scope":null,"timestamp":null,"evidence_reference":null,"approved_campaign":null,"approved_destination_class":null},
+    "recording_decision": {"name":null,"role":"Compliance owner","decision":null,"scope":null,"timestamp":null,"evidence_reference":null,"approved_campaign":null,"approved_destination_class":null},
+    "calling_window": {"name":null,"role":"Business and compliance owners","decision":null,"scope":null,"timestamp":null,"evidence_reference":null,"approved_campaign":null,"approved_destination_class":null},
+    "pilot_agent": {"name":null,"role":"Pilot agent","decision":null,"scope":null,"timestamp":null,"evidence_reference":null,"approved_campaign":null,"approved_destination_class":null},
+    "campaign_business_unit": {"name":null,"role":"Business owner","decision":null,"scope":null,"timestamp":null,"evidence_reference":null,"approved_campaign":null,"approved_destination_class":null}
+  }
+}

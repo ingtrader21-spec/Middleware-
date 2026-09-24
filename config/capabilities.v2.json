@@ -1,0 +1,34 @@
+{
+  "schema_version": "2.0",
+  "default_policy": "DENY",
+  "capabilities": {
+    "BEYVRA_FINANCIAL_WRITE": false,
+    "BEYVRA_OPERATIONS_WRITE": false,
+    "CALLBACK_DISPATCH": false,
+    "CRAWLER_EXECUTION": false,
+    "CRAWLER_WRITEBACK": false,
+    "DEAD_LETTER_REPLAY": false,
+    "EMAIL_DELIVERY": false,
+    "EXTERNAL_MODEL_CALLS": false,
+    "INTERNAL_TELEPHONY_CALLS": false,
+    "LIVE_ADVERTISING": false,
+    "OBSERVABILITY_ALERT_EMAIL_DELIVERY": false,
+    "ODOO_WRITE": false,
+    "PRIVACY_WRITE": false,
+    "PRODUCTION_DIALING": false,
+    "PROVISIONING_WRITE": false,
+    "SMS_DELIVERY": false,
+    "SOCIAL_PUBLISH": false,
+    "TELEPHONY_ADMIN_WRITE": false
+  },
+  "activation_requirements": [
+    "protected_merged_sha",
+    "exact_head_tests",
+    "independent_approval",
+    "staging_no_effect",
+    "backup_restore",
+    "rollback_rehearsal",
+    "bounded_canary",
+    "runtime_readback"
+  ]
+}

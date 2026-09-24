@@ -1,0 +1,14 @@
+{
+  "title": "Codestra WebRTC Production Readiness",
+  "schemaVersion": 39,
+  "panels": [
+    {"title":"Authentication success/failure","type":"timeseries","targets":[{"expr":"rate(codestra_auth_total[5m])"}]},
+    {"title":"Realtime tickets and replay denials","type":"timeseries","targets":[{"expr":"rate(codestra_realtime_tickets_total[5m])"}]},
+    {"title":"WebSocket connections","type":"timeseries","targets":[{"expr":"codestra_websocket_connections"}]},
+    {"title":"Provisioning errors","type":"timeseries","targets":[{"expr":"rate(codestra_provisioning_errors_total[5m])"}]},
+    {"title":"Policy decisions by reason","type":"timeseries","targets":[{"expr":"sum by (result) (rate(codestra_telephony_policy_decisions_total[5m]))"}]},
+    {"title":"SIP registrations, calls and channels","type":"timeseries","targets":[{"expr":"codestra_sip_registrations"},{"expr":"codestra_active_calls"},{"expr":"codestra_active_channels"}]},
+    {"title":"WebRTC and microphone errors","type":"timeseries","targets":[{"expr":"rate(codestra_webrtc_errors_total[5m])"},{"expr":"rate(codestra_microphone_failures_total[5m])"}]},
+    {"title":"Release digest drift","type":"stat","targets":[{"expr":"codestra_webrtc_artifact_drift"}]}
+  ]
+}

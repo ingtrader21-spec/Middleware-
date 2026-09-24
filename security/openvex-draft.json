@@ -1,0 +1,22 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://github.com/Codestra-SRL/codestra-middleware/security/openvex-draft-c0543bcb",
+  "author": "UNASSIGNED_SECURITY_OWNER",
+  "role": "DRAFT_ONLY",
+  "timestamp": "2026-08-13T03:10:00Z",
+  "last_updated": "2026-08-13T03:10:00Z",
+  "version": 1,
+  "tooling": "Codex evidence preparation; no adjudication authority",
+  "statements": [
+    {"vulnerability":{"name":"CVE-2026-11940"},"products":[{"@id":"pkg:oci/codestra-middleware@sha256%3Aa860ebae87ead0885d3cfcd0b3d09e5cead5ce903fe701d59b8f2f4c5cd0c3ec"}],"status":"under_investigation","action_statement":"Proposed fixed: verify pinned CPython correction be13e86f6b9788a6f4d0419dffef72cbae5865c9 and sign for the exact official image."},
+    {"vulnerability":{"name":"CVE-2026-11972"},"products":[{"@id":"pkg:oci/codestra-middleware@sha256%3Aa860ebae87ead0885d3cfcd0b3d09e5cead5ce903fe701d59b8f2f4c5cd0c3ec"}],"status":"under_investigation","action_statement":"Proposed fixed: verify pinned correction 7f0dc59c9a70f8f3b4da33d7c4a2ba552a7acc21."},
+    {"vulnerability":{"name":"CVE-2026-15308"},"products":[{"@id":"pkg:oci/codestra-middleware@sha256%3Aa860ebae87ead0885d3cfcd0b3d09e5cead5ce903fe701d59b8f2f4c5cd0c3ec"}],"status":"under_investigation","action_statement":"Proposed fixed: verify pinned correction 7933f4bf7131aa4140750f9404f5de0aa2969ced."},
+    {"vulnerability":{"name":"CVE-2026-3298"},"products":[{"@id":"pkg:oci/codestra-middleware@sha256%3Aa860ebae87ead0885d3cfcd0b3d09e5cead5ce903fe701d59b8f2f4c5cd0c3ec"}],"status":"under_investigation","action_statement":"Proposed not_affected: independently verify the Windows-only component is absent from linux/amd64."},
+    {"vulnerability":{"name":"CVE-2026-3644"},"products":[{"@id":"pkg:oci/codestra-middleware@sha256%3Aa860ebae87ead0885d3cfcd0b3d09e5cead5ce903fe701d59b8f2f4c5cd0c3ec"}],"status":"under_investigation","action_statement":"Proposed fixed: verify pinned correction dae4b1a21f8df4570e30986affd61bbe4ade4cef."},
+    {"vulnerability":{"name":"CVE-2026-4224"},"products":[{"@id":"pkg:oci/codestra-middleware@sha256%3Aa860ebae87ead0885d3cfcd0b3d09e5cead5ce903fe701d59b8f2f4c5cd0c3ec"}],"status":"under_investigation","action_statement":"Proposed fixed: verify pinned correction 642865ddf4b232da1f3b1f7abcfa3254c4bfe785."},
+    {"vulnerability":{"name":"CVE-2026-4786"},"products":[{"@id":"pkg:oci/codestra-middleware@sha256%3Aa860ebae87ead0885d3cfcd0b3d09e5cead5ce903fe701d59b8f2f4c5cd0c3ec"}],"status":"under_investigation","action_statement":"Proposed fixed: verify the 3.12 webbrowser adaptation against upstream f4654824ae0850ac87227fb270f9057477946769."},
+    {"vulnerability":{"name":"CVE-2026-6100"},"products":[{"@id":"pkg:oci/codestra-middleware@sha256%3Aa860ebae87ead0885d3cfcd0b3d09e5cead5ce903fe701d59b8f2f4c5cd0c3ec"}],"status":"under_investigation","action_statement":"Proposed fixed: verify pinned correction e20c6c9667c99ecaab96e1a2b3767082841ffc8b."},
+    {"vulnerability":{"name":"CVE-2026-7210"},"products":[{"@id":"pkg:oci/codestra-middleware@sha256%3Aa860ebae87ead0885d3cfcd0b3d09e5cead5ce903fe701d59b8f2f4c5cd0c3ec"}],"status":"under_investigation","action_statement":"Proposed fixed: verify Expat 2.8.2, fc9b11ff49cbc82e6f917d07a61517a2b5f3145f and the 3.12 adaptation."},
+    {"vulnerability":{"name":"CVE-2026-9669"},"products":[{"@id":"pkg:oci/codestra-middleware@sha256%3Aa860ebae87ead0885d3cfcd0b3d09e5cead5ce903fe701d59b8f2f4c5cd0c3ec"}],"status":"under_investigation","action_statement":"Proposed fixed: verify pinned 3.12 correction 938ec030e90c5e53f1faac6fab1643f14e4f4a79."}
+  ]
+}

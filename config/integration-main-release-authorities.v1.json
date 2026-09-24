@@ -1,0 +1,93 @@
+{
+  "schema_version": "1.0",
+  "authority_id": "codestra.integration-main-release-authorities.v1",
+  "owner": "appolon1908-hue",
+  "ruleset_name": "Codestra integration protected-main release gates",
+  "reviewer": {
+    "login": "kazan555",
+    "user_id": 77101516,
+    "permission": "push",
+    "admin": false
+  },
+  "required_approvals": 1,
+  "dismiss_stale_reviews": true,
+  "require_last_push_approval": true,
+  "require_review_thread_resolution": true,
+  "require_branch_up_to_date": true,
+  "allowed_merge_methods": [
+    "squash"
+  ],
+  "bypass_actors": [],
+  "repositories": [
+    {
+      "repository": "appolon1908-hue/Codestra-AI",
+      "repository_id": 1351354401,
+      "default_branch": "main",
+      "required_status_checks": [
+        "unit-and-contract",
+        "postgres-certification",
+        "container-build"
+      ]
+    },
+    {
+      "repository": "appolon1908-hue/Codestra-Marketing-",
+      "repository_id": 1351352422,
+      "default_branch": "main",
+      "required_status_checks": [
+        "unit-and-contract",
+        "postgres-certification",
+        "container-build"
+      ]
+    },
+    {
+      "repository": "appolon1908-hue/Codestra-Prometheus",
+      "repository_id": 1350767800,
+      "default_branch": "main",
+      "required_status_checks": [
+        "production-source-validation",
+        "deploy-readiness / deploy-readiness / overlay-source-ci",
+        "deploy-readiness / deploy-readiness / overlay-secret-scan"
+      ]
+    },
+    {
+      "repository": "appolon1908-hue/klyrow.com",
+      "repository_id": 1334863061,
+      "default_branch": "main",
+      "required_status_checks": [
+        "frontend",
+        "test",
+        "secrets",
+        "image"
+      ]
+    },
+    {
+      "repository": "appolon1908-hue/N8N",
+      "repository_id": 1347560645,
+      "default_branch": "main",
+      "required_status_checks": [
+        "Validate exact repository SHA",
+        "deploy-readiness / deploy-readiness / source-ci",
+        "deploy-readiness / deploy-readiness / secret-scan"
+      ]
+    },
+    {
+      "repository": "appolon1908-hue/social.codestra.co",
+      "repository_id": 1348783113,
+      "default_branch": "main",
+      "required_status_checks": [
+        "Backend policy, migration, test, and build",
+        "Backend container build and hardening",
+        "certify"
+      ]
+    },
+    {
+      "repository": "appolon1908-hue/Vicidialer-Codestra",
+      "repository_id": 1347744324,
+      "default_branch": "main",
+      "required_status_checks": [
+        "deploy-readiness / deploy-readiness / secret-scan",
+        "deploy-readiness / deploy-readiness / source-ci"
+      ]
+    }
+  ]
+}

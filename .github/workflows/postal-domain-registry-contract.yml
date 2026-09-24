@@ -1,0 +1,59 @@
+name: Postal domain registry contract
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/postal-domain-registry-contract.yml
+      - config/postal-domain-registry.json
+      - config/preproduction-safety.env.example
+      - scripts/validate_postal_domain_registry.py
+      - tests/test_postal_domain_registry.py
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/postal-domain-registry-contract.yml
+      - config/postal-domain-registry.json
+      - config/preproduction-safety.env.example
+      - scripts/validate_postal_domain_registry.py
+      - tests/test_postal_domain_registry.py
+
+permissions:
+  contents: read
+
+concurrency:
+  group: postal-domain-registry-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  postal-domain-registry-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check out exact source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Prove exact source identity
+        env:
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -Eeuo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD_SHA"
+          test -z "$(git status --porcelain)"
+      - name: Validate Postal domain registry
+        run: |
+          set -Eeuo pipefail
+          python3 -m py_compile \
+            scripts/validate_postal_domain_registry.py \
+            tests/test_postal_domain_registry.py
+          python3 -m unittest -v tests.test_postal_domain_registry
+          python3 scripts/validate_postal_domain_registry.py
+          python3 -m json.tool config/postal-domain-registry.json >/dev/null
+          git diff --check

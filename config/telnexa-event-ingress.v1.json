@@ -1,0 +1,70 @@
+{
+  "schema_version": "1.0",
+  "id": "telnexa-delivery-events-to-middleware",
+  "producer": "telnexa",
+  "consumer": "middleware-api",
+  "method": "POST",
+  "path": "/api/v1/events/telnexa",
+  "absolute_url": "https://middleware.internal.codestra.agency/api/v1/events/telnexa",
+  "transport": {
+    "tls": "mTLS",
+    "termination": "internal middleware edge",
+    "redirects_allowed": false
+  },
+  "authentication": {
+    "authorization": "Bearer <shared api key>",
+    "api_key_source": "TELNEXA_EVENT_API_KEY or TELNEXA_EVENT_API_KEY_FILE",
+    "signature_header": "X-Signature",
+    "signature_format": "sha256=<lowercase hex>",
+    "algorithm": "HMAC-SHA256",
+    "secret_source": "TELNEXA_EVENT_HMAC_SECRET or TELNEXA_EVENT_HMAC_SECRET_FILE",
+    "freshness_header": "X-Timestamp",
+    "freshness_ttl_seconds": 300,
+    "canonical_bytes": "f\"{timestamp}\\n{event_id}\\ntelnexa\\n\" UTF-8 + raw JSON body"
+  },
+  "required_headers": [
+    "Authorization",
+    "X-Event-Id",
+    "X-Timestamp",
+    "X-Signature",
+    "Idempotency-Key",
+    "Content-Type: application/json"
+  ],
+  "body_schema": "contracts/telnexa-delivery-event.v1.schema.json",
+  "event_types": [
+    "sms.message.delivered.v1",
+    "sms.message.failed.v1",
+    "sms.message.status.v1",
+    "sms.message.reconciled.v1"
+  ],
+  "delivery": {
+    "mode": "at_least_once",
+    "replay_key": "event_id",
+    "replay_hash": "sha256(raw JSON body)",
+    "duplicate_response": 200,
+    "new_event_response": 202,
+    "retryable_persistence_response": 503,
+    "mismatched_replay_response": 409
+  },
+  "projection": {
+    "source_of_message_id": "Middleware message_id returned by the original SMS submit",
+    "message_table": "middleware_communication_messages",
+    "timeline_table": "middleware_communication_events",
+    "provider_event_table": "middleware_communication_provider_events",
+    "inbox_table": "telnexa_delivery_event_inbox",
+    "analytics_table": "telnexa_delivery_analytics",
+    "terminal_statuses_are_sticky": true,
+    "missing_message_is_retryable": true,
+    "odoo_readback": "GET /v1/communications/messages/by-idempotency"
+  },
+  "activation_gates": {
+    "default": false,
+    "required": [
+      "TELNEXA_EVENT_INGRESS_ENABLED=true",
+      "SMS_DELIVERY=true",
+      "TELNEXA_EVENT_API_KEY or TELNEXA_EVENT_API_KEY_FILE",
+      "TELNEXA_EVENT_HMAC_SECRET or TELNEXA_EVENT_HMAC_SECRET_FILE"
+    ],
+    "provider_credentials_are_separate": true
+  }
+}

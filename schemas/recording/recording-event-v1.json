@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.codestra.internal/recording/recording-event-v1.json",
+  "title": "Verified Recording Event v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "event_type", "event_id", "occurred_at", "recording"],
+  "properties": {
+    "contract_version": {"const": "1.0"},
+    "event_type": {"const": "vicidial.recording.verified.v1"},
+    "event_id": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "occurred_at": {"type": "string", "format": "date-time"},
+    "recording": {"$ref": "recording-contract-v1.json"}
+  }
+}

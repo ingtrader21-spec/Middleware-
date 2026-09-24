@@ -1,0 +1,30 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "call_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_.:-]+$",
+      "title": "Call Id",
+      "type": "string"
+    },
+    "ready_at": {
+      "format": "date-time",
+      "title": "Ready At",
+      "type": "string"
+    },
+    "recording_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Recording Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "call_id",
+    "recording_id",
+    "ready_at"
+  ],
+  "title": "RecordingReady",
+  "type": "object"
+}

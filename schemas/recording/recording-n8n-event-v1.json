@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.codestra.internal/recording/recording-n8n-event-v1.json",
+  "title": "Recording n8n Metadata Projection v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "event_id",
+    "event_type",
+    "occurred_at",
+    "environment",
+    "recording_uid",
+    "call_uid",
+    "campaign_key",
+    "duration_seconds",
+    "sha256",
+    "object_version_id",
+    "retention_class"
+  ],
+  "properties": {
+    "contract_version": {"const": "1.0"},
+    "event_id": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "event_type": {"const": "vicidial.recording.verified.v1"},
+    "occurred_at": {"type": "string", "format": "date-time"},
+    "environment": {"enum": ["staging", "production"]},
+    "recording_uid": {"type": "string", "pattern": "^REC-[0-9a-f]{32}$"},
+    "call_uid": {"type": "string", "pattern": "^[A-Za-z0-9._:-]{1,128}$"},
+    "campaign_key": {"type": "string", "pattern": "^[A-Za-z0-9_-]{1,64}$"},
+    "duration_seconds": {"type": "number", "minimum": 0},
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "object_version_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._:-]{1,128}$"
+    },
+    "retention_class": {
+      "enum": ["synthetic_test", "standard", "high_compliance", "legal_hold"]
+    }
+  }
+}

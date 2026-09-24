@@ -1,0 +1,37 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "call_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_.:-]+$",
+      "title": "Call Id",
+      "type": "string"
+    },
+    "callback_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Callback Id",
+      "type": "string"
+    },
+    "completed_at": {
+      "format": "date-time",
+      "title": "Completed At",
+      "type": "string"
+    },
+    "outcome": {
+      "maxLength": 32,
+      "minLength": 1,
+      "title": "Outcome",
+      "type": "string"
+    }
+  },
+  "required": [
+    "call_id",
+    "callback_id",
+    "completed_at",
+    "outcome"
+  ],
+  "title": "CallbackCompleted",
+  "type": "object"
+}

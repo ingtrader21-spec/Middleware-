@@ -1,0 +1,11 @@
+# 17 — Container runtime
+
+Python 3.14.7: RUNTIME_BASE/FINAL_BASE python:3.14.7-slim-bookworm@sha256:82bc3c539b8813ada9d68c63b40158fa002f7f33de9bf3312a3dfdc0620dff56; TEST_BASE python:3.14.7-bookworm@sha256:4121f1893084fd19c71df52b7a48565d47f5bf36173d2c2ce8bca626512ef3db (unchanged from #287); pins asyncpg 0.31.0, pydantic 2.12.5, pydantic-core 2.41.5, sqlalchemy[asyncio] 2.0.43, greenlet 3.5.5, httpx 0.28.1; no httpx2; security/python313 absent; .grype.yaml absent; no applier. Dockerfile.runtime gains `scheduler` and `reconciler` stages (runtime-common + command): one image digest for api/worker/scheduler/reconciler.
+
+8080 / python3.13 residue classification (git grep on the final tree):
+- ACTIVE_RUNTIME (other services, legitimate): keycloak:8080 token/JWKS URLs in deploy/compose.runtime.yaml and deploy/websocket-ha/compose.standby.yaml; deploy/observability-alerts/compose.core-production.yaml (observability-alert API, its own service); websocket gateway (websocket_gateway/*, deploy/websocket-6101, agent_desktop/Caddyfile); deploy/beyvra-email/*; deploy/scraper/compose.ingress.yaml; deploy/monitoring/odoo-readiness/prometheus.yml.
+- FROZEN_EVIDENCE: .github/workflows/production-route-contract.yml (certifies the pinned historical signed image ghcr…@sha256:83e6fd7d… on 8080; passes on 846adbe and dabfd45; not the V3 runtime); docs/evidence/*, docs/releases/*, RETIRED_PROXY_DEPENDENCY_MATRIX.csv, migrations/versions/0043 & 0050 seed URLs.
+- HISTORICAL_DOC: docs/auth-codestra-co-*.md, docs/SITE-ARCHITECTURE.md, docs/SERVER-A-GIT-SYNC.md, config/caddy/auth.codestra.co.caddy.example, scripts/discover_auth_codestra_edge.sh.
+- TEST_FIXTURE: tests/test_runtime_compose.py (asserts 8080 absent), tests/test_certify_test_syn.py, tests/test_observability_alert_contract_validation.py, tests/test_platform_catalog_monitoring.py, deploy/websocket-ha/test_standby_compose.py.
+- DEAD_CONFIG fixed in V3: deploy/production/compose.canary.yaml (app.main:create_app on 8080, /usr/bin/python3.13, SCHEMA_HEAD 0059) and deploy/production/server/codestra-middleware-deploy probe → app.entrypoints.integration_api:8095, /usr/local/bin/python3.14, SCHEMA_HEAD 0067; docs/build/RUNTIME-IMAGE-BUILD-MATRIX.md brought onto the 3.14.7 bases.
+ACTIVE_CANARY_MIDDLEWARE_8080=0  ACTIVE_CANARY_PYTHON313=0  CANONICAL_8080=0.

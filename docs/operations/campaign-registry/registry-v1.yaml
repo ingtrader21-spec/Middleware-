@@ -1,0 +1,26 @@
+schema_version: campaign-registry-v1
+status: PROPOSED_DISABLED
+number_allocation:
+  increment: 100
+  immutable: true
+  reusable: false
+campaigns:
+  - {number: 100, name: "RLP International Real Estate", code: RLP, public_id: CMP-100-RLP, vicidial_campaign_id: RLP100, extension_start: 7100, extension_end: 7199, agent_group: RLP100_AGENTS, dialplan_context: cs-prod-rlp100, parent_campaign_number: null}
+  - {number: 200, name: TradeX, code: TRD, public_id: CMP-200-TRD, vicidial_campaign_id: TRD200, extension_start: 7200, extension_end: 7299, agent_group: TRD200_AGENTS, dialplan_context: cs-prod-trd200, parent_campaign_number: null}
+  - {number: 300, name: "Moy Logistics", code: MOY, public_id: CMP-300-MOY, vicidial_campaign_id: MOY300, extension_start: 7300, extension_end: 7399, agent_group: MOY300_AGENTS, dialplan_context: cs-prod-moy300, parent_campaign_number: null}
+  - {number: 400, name: Codestra, code: COD, public_id: CMP-400-COD, vicidial_campaign_id: COD400, extension_start: 7400, extension_end: 7499, agent_group: COD400_AGENTS, dialplan_context: cs-prod-cod400, parent_campaign_number: null}
+  - {number: 500, name: "Senior Citizen Products", code: SCP, public_id: CMP-500-SCP, vicidial_campaign_id: SCP500, extension_start: 7500, extension_end: 7599, agent_group: SCP500_AGENTS, dialplan_context: cs-prod-scp500, parent_campaign_number: null}
+  - {number: 600, name: "MoneyBee Business Loans", code: MBL, public_id: CMP-600-MBL, vicidial_campaign_id: MBL600, extension_start: 7600, extension_end: 7699, agent_group: MBL600_AGENTS, dialplan_context: cs-prod-mbl600, parent_campaign_number: null}
+  - {number: 700, name: "For the People", code: FTP, public_id: CMP-700-FTP, vicidial_campaign_id: FTP700, extension_start: 7700, extension_end: 7799, agent_group: FTP700_AGENTS, dialplan_context: cs-prod-ftp700, parent_campaign_number: null}
+  - {number: 800, name: "Calderon Farm", code: CAL, public_id: CMP-800-CAL, vicidial_campaign_id: CAL800, extension_start: 7800, extension_end: 7899, agent_group: CAL800_AGENTS, dialplan_context: cs-prod-cal800, parent_campaign_number: 300}
+role_offsets:
+  campaign_anchor: [0, 0]
+  supervisors_administrators: [1, 9]
+  regular_agents: [10, 59]
+  closers_senior_agents: [60, 69]
+  qa_support: [70, 79]
+  callbacks_queues_service: [80, 89]
+  controlled_internal_testing: [90, 94]
+  reserved: [95, 99]
+global_excluded_extensions: [6110, 6198]
+production_activation: false

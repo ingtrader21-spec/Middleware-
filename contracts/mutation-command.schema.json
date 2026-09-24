@@ -1,0 +1,207 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.codestra.co/middleware/mutation-command.schema.json",
+  "title": "Codestra middleware mutation command",
+  "description": "Canonical command envelope for any cross-system operation that may create, update, send, publish, dial, schedule, or otherwise cause an externally meaningful effect.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "specversion",
+    "command_id",
+    "command_type",
+    "schema_version",
+    "tenant_id",
+    "actor",
+    "target",
+    "operation",
+    "requested_at",
+    "correlation_id",
+    "causation_id",
+    "idempotency_key",
+    "semantic_fingerprint",
+    "policy_context",
+    "payload"
+  ],
+  "properties": {
+    "specversion": {
+      "const": "1.0"
+    },
+    "command_id": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "command_type": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:\\.[a-z][a-z0-9_]*)+$"
+    },
+    "schema_version": {
+      "type": "string",
+      "pattern": "^[1-9][0-9]*\\.[0-9]+$"
+    },
+    "tenant_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "actor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "id"
+      ],
+      "properties": {
+        "type": {
+          "enum": [
+            "human",
+            "service",
+            "system"
+          ]
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "subject": {
+          "type": "string",
+          "maxLength": 512
+        }
+      }
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "system",
+        "resource"
+      ],
+      "properties": {
+        "system": {
+          "enum": [
+            "odoo-19",
+            "n8n",
+            "vicidial",
+            "asterisk-pjsip",
+            "telnexa-sms",
+            "klyrow-email",
+            "postly-social",
+            "mautic",
+            "postal-email",
+            "jasmin-sms",
+            "crawlee",
+            "kyqra",
+            "beyvra"
+          ]
+        },
+        "resource": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "external_id": {
+          "type": "string",
+          "maxLength": 256
+        }
+      }
+    },
+    "operation": {
+      "enum": [
+        "create",
+        "update",
+        "upsert",
+        "send",
+        "publish",
+        "dial",
+        "schedule",
+        "cancel",
+        "suppress",
+        "delete",
+        "replay"
+      ]
+    },
+    "requested_at": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])T(?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]{1,9})?(?:Z|[+-](?:(?:0[0-9]|1[0-3]):[0-5][0-9]|14:00))$",
+      "allOf": [
+        {
+          "pattern": "^(?:(?:(?!0000)[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8])))|(?:(?!0000)(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29))T(?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]{1,9})?(?:Z|[+-](?:(?:0[0-9]|1[0-3]):[0-5][0-9]|14:00))$"
+        }
+      ]
+    },
+    "correlation_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "causation_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "idempotency_key": {
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 256
+    },
+    "semantic_fingerprint": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "SHA-256 digest of the normalized business intent used to detect equivalent commands submitted under different request identifiers."
+    },
+    "expected_version": {
+      "oneOf": [
+        {
+          "type": "integer",
+          "minimum": 0
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      ]
+    },
+    "policy_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "consent_check_required",
+        "suppression_check_required"
+      ],
+      "properties": {
+        "consent_check_required": {
+          "type": "boolean"
+        },
+        "suppression_check_required": {
+          "type": "boolean"
+        },
+        "consent_snapshot_id": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "policy_version": {
+          "type": "string",
+          "maxLength": 128
+        }
+      }
+    },
+    "payload": {
+      "type": "object"
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": {
+        "type": [
+          "string",
+          "number",
+          "integer",
+          "boolean",
+          "null"
+        ]
+      }
+    }
+  }
+}

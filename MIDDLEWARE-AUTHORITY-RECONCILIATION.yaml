@@ -1,0 +1,185 @@
+schema: codestra.middleware-authority-reconciliation.v3
+captured_at: '2026-09-08T15:52:26Z'
+snapshot_role: historical_observed_inventory_not_deployment_authority
+supersedes_snapshot:
+  canonical_anchor: f3437709c06747249586598590145234ea2c7327
+  legacy_anchor: 2f1c7af41f87c27e2881c3695621ece787b97445
+
+decision:
+  single_forward_source_repository: ingtrader21-spec/Middleware-
+  source_ref: refs/heads/main
+  source_resolution: exact_protected_main_event_sha_at_release_execution
+  static_sha_is_authority: false
+  single_forward_image_repository: ghcr.io/appolon1908-hue/codestra-middleware
+  current_release_authority: config/middleware-forward-release-authority.v1.json
+  required_schema_head: 0057_platform_service_catalog
+  candidate_status: PENDING_EXACT_PROTECTED_MERGE_BUILD
+  current_signed_candidate: null
+  latest_verified_signed_evidence:
+    role: observed_signed_evidence_not_static_authority
+    promotion_authorized: false
+    source_sha: 164969b4824fb4d2eb38b232bfb7abc18e33d8ac
+    git_tree_id: 682858ff10dfdcf4c42e7dd352cc8874d9cc7dc6
+    release_id: 164969b4824f-18017a1a40a7
+    workflow_run_id: 34236130828
+    workflow_run_attempt: 1
+    artifact_id: 10060015854
+    artifact_archive_digest: sha256:f940575a8f45f7ddae47d67ef539eb1dbe3f4b663198845b4b8062598fb925ee
+    image: ghcr.io/appolon1908-hue/codestra-middleware@sha256:18017a1a40a7969495661446badd8b43d1d4153c2036d89b0fb3065469e27941
+    image_digest: sha256:18017a1a40a7969495661446badd8b43d1d4153c2036d89b0fb3065469e27941
+    schema_head: 0057_platform_service_catalog
+    release_manifest_sha256: sha256:250c0b6a916c2b18a6f7b46e17a83b23d327e11c13e0354924b28fd4be1caf1b
+    sigstore_bundle_sha256: sha256:ab097f5e7547d63b67cc80b0b2d3998d53d7c91dc5db3081fee7772c14ea7400
+    sbom_sha256: sha256:59f01d88604b1fd03e6ded7d70cfd80acf249b6c033e3f358de45242ff365986
+    vulnerability_report_sha256: sha256:8d94caa3fbf4ca94e1a873c1b9c709d1d0e2a621f2c88e61055c6f5c9e63e851
+    signature: sigstore_keyless_verified
+    provenance: slsa_v1_verified
+    sbom: spdx_2_3_verified
+    vulnerability_gate: PASS
+    deployment_status: NOT_EXECUTED
+    verification: PASS
+  previous_verified_signed_evidence:
+    role: observed_signed_evidence_not_static_authority
+    promotion_authorized: false
+    source_sha: 4668de7d7ddc6f98968c06b7dc02d7650ff5e88a
+    git_tree_id: 478e89c1e47b71e6619b015926f7337660f7f6b8
+    release_id: 4668de7d7ddc-41ae78d368b5
+    workflow_run_id: 34173524024
+    workflow_run_attempt: 1
+    artifact_id: 10036514846
+    artifact_archive_digest: sha256:0a678bdb2d8796bb2d09d3203bb92a5eefeac447c76e49156917c5e5c5bf7adf
+    image: ghcr.io/appolon1908-hue/codestra-middleware@sha256:41ae78d368b5e2db2e9fe9be50fd5041b3f1a07ae4837170a76a68889be565e6
+    image_digest: sha256:41ae78d368b5e2db2e9fe9be50fd5041b3f1a07ae4837170a76a68889be565e6
+    schema_head: 0057_platform_service_catalog
+    release_manifest_sha256: sha256:64564dfb72fea44a14e24dddbdfbfb069d7c1543b1005575a5a0d89ccb8a4232
+    sigstore_bundle_sha256: sha256:2f8a0de014a06d5a3c4b522de8a28e8a422a19877d23124d43da4fc1fe3eadd4
+    sbom_sha256: sha256:2ab69f32336a37b4f44990b31b108e3be79eea2c938e4b8079d3446f253b3a8a
+    vulnerability_report_sha256: sha256:3d1d22286c66070a2a6215f7768092af40e98ef2dc8db1a6ff7936322c9622c2
+    signature: sigstore_keyless_verified
+    provenance: slsa_v1_verified
+    sbom: spdx_2_3_verified
+    vulnerability_gate: PASS
+    rollback_rehearsal_status: NOT_EXECUTED
+    verification: PASS
+  legacy_source_repository: Codestra-SRL/codestra-middleware
+  legacy_role: rollback_only
+  blind_whole_fleet_replacement: false
+
+protected_main_baseline_before_correction:
+  merge_sha: eb526e05a7b76a24e85ba8a0b96a48622d45afe2
+  git_tree_id: 4b32907ebce65147be67d6528b008886dba2069c
+  schema_head: 0056_klyrow_delivery_events
+  role: observed_baseline_not_static_authority
+
+historical_signed_predecessor:
+  role: historical_predecessor_only
+  promotion_authorized: false
+  source_sha: b03b378f3a358de333e37cf6cc7a37668f004b4f
+  git_tree_id: 8e9a4be456a2f82ef3352a277f6f76f1a2e18d90
+  release_id: b03b378f3a35-dfdcfb925382
+  workflow_run_id: 33908027409
+  artifact_id: 9950295151
+  image: ghcr.io/appolon1908-hue/codestra-middleware@sha256:dfdcfb92538242df9c9e81c27f15f9bd14b2cb840ea4c16d91dccc8f0eed7a3c
+  image_digest: sha256:dfdcfb92538242df9c9e81c27f15f9bd14b2cb840ea4c16d91dccc8f0eed7a3c
+  schema_head: 0009_observability_incidents
+  signature: sigstore_keyless_verified
+  sbom: present
+  vulnerability_gate: PASS
+  deployment_status: NOT_EXECUTED
+  reason_not_current: >-
+    The artifact predates migration 0056_klyrow_delivery_events, PR #140, and the
+    authority correction. It is retained for audit and rollback analysis only.
+
+observed_legacy_source:
+  protected_main_sha: 167bd6221911ec3fa988d719eb259646fa90f296
+  git_tree_id: 8304f8685f97164775666ecdcfaba5e9e93f3577
+  source_backup_retained: true
+  new_forward_releases_authorized: false
+  delete_authorized: false
+  force_push_authorized: false
+
+historical_comparison:
+  canonical_snapshot:
+    previous_snapshot_sha: f3437709c06747249586598590145234ea2c7327
+    observed_sha_at_capture: b03b378f3a358de333e37cf6cc7a37668f004b4f
+    ahead_by: 28
+    behind_by: 0
+  legacy_snapshot:
+    previous_snapshot_sha: 2f1c7af41f87c27e2881c3695621ece787b97445
+    observed_sha_at_capture: 167bd6221911ec3fa988d719eb259646fa90f296
+    ahead_by: 3
+    behind_by: 0
+  current_source_must_be_resolved_dynamically: true
+  bulk_source_merge_authorized: false
+  canonical_capabilities_reviewed:
+    - authenticated_api_v1_compatibility
+    - quarantine_and_reconciliation_controls
+    - klyrow_postly_telnexa_and_odoo_adapters
+    - provider_control_and_policy
+    - temporal_outbox_command_execution
+    - exact_runtime_source_digest_schema_profile_readback
+    - signed_image_manifest_sbom_provenance_and_vulnerability_evidence
+    - realtime_gateway_schema_0010
+  remaining_component_certification:
+    - pjsip_connector
+    - webphone_session_issuer
+    - breero_normalization_and_odoo_readback
+    - kyqra_scraper_state_idempotency_and_odoo_readback
+    - queue_drain_replay_and_unknown_outcome_reconciliation
+    - database_restore_schema_route_and_rollback_proof
+
+server_a:
+  host: 65.109.65.169
+  inventory_observed_at: '2026-09-01T17:56:34Z'
+  image_family_catalog: config/middleware-authority-convergence.v1.json
+  catalog_role: historical_observed_inventory_only
+  runtime_workloads_catalogued: 31
+  stale_appolon_api:
+    container: codestra-appolon-middleware-integration-api-1
+    source_sha: f6748a58f8d2590520a4f28776770957061cdea1
+    image: ghcr.io/appolon1908-hue/codestra-middleware@sha256:695fa3ce3f50ba4d0ae0784976b946a0a683ca731155e4bd3bd9e90a4670b820
+  legacy_primary_api:
+    container: codestra-middleware-1
+    source_sha: b3ca9aa458fef843e3065aeff3397c656349f138
+    docker_image_id: sha256:5dd751a9da60e2417c9ee553ddea68f54e76981dcc896eb3676b27617d121f38
+  legacy_integration_api:
+    container: codestra-middleware-integration-api-1
+    source_sha: 35448ef85ae56db3651a72b61db8e242b7aacd2e
+    image: ghcr.io/codestra-srl/codestra-middleware@sha256:09d4bd0f7b2376e0a06d3efae27a6642429389fa7e3277791ec0b36584e87175
+  runtime_revalidation_required: true
+  runtime_mutation_status: NOT_EXECUTED
+  production_changed: false
+
+backup:
+  appolon_legacy_image_repository: ghcr.io/appolon1908-hue/codestra-middleware-legacy
+  exact_registry_mirror_workflow: .github/workflows/mirror-codestra-legacy-middleware-images.yml
+  local_image_backup_operator: scripts/server-a-backup-legacy-middleware-images.sh
+  codestra_source_retained: true
+  codestra_images_retained: true
+  isolated_restore_status: NOT_EXECUTED
+  rollback_rehearsal_status: NOT_EXECUTED
+
+next_required_evidence:
+  - merge the canonical orchestrator contract through protected main
+  - build and sign the exact protected merge SHA before candidate admission
+  - revalidate all Server A runtime identities
+  - mirror or archive all rollback images
+  - prove isolated restore and rollback
+  - certify an internal read-only canary with zero live effects
+
+safety:
+  deployment_authorized: false
+  server_mutation_authorized: false
+  traffic_cutover_authorized: false
+  legacy_deletion_authorized: false
+  historical_predecessor_promotion_authorized: false
+  external_effects_authorized: false
+  live_writes_enabled: false
+  odoo_writes_enabled: false
+  n8n_delivery_enabled: false
+  email_delivery_enabled: false
+  sms_delivery_enabled: false
+  social_publishing_enabled: false
+  external_model_calls_enabled: false
+  pstn_dialing_enabled: false
+  calls_placed_expected: 0

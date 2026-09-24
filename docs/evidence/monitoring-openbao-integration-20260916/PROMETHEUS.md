@@ -1,0 +1,8 @@
+# Prometheus (2026-09-16) — `Codestra-Prometheus` `7c1e7068`, PR #70
+
+- Targets (file_sd `codestra-targets`): node-exporter, cadvisor, postgres-exporter, redis-exporter, caddy, kong, keycloak, n8n, odoo, opentelemetry-collector, alertmanager, loki (pending), tempo (pending), grafana (pending), alloy (pending) and the application services; Middleware and OpenBao removed from the unauthenticated catalogue and served by dedicated jobs.
+- `codestra-middleware-metrics`: oauth2 `client_id=monitoring-readonly`, `client_secret_file=/run/secrets/monitoring-readonly-client-secret` (OpenBao reference `observability/prometheus/scrape-credentials/monitoring-readonly-client`), `scopes=[metrics.read]`, token URL `https://auth.codestra.co/realms/codestra/...`, target `middleware-integration-api:8095`; Middleware `/metrics` stays private.
+- `codestra-openbao`: see OPENBAO-METRICS.md.
+- Blackbox: `probe_module` label selects a reviewed read-only module; new probes: OpenBao health (pending), Middleware readiness, Grafana login, Superset health.
+- Rules: `openbao-alerts.yml`, `monitoring-platform-alerts.yml` (Middleware scrape identity failing, Alertmanager -> Middleware ingestion stalled, notification failures, log/trace pipeline down, OTel export failures, safe-probe failures, TEST_SYN certification signal missing).
+- Validator: `validate.py` PASS; fails closed on inline credentials, Middleware/OpenBao in the file_sd catalogue, dedicated-job drift, non-GET/HEAD blackbox modules. Tests 20/20 (12 new). `promtool 3.14.0 check rules` SUCCESS (10 files); `check config --syntax-only` SUCCESS; CI switched to `--syntax-only` because credential files exist only at runtime.

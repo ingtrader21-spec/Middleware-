@@ -1,0 +1,22 @@
+{
+  "breero-staging-key-v1": {
+    "enabled": false,
+    "identity": "breero-staging",
+    "audience": "codestra-middleware-breero",
+    "environment": "staging",
+    "scope": "breero.crm.events.submit",
+    "tenant": "breero",
+    "source_ip": "10.40.0.3",
+    "secret_file": "/run/secrets/breero-staging-hmac"
+  },
+  "breero-production-key-v1": {
+    "enabled": false,
+    "identity": "breero-production",
+    "audience": "codestra-middleware-breero",
+    "environment": "production",
+    "scope": "breero.crm.events.submit",
+    "tenant": "breero",
+    "source_ip": "10.40.0.3",
+    "secret_file": "/run/secrets/breero-production-hmac"
+  }
+}

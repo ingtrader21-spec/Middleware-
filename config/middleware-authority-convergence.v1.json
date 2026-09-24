@@ -1,0 +1,526 @@
+{
+  "schemaVersion": 1,
+  "kind": "middleware-authority-convergence",
+  "capturedAt": "2026-09-04T18:52:34Z",
+  "snapshotRole": "observed-evidence-not-deployment-authority",
+  "serverA": {
+    "host": "65.109.65.169",
+    "runtimeInventoryObservedAt": "2026-09-01T17:56:34Z",
+    "runtimeInventorySource": "appolon1908-hue/Infustruction-repo@main:reports/runtime-reconciliation/STAGE6-RUNTIME-INVENTORY.csv",
+    "runtimeWorkloadsCatalogued": 31,
+    "runtimeMutationStatus": "NOT_EXECUTED",
+    "productionChanged": false,
+    "reason": "Server A is not enrolled in the connected server manager; repository and package preparation only.",
+    "revalidationRequiredBeforeMutation": true
+  },
+  "forwardAuthority": {
+    "source": {
+      "repository": "ingtrader21-spec/Middleware-",
+      "protectedRef": "refs/heads/main",
+      "resolution": "exact protected-main GitHub event SHA at release execution",
+      "staticShaIsAuthority": false,
+      "observedProtectedMainSha": "b03b378f3a358de333e37cf6cc7a37668f004b4f",
+      "observedGitTreeId": "8e9a4be456a2f82ef3352a277f6f76f1a2e18d90"
+    },
+    "image": {
+      "repository": "ghcr.io/appolon1908-hue/codestra-middleware",
+      "releaseWorkflow": ".github/workflows/release.yml",
+      "currentSignedCandidate": {
+        "sourceSha": "b03b378f3a358de333e37cf6cc7a37668f004b4f",
+        "gitTreeId": "8e9a4be456a2f82ef3352a277f6f76f1a2e18d90",
+        "imageDigest": "sha256:dfdcfb92538242df9c9e81c27f15f9bd14b2cb840ea4c16d91dccc8f0eed7a3c",
+        "imageReference": "ghcr.io/appolon1908-hue/codestra-middleware@sha256:dfdcfb92538242df9c9e81c27f15f9bd14b2cb840ea4c16d91dccc8f0eed7a3c",
+        "releaseId": "b03b378f3a35-dfdcfb925382",
+        "schemaHead": "0009_observability_incidents",
+        "builtAt": "2026-09-04T18:50:33Z",
+        "workflowRunId": 33908027409,
+        "workflowRunAttempt": 1,
+        "artifactId": 9950295151,
+        "artifactArchiveDigest": "sha256:d349026c57f4037ec572ade1daecfca879aab535b023473532dd8b5e8c113c31",
+        "signature": "sigstore-keyless-verified",
+        "sbom": "present",
+        "vulnerabilityGate": "PASS",
+        "verification": "PASS"
+      }
+    }
+  },
+  "legacySourceBackup": {
+    "repository": "Codestra-SRL/codestra-middleware",
+    "role": "rollback-only-source-history",
+    "protectedRef": "refs/heads/main",
+    "observedProtectedMainSha": "167bd6221911ec3fa988d719eb259646fa90f296",
+    "observedGitTreeId": "8304f8685f97164775666ecdcfaba5e9e93f3577",
+    "newForwardReleasesAuthorized": false,
+    "deleteAuthorized": false,
+    "forcePushAuthorized": false
+  },
+  "sourceComparison": {
+    "canonical": {
+      "previousSnapshotSha": "f3437709c06747249586598590145234ea2c7327",
+      "currentObservedSha": "b03b378f3a358de333e37cf6cc7a37668f004b4f",
+      "aheadBy": 28,
+      "behindBy": 0
+    },
+    "legacy": {
+      "previousSnapshotSha": "2f1c7af41f87c27e2881c3695621ece787b97445",
+      "currentObservedSha": "167bd6221911ec3fa988d719eb259646fa90f296",
+      "aheadBy": 3,
+      "behindBy": 0,
+      "tipChangesReviewed": [
+        "runtime health/readiness/version/capability controls",
+        "external webhook production compose definition",
+        "Beyvra email compose pin updates",
+        "entrypoint tests"
+      ]
+    },
+    "canonicalCapabilitiesNowPresent": [
+      "authenticated /api/v1 compatibility surface",
+      "quarantine list/detail/discard controls",
+      "reconciliation list/detail/resolve controls",
+      "Klyrow email and alert adapters",
+      "Postly social adapter",
+      "Telnexa SMS adapter",
+      "Odoo provider adapter",
+      "provider-control API and policy",
+      "Temporal/outbox command execution",
+      "exact source/digest/schema/profile runtime read-back",
+      "signed immutable release, SBOM, provenance, and vulnerability evidence"
+    ],
+    "remainingPerWorkloadCertificationBoundaries": [
+      "Asterisk/PJSIP connector parity",
+      "dedicated webphone session issuer parity",
+      "Breero normalization and Odoo read-back parity",
+      "Kyqra/scraper cursor, idempotency, and Odoo read-back parity",
+      "legacy queue drain, replay, and unknown-outcome reconciliation",
+      "database schema/data restore and rollback rehearsal",
+      "route ownership and traffic cutover proof"
+    ],
+    "bulkSourceMergeAuthorized": false,
+    "reason": "The repositories are divergent architectures. Canonical behavior is ported through contracts, commands, adapters, and tests; legacy source is not merged wholesale."
+  },
+  "runtimeImageFamilies": [
+    {
+      "id": "appolon-superseded-api",
+      "authority": "appolon1908-hue",
+      "role": "superseded-appolon-runtime",
+      "environment": "production",
+      "sourceSha": "f6748a58f8d2590520a4f28776770957061cdea1",
+      "runtimeReference": "ghcr.io/appolon1908-hue/codestra-middleware@sha256:695fa3ce3f50ba4d0ae0784976b946a0a683ca731155e4bd3bd9e90a4670b820",
+      "digest": "sha256:695fa3ce3f50ba4d0ae0784976b946a0a683ca731155e4bd3bd9e90a4670b820",
+      "digestKind": "registry-manifest-digest",
+      "workloads": [
+        "codestra-appolon-middleware-integration-api-1"
+      ],
+      "configurationAuthority": "/root/callback-e2e-platform/deploy/middleware/compose.appolon-integration-api.yaml",
+      "convergenceDisposition": "replace-by-current-signed-appolon-read-only-canary",
+      "backup": {
+        "method": "retain-existing-appolon-ghcr-digest",
+        "state": "AVAILABLE_IN_APPOLON_GHCR",
+        "reference": "ghcr.io/appolon1908-hue/codestra-middleware@sha256:695fa3ce3f50ba4d0ae0784976b946a0a683ca731155e4bd3bd9e90a4670b820"
+      }
+    },
+    {
+      "id": "codestra-primary-api-local",
+      "authority": "Codestra-SRL",
+      "role": "rollback-only",
+      "environment": "production",
+      "sourceSha": "b3ca9aa458fef843e3065aeff3397c656349f138",
+      "runtimeReference": "codestra/middleware:health-contract-b3ca9aa",
+      "digest": "sha256:5dd751a9da60e2417c9ee553ddea68f54e76981dcc896eb3676b27617d121f38",
+      "digestKind": "docker-image-id",
+      "workloads": [
+        "codestra-middleware-1"
+      ],
+      "configurationAuthority": "/opt/codestra/compose/compose.health-contract-remediation.yaml",
+      "convergenceDisposition": "replace-by-canonical-api-after-contract-data-and-route-certification",
+      "backup": {
+        "method": "server-a-archive-and-config-digest-mirror",
+        "state": "PENDING_SERVER_A_ACCESS",
+        "destinationTag": "ghcr.io/appolon1908-hue/codestra-middleware-legacy:server-a-codestra-primary-api-local-5dd751a9da60",
+        "evidenceCommand": "scripts/server-a-backup-legacy-middleware-images.sh",
+        "verification": "destination OCI config digest must equal the recorded Docker image ID"
+      }
+    },
+    {
+      "id": "codestra-integration-api",
+      "authority": "Codestra-SRL",
+      "role": "rollback-only",
+      "environment": "production",
+      "sourceSha": "35448ef85ae56db3651a72b61db8e242b7aacd2e",
+      "runtimeReference": "ghcr.io/codestra-srl/codestra-middleware@sha256:09d4bd0f7b2376e0a06d3efae27a6642429389fa7e3277791ec0b36584e87175",
+      "digest": "sha256:09d4bd0f7b2376e0a06d3efae27a6642429389fa7e3277791ec0b36584e87175",
+      "digestKind": "registry-manifest-digest",
+      "workloads": [
+        "codestra-middleware-integration-api-1"
+      ],
+      "configurationAuthority": "/opt/codestra/compose/compose.yaml",
+      "convergenceDisposition": "replace-by-canonical-api-after-route-parity-and-queue-drain",
+      "backup": {
+        "method": "registry-preserve-digest",
+        "state": "PENDING_ACTIONS_MIRROR",
+        "destinationTag": "ghcr.io/appolon1908-hue/codestra-middleware-legacy:codestra-srl-integration-api-09d4bd0f7b23",
+        "destinationDigestReference": "ghcr.io/appolon1908-hue/codestra-middleware-legacy@sha256:09d4bd0f7b2376e0a06d3efae27a6642429389fa7e3277791ec0b36584e87175",
+        "evidenceWorkflow": ".github/workflows/mirror-codestra-legacy-middleware-images.yml"
+      }
+    },
+    {
+      "id": "codestra-shared-workers-b3ca9aa",
+      "authority": "Codestra-SRL",
+      "role": "rollback-only",
+      "environment": "production",
+      "sourceSha": "b3ca9aa458fef843e3065aeff3397c656349f138",
+      "runtimeReference": "codestra/middleware@sha256:1a9e13a0c930d36076b5742e17f948dc85d9bc6ace90e58052756c8b1ad42700",
+      "digest": "sha256:1a9e13a0c930d36076b5742e17f948dc85d9bc6ace90e58052756c8b1ad42700",
+      "digestKind": "docker-image-id",
+      "workloads": [
+        "codestra-middleware-evidence-runner-1",
+        "codestra-middleware-extension-allocator-1",
+        "codestra-middleware-n8n-runtime-worker-1",
+        "codestra-middleware-pjsip-adapter-1",
+        "codestra-middleware-policy-engine-1",
+        "codestra-middleware-reconciliation-worker-1",
+        "codestra-middleware-social-n8n-delivery-worker-1",
+        "codestra-middleware-sync-worker-1",
+        "codestra-middleware-telephony-provisioning-1",
+        "codestra-middleware-vicidial-adapter-1"
+      ],
+      "configurationAuthority": "/opt/codestra/compose/compose.middleware-runtime.yaml",
+      "convergenceDisposition": "split-and-certify-each-canonical-command-or-connector-boundary",
+      "backup": {
+        "method": "server-a-archive-and-config-digest-mirror",
+        "state": "PENDING_SERVER_A_ACCESS",
+        "destinationTag": "ghcr.io/appolon1908-hue/codestra-middleware-legacy:server-a-codestra-shared-workers-b3ca9aa-1a9e13a0c930",
+        "evidenceCommand": "scripts/server-a-backup-legacy-middleware-images.sh",
+        "verification": "destination OCI config digest must equal the recorded Docker image ID"
+      }
+    },
+    {
+      "id": "codestra-postly-polling-worker",
+      "authority": "Codestra-SRL",
+      "role": "rollback-only",
+      "environment": "production",
+      "sourceSha": "b3ca9aa458fef843e3065aeff3397c656349f138",
+      "runtimeReference": "codestra/middleware@sha256:d3ac2b34d216064bc579feedca9cc2d4079ebe44943a6417ab31437c79df8dd8",
+      "digest": "sha256:d3ac2b34d216064bc579feedca9cc2d4079ebe44943a6417ab31437c79df8dd8",
+      "digestKind": "docker-image-id",
+      "workloads": [
+        "codestra-middleware-postly-polling-worker-1"
+      ],
+      "configurationAuthority": "/opt/codestra/compose/compose.middleware-runtime.yaml",
+      "convergenceDisposition": "replace-by-canonical-postly-adapter-after-state-and-cursor-parity",
+      "backup": {
+        "method": "server-a-archive-and-config-digest-mirror",
+        "state": "PENDING_SERVER_A_ACCESS",
+        "destinationTag": "ghcr.io/appolon1908-hue/codestra-middleware-legacy:server-a-codestra-postly-polling-worker-d3ac2b34d216",
+        "evidenceCommand": "scripts/server-a-backup-legacy-middleware-images.sh",
+        "verification": "destination OCI config digest must equal the recorded Docker image ID"
+      }
+    },
+    {
+      "id": "codestra-breero-odoo-worker",
+      "authority": "Codestra-SRL",
+      "role": "rollback-only",
+      "environment": "production",
+      "sourceSha": "51416422eaaa959c8c7223ad1434287597eb8007",
+      "runtimeReference": "codestra/middleware:breero-51416422",
+      "digest": "sha256:961c0569a5033cdb494d211fd32cfe20d7efd42d3900f02c2d3f0ac7bfdcfa63",
+      "digestKind": "docker-image-id",
+      "workloads": [
+        "codestra-middleware-breero-odoo-worker-1"
+      ],
+      "configurationAuthority": "/opt/codestra/compose/compose.live-delivery-breero.yaml",
+      "convergenceDisposition": "retain-until-breero-normalization-idempotency-and-odoo-readback-parity",
+      "backup": {
+        "method": "server-a-archive-and-config-digest-mirror",
+        "state": "PENDING_SERVER_A_ACCESS",
+        "destinationTag": "ghcr.io/appolon1908-hue/codestra-middleware-legacy:server-a-codestra-breero-odoo-worker-961c0569a503",
+        "evidenceCommand": "scripts/server-a-backup-legacy-middleware-images.sh",
+        "verification": "destination OCI config digest must equal the recorded Docker image ID"
+      }
+    },
+    {
+      "id": "codestra-event-and-webhook-workers",
+      "authority": "Codestra-SRL",
+      "role": "rollback-only",
+      "environment": "production",
+      "runtimeReference": "codestra/middleware:webhook-cert-pg-20260816",
+      "digest": "sha256:93cbb4a11765ad92e9bbf1a1bb9601f15a540164b4e7d6647cb0f16d588ab6e0",
+      "digestKind": "docker-image-id",
+      "workloads": [
+        "codestra-middleware-event-gateway-1",
+        "codestra-middleware-external-webhook-worker-1"
+      ],
+      "configurationAuthority": "/opt/codestra/compose/compose.external-webhook.yaml",
+      "convergenceDisposition": "replace-by-canonical-signed-intake-and-connector-runtime-after-inbox-drain",
+      "backup": {
+        "method": "server-a-archive-and-config-digest-mirror",
+        "state": "PENDING_SERVER_A_ACCESS",
+        "destinationTag": "ghcr.io/appolon1908-hue/codestra-middleware-legacy:server-a-codestra-event-and-webhook-workers-93cbb4a11765",
+        "evidenceCommand": "scripts/server-a-backup-legacy-middleware-images.sh",
+        "verification": "destination OCI config digest must equal the recorded Docker image ID"
+      },
+      "sourceRevision": "4a3ac0b57a61baf63310c55048a7897556faa9a972083b86761e91391ae2317b",
+      "sourceStatus": "INVALID_REVISION_METADATA"
+    },
+    {
+      "id": "codestra-notification-and-scheduler",
+      "authority": "Codestra-SRL",
+      "role": "rollback-only",
+      "environment": "production",
+      "sourceSha": "9118e5bc01f9ce4a52add8753c096d061cd84848",
+      "runtimeReference": "ghcr.io/codestra-srl/codestra-middleware@sha256:73fe86858d7a9303bbb151c77097aa43c0739e71c4781636e7db81dd4eadbf98",
+      "digest": "sha256:73fe86858d7a9303bbb151c77097aa43c0739e71c4781636e7db81dd4eadbf98",
+      "digestKind": "registry-manifest-digest",
+      "workloads": [
+        "codestra-middleware-notification-worker-1",
+        "codestra-middleware-scheduler-1"
+      ],
+      "configurationAuthority": "/opt/codestra/compose/compose.health-contract-remediation.yaml",
+      "convergenceDisposition": "replace-by-canonical-outbox-and-temporal-after-queue-drain-and-schedule-parity",
+      "backup": {
+        "method": "registry-preserve-digest",
+        "state": "PENDING_ACTIONS_MIRROR",
+        "destinationTag": "ghcr.io/appolon1908-hue/codestra-middleware-legacy:codestra-srl-notification-scheduler-73fe86858d7a",
+        "destinationDigestReference": "ghcr.io/appolon1908-hue/codestra-middleware-legacy@sha256:73fe86858d7a9303bbb151c77097aa43c0739e71c4781636e7db81dd4eadbf98",
+        "evidenceWorkflow": ".github/workflows/mirror-codestra-legacy-middleware-images.yml"
+      }
+    },
+    {
+      "id": "codestra-odoo-result-worker",
+      "authority": "Codestra-SRL",
+      "role": "rollback-only",
+      "environment": "production",
+      "sourceSha": "d30babd35b7b82aab312f16940f5b8d2f7797f1d",
+      "runtimeReference": "ghcr.io/codestra-srl/codestra-middleware@sha256:ab74b9eb56c9625597476ab6669b065b471314c912cb2d4677118de230e3d4e2",
+      "digest": "sha256:ab74b9eb56c9625597476ab6669b065b471314c912cb2d4677118de230e3d4e2",
+      "digestKind": "registry-manifest-digest",
+      "workloads": [
+        "codestra-middleware-odoo-result-worker-1"
+      ],
+      "configurationAuthority": "/opt/codestra/middleware/deploy/compose.campaign-crm-d30babd.yaml",
+      "convergenceDisposition": "replace-by-canonical-odoo-adapter-after-result-ledger-and-callback-parity",
+      "backup": {
+        "method": "registry-preserve-digest",
+        "state": "PENDING_ACTIONS_MIRROR",
+        "destinationTag": "ghcr.io/appolon1908-hue/codestra-middleware-legacy:codestra-srl-odoo-result-worker-ab74b9eb56c9",
+        "destinationDigestReference": "ghcr.io/appolon1908-hue/codestra-middleware-legacy@sha256:ab74b9eb56c9625597476ab6669b065b471314c912cb2d4677118de230e3d4e2",
+        "evidenceWorkflow": ".github/workflows/mirror-codestra-legacy-middleware-images.yml"
+      }
+    },
+    {
+      "id": "codestra-scraper-odoo-worker",
+      "authority": "Codestra-SRL",
+      "role": "rollback-only",
+      "environment": "production",
+      "sourceSha": "bab6f4332fec77611f6a364fd3c9c7f9cc022051",
+      "runtimeReference": "codestra/middleware@sha256:55dfe9ddfa8bfa94a9202284cb5276311e009066784bbde5dc05d5e1c3776492",
+      "digest": "sha256:55dfe9ddfa8bfa94a9202284cb5276311e009066784bbde5dc05d5e1c3776492",
+      "digestKind": "docker-image-id",
+      "workloads": [
+        "codestra-middleware-scraper-odoo-delivery-worker-1"
+      ],
+      "configurationAuthority": "/opt/codestra/compose/compose.live-delivery-scraper.yaml",
+      "convergenceDisposition": "retain-until-kyqra-result-normalization-idempotency-and-odoo-readback-parity",
+      "backup": {
+        "method": "server-a-archive-and-config-digest-mirror",
+        "state": "PENDING_SERVER_A_ACCESS",
+        "destinationTag": "ghcr.io/appolon1908-hue/codestra-middleware-legacy:server-a-codestra-scraper-odoo-worker-55dfe9ddfa8b",
+        "evidenceCommand": "scripts/server-a-backup-legacy-middleware-images.sh",
+        "verification": "destination OCI config digest must equal the recorded Docker image ID"
+      }
+    },
+    {
+      "id": "codestra-webphone-session-issuer",
+      "authority": "Codestra-SRL",
+      "role": "rollback-only",
+      "environment": "production",
+      "sourceSha": "80954a1ecb4eae49a57a9de245f78fd9a2f825a1",
+      "runtimeReference": "ghcr.io/codestra-srl/codestra-middleware@sha256:48dbb4201b4cf8abee1600936a84da52a92969ab124fb44a0007059e75d57e85",
+      "digest": "sha256:48dbb4201b4cf8abee1600936a84da52a92969ab124fb44a0007059e75d57e85",
+      "digestKind": "registry-manifest-digest",
+      "workloads": [
+        "codestra-middleware-webphone-session-issuer-1"
+      ],
+      "configurationAuthority": "/opt/codestra/compose/compose.m07-exact-digest.yaml",
+      "convergenceDisposition": "retain-until-dedicated-keycloak-validated-short-lived-session-issuer-is-certified",
+      "backup": {
+        "method": "registry-preserve-digest",
+        "state": "PENDING_ACTIONS_MIRROR",
+        "destinationTag": "ghcr.io/appolon1908-hue/codestra-middleware-legacy:codestra-srl-webphone-session-issuer-48dbb4201b4c",
+        "destinationDigestReference": "ghcr.io/appolon1908-hue/codestra-middleware-legacy@sha256:48dbb4201b4cf8abee1600936a84da52a92969ab124fb44a0007059e75d57e85",
+        "evidenceWorkflow": ".github/workflows/mirror-codestra-legacy-middleware-images.yml"
+      }
+    },
+    {
+      "id": "codestra-staging-callback",
+      "authority": "Codestra-SRL",
+      "role": "rollback-only",
+      "environment": "staging",
+      "sourceRevision": "f1c07e0-reprofix2",
+      "sourceStatus": "INVALID_REVISION_METADATA",
+      "runtimeReference": "codestra/middleware:current-hardened-20260723",
+      "digest": "sha256:57a4a3a22278aa61bc443910927a308d594db287b8e2cd500ee12293e8a93f4d",
+      "digestKind": "docker-image-id",
+      "workloads": [
+        "codestra-middleware-staging-callback-staging-1"
+      ],
+      "configurationAuthority": "/opt/codestra/middleware-staging/compose.yaml",
+      "convergenceDisposition": "replace-by-canonical-signed-webhook-intake-in-isolated-staging",
+      "backup": {
+        "method": "server-a-archive-and-config-digest-mirror",
+        "state": "PENDING_SERVER_A_ACCESS",
+        "destinationTag": "ghcr.io/appolon1908-hue/codestra-middleware-legacy:server-a-codestra-staging-callback-57a4a3a22278",
+        "evidenceCommand": "scripts/server-a-backup-legacy-middleware-images.sh",
+        "verification": "destination OCI config digest must equal the recorded Docker image ID"
+      }
+    },
+    {
+      "id": "codestra-staging-core",
+      "authority": "Codestra-SRL",
+      "role": "rollback-only",
+      "environment": "staging",
+      "sourceSha": "b29db772ed82c0d2f1adfdb8e6da58d4baa77524",
+      "runtimeReference": "codestra/middleware:staging-b29db772",
+      "digest": "sha256:b81c125296effc17a33258212d9a71a3c427a972fa9783ec2c060109d167408f",
+      "digestKind": "docker-image-id",
+      "workloads": [
+        "codestra-middleware-staging-middleware-staging-1",
+        "codestra-middleware-staging-odoo-result-worker-staging-1"
+      ],
+      "configurationAuthority": "/opt/codestra/middleware-staging/compose.yaml",
+      "convergenceDisposition": "replace-by-current-canonical-staging-profile-after-restore-and-migration-rehearsal",
+      "backup": {
+        "method": "server-a-archive-and-config-digest-mirror",
+        "state": "PENDING_SERVER_A_ACCESS",
+        "destinationTag": "ghcr.io/appolon1908-hue/codestra-middleware-legacy:server-a-codestra-staging-core-b81c125296ef",
+        "evidenceCommand": "scripts/server-a-backup-legacy-middleware-images.sh",
+        "verification": "destination OCI config digest must equal the recorded Docker image ID"
+      }
+    },
+    {
+      "id": "legacy-staging-appolon-attributed-workers",
+      "authority": "unreconciled-historical",
+      "role": "rollback-only",
+      "environment": "staging",
+      "sourceStatus": "UNESTABLISHED",
+      "runtimeReference": "codestra/middleware:staging-preflight-n8n-auth-20260801",
+      "digest": "sha256:ed7accf6d1f9ad7d84f43deba8caa0d58f8c40709c7b54d622d70df56b1f2386",
+      "digestKind": "docker-image-id",
+      "workloads": [
+        "codestra-middleware-staging-notification-worker-staging-1",
+        "codestra-middleware-staging-scheduler-staging-1"
+      ],
+      "configurationAuthority": "/opt/codestra/middleware-staging/compose.yaml",
+      "convergenceDisposition": "archive-and-replace-source-identity-is-not-valid-forward-authority",
+      "backup": {
+        "method": "server-a-archive-and-config-digest-mirror",
+        "state": "PENDING_SERVER_A_ACCESS",
+        "destinationTag": "ghcr.io/appolon1908-hue/codestra-middleware-legacy:server-a-legacy-staging-appolon-attributed-workers-ed7accf6d1f9",
+        "evidenceCommand": "scripts/server-a-backup-legacy-middleware-images.sh",
+        "verification": "destination OCI config digest must equal the recorded Docker image ID"
+      }
+    },
+    {
+      "id": "codestra-staging-scraper-canary",
+      "authority": "Codestra-SRL",
+      "role": "rollback-only",
+      "environment": "staging",
+      "sourceSha": "4780bd72d1c574af4aed62d374ec50b208e8ea4c",
+      "runtimeReference": "codestra/middleware:scraper-protected-main-4780bd72",
+      "digest": "sha256:dc97c48f3a29690635bf28de9f3d2562fac2dadb74b8744ea6e99c1bd4ffcda1",
+      "digestKind": "docker-image-id",
+      "workloads": [
+        "codestra-middleware-staging-scraper-odoo-delivery-worker-1"
+      ],
+      "configurationAuthority": "/opt/codestra/middleware-staging/compose.scraper-canary.yaml",
+      "convergenceDisposition": "replace-by-canonical-kyqra-staging-contract-canary",
+      "backup": {
+        "method": "server-a-archive-and-config-digest-mirror",
+        "state": "PENDING_SERVER_A_ACCESS",
+        "destinationTag": "ghcr.io/appolon1908-hue/codestra-middleware-legacy:server-a-codestra-staging-scraper-canary-dc97c48f3a29",
+        "evidenceCommand": "scripts/server-a-backup-legacy-middleware-images.sh",
+        "verification": "destination OCI config digest must equal the recorded Docker image ID"
+      }
+    },
+    {
+      "id": "codestra-staging-social-workers",
+      "authority": "Codestra-SRL",
+      "role": "rollback-only",
+      "environment": "staging",
+      "sourceStatus": "UNESTABLISHED",
+      "runtimeReference": "codestra/middleware:social-staging-12cd5fc",
+      "digest": "sha256:8e4a1afa8ca70a6c9136530074f6f8f1257e9f9a895f705fa50acb6f64b18fe6",
+      "digestKind": "docker-image-id",
+      "workloads": [
+        "codestra-middleware-staging-social-dead-letter-worker-staging-1",
+        "codestra-middleware-staging-social-delivery-worker-staging-1",
+        "codestra-middleware-staging-social-reconciliation-worker-staging-1"
+      ],
+      "configurationAuthority": "/opt/codestra/middleware-staging/compose.yaml",
+      "convergenceDisposition": "replace-by-canonical-postly-temporal-staging-workers-after-dead-letter-replay-proof",
+      "backup": {
+        "method": "server-a-archive-and-config-digest-mirror",
+        "state": "PENDING_SERVER_A_ACCESS",
+        "destinationTag": "ghcr.io/appolon1908-hue/codestra-middleware-legacy:server-a-codestra-staging-social-workers-8e4a1afa8ca7",
+        "evidenceCommand": "scripts/server-a-backup-legacy-middleware-images.sh",
+        "verification": "destination OCI config digest must equal the recorded Docker image ID"
+      }
+    }
+  ],
+  "convergencePolicy": {
+    "singleForwardRepository": "ingtrader21-spec/Middleware-",
+    "singleForwardImageRepository": "ghcr.io/ingtrader21-spec/codestra-middleware",
+    "legacyBackupImageRepository": "ghcr.io/appolon1908-hue/codestra-middleware-legacy",
+    "blindWholeFleetReplacementAllowed": false,
+    "legacyNewBuildsAllowed": false,
+    "legacyRuntimeExpansionAllowed": false,
+    "legacyImagesMustRemainAvailableForRollback": true,
+    "canonicalPromotionRequires": [
+      "protected merge and exact-head required CI",
+      "signed release manifest bound to the exact protected-main SHA",
+      "exact immutable image digest read-back",
+      "database and queue backup plus isolated restore",
+      "schema compatibility and migration rehearsal",
+      "read-only canary with all business effects disabled",
+      "per-route and per-worker contract parity",
+      "queue drain or replay-safe handoff",
+      "health, readiness, source, digest, schema, profile, and capability read-back",
+      "rollback rehearsal to every retained legacy image family",
+      "zero live-effect counter movement"
+    ],
+    "retirementOrder": [
+      "replace the stale appolon API with the current signed appolon read-only canary",
+      "move read-only route authority to the certified appolon API",
+      "retire duplicate legacy API containers only after rollback proof",
+      "migrate legacy workers one family at a time after compatibility certification",
+      "retain Codestra-SRL source and image backups through the retention window"
+    ]
+  },
+  "excludedRuntimeObjects": [
+    {
+      "name": "codestra-mw-cert-candidate",
+      "reason": "rehearsal-only certification object; not a forward runtime authority",
+      "reference": "ghcr.io/codestra-srl/codestra-middleware@sha256:ec2cf4ca73ff072fbdd48bda108a60f103526cb3e97a721abdf38435b010908b"
+    },
+    {
+      "name": "middleware PostgreSQL and Redis containers",
+      "reason": "shared infrastructure dependencies, not middleware source/image authorities"
+    }
+  ],
+  "safetyBoundary": {
+    "deploymentAuthorizedByThisDocument": false,
+    "serverMutationAuthorizedByThisDocument": false,
+    "trafficCutoverAuthorizedByThisDocument": false,
+    "legacyDeletionAuthorizedByThisDocument": false,
+    "externalEffectsAuthorizedByThisDocument": false,
+    "liveWritesEnabled": false,
+    "odooWritesEnabled": false,
+    "n8nDeliveryEnabled": false,
+    "emailDeliveryEnabled": false,
+    "smsDeliveryEnabled": false,
+    "socialPublishingEnabled": false,
+    "externalModelCallsEnabled": false,
+    "pstnDialingEnabled": false,
+    "callsPlacedExpected": 0
+  }
+}

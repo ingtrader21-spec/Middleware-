@@ -1,0 +1,180 @@
+{
+  "schemaVersion": 1,
+  "upstreamContract": {
+    "repository": "appolon1908-hue/Keycloak",
+    "path": "config/contracts/webhook-contracts.json",
+    "reviewBranch": "feat/service-api-webhook-identity-contracts",
+    "reviewSha": "187d058423dc7703deee9132f4a750222b3d974b"
+  },
+  "lifecycleContract": {
+    "repository": "appolon1908-hue/Keycloak",
+    "path": "config/contracts/webhook-contracts.json",
+    "protectedBranch": "main",
+    "mergeSha": "922d039b5143f3ac738e88998036355562a8dd5d"
+  },
+  "issuer": "https://auth.codestra.co/realms/codestra",
+  "consumerClientId": "middleware-api",
+  "consumerBaseUrlEnvironment": "MIDDLEWARE_API_BASE_URL",
+  "eventEnvelopeSchema": "contracts/platform/event-envelope.v1.schema.json",
+  "security": {
+    "authorization": "oidc_bearer",
+    "signatureAlgorithm": "hmac-sha256",
+    "signatureVersion": "v1",
+    "maximumClockSkewSeconds": 300,
+    "replayRetentionSeconds": 86400,
+    "canonicalSignatureFields": [
+      "version",
+      "method",
+      "path",
+      "timestamp",
+      "eventId",
+      "sourceClientId",
+      "bodySha256"
+    ],
+    "requiredHeaders": [
+      "Authorization",
+      "Content-Type",
+      "Idempotency-Key",
+      "X-Codestra-Event-Id",
+      "X-Codestra-Event-Type",
+      "X-Codestra-Source",
+      "X-Codestra-Tenant-Id",
+      "X-Codestra-Timestamp",
+      "X-Codestra-Signature",
+      "X-Correlation-Id"
+    ],
+    "contentType": "application/json",
+    "signatureHeaderFormat": "sha256=<lowercase-hex>",
+    "idempotencyKeySource": "X-Codestra-Event-Id"
+  },
+  "webhooks": [
+    {
+      "id": "odoo-events-to-middleware",
+      "producerClientId": "odoo-integration",
+      "consumerClientId": "middleware-api",
+      "audience": "middleware-api",
+      "requiredScope": "odoo.events.publish",
+      "path": "/api/v1/odoo/events",
+      "eventTypes": [
+        "codestra.odoo.activity.completed",
+        "codestra.odoo.lead.created",
+        "codestra.odoo.lead.updated"
+      ],
+      "delivery": "at_least_once"
+    },
+    {
+      "id": "n8n-results-to-middleware",
+      "producerClientId": "n8n-automation",
+      "consumerClientId": "middleware-api",
+      "audience": "middleware-api",
+      "requiredScope": "workflow.result.publish",
+      "path": "/api/v1/n8n/results",
+      "eventTypes": [
+        "codestra.n8n.workflow.completed",
+        "codestra.n8n.workflow.failed"
+      ],
+      "delivery": "at_least_once"
+    },
+    {
+      "id": "vicidial-events-to-middleware",
+      "producerClientId": "vicidial-adapter",
+      "consumerClientId": "middleware-api",
+      "audience": "middleware-api",
+      "requiredScope": "telephony.events.publish",
+      "path": "/api/v1/vicidial/events",
+      "eventTypes": [
+        "codestra.events.call_disposition_updated",
+        "codestra.vicidial.call.completed",
+        "codestra.vicidial.call.lifecycle.answered",
+        "codestra.vicidial.call.lifecycle.completed",
+        "codestra.vicidial.call.lifecycle.connected",
+        "codestra.vicidial.call.lifecycle.created",
+        "codestra.vicidial.call.lifecycle.failed",
+        "codestra.vicidial.call.lifecycle.hangup",
+        "codestra.vicidial.call.lifecycle.held",
+        "codestra.vicidial.call.lifecycle.missed",
+        "codestra.vicidial.call.lifecycle.offered",
+        "codestra.vicidial.call.lifecycle.resumed",
+        "codestra.vicidial.call.lifecycle.ringing",
+        "codestra.vicidial.call.lifecycle.transfer.completed",
+        "codestra.vicidial.call.lifecycle.transfer.started",
+        "codestra.vicidial.call.started",
+        "codestra.vicidial.callback.requested"
+      ],
+      "delivery": "at_least_once"
+    },
+    {
+      "id": "telnexa-events-to-middleware",
+      "producerClientId": "telnexa-gateway",
+      "consumerClientId": "middleware-api",
+      "audience": "middleware-api",
+      "requiredScope": "sms.events.publish",
+      "path": "/api/v1/telnexa/events",
+      "eventTypes": [
+        "codestra.events.sms_received",
+        "codestra.sms.help_requested",
+        "codestra.sms.inbound.received",
+        "codestra.sms.message.delivered",
+        "codestra.sms.message.failed",
+        "codestra.sms.recipient.opted_out"
+      ],
+      "delivery": "at_least_once"
+    },
+    {
+      "id": "klyrow-events-to-middleware",
+      "producerClientId": "klyrow-gateway",
+      "consumerClientId": "middleware-api",
+      "audience": "middleware-api",
+      "requiredScope": "email.events.publish",
+      "path": "/api/v1/klyrow/events",
+      "eventTypes": [
+        "codestra.email.message.bounced",
+        "codestra.email.message.complained",
+        "codestra.email.message.delivered",
+        "codestra.email.message.inbound",
+        "codestra.email.message.unsubscribed"
+      ],
+      "delivery": "at_least_once"
+    },
+    {
+      "id": "kyqra-results-to-middleware",
+      "producerClientId": "kyqra-gateway",
+      "consumerClientId": "middleware-api",
+      "audience": "middleware-api",
+      "requiredScope": "crawler.results.publish",
+      "path": "/api/v1/kyqra/results",
+      "eventTypes": [
+        "codestra.crawler.job.completed",
+        "codestra.crawler.result.available",
+        "codestra.crawler.result.review_required"
+      ],
+      "delivery": "at_least_once"
+    },
+    {
+      "id": "kyqra-progress-to-middleware",
+      "producerClientId": "kyqra-gateway",
+      "consumerClientId": "middleware-api",
+      "audience": "middleware-api",
+      "requiredScope": "crawler.progress.publish",
+      "path": "/api/v1/kyqra/progress",
+      "eventTypes": [
+        "codestra.crawler.job.failed",
+        "codestra.crawler.job.progress"
+      ],
+      "delivery": "at_least_once"
+    },
+    {
+      "id": "postly-events-to-middleware",
+      "producerClientId": "postly-adapter",
+      "consumerClientId": "middleware-api",
+      "audience": "middleware-api",
+      "requiredScope": "social.events.publish",
+      "path": "/api/v1/postly/events",
+      "eventTypes": [
+        "codestra.social.post.failed",
+        "codestra.social.post.published"
+      ],
+      "delivery": "at_least_once"
+    }
+  ]
+}

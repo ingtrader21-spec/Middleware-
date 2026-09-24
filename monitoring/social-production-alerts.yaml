@@ -1,0 +1,97 @@
+groups:
+  - name: codestra-social-production-canary
+    rules:
+      - alert: CodestraSocialProviderUnavailable
+        expr: increase(social_provider_errors_total[10m]) > 0
+        for: 5m
+        labels: {severity: critical, service: middleware, component: social}
+        annotations: {summary: "Social provider unavailable", runbook_url: "https://monitoring.codestra.co/runbooks/social-production"}
+      - alert: CodestraSocialProviderAuthenticationFailure
+        expr: increase(social_provider_errors_total{result="SOCIAL_PROVIDER_AUTH_FAILED"}[5m]) > 0
+        labels: {severity: critical, service: middleware, component: social}
+        annotations: {summary: "Social provider authentication failed", runbook_url: "https://monitoring.codestra.co/runbooks/social-production"}
+      - alert: CodestraSocialQueueDepthHigh
+        expr: social_queue_depth > 25
+        for: 10m
+        labels: {severity: warning, service: middleware, component: social}
+        annotations: {summary: "Social queue depth is high", runbook_url: "https://monitoring.codestra.co/runbooks/social-production"}
+      - alert: CodestraSocialWorkerDown
+        expr: absent(up{job="social-worker"})
+        for: 5m
+        labels: {severity: critical, service: middleware, component: social}
+        annotations: {summary: "Social worker is down", runbook_url: "https://monitoring.codestra.co/runbooks/social-production"}
+      - alert: CodestraSocialDeadLetterIncrease
+        expr: increase(social_jobs_deadletter_total[10m]) > 0
+        labels: {severity: critical, service: middleware, component: social}
+        annotations: {summary: "Social dead letters increased", runbook_url: "https://monitoring.codestra.co/runbooks/social-production"}
+      - alert: CodestraSocialWebhookRejectionSpike
+        expr: increase(social_webhooks_rejected_total[10m]) > 5
+        labels: {severity: warning, service: middleware, component: social}
+        annotations: {summary: "Social webhook rejections spiked", runbook_url: "https://monitoring.codestra.co/runbooks/social-production"}
+      - alert: CodestraSocialDuplicateProtectionViolation
+        expr: increase(social_duplicate_prevention_total[5m]) > 0
+        labels: {severity: critical, service: middleware, component: social}
+        annotations: {summary: "Duplicate social operation was prevented", runbook_url: "https://monitoring.codestra.co/runbooks/social-production"}
+      - alert: CodestraSocialUnknownProviderResult
+        expr: increase(social_unknown_result_total[5m]) > 0
+        labels: {severity: critical, service: middleware, component: social}
+        annotations: {summary: "Social provider result is unknown", runbook_url: "https://monitoring.codestra.co/runbooks/social-production"}
+      - alert: CodestraSocialPostgreSQLUnavailable
+        expr: absent(up{job="postgresql"})
+        for: 2m
+        labels: {severity: critical, service: middleware, component: social}
+        annotations: {summary: "Social authoritative PostgreSQL is unavailable", runbook_url: "https://monitoring.codestra.co/runbooks/social-production"}
+      - alert: CodestraSocialRedisUnavailable
+        expr: absent(up{job="redis"})
+        for: 2m
+        labels: {severity: warning, service: middleware, component: social}
+        annotations: {summary: "Social Redis signaling is unavailable", runbook_url: "https://monitoring.codestra.co/runbooks/social-production"}
+      - alert: CodestraSocialN8nDeliveryBacklog
+        expr: codestra_delivery_queue_depth{target="n8n",status="pending"} > 25
+        for: 10m
+        labels: {severity: warning, service: middleware, component: social}
+        annotations: {summary: "Social n8n delivery backlog is high", runbook_url: "https://monitoring.codestra.co/runbooks/social-production"}
+      - alert: CodestraSocialProductionAccountDisconnected
+        expr: social_production_account_connected == 0
+        for: 2m
+        labels: {severity: critical, service: middleware, component: social}
+        annotations: {summary: "Production canary account disconnected", runbook_url: "https://monitoring.codestra.co/runbooks/social-production"}
+      - alert: CodestraSocialProductionPublishFailure
+        expr: increase(social_production_publish_failures_total[10m]) > 0
+        labels: {severity: critical, service: middleware, component: social}
+        annotations: {summary: "Production canary publish failed", runbook_url: "https://monitoring.codestra.co/runbooks/social-production"}
+      - alert: CodestraSocialProviderFailoverAttempt
+        expr: increase(social_provider_failover_attempt_total[5m]) > 0
+        labels: {severity: critical, service: middleware, component: social}
+        annotations: {summary: "Forbidden provider failover attempted", runbook_url: "https://monitoring.codestra.co/runbooks/social-production"}
+      - alert: CodestraSocialDualPublishAttempt
+        expr: increase(social_dual_publish_attempt_total[5m]) > 0
+        labels: {severity: critical, service: middleware, component: social}
+        annotations: {summary: "Forbidden dual publish attempted", runbook_url: "https://monitoring.codestra.co/runbooks/social-production"}
+      - alert: CodestraPostlyPollingDown
+        expr: absent(increase(social_poll_cycles_total[5m]))
+        for: 5m
+        labels: {severity: warning, service: middleware, component: social-polling}
+        annotations: {summary: "Postly polling has stopped", runbook_url: "https://monitoring.codestra.co/runbooks/social-production"}
+      - alert: CodestraPostlyPollAuthFailure
+        expr: increase(social_poll_failures_total{reason="authentication"}[5m]) > 0
+        labels: {severity: critical, service: middleware, component: social-polling}
+        annotations: {summary: "Postly polling authentication failed", runbook_url: "https://monitoring.codestra.co/runbooks/social-production"}
+      - alert: CodestraPostlyPollCheckpointStalled
+        expr: increase(social_poll_cycles_total{result="success"}[15m]) == 0
+        for: 15m
+        labels: {severity: warning, service: middleware, component: social-polling}
+        annotations: {summary: "Postly polling checkpoint is stalled", runbook_url: "https://monitoring.codestra.co/runbooks/social-production"}
+      - alert: CodestraSocialN8nDeliveryFailureRate
+        expr: rate(social_n8n_delivery_failure_total[10m]) > 0.05
+        for: 10m
+        labels: {severity: critical, service: middleware, component: social-n8n}
+        annotations: {summary: "Social n8n delivery failure rate is elevated", runbook_url: "https://monitoring.codestra.co/runbooks/social-production"}
+      - alert: CodestraSocialN8nDeadLetterCreated
+        expr: increase(social_n8n_delivery_deadletter_total[5m]) > 0
+        labels: {severity: critical, service: middleware, component: social-n8n}
+        annotations: {summary: "Social n8n delivery was dead-lettered", runbook_url: "https://monitoring.codestra.co/runbooks/social-production"}
+      - alert: CodestraSocialN8nCallbackAuthFailure
+        expr: increase(social_n8n_callback_rejections_total[5m]) > 0
+        labels: {severity: critical, service: middleware, component: social-n8n}
+        annotations: {summary: "Social n8n callback authentication failed", runbook_url: "https://monitoring.codestra.co/runbooks/social-production"}

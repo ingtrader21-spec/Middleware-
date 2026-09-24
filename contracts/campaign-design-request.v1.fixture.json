@@ -1,0 +1,66 @@
+{
+  "business_unit": "TEST",
+  "campaign_code": "TEST-E2E-OUT",
+  "correlation_id": "00000000-0000-4000-8000-000000000103",
+  "design_configuration": {
+    "callback_rule": false,
+    "calling_hour_end": 17,
+    "calling_hour_start": 9,
+    "campaign_type": "sales",
+    "consent_required": true,
+    "dialer_mode": "manual",
+    "dnc_enforced": true,
+    "escalation_rule": false,
+    "inputs": {
+      "activation_policy": "manual_authorized",
+      "agent_roles": [
+        "SDR"
+      ],
+      "appointment_policy": "manual",
+      "callback_policy": "manual",
+      "default_language": "en",
+      "default_lead_source_policy": "manual",
+      "disposition_family": "STANDARD",
+      "n8n_automation_template": "INACTIVE_DEFAULT",
+      "recording_policy": "disabled",
+      "reporting_category": "GENERAL",
+      "script_template": "STANDARD_V1",
+      "transfer_roles": [
+        "CLOSERS"
+      ]
+    },
+    "lead_source_id": null,
+    "max_call_attempts": 3,
+    "max_retries": 1,
+    "routing_strategy": "round_robin",
+    "supervisor_ids": [
+      9102
+    ],
+    "team_ids": [
+      9101
+    ],
+    "time_zone": "America/Santo_Domingo"
+  },
+  "design_request_revision": 1,
+  "direction": "outbound",
+  "environment": "staging",
+  "event_id": "00000000-0000-4000-8000-000000000101",
+  "expected_campaign_code": "TEST-E2E-OUT",
+  "feature_flags": {
+    "agent_sync": false,
+    "lead_publication": false,
+    "live_call_control": false,
+    "production_dialing": false
+  },
+  "integration_uuid": "00000000-0000-4000-8000-000000000102",
+  "odoo_campaign_id": 910001,
+  "owner_user_id": 9101,
+  "purpose": "E2E",
+  "schema_version": "campaign-provisioning.v1",
+  "supervisor_user_id": 9102,
+  "validation": {
+    "errors": [],
+    "status": "READY"
+  },
+  "tenant_id": "campaign-design-test"
+}

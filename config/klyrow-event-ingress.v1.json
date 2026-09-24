@@ -1,0 +1,53 @@
+{
+  "schema_version": "1.0",
+  "source": "klyrow",
+  "caller_identity": "klyrow-gateway",
+  "route": "POST /api/v1/events/klyrow",
+  "enabled_by_default": false,
+  "feature_flag": "KLYROW_EVENT_INGRESS_ENABLED",
+  "projection_flag": "KLYROW_ODOO_PROJECTION_ENABLED",
+  "projection_enabled_by_default": false,
+  "authentication": {
+    "bearer_secret": "KLYROW_EVENT_API_KEY_FILE",
+    "hmac_secret": "KLYROW_EVENT_HMAC_SECRET_FILE",
+    "algorithm": "HMAC-SHA256",
+    "canonical_request": "timestamp\\nevent_id\\nklyrow\\nraw_json",
+    "timestamp_ttl_seconds_default": 300,
+    "required_headers": [
+      "Authorization",
+      "X-Event-Id",
+      "X-Timestamp",
+      "X-Signature",
+      "Idempotency-Key",
+      "X-Correlation-Id"
+    ]
+  },
+  "durability": {
+    "inbox": "middleware_inbox",
+    "evidence": "middleware_event_ledger",
+    "projection_commands": "middleware_outbox",
+    "projection_destination": "odoo-klyrow-projection-v1",
+    "ack_after_commit": true,
+    "duplicate_identity": ["source", "event_id"],
+    "same_payload_result": "202 ACCEPTED; missing projection intent is repaired from the persisted inbox payload",
+    "different_payload_result": "409 conflict"
+  },
+  "event_types": [
+    "klyrow.tenant.created",
+    "klyrow.tenant.updated",
+    "klyrow.subscription.changed",
+    "klyrow.usage.daily",
+    "klyrow.kpi.daily",
+    "klyrow.campaign.summary",
+    "klyrow.domain.status",
+    "klyrow.provider.health",
+    "klyrow.account.held",
+    "klyrow.account.released"
+  ],
+  "production": {
+    "authorized": false,
+    "lock_decision": "NO_GO",
+    "live_effects_enabled": false,
+    "odoo_write_enabled": false
+  }
+}

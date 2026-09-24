@@ -1,0 +1,30 @@
+{
+  "mission": "PAS-102 Middleware DB Postman staging certification",
+  "repository": "ingtrader21-spec/Middleware-",
+  "base_sha": "2862af0aa97367b18cb360af69212abe4243a1ac",
+  "expected_alembic_head": "0067_service_catalog_monitoring_state",
+  "openapi": "contracts/platform/middleware-openapi.generated.json",
+  "generated_collection": "postman/generated/Middleware-OpenAPI.postman_collection.json",
+  "database_collection": "postman/collections/Middleware-V3-Database-Certification.postman_collection.json",
+  "environments": {
+    "local": "postman/environments/Middleware-V3-DB-Local.postman_environment.json",
+    "staging": "postman/environments/Middleware-V3-DB-Staging.postman_environment.json",
+    "production_safe": "postman/environments/Middleware-V3-DB-Production-Safe.postman_environment.json"
+  },
+  "production_defaults": {
+    "allow_database_mutations": false,
+    "provider_effects": 0,
+    "production_effects": 0,
+    "production_go": "NO"
+  },
+  "status": "UNVERIFIED",
+  "required_runtime_evidence": [
+    "exact source SHA",
+    "Alembic head 0067",
+    "TLS verify-full",
+    "backup verified",
+    "isolated restore verified",
+    "public /internal/v1/database/* denied",
+    "raw SQL HTTP endpoints absent"
+  ]
+}

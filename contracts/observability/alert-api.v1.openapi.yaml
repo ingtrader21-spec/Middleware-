@@ -1,0 +1,525 @@
+openapi: 3.1.0
+info:
+  title: Codestra Middleware Observability Alert API
+  version: 1.0.0
+  description: >-
+    Fixed-recipient, durable Alertmanager ingress. The complete group is
+    validated before each alert transition is submitted under its own stable
+    identity. The API does not expose arbitrary SMTP.
+servers:
+  - url: https://middleware-observability-alerts.internal.codestra.co
+paths:
+  /internal/v1/alerts/alertmanager:
+    post:
+      operationId: submitCanonicalAlertmanagerEvent
+      summary: Persist Alertmanager transitions as durable operations
+      security: [{bearerAuth: []}]
+      parameters:
+        - {$ref: '#/components/parameters/NativeWebhook'}
+        - {$ref: '#/components/parameters/TenantId'}
+        - {$ref: '#/components/parameters/WebhookCorrelationId'}
+        - {$ref: '#/components/parameters/WebhookIdempotencyKey'}
+        - {$ref: '#/components/parameters/SourceDeployment'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - {$ref: '#/components/schemas/AlertmanagerWebhook'}
+                - {$ref: '#/components/schemas/NativeAlertmanagerWebhook'}
+      responses:
+        '202': {description: New durable operations were accepted}
+        '200': {description: Exact idempotent replay}
+        '207': {description: Native batch accepted with explicit per-alert failures}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '409': {$ref: '#/components/responses/Problem'}
+        '503': {$ref: '#/components/responses/Problem'}
+  /v1/integrations/alertmanager/events:
+    post:
+      operationId: ingestAlertmanagerEvent
+      summary: Persist Alertmanager transitions as durable operations
+      security: [{bearerAuth: []}]
+      parameters:
+        - {$ref: '#/components/parameters/NativeWebhook'}
+        - {$ref: '#/components/parameters/TenantId'}
+        - {$ref: '#/components/parameters/WebhookCorrelationId'}
+        - {$ref: '#/components/parameters/WebhookIdempotencyKey'}
+        - {$ref: '#/components/parameters/SourceDeployment'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - {$ref: '#/components/schemas/AlertmanagerWebhook'}
+                - {$ref: '#/components/schemas/NativeAlertmanagerWebhook'}
+      responses:
+        '202': {description: New durable operations were accepted}
+        '200': {description: Exact idempotent replay}
+        '207': {description: Native batch accepted with explicit per-alert failures}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '409': {$ref: '#/components/responses/Problem'}
+        '503': {$ref: '#/components/responses/Problem'}
+  /v1/integrations/alertmanager/status-events:
+    post:
+      operationId: reconcileAlertmanagerStatus
+      summary: Persist authenticated Alertmanager v2 suppression state
+      security: [{bearerAuth: []}]
+      parameters:
+        - {$ref: '#/components/parameters/TenantId'}
+        - {$ref: '#/components/parameters/CorrelationId'}
+        - {$ref: '#/components/parameters/IdempotencyKey'}
+        - {$ref: '#/components/parameters/SourceDeployment'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/AlertmanagerStatusSnapshot'}
+      responses:
+        '200': {description: Status transitions were persisted idempotently}
+        '207': {description: Per-item results for a partially applied status snapshot}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '409': {$ref: '#/components/responses/Problem'}
+  /health:
+    get:
+      operationId: healthObservabilityAlerts
+      security: []
+      responses:
+        '200': {description: Process health}
+    head:
+      operationId: headHealthObservabilityAlerts
+      security: []
+      responses:
+        '200': {description: Process health}
+  /readiness:
+    get:
+      operationId: readinessObservabilityAlerts
+      security: []
+      responses:
+        '200': {description: Durable dependencies ready}
+        '503': {$ref: '#/components/responses/Problem'}
+  /platform/v1/health:
+    get:
+      operationId: platformHealthObservabilityAlerts
+      security: []
+      responses:
+        '200': {description: Process health}
+    head:
+      operationId: platformHeadHealthObservabilityAlerts
+      security: []
+      responses:
+        '200': {description: Process health}
+  /platform/v1/readiness:
+    get:
+      operationId: platformReadinessObservabilityAlerts
+      security: []
+      responses:
+        '200': {description: Durable dependencies ready}
+        '503': {$ref: '#/components/responses/Problem'}
+  /version:
+    get:
+      operationId: versionObservabilityAlerts
+      security: []
+      responses:
+        '200': {description: Immutable release identity}
+  /capabilities:
+    get:
+      operationId: capabilitiesObservabilityAlerts
+      security: []
+      responses:
+        '200': {description: Non-secret effective alert policy}
+  /metrics:
+    get:
+      operationId: metricsObservabilityAlerts
+      security: []
+      responses:
+        '200': {description: Bounded Prometheus metrics}
+  /v1/observability/alerts:
+    post:
+      operationId: submitObservabilityAlert
+      deprecated: true
+      summary: Persist one Alertmanager transition as one durable command
+      security: [{bearerAuth: []}]
+      parameters:
+        - {$ref: '#/components/parameters/NativeWebhook'}
+        - {$ref: '#/components/parameters/TenantId'}
+        - {$ref: '#/components/parameters/WebhookCorrelationId'}
+        - {$ref: '#/components/parameters/WebhookIdempotencyKey'}
+        - {$ref: '#/components/parameters/SourceDeployment'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - {$ref: '#/components/schemas/AlertmanagerWebhook'}
+                - {$ref: '#/components/schemas/NativeAlertmanagerWebhook'}
+      responses:
+        '202': {description: A new durable operation was accepted}
+        '200': {description: Exact idempotent replay}
+        '207': {description: Native batch accepted with explicit per-alert failures}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '409': {$ref: '#/components/responses/Problem'}
+        '503': {$ref: '#/components/responses/Problem'}
+  /v1/observability/alerts/{operation_id}:
+    get:
+      operationId: getObservabilityAlert
+      security: [{bearerAuth: []}]
+      parameters:
+        - {$ref: '#/components/parameters/OperationId'}
+        - {$ref: '#/components/parameters/TenantId'}
+        - {$ref: '#/components/parameters/CorrelationId'}
+      responses:
+        '200': {description: Durable operation state}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+  /v1/observability/alerts/{operation_id}/events:
+    get:
+      operationId: listObservabilityAlertEvents
+      security: [{bearerAuth: []}]
+      parameters:
+        - {$ref: '#/components/parameters/OperationId'}
+        - {$ref: '#/components/parameters/TenantId'}
+        - {$ref: '#/components/parameters/CorrelationId'}
+      responses:
+        '200': {description: Append-only operation events}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+  /v1/observability/incidents:
+    get:
+      operationId: listObservabilityIncidents
+      summary: List tenant-scoped incidents with bounded keyset pagination
+      security: [{bearerAuth: []}]
+      parameters:
+        - {$ref: '#/components/parameters/TenantId'}
+        - {$ref: '#/components/parameters/CorrelationId'}
+        - {name: state, in: query, schema: {$ref: '#/components/schemas/IncidentState'}}
+        - {name: severity, in: query, schema: {type: string, minLength: 1, maxLength: 64}}
+        - {name: service, in: query, schema: {type: string, minLength: 1, maxLength: 128}}
+        - {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 50}}
+        - {name: cursor, in: query, schema: {type: string, maxLength: 512}}
+      responses:
+        '200': {description: Bounded incident page}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+  /v1/observability/incidents/{incident_id}:
+    get:
+      operationId: getObservabilityIncident
+      security: [{bearerAuth: []}]
+      parameters:
+        - {$ref: '#/components/parameters/IncidentId'}
+        - {$ref: '#/components/parameters/TenantId'}
+        - {$ref: '#/components/parameters/CorrelationId'}
+      responses:
+        '200': {description: Incident projection}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+  /v1/observability/incidents/{incident_id}/timeline:
+    get:
+      operationId: listObservabilityIncidentTimeline
+      security: [{bearerAuth: []}]
+      parameters:
+        - {$ref: '#/components/parameters/IncidentId'}
+        - {$ref: '#/components/parameters/TenantId'}
+        - {$ref: '#/components/parameters/CorrelationId'}
+        - {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 100}}
+        - {name: after_event_id, in: query, schema: {type: integer, minimum: 1}}
+      responses:
+        '200': {description: Append-only incident timeline}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+  /v1/observability/incidents/{incident_id}/notification-attempts:
+    get:
+      operationId: listObservabilityNotificationAttempts
+      security: [{bearerAuth: []}]
+      parameters:
+        - {$ref: '#/components/parameters/IncidentId'}
+        - {$ref: '#/components/parameters/TenantId'}
+        - {$ref: '#/components/parameters/CorrelationId'}
+        - {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 100}}
+      responses:
+        '200': {description: Durable delivery attempts and reconciliation state}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+  /v1/observability/incidents/{incident_id}/acknowledge:
+    post:
+      operationId: acknowledgeObservabilityIncident
+      security: [{bearerAuth: []}]
+      parameters: &incidentMutationParameters
+        - {$ref: '#/components/parameters/IncidentId'}
+        - {$ref: '#/components/parameters/TenantId'}
+        - {$ref: '#/components/parameters/CorrelationId'}
+        - {$ref: '#/components/parameters/IdempotencyKey'}
+      requestBody: &incidentMutationBody
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/IncidentMutation'}
+      responses: &incidentMutationResponses
+        '200': {description: Idempotent incident transition}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+        '409': {$ref: '#/components/responses/Problem'}
+  /v1/observability/incidents/{incident_id}/resolve:
+    post:
+      operationId: resolveObservabilityIncident
+      security: [{bearerAuth: []}]
+      parameters: *incidentMutationParameters
+      requestBody: *incidentMutationBody
+      responses: *incidentMutationResponses
+  /v1/observability/incidents/{incident_id}/reopen:
+    post:
+      operationId: reopenObservabilityIncident
+      security: [{bearerAuth: []}]
+      parameters: *incidentMutationParameters
+      requestBody: *incidentMutationBody
+      responses: *incidentMutationResponses
+  /v1/observability/alert-delivery-events:
+    post:
+      operationId: acceptObservabilityAlertDeliveryEvent
+      summary: Durably ingest a Klyrow alert delivery event
+      security: [{bearerAuth: []}]
+      parameters:
+        - {$ref: '#/components/parameters/TenantId'}
+        - {$ref: '#/components/parameters/CorrelationId'}
+        - {$ref: '#/components/parameters/IdempotencyKey'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/AlertDeliveryEvent'}
+      responses:
+        '202': {description: New event accepted into the durable inbox}
+        '200': {description: Idempotent event replay}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '409': {$ref: '#/components/responses/Problem'}
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    NativeWebhook:
+      name: X-Alertmanager-Native-Webhook
+      in: header
+      required: false
+      description: >-
+        Explicit v4 compatibility mode for the authenticated alertmanager client.
+        Supports the six canonical middleware-* receivers, at most 100 alerts,
+        server-derived idempotency and correlation, and informational-to-info
+        normalization. Tenant, scope, source deployment, metadata and body limits
+        remain enforced. Truncated payloads are rejected.
+      schema: {type: string, enum: [v4]}
+    WebhookCorrelationId:
+      name: X-Correlation-ID
+      in: header
+      required: false
+      description: Required unless native v4 mode is selected; generated per attempt otherwise.
+      schema: {type: string, minLength: 1, maxLength: 180}
+    WebhookIdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      description: >-
+        Required unless native v4 mode is selected. An omitted native key is derived
+        from the validated sanitized payload, tenant and source deployment. Explicit
+        keys retain existing conflict checks; semantic transition identity is unchanged.
+      schema: {type: string, minLength: 8, maxLength: 180}
+    TenantId:
+      name: X-Tenant-ID
+      in: header
+      required: true
+      schema: {type: string, const: codestra-platform}
+    CorrelationId:
+      name: X-Correlation-ID
+      in: header
+      required: true
+      schema: {type: string, minLength: 1, maxLength: 180}
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: {type: string, minLength: 8, maxLength: 180}
+    SourceDeployment:
+      name: X-Source-Deployment
+      in: header
+      required: true
+      schema: {type: string, minLength: 3, maxLength: 128}
+    OperationId:
+      name: operation_id
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+    IncidentId:
+      name: incident_id
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+  responses:
+    Problem:
+      description: Fail-closed problem response
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Problem'}
+  schemas:
+    Problem:
+      type: object
+      additionalProperties: false
+      required: [code, message, correlation_id, retryable]
+      properties:
+        code: {type: string}
+        message: {type: string}
+        correlation_id: {type: string}
+        retryable: {type: boolean}
+    AlertmanagerWebhook:
+      type: object
+      additionalProperties: false
+      required:
+        - version
+        - groupKey
+        - truncatedAlerts
+        - status
+        - receiver
+        - groupLabels
+        - commonLabels
+        - commonAnnotations
+        - externalURL
+        - alerts
+      properties:
+        version: {const: '4'}
+        groupKey: {type: string, minLength: 1, maxLength: 2048}
+        truncatedAlerts: {type: integer, const: 0}
+        status: {enum: [firing, resolved]}
+        receiver: {type: string, const: codestra-observability-email}
+        groupLabels: {type: object, additionalProperties: {type: string}}
+        commonLabels: {type: object, additionalProperties: {type: string}}
+        commonAnnotations: {type: object, additionalProperties: {type: string}}
+        externalURL: {type: string, format: uri, maxLength: 2048}
+        alerts:
+          type: array
+          minItems: 1
+          maxItems: 1
+          items: {$ref: '#/components/schemas/Alert'}
+    NativeAlertmanagerWebhook:
+      type: object
+      additionalProperties: false
+      required:
+        - version
+        - groupKey
+        - truncatedAlerts
+        - status
+        - receiver
+        - groupLabels
+        - commonLabels
+        - commonAnnotations
+        - externalURL
+        - alerts
+      properties:
+        version: {const: '4'}
+        groupKey: {type: string, minLength: 1, maxLength: 2048}
+        truncatedAlerts: {type: integer, const: 0}
+        status: {enum: [firing, resolved]}
+        receiver:
+          enum:
+            - codestra-observability-email
+            - middleware-default
+            - middleware-heartbeat
+            - middleware-critical
+            - middleware-high
+            - middleware-warning
+            - middleware-informational
+        groupLabels: {type: object, additionalProperties: {type: string}}
+        commonLabels: {type: object, additionalProperties: {type: string}}
+        commonAnnotations: {type: object, additionalProperties: {type: string}}
+        externalURL: {type: string, format: uri, maxLength: 2048}
+        alerts:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items: {$ref: '#/components/schemas/Alert'}
+    AlertmanagerStatusSnapshot:
+      type: object
+      additionalProperties: false
+      required: [observedAt, sourceDeployment, items]
+      properties:
+        observedAt: {type: string, format: date-time}
+        sourceDeployment: {type: string, minLength: 3, maxLength: 128}
+        items:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            type: object
+            additionalProperties: false
+            required: [groupKey, fingerprint, startsAt, state, silencedBy, inhibitedBy]
+            properties:
+              groupKey: {type: string, minLength: 1, maxLength: 2048}
+              fingerprint: {type: string, minLength: 1, maxLength: 128}
+              startsAt: {type: string, format: date-time}
+              state: {$ref: '#/components/schemas/StatusState'}
+              silencedBy: {type: array, maxItems: 32, items: {type: string, maxLength: 128}}
+              inhibitedBy: {type: array, maxItems: 32, items: {type: string, maxLength: 128}}
+    IncidentState:
+      type: string
+      enum: [firing, acknowledged, resolved, inhibited, silenced]
+    StatusState:
+      type: string
+      enum: [firing, resolved, inhibited, silenced]
+    IncidentMutation:
+      type: object
+      additionalProperties: false
+      required: [expected_version, reason]
+      properties:
+        expected_version: {type: integer, minimum: 1}
+        reason: {type: string, minLength: 1, maxLength: 500}
+    Alert:
+      type: object
+      additionalProperties: false
+      required: [status, labels, annotations, startsAt, endsAt, generatorURL, fingerprint]
+      properties:
+        status: {enum: [firing, resolved]}
+        labels:
+          type: object
+          required: [alertname, severity, service, environment, host, codestra_business, owner]
+          additionalProperties: {type: string}
+        annotations:
+          type: object
+          required: [summary, description, runbook_url]
+          additionalProperties: {type: string}
+        startsAt: {type: string, format: date-time}
+        endsAt: {type: string, format: date-time}
+        generatorURL: {type: string, format: uri, maxLength: 2048}
+        fingerprint: {type: string, minLength: 1, maxLength: 128}
+    AlertDeliveryEvent:
+      type: object
+      additionalProperties: false
+      required: [event_id, operation_id, status, occurred_at]
+      properties:
+        event_id: {type: string, minLength: 8, maxLength: 128}
+        operation_id: {type: string, format: uuid}
+        status: {enum: [accepted, queued, sent, delivered, failed, indeterminate]}
+        provider_message_id: {type: [string, 'null'], maxLength: 256}
+        occurred_at: {type: string, format: date-time}
+        safe_metadata:
+          type: object
+          maxProperties: 16
+          additionalProperties: {type: string, maxLength: 512}

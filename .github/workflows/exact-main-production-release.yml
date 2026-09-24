@@ -1,0 +1,316 @@
+name: Exact main production release admission (read-only verifier)
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Exact protected-main merge SHA
+        required: true
+        type: string
+      merged_pr_number:
+        description: PR whose protected merge produced source_sha
+        required: true
+        type: string
+      authority_run_id:
+        description: Run containing signed production Security Owner authority
+        required: true
+        type: string
+      authority_artifact:
+        description: Exact signed production authority artifact
+        required: true
+        type: string
+      authority_document_sha256:
+        description: Exact production authority document SHA-256
+        required: true
+        type: string
+      vex_run_id:
+        description: Run containing independently reviewed signed exact-image VEX
+        required: true
+        type: string
+      vex_artifact:
+        description: Exact signed VEX artifact name
+        required: true
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: exact-main-production-${{ inputs.source_sha }}
+  cancel-in-progress: false
+
+env:
+  IMAGE_REPOSITORY: ghcr.io/ingtrader21-spec/codestra-middleware
+  SOURCE_SHA: ${{ inputs.source_sha }}
+  MERGED_PR_NUMBER: ${{ inputs.merged_pr_number }}
+  AUTHORITY_RUN_ID: ${{ inputs.authority_run_id }}
+  AUTHORITY_ARTIFACT: ${{ inputs.authority_artifact }}
+  AUTHORITY_DOCUMENT_SHA256: ${{ inputs.authority_document_sha256 }}
+  VEX_RUN_ID: ${{ inputs.vex_run_id }}
+  VEX_ARTIFACT: ${{ inputs.vex_artifact }}
+  COSIGN_VERSION: v3.1.2
+  COSIGN_SHA256: f7622ed3cf22e55e1ae6377c080979ff77a22da9981c11df222a2e444991e7cf
+
+# READ-ONLY VERIFIER. This workflow admits (or rejects) a candidate that the
+# single forward publisher, .github/workflows/release.yml, already built and
+# signed from the exact protected-main source. It cannot build, push, tag, sign
+# or attest anything: it holds no packages:write and no id-token:write.
+jobs:
+  release:
+    name: Exact Main Production Release Admission (read-only)
+    if: github.repository == 'ingtrader21-spec/Middleware-' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    services:
+      postgres:
+        image: postgres@sha256:742f40ea20b9ff2ff31db5458d127452988a2164df9e17441e191f3b72252193
+        env:
+          POSTGRES_DB: middleware_rehearsal
+          POSTGRES_USER: middleware_ci
+          POSTGRES_PASSWORD: ci-only-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U middleware_ci -d middleware_rehearsal"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    permissions:
+      actions: read
+      contents: read
+      packages: read
+      pull-requests: read
+      statuses: read
+    steps:
+      - name: Validate protected-main and merged-review identity
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          [[ "${SOURCE_SHA}" =~ ^[0-9a-f]{40}$ ]]
+          [[ "${MERGED_PR_NUMBER}" =~ ^[1-9][0-9]*$ ]]
+          [[ "${AUTHORITY_RUN_ID}" =~ ^[1-9][0-9]*$ ]]
+          [[ "${AUTHORITY_ARTIFACT}" =~ ^security-owner-authority-${AUTHORITY_RUN_ID}-[1-9][0-9]*$ ]]
+          [[ "${AUTHORITY_DOCUMENT_SHA256}" =~ ^[0-9a-f]{64}$ ]]
+          [[ "${VEX_RUN_ID}" =~ ^[1-9][0-9]*$ ]]
+          [[ "${VEX_ARTIFACT}" =~ ^production-openvex-${SOURCE_SHA}-${VEX_RUN_ID}-[1-9][0-9]*$ ]]
+          main_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq .object.sha)"
+          gh api "repos/${GITHUB_REPOSITORY}/pulls/${MERGED_PR_NUMBER}" > pr.json
+          test "$(jq -r .merged pr.json)" = true
+          test "$(jq -r .base.ref pr.json)" = main
+          test "$(jq -r .merge_commit_sha pr.json)" = "${SOURCE_SHA}"
+          pr_head="$(jq -r .head.sha pr.json)"
+          gh api "repos/${GITHUB_REPOSITORY}/compare/${SOURCE_SHA}...${main_sha}" > ancestry.json
+          jq -e --arg source "${SOURCE_SHA}" '
+            .merge_base_commit.sha == $source and
+            (.status == "ahead" or .status == "identical")
+          ' ancestry.json >/dev/null
+          gh api "repos/${GITHUB_REPOSITORY}/pulls/${MERGED_PR_NUMBER}/reviews" > reviews.json
+          jq -e --arg head "${pr_head}" '
+            any(.[]; .state == "APPROVED" and .commit_id == $head)
+          ' reviews.json >/dev/null
+          gh api "repos/${GITHUB_REPOSITORY}/commits/${pr_head}/status" > status.json
+          jq -e 'any(.statuses[];
+            .context == "codestra/required-ci" and .state == "success")
+          ' status.json >/dev/null
+
+      - name: Check out exact protected-main source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ inputs.source_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Prove exact clean checkout
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${SOURCE_SHA}"
+          test -z "$(git status --porcelain)"
+          git merge-base --is-ancestor "${SOURCE_SHA}" origin/main
+          grep -Fq 'USER 10001:10001' Dockerfile
+
+      - name: Install checksum-verified Cosign
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location --proto '=https' --tlsv1.2 \
+            "https://github.com/sigstore/cosign/releases/download/${COSIGN_VERSION}/cosign-linux-amd64" \
+            --output "${RUNNER_TEMP}/cosign"
+          echo "${COSIGN_SHA256}  ${RUNNER_TEMP}/cosign" | sha256sum --check --strict
+          chmod 700 "${RUNNER_TEMP}/cosign"
+
+      - name: Verify production-scoped signed Security Owner authority
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir authority
+          gh run download "${AUTHORITY_RUN_ID}" --repo "${GITHUB_REPOSITORY}" \
+            --name "${AUTHORITY_ARTIFACT}" --dir authority
+          (cd authority && sha256sum -c authority-signing-SHA256SUMS)
+          echo "${AUTHORITY_DOCUMENT_SHA256}  authority/security-owner-authority.json" | sha256sum -c -
+          "${RUNNER_TEMP}/cosign" verify-blob \
+            --bundle authority/security-owner-authority.sigstore.json \
+            --certificate-identity "https://github.com/ingtrader21-spec/Middleware-/.github/workflows/security-owner-authority-sign.yml@refs/heads/main" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+            authority/security-owner-authority.json
+          jq -e --arg sha "${SOURCE_SHA}" '
+            .company == "Codestra LLC" and .role == "Security Owner" and
+            (.approved_scopes | index("server_a_production_release")) and
+            (.approved_scopes | index("production_deployment")) and
+            (.approved_scopes | index("external_delivery_synthetic_only")) and
+            ((.prohibited_scopes | index("production_deployment")) | not) and
+            ((.prohibited_scopes | index("external_delivery")) | not) and
+            (.source_sha == $sha) and
+            (.communications.calls == false) and (.communications.sms == false) and
+            (.communications.email == false) and (.communications.callbacks == false)
+          ' authority/security-owner-authority.json >/dev/null
+          python3 scripts/validate_production_security_owner_authority.py \
+            --authority authority/security-owner-authority.json --source-sha "${SOURCE_SHA}"
+
+      - name: Run exact-source tests
+        env:
+          DATABASE_URL: postgresql+asyncpg://middleware_ci:ci-only-password@127.0.0.1:5432/middleware_rehearsal
+          TEST_DATABASE_URL: postgresql+asyncpg://middleware_ci:ci-only-password@127.0.0.1:5432/middleware_rehearsal
+          LIVE_WRITES_ENABLED: "false"
+          VICIDIAL_WRITE_ENABLED: "false"
+          CALLBACK_DISPATCH_ENABLED: "false"
+          MESSAGING_ENABLED: "false"
+          OUTBOX_WORKER_ENABLED: "false"
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check --require-hashes \
+            -r requirements.lock -r requirements-test.lock
+          ruff check --select E9,F63,F7,F82 app tests
+          mapfile -t HEADS < <(alembic heads | awk '{print $1}')
+          test "${#HEADS[@]}" -eq 1
+          test "${HEADS[0]}" = "0067_service_catalog_monitoring_state"
+          alembic upgrade head
+          python -m pytest -q tests
+
+      - name: Verify VEX and pull its immutable exact-source candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir vex
+          gh run download "${VEX_RUN_ID}" --repo "${GITHUB_REPOSITORY}" \
+            --name "${VEX_ARTIFACT}" --dir vex
+          (cd vex && sha256sum -c SHA256SUMS)
+          "${RUNNER_TEMP}/cosign" verify-blob \
+            --bundle vex/openvex.sigstore.json \
+            --certificate-identity "https://github.com/ingtrader21-spec/Middleware-/.github/workflows/security-owner-decision-sign.yml@refs/heads/main" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+            vex/openvex.json
+          vex_digest="$(jq -er .metadata.image_digest vex/openvex.json)"
+          python3 scripts/security/validate-production-openvex.py \
+            --openvex vex/openvex.json --source-sha "${SOURCE_SHA}" \
+            --image-digest "${vex_digest}"
+          printf '%s' "${GH_TOKEN}" | docker login ghcr.io -u "${GITHUB_ACTOR}" --password-stdin
+          subject="${IMAGE_REPOSITORY}@${vex_digest}"
+          docker pull --platform linux/amd64 "${subject}"
+          test "$(docker image inspect "${subject}" --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')" = "${SOURCE_SHA}"
+          docker tag "${subject}" "middleware:${SOURCE_SHA}"
+          test "$(docker image inspect "middleware:${SOURCE_SHA}" --format '{{.Config.User}}')" = 10001:10001
+          test "$(docker image inspect "middleware:${SOURCE_SHA}" --format '{{.Os}}/{{.Architecture}}')" = linux/amd64
+          docker run --rm --network none --read-only --cap-drop ALL \
+            --security-opt no-new-privileges:true "middleware:${SOURCE_SHA}" \
+            python -c 'from app.main import app; assert app'
+
+      - name: Verify the candidate was signed by the single forward publisher
+        env:
+          PUBLISHER_IDENTITY: https://github.com/ingtrader21-spec/Middleware-/.github/workflows/release.yml@refs/heads/main
+          OIDC_ISSUER: https://token.actions.githubusercontent.com
+        run: |
+          set -euo pipefail
+          subject="${IMAGE_REPOSITORY}@$(jq -er .metadata.image_digest vex/openvex.json)"
+          "${RUNNER_TEMP}/cosign" verify --certificate-identity "${PUBLISHER_IDENTITY}" --certificate-oidc-issuer "${OIDC_ISSUER}" "${subject}" > signature-verification.txt
+          "${RUNNER_TEMP}/cosign" verify-attestation --certificate-identity "${PUBLISHER_IDENTITY}" --certificate-oidc-issuer "${OIDC_ISSUER}" --type spdxjson "${subject}" > sbom-verification.txt
+          "${RUNNER_TEMP}/cosign" verify-attestation --certificate-identity "${PUBLISHER_IDENTITY}" --certificate-oidc-issuer "${OIDC_ISSUER}" --type slsaprovenance1 "${subject}" > provenance-verification.txt
+          jq -er '.payload' provenance-verification.txt | head -1 | base64 -d \
+            | jq -e --arg sha "${SOURCE_SHA}" '.predicate.buildDefinition.externalParameters.source.uri | endswith("@" + $sha)' >/dev/null
+
+      - name: Generate exact-image CycloneDX SBOM
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610
+        with:
+          image: middleware:${{ inputs.source_sha }}
+          format: cyclonedx-json
+          output-file: sbom.cdx.json
+          upload-artifact: false
+
+      - name: Run Trivy without suppression
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        with:
+          image-ref: middleware:${{ inputs.source_sha }}
+          format: json
+          output: trivy.json
+          severity: CRITICAL,HIGH
+          ignore-unfixed: false
+          exit-code: "0"
+
+      - name: Run raw Grype without suppression
+        uses: anchore/scan-action@e1165082ffb1fe366ebaf02d8526e7c4989ea9d2
+        with:
+          image: middleware:${{ inputs.source_sha }}
+          fail-build: false
+          output-format: json
+          output-file: grype-raw.json
+          severity-cutoff: high
+
+      - name: Run VEX-applied Grype
+        uses: anchore/scan-action@e1165082ffb1fe366ebaf02d8526e7c4989ea9d2
+        with:
+          image: middleware:${{ inputs.source_sha }}
+          fail-build: true
+          output-format: json
+          output-file: grype-vex.json
+          severity-cutoff: high
+          vex: vex/openvex.json
+
+      - name: Enforce scanner policy
+        run: |
+          set -euo pipefail
+          jq -e '[.Results[]?.Vulnerabilities[]? | select(.Severity == "HIGH" or .Severity == "CRITICAL")] | length == 0' trivy.json
+          jq -e '[.matches[]? | select(.vulnerability.severity == "High" or .vulnerability.severity == "Critical")] | length == 0' grype-vex.json
+
+      - name: Delete local image and independently re-verify the exact digest
+        run: |
+          set -euo pipefail
+          digest="$(jq -er .metadata.image_digest vex/openvex.json)"
+          subject="${IMAGE_REPOSITORY}@${digest}"
+          identity="https://github.com/ingtrader21-spec/Middleware-/.github/workflows/release.yml@refs/heads/main"
+          issuer="https://token.actions.githubusercontent.com"
+          docker image rm "middleware:${SOURCE_SHA}"
+          docker pull "${subject}"
+          test "$(docker image inspect "${subject}" --format '{{.Config.User}}')" = 10001:10001
+          test "$(docker image inspect "${subject}" --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')" = "${SOURCE_SHA}"
+          "${RUNNER_TEMP}/cosign" verify --certificate-identity "${identity}" --certificate-oidc-issuer "${issuer}" "${subject}" > signature-reverification.txt
+          docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-privileges:true "${subject}" python -c 'from app.main import app; assert app'
+          printf 'SOURCE_SHA=%s\nIMAGE_REFERENCE=%s\nIMAGE_DIGEST=%s\nSBOM_SHA256=%s\nADMISSION=READ_ONLY_VERIFIED\n' \
+            "${SOURCE_SHA}" "${subject}" "${digest}" "$(sha256sum sbom.cdx.json | cut -d' ' -f1)" > ADMISSION.env
+
+      - name: Seal admission evidence
+        run: |
+          set -euo pipefail
+          sha256sum ADMISSION.env sbom.cdx.json trivy.json grype-raw.json grype-vex.json \
+            vex/openvex.json signature-verification.txt signature-reverification.txt \
+            sbom-verification.txt provenance-verification.txt > SHA256SUMS
+          sha256sum -c SHA256SUMS
+
+      - name: Upload immutable admission evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: exact-main-production-admission-${{ inputs.source_sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          overwrite: false
+          retention-days: 90
+          path: |
+            ADMISSION.env
+            SHA256SUMS
+            sbom.cdx.json
+            trivy.json
+            grype-raw.json
+            grype-vex.json
+            vex/openvex.json
+            signature-verification.txt
+            signature-reverification.txt
+            sbom-verification.txt
+            provenance-verification.txt

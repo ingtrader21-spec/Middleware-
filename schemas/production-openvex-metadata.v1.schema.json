@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://codestra.internal/schemas/production-openvex-metadata.v1.json",
+  "type": "object",
+  "required": ["@context", "@id", "author", "timestamp", "last_updated", "version", "metadata", "statements"],
+  "properties": {
+    "@context": {"const": "https://openvex.dev/ns/v0.2.0"},
+    "@id": {"type": "string", "minLength": 1},
+    "author": {"type": "string", "minLength": 1},
+    "timestamp": {"type": "string", "format": "date-time"},
+    "last_updated": {"type": "string", "format": "date-time"},
+    "version": {"const": 1},
+    "metadata": {
+      "type": "object",
+      "required": ["source_sha", "image_digest"],
+      "properties": {
+        "source_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "image_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+      }
+    },
+    "statements": {"type": "array", "minItems": 1}
+  }
+}

@@ -1,0 +1,84 @@
+name: Production route contract
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  signed-runtime-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      IMAGE: ghcr.io/appolon1908-hue/codestra-middleware@sha256:83e6fd7d6e824a6259b574f0aacbbf08dc58f4419caf0193344d61e5717d5d63
+    steps:
+      - name: Check out certification source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Authenticate to the private package registry
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Pull and verify frozen image provenance
+        run: |
+          set -Eeuo pipefail
+          docker pull "$IMAGE"
+          test "$(docker image inspect "$IMAGE" --format '{{index .Config.Labels "org.opencontainers.image.source"}}')" = \
+            'https://github.com/appolon1908-hue/Middleware-'
+          test "$(docker image inspect "$IMAGE" --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')" = \
+            'c4fb367577581f004745760c83963cdd96ed518e'
+
+      - name: Start exact signed image in an isolated network
+        run: |
+          set -Eeuo pipefail
+          docker pull python:3.13.15-slim-bookworm@sha256:00faa2debb87529f9f0764e9491d8ba400a3678976616c3bd7cb193745ac20d1
+          docker network create --internal middleware-route-certification
+          docker run -d --name middleware-route-certification \
+            --network middleware-route-certification \
+            --read-only --tmpfs /tmp \
+            --env APP_ENV=development \
+            --env ALLOW_IN_MEMORY_STORAGE=true \
+            --env ODOO_WRITE=false \
+            --env LIVE_WRITE=false \
+            --env ENABLE_EXTERNAL_DELIVERY=false \
+            --env N8N_DELIVERY_ENABLED=false \
+            --env CALLBACK_DISPATCH=false \
+            --env LIVE_SMS_DELIVERY=false \
+            --env LIVE_EMAIL_DELIVERY=false \
+            --env LIVE_PSTN_DIALING=false \
+            --env PRODUCTION_DIALING=DISABLED \
+            "$IMAGE"
+          for attempt in $(seq 1 30); do
+            test "$(docker inspect middleware-route-certification --format '{{.State.Health.Status}}')" = healthy && exit 0
+            sleep 1
+          done
+          docker logs middleware-route-certification
+          exit 1
+
+      - name: Certify routes and unauthenticated denial
+        run: |
+          docker run --rm \
+            --network middleware-route-certification \
+            --volume "$PWD/scripts:/certification:ro" \
+            python:3.13.15-slim-bookworm@sha256:00faa2debb87529f9f0764e9491d8ba400a3678976616c3bd7cb193745ac20d1 \
+            python /certification/certify_production_route_contract.py \
+              --base-url http://middleware-route-certification:8080
+
+      - name: Prove every provider effect remains disabled
+        run: |
+          docker inspect middleware-route-certification --format '{{range .Config.Env}}{{println .}}{{end}}' |
+            python3 -c 'import sys; values=dict(line.rstrip().split("=",1) for line in sys.stdin if "=" in line); required=("ODOO_WRITE","LIVE_WRITE","ENABLE_EXTERNAL_DELIVERY","N8N_DELIVERY_ENABLED","CALLBACK_DISPATCH","LIVE_SMS_DELIVERY","LIVE_EMAIL_DELIVERY","LIVE_PSTN_DIALING"); assert all(values.get(name)=="false" for name in required); assert values.get("PRODUCTION_DIALING")=="DISABLED"; print("PROVIDER_EFFECTS_DISABLED=PASS")'
+
+      - name: Cleanup isolated certification runtime
+        if: always()
+        run: |
+          docker rm -f middleware-route-certification 2>/dev/null || true
+          docker network rm middleware-route-certification 2>/dev/null || true

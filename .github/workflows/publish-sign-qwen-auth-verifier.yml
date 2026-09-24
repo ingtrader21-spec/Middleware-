@@ -1,0 +1,452 @@
+name: Publish and sign approved Qwen authentication verifier
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: publish-sign-qwen-auth-verifier-cc7e2457fdd69fdd
+  cancel-in-progress: false
+
+env:
+  IMAGE_REPOSITORY: ghcr.io/codestra-srl/qwen-auth-verifier
+  IMAGE_DIGEST: sha256:cc7e2457fdd69fdd1bf766831f8f86396495b47e377e86b2d9df1d4fb5432390
+  OCI_ARCHIVE_PATH: /opt/codestra-jit-input/qwen-auth-verifier-cc7e2457fdd69fdd.oci.tar
+  OCI_MANIFEST_MEDIA_TYPE: application/vnd.oci.image.manifest.v1+json
+  ORAS_VERSION: 1.3.2
+  ORAS_ARCHIVE_URL: https://github.com/oras-project/oras/releases/download/v1.3.2/oras_1.3.2_linux_amd64.tar.gz
+  ORAS_CHECKSUMS_URL: https://github.com/oras-project/oras/releases/download/v1.3.2/oras_1.3.2_checksums.txt
+  ORAS_SIGNATURE_URL: https://github.com/oras-project/oras/releases/download/v1.3.2/oras_1.3.2_checksums.txt.asc
+  ORAS_KEYS_URL: https://raw.githubusercontent.com/oras-project/oras/v1.3.2/KEYS
+  ORAS_ARCHIVE_SHA256: 9229ccc6d17bb282039ad4a69abb16dcb887a5bce567c075d731d9b3c7ad8eaf
+  ORAS_SIGNING_KEY_FINGERPRINT: 2DA461D13B0C27845EDFA77FE462A3894CBAAA47 # gitleaks:allow
+  ORAS_GIT_COMMIT: fe425992fdfdf300a1cfb380bc4271b3e1a3d3db
+  CANDIDATE_COMMIT: 68dd9585e766f27a97a51329cf08f1f355445026
+  GOVERNANCE_HEAD: 461399573993e3a878412d788f3dd8404385cdcb
+  VEX_SHA256: 2437e123ca8f6b6a27425ead83cba8526b4dd35fab1f2a755fe84be2e3e87e0a
+  SBOM_SHA256: 1c97030914f94412bfba5d6a0178d96d26f2cc04339de3679008bd9d76868138
+  SECURITY_OWNER_RECORD_SHA256: 56cb87aa6d48dd935f1ce11c9a6ebe8d013b8254a4faf9889069deaecfce2352
+  VEX_PATH: security/vex/qwen-auth-verifier-der/openvex.json
+  SECURITY_OWNER_RECORD_PATH: security/vex/qwen-auth-verifier-der/security-owner-record.json
+  LOCAL_SBOM_PATH: /var/lib/codestra/qwen-security-review/qwen-verifier-der-68dd958/scanner/sbom.cdx.json
+  PUBLISH_TAG: approved-cc7e2457fdd69fdd
+  EXPECTED_ISSUER: https://token.actions.githubusercontent.com
+  EXPECTED_IDENTITY: https://github.com/appolon1908-hue/Middleware-/.github/workflows/publish-sign-qwen-auth-verifier.yml@refs/heads/main
+
+jobs:
+  publish-sign:
+    # RUNTIME_MUTATION_DISABLED=true
+    # Repository-only release preparation does not authorize registry publication or signing.
+    if: ${{ false }}
+    runs-on:
+      group: qwen-artifact-publishers
+      labels: codestra-qwen-artifact-publisher
+    environment: security-owner-signing
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+    steps:
+      - name: Initialize run-scoped temporary paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${RUNNER_TEMP}"
+          printf 'REGISTRY_AUTH_DIR=%s/qwen-registry-auth\n' "${RUNNER_TEMP}" >> "${GITHUB_ENV}"
+          printf 'REGISTRY_AUTH_FILE=%s/qwen-registry-auth/config.json\n' "${RUNNER_TEMP}" >> "${GITHUB_ENV}"
+          printf 'ORAS_TMP_DIR=%s/qwen-oras-1.3.2\n' "${RUNNER_TEMP}" >> "${GITHUB_ENV}"
+          printf 'ORAS_BIN=%s/qwen-oras-1.3.2/oras\n' "${RUNNER_TEMP}" >> "${GITHUB_ENV}"
+
+      - name: Check out protected default branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: main
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Validate immutable workflow identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${GITHUB_REPOSITORY}" = "appolon1908-hue/Middleware-"
+          test "${GITHUB_REF}" = "refs/heads/main"
+          test "${IMAGE_REPOSITORY}" = "ghcr.io/codestra-srl/qwen-auth-verifier"
+          test "${IMAGE_DIGEST}" = "sha256:cc7e2457fdd69fdd1bf766831f8f86396495b47e377e86b2d9df1d4fb5432390"
+          test "${CANDIDATE_COMMIT}" = "68dd9585e766f27a97a51329cf08f1f355445026"
+          test "${GOVERNANCE_HEAD}" = "461399573993e3a878412d788f3dd8404385cdcb"
+          test "${VEX_SHA256}" = "2437e123ca8f6b6a27425ead83cba8526b4dd35fab1f2a755fe84be2e3e87e0a"
+          test "${SBOM_SHA256}" = "1c97030914f94412bfba5d6a0178d96d26f2cc04339de3679008bd9d76868138"
+          test "${SECURITY_OWNER_RECORD_SHA256}" = "56cb87aa6d48dd935f1ce11c9a6ebe8d013b8254a4faf9889069deaecfce2352"
+          test "${GITHUB_ACTOR}" != "kazan555"
+
+      - name: Fetch and validate exact approved governance evidence
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          fetch_exact() {
+            local path="$1" output="$2"
+            gh api "repos/${GITHUB_REPOSITORY}/contents/${path}?ref=${GOVERNANCE_HEAD}" \
+              --jq .content | base64 --decode > "${output}"
+          }
+          fetch_exact "${VEX_PATH}" final-openvex.json
+          fetch_exact "${SECURITY_OWNER_RECORD_PATH}" security-owner-record.json
+          test "$(sha256sum final-openvex.json | cut -d' ' -f1)" = "${VEX_SHA256}"
+          test "$(sha256sum security-owner-record.json | cut -d' ' -f1)" = \
+            "${SECURITY_OWNER_RECORD_SHA256}"
+          test "$(sha256sum "${LOCAL_SBOM_PATH}" | cut -d' ' -f1)" = "${SBOM_SHA256}"
+          jq -e \
+            --arg digest "${IMAGE_DIGEST}" \
+            --arg vex "${VEX_SHA256}" '
+              .decision == "APPROVED" and
+              .signed == false and
+              .security_owner.github_login == "kazan555" and
+              .security_owner.github_user_id == 77101516 and
+              .image_digest == $digest and
+              .final_vex_sha256 == $vex and
+              ((.findings.fixed | length) == 9) and
+              ((.findings.not_affected | length) == 1) and
+              ((.findings.affected | length) == 0) and
+              ((.findings.under_investigation | length) == 0)
+            ' security-owner-record.json >/dev/null
+          jq -e \
+            --arg digest "${IMAGE_DIGEST#sha256:}" '
+              .["@context"] == "https://openvex.dev/ns/v0.2.0" and
+              (.statements | length) == 10 and
+              ([.statements[] | select(.status == "fixed")] | length) == 9 and
+              ([.statements[] | select(.status == "not_affected")] | length) == 1 and
+              all(.statements[]; all(.products[]; .["@id"] | contains($digest)))
+            ' final-openvex.json >/dev/null
+          cp "${LOCAL_SBOM_PATH}" final-sbom.cdx.json
+
+      - name: Install signature-verified daemonless ORAS
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${ORAS_VERSION}" = "1.3.2"
+          test "${ORAS_ARCHIVE_SHA256}" = "9229ccc6d17bb282039ad4a69abb16dcb887a5bce567c075d731d9b3c7ad8eaf"
+          test "${ORAS_SIGNING_KEY_FINGERPRINT}" = "2DA461D13B0C27845EDFA77FE462A3894CBAAA47"
+          test "${ORAS_GIT_COMMIT}" = "fe425992fdfdf300a1cfb380bc4271b3e1a3d3db"
+          install -d -m 0700 "${ORAS_TMP_DIR}" "${ORAS_TMP_DIR}/gnupg"
+          curl --fail --location --proto '=https' --tlsv1.2 \
+            --output "${ORAS_TMP_DIR}/oras.tar.gz" "${ORAS_ARCHIVE_URL}"
+          curl --fail --location --proto '=https' --tlsv1.2 \
+            --output "${ORAS_TMP_DIR}/checksums.txt" "${ORAS_CHECKSUMS_URL}"
+          curl --fail --location --proto '=https' --tlsv1.2 \
+            --output "${ORAS_TMP_DIR}/checksums.txt.asc" "${ORAS_SIGNATURE_URL}"
+          curl --fail --location --proto '=https' --tlsv1.2 \
+            --output "${ORAS_TMP_DIR}/KEYS" "${ORAS_KEYS_URL}"
+          chmod 0600 "${ORAS_TMP_DIR}"/{oras.tar.gz,checksums.txt,checksums.txt.asc,KEYS}
+          test "$(sha256sum "${ORAS_TMP_DIR}/oras.tar.gz" | cut -d' ' -f1)" = \
+            "${ORAS_ARCHIVE_SHA256}"
+          gpg --batch --homedir "${ORAS_TMP_DIR}/gnupg" \
+            --import "${ORAS_TMP_DIR}/KEYS" >/dev/null 2>&1
+          gpg --batch --homedir "${ORAS_TMP_DIR}/gnupg" --status-fd 1 \
+            --verify "${ORAS_TMP_DIR}/checksums.txt.asc" \
+            "${ORAS_TMP_DIR}/checksums.txt" 2>/dev/null > "${ORAS_TMP_DIR}/signature.status"
+          signer_fingerprint="$(awk '$2 == "VALIDSIG" {print $3}' \
+            "${ORAS_TMP_DIR}/signature.status")"
+          test "${signer_fingerprint}" = "${ORAS_SIGNING_KEY_FINGERPRINT}"
+          grep ' oras_1.3.2_linux_amd64.tar.gz$' "${ORAS_TMP_DIR}/checksums.txt" | \
+            sed "s#  oras_1.3.2_linux_amd64.tar.gz#  ${ORAS_TMP_DIR}/oras.tar.gz#" | \
+            sha256sum --check --strict
+          python3 - "${ORAS_TMP_DIR}/oras.tar.gz" <<'PY'
+          import sys
+          import tarfile
+          from pathlib import PurePosixPath
+
+          with tarfile.open(sys.argv[1], "r:gz") as archive:
+              members = archive.getmembers()
+              if {member.name for member in members} != {"LICENSE", "oras"}:
+                  raise SystemExit("unexpected ORAS archive members")
+              for member in members:
+                  path = PurePosixPath(member.name)
+                  if path.is_absolute() or ".." in path.parts:
+                      raise SystemExit("unsafe ORAS archive path")
+                  if not member.isfile() or member.issym() or member.islnk():
+                      raise SystemExit("non-regular ORAS archive member")
+                  if bool(member.mode & 0o111) != (member.name == "oras"):
+                      raise SystemExit("unexpected ORAS executable member")
+          PY
+          tar --extract --gzip --file "${ORAS_TMP_DIR}/oras.tar.gz" \
+            --directory "${ORAS_TMP_DIR}" --no-same-owner --no-same-permissions oras
+          chmod 0500 "${ORAS_BIN}"
+          test "$("${ORAS_BIN}" version | awk '/^Version:/{print $2}')" = "${ORAS_VERSION}"
+          test "$("${ORAS_BIN}" version | awk '/^Git commit:/{print $3}')" = "${ORAS_GIT_COMMIT}"
+
+      - name: Verify exact read-only OCI archive with ORAS
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v jq
+          command -v tar
+          test -x "${ORAS_BIN}"
+          test -f "${OCI_ARCHIVE_PATH}"
+          test ! -L "${OCI_ARCHIVE_PATH}"
+          test ! -w "${OCI_ARCHIVE_PATH}"
+          if tar -tf "${OCI_ARCHIVE_PATH}" | \
+            grep -Eq '(^/|(^|/)\.\.(/|$))'; then
+            exit 1
+          fi
+          layout_index="$(tar -xOf "${OCI_ARCHIVE_PATH}" index.json)"
+          test "$(jq -r .schemaVersion <<<"${layout_index}")" = 2
+          archive_digest="$(jq -er \
+            '.manifests[] | select(.mediaType == "application/vnd.oci.image.manifest.v1+json") | .digest' \
+            <<<"${layout_index}")"
+          test "${archive_digest}" = "${IMAGE_DIGEST}"
+          archive_blob="blobs/sha256/${archive_digest#sha256:}"
+          test "$(tar -xOf "${OCI_ARCHIVE_PATH}" "${archive_blob}" | \
+            sha256sum | cut -d' ' -f1)" = "${IMAGE_DIGEST#sha256:}"
+          test "$(tar -xOf "${OCI_ARCHIVE_PATH}" "${archive_blob}" | \
+            jq -r .mediaType)" = "${OCI_MANIFEST_MEDIA_TYPE}"
+          source_manifest_digest="$("${ORAS_BIN}" manifest fetch --oci-layout \
+            "${OCI_ARCHIVE_PATH}@${IMAGE_DIGEST}" | sha256sum | cut -d' ' -f1)"
+          test "sha256:${source_manifest_digest}" = "${IMAGE_DIGEST}"
+
+      - name: Create temporary registry authentication
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          install -d -m 0700 "${REGISTRY_AUTH_DIR}"
+          umask 077
+          printf '%s' "${GH_TOKEN}" | "${ORAS_BIN}" login \
+            --registry-config "${REGISTRY_AUTH_FILE}" \
+            --username "${GITHUB_ACTOR}" \
+            --password-stdin ghcr.io >/dev/null
+          test -s "${REGISTRY_AUTH_FILE}"
+          test "$(stat -c '%a' "${REGISTRY_AUTH_FILE}")" = 600
+
+      - name: Publish exact existing OCI index daemonlessly
+        id: publish
+        shell: bash
+        run: |
+          set -euo pipefail
+          target="${IMAGE_REPOSITORY}:${PUBLISH_TAG}"
+          "${ORAS_BIN}" cp --no-tty --from-oci-layout \
+            --to-registry-config "${REGISTRY_AUTH_FILE}" \
+            "${OCI_ARCHIVE_PATH}@${IMAGE_DIGEST}" "${target}"
+          registry_digest="$("${ORAS_BIN}" resolve \
+            --registry-config "${REGISTRY_AUTH_FILE}" "${target}")"
+          test "${registry_digest}" = "${IMAGE_DIGEST}"
+          printf '%s\n' "${registry_digest}" > published-digest.txt
+          remote_digest="$("${ORAS_BIN}" manifest fetch \
+            --registry-config "${REGISTRY_AUTH_FILE}" "${target}" | \
+            sha256sum | cut -d' ' -f1)"
+          test "sha256:${remote_digest}" = "${IMAGE_DIGEST}"
+          printf 'registry_digest=%s\n' "${registry_digest}" >> "${GITHUB_OUTPUT}"
+          printf 'subject=%s@%s\n' "${IMAGE_REPOSITORY}" "${registry_digest}" >> "${GITHUB_OUTPUT}"
+
+      - name: Generate digest-bound SLSA provenance predicate
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -cnS \
+            --arg digest "${IMAGE_DIGEST#sha256:}" \
+            --arg source "${CANDIDATE_COMMIT}" \
+            --arg governance "${GOVERNANCE_HEAD}" \
+            --arg sbom "${SBOM_SHA256}" \
+            --arg vex "${VEX_SHA256}" \
+            --arg invocation "https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/attempts/${GITHUB_RUN_ATTEMPT}" \
+            --arg builder "${EXPECTED_IDENTITY}" '
+              {
+                buildDefinition: {
+                  buildType: "https://codestra.example/buildtypes/publish-existing-oci/v1",
+                  externalParameters: {
+                    rebuild: false,
+                    candidate_source_commit: $source,
+                    governance_head: $governance,
+                    sbom_sha256: $sbom,
+                    final_vex_sha256: $vex
+                  },
+                  internalParameters: {},
+                  resolvedDependencies: [{uri:"pkg:oci/qwen-auth-verifier",digest:{sha256:$digest}}]
+                },
+                runDetails: {
+                  builder: {id:$builder},
+                  metadata: {invocationId:$invocation},
+                  byproducts: []
+                }
+              }
+            ' > final-provenance.json
+
+      - name: Install pinned Cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6
+        with:
+          cosign-release: v3.1.2
+
+      - name: Keylessly sign and attest exact digest-qualified subject
+        shell: bash
+        env:
+          COSIGN_EXPERIMENTAL: "1"
+          DOCKER_CONFIG: ${{ env.REGISTRY_AUTH_DIR }}
+        run: |
+          set -euo pipefail
+          subject="${IMAGE_REPOSITORY}@${IMAGE_DIGEST}"
+          test "${subject}" = "${{ steps.publish.outputs.subject }}"
+          cosign sign --yes "${subject}"
+          cosign attest --yes --type cyclonedx \
+            --predicate final-sbom.cdx.json "${subject}"
+          cosign attest --yes --type https://slsa.dev/provenance/v1 \
+            --predicate final-provenance.json "${subject}"
+          cosign attest --yes --type openvex \
+            --predicate final-openvex.json "${subject}"
+          sha256sum final-sbom.cdx.json final-provenance.json final-openvex.json \
+            security-owner-record.json > signed-evidence-SHA256SUMS
+
+      - name: Upload non-secret signing evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: qwen-auth-verifier-signing-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          overwrite: false
+          retention-days: 90
+          path: |
+            final-sbom.cdx.json
+            final-openvex.json
+            final-provenance.json
+            security-owner-record.json
+            signed-evidence-SHA256SUMS
+
+      - name: Remove temporary registry authentication
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -e "${REGISTRY_AUTH_FILE}" ]]; then
+            rm -- "${REGISTRY_AUTH_FILE}"
+          fi
+          if [[ -d "${REGISTRY_AUTH_DIR}" ]]; then
+            rmdir -- "${REGISTRY_AUTH_DIR}"
+          fi
+          if [[ -d "${ORAS_TMP_DIR}" ]]; then
+            test "${ORAS_TMP_DIR}" = "${RUNNER_TEMP}/qwen-oras-1.3.2"
+            find "${ORAS_TMP_DIR}" -depth -mindepth 1 -delete
+            rmdir -- "${ORAS_TMP_DIR}"
+          fi
+          test ! -e "${REGISTRY_AUTH_FILE}"
+          test ! -e "${ORAS_TMP_DIR}"
+
+  independently-verify:
+    # RUNTIME_MUTATION_DISABLED=true: registry verification follows an unauthorized publisher.
+    if: ${{ false }}
+    needs: publish-sign
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Initialize independent run-scoped temporary paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${RUNNER_TEMP}"
+          printf 'REGISTRY_AUTH_DIR=%s/qwen-verify-registry-auth\n' "${RUNNER_TEMP}" >> "${GITHUB_ENV}"
+          printf 'REGISTRY_AUTH_FILE=%s/qwen-verify-registry-auth/config.json\n' "${RUNNER_TEMP}" >> "${GITHUB_ENV}"
+
+      - name: Download exact run-scoped signing evidence
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: qwen-auth-verifier-signing-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Install pinned Cosign on independent runner
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6
+        with:
+          cosign-release: v3.1.2
+
+      - name: Independently verify signature and attestations
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DOCKER_CONFIG: ${{ env.REGISTRY_AUTH_DIR }}
+        run: |
+          set -euo pipefail
+          subject="${IMAGE_REPOSITORY}@${IMAGE_DIGEST}"
+          test "$(sha256sum final-sbom.cdx.json | cut -d' ' -f1)" = "${SBOM_SHA256}"
+          test "$(sha256sum final-openvex.json | cut -d' ' -f1)" = "${VEX_SHA256}"
+          sha256sum -c signed-evidence-SHA256SUMS
+          install -d -m 0700 "${REGISTRY_AUTH_DIR}"
+          umask 077
+          printf '%s' "${GH_TOKEN}" | cosign login ghcr.io \
+            --username "${GITHUB_ACTOR}" --password-stdin
+          cosign verify \
+            --certificate-identity "${EXPECTED_IDENTITY}" \
+            --certificate-oidc-issuer "${EXPECTED_ISSUER}" \
+            "${subject}" > cosign-verification.json
+          for type in cyclonedx https://slsa.dev/provenance/v1 openvex; do
+            output_name="${type##*/}"
+            verified=false
+            for attempt in 1 2 3 4 5 6; do
+              if cosign verify-attestation \
+                --type "${type}" \
+                --certificate-identity "${EXPECTED_IDENTITY}" \
+                --certificate-oidc-issuer "${EXPECTED_ISSUER}" \
+                "${subject}" > "${output_name}-verification.json.tmp"
+              then
+                mv -- "${output_name}-verification.json.tmp" \
+                  "${output_name}-verification.json"
+                verified=true
+                break
+              fi
+              rm -f -- "${output_name}-verification.json.tmp"
+              if [[ "${attempt}" -lt 6 ]]; then
+                sleep 5
+              fi
+            done
+            test "${verified}" = true
+          done
+          for pair in \
+            'cyclonedx:final-sbom.cdx.json' \
+            'v1:final-provenance.json' \
+            'openvex:final-openvex.json'
+          do
+            type="${pair%%:*}"
+            source="${pair#*:}"
+            jq -cS . "${source}" > "${type}-expected-predicate.json"
+            matches=0
+            while IFS= read -r payload; do
+              printf '%s' "${payload}" | base64 --decode > "${type}-statement.json"
+              test "$(jq -r '.subject[0].digest.sha256' "${type}-statement.json")" = \
+                "${IMAGE_DIGEST#sha256:}"
+              jq -cS .predicate "${type}-statement.json" > \
+                "${type}-candidate-predicate.json"
+              if cmp --silent "${type}-candidate-predicate.json" \
+                "${type}-expected-predicate.json"
+              then
+                cp -- "${type}-candidate-predicate.json" \
+                  "${type}-verified-predicate.json"
+                matches=$((matches + 1))
+              fi
+            done < <(jq -r '.payload' "${type}-verification.json")
+            rm -f -- "${type}-statement.json" "${type}-candidate-predicate.json"
+            test "${matches}" -ge 1
+          done
+          jq -e \
+              --arg source "${CANDIDATE_COMMIT}" \
+              --arg governance "${GOVERNANCE_HEAD}" \
+              --arg sbom "${SBOM_SHA256}" \
+              --arg vex "${VEX_SHA256}" '
+                .buildDefinition.externalParameters.candidate_source_commit == $source and
+                .buildDefinition.externalParameters.governance_head == $governance and
+                .buildDefinition.externalParameters.sbom_sha256 == $sbom and
+                .buildDefinition.externalParameters.final_vex_sha256 == $vex
+              ' v1-verified-predicate.json >/dev/null
+
+      - name: Remove independent verification registry authentication
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -e "${REGISTRY_AUTH_FILE}" ]]; then
+            rm -- "${REGISTRY_AUTH_FILE}"
+          fi
+          if [[ -d "${REGISTRY_AUTH_DIR}" ]]; then
+            rmdir -- "${REGISTRY_AUTH_DIR}"
+          fi
+          test ! -e "${REGISTRY_AUTH_FILE}"

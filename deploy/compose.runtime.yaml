@@ -1,0 +1,575 @@
+# Render with MIDDLEWARE_IMAGE set to an immutable name@sha256 digest.
+name: codestra-middleware-runtime
+
+x-runtime: &runtime
+  image: ${MIDDLEWARE_IMAGE:?set immutable middleware image digest}
+  user: "10001:10001"
+  group_add: ["3999"]
+  init: true
+  restart: unless-stopped
+  read_only: true
+  cap_drop: [ALL]
+  security_opt:
+    - no-new-privileges:true
+  tmpfs:
+    - /tmp:rw,noexec,nosuid,size=32m,uid=10001,gid=10001
+  env_file:
+    - /opt/codestra/env/middleware.env
+  secrets:
+    - redis_url
+    - middleware_secret
+    - webhook_shared_secret
+  environment: &safe-flags
+    PORT: "8095"
+    LOG_LEVEL: INFO
+    LIVE_WRITES_ENABLED: "false"
+    ODOO_WRITE_ENABLED: "false"
+    ALLOW_NON_TEST_CAMPAIGNS: "false"
+    ODOO_DELIVERY_ENABLED: "false"
+    N8N_DELIVERY_ENABLED: "false"
+    N8N_EVENT_DELIVERY_ENABLED: "false"
+    N8N_PRODUCTION_WORKFLOWS_ENABLED: "false"
+    N8N_RUNTIME_ENABLED: "false"
+    REDIS_RUNTIME_ENABLED: "false"
+    N8N_RUNTIME_ENVIRONMENT: "staging"
+    REDIS_RUNTIME_ENVIRONMENT: "staging"
+    AUTOMATION_ACTIONS_ENABLED: "false"
+    ODOO_AUTOMATION_WRITES_ENABLED: "false"
+    SALES_LEAD_INTAKE_ENABLED: "false"
+    SALES_IDENTITY_RESOLUTION_ENABLED: "false"
+    SALES_ODOO_READ_ONLY_LOOKUP_ENABLED: "false"
+    SALES_VERIFICATION_JOBS_ENABLED: "false"
+    SCRAPER_RESULT_INGEST_ENABLED: "false"
+    HUNTER_PROVIDER_ENABLED: "false"
+    APOLLO_PROVIDER_ENABLED: "false"
+    TWILIO_LOOKUP_PROVIDER_ENABLED: "false"
+    OPENCORPORATES_PROVIDER_ENABLED: "false"
+    OPENAI_LEAD_CLASSIFICATION_ENABLED: "false"
+    VICIDIAL_PUBLICATION_ENABLED: "false"
+    OUTREACH_ENABLED: "false"
+    VICIDIAL_WRITE_ENABLED: "false"
+    TRANSFER_CONTROL_ENABLED: "false"
+    CALLBACK_DISPATCH_ENABLED: "false"
+    CALLBACK_SCHEDULER_ENABLED: "false"
+    CALLBACK_TEST_SYN_ENABLED: "false"
+    CALLBACK_DELIVERY_ENABLED: "false"
+    CALLBACK_ALLOWED_TENANT: ""
+    CALLBACK_ALLOWED_CAMPAIGN: ""
+    CALLBACK_JWT_ISSUER: ""
+    CALLBACK_JWT_AUDIENCE: "codestra-callback-api"
+    CALLBACK_JWT_JWKS_URL: ""
+    CALLBACK_JWT_AUTHORIZED_PARTIES: ""
+    CALLBACK_EMAIL_COMMAND_ENABLED: "false"
+    CALLBACK_EMAIL_SENDER_PROFILE_ID: ""
+    CALLBACK_EMAIL_TEMPLATE_ID: "codestra.callback.agent-reminder.v1"
+    CALLBACK_EMAIL_POLICY_HASH: ""
+    CALLBACK_WEBSOCKET_DELIVERY_ENABLED: "false"
+    CALLBACK_WEBSOCKET_GATEWAY_URL: ""
+    CALLBACK_WEBSOCKET_TOKEN_FILE: ""
+    MESSAGING_ENABLED: "false"
+    REPORT_DELIVERY_ENABLED: "false"
+    VICIDIAL_CALLBACK_HMAC_SECRET_FILE: ""
+    SEND_EVENTS: "false"
+    BROAD_EVENT_DELIVERY_ENABLED: "false"
+    ENABLE_EXTERNAL_DELIVERY: "false"
+    VICIDIAL_WRITES_ENABLED: "false"
+    PRODUCTION_CALLBACKS_ENABLED: "false"
+    TRANSFERS_ENABLED: "false"
+    PRODUCTION_WEBRTC_ENABLED: "false"
+    PRODUCTION_N8N_ENABLED: "false"
+    ODOO_RESULT_DELIVERY_ENABLED: "false"
+    TEST_SYN_ODOO_RESULT_DELIVERY_ENABLED: "false"
+    CONTROLLED_BROAD_EVENT_ACTIVATION: "false"
+    BROAD_EVENT_BUSINESS_UNIT_ALLOWLIST: ""
+    BROAD_EVENT_CAMPAIGN_ALLOWLIST: ""
+    BROAD_EVENT_WORKFLOW_ALLOWLIST: ""
+    BROAD_EVENT_TYPE_ALLOWLIST: ""
+    BROAD_EVENT_ACTIVATION_HIGH_WATER_MARK: ""
+    BROAD_EVENT_SUBMISSION_LIMIT: "0"
+    ALLOW_LIVE_EMAIL: "false"
+    ALLOW_LIVE_SMS: "false"
+    ALLOW_CAMPAIGN_ACTIVATION: "false"
+    EXTENSION_ALLOCATOR_ENABLED: "false"
+    TELEPHONY_PROVISIONING_ENABLED: "false"
+    VICIDIAL_PROVISIONING_ENABLED: "false"
+    PJSIP_PROVISIONING_ENABLED: "false"
+    WEBPHONE_SESSION_ISSUER_ENABLED: "false"
+    WEBPHONE_STAGING_PROVISIONING_ENABLED: "false"
+    WEBPHONE_KEYCLOAK_ENABLED: "false"
+    TELEPHONY_RECONCILIATION_ENABLED: "false"
+    TELEPHONY_NOTIFICATIONS_ENABLED: "false"
+    TELEPHONY_EVIDENCE_ENABLED: "false"
+    VICIDIAL_ODOO_PROJECTION_ENABLED: "false"
+    VICIDIAL_ODOO_SYNTHETIC_ONLY: "true"
+    SOCIAL_INTEGRATION_ENABLED: "false"
+    SOCIAL_PUBLISH_ENABLED: "false"
+    SOCIAL_N8N_EVENTS_ENABLED: "false"
+    SOCIAL_N8N_DELIVERY_WORKER_ENABLED: "false"
+    POSTLY_POLLING_ENABLED: "false"
+    POSTIZ_DELIVERY_ENABLED: "false"
+    POSTIZ_PUBLISH_ENABLED: "false"
+    SOCIAL_ODOO_WRITE_ENABLED: "false"
+    HOOTSUITE_ENABLED: "false"
+  healthcheck:
+    test:
+      - CMD
+      - python
+      - -c
+      - >-
+        import urllib.request;
+        urllib.request.urlopen('http://127.0.0.1:8095/healthz', timeout=3);
+        urllib.request.urlopen('http://127.0.0.1:8095/readyz', timeout=3)
+    interval: 15s
+    timeout: 5s
+    retries: 10
+    start_period: 10s
+  logging:
+    driver: json-file
+    options:
+      max-size: 20m
+      max-file: "5"
+  cpus: 0.50
+  mem_limit: 512m
+  pids_limit: 128
+  stop_grace_period: 30s
+  networks: [middleware_backend]
+
+x-worker: &worker
+  <<: *runtime
+
+services:
+  middleware-event-gateway:
+    <<: *runtime
+    command: [python, -m, app.entrypoints.event_gateway]
+    environment:
+      <<: *safe-flags
+      SERVICE_NAME: middleware-event-gateway
+      VICIDIAL_CALLBACK_HMAC_SECRET_FILE: /run/secrets/vicidial-callback-hmac
+      PUBLISHER_HMAC_KEYS_FILE: /run/secrets/telephony-publisher-keys.json
+      PUBLISHER_CANARY_ENABLED: "false"
+      VICIDIAL_EVENT_INGRESS_ROUTING_ENABLED: "false"
+      READINESS_PUBLISHER_KEY_ID: ${READINESS_PUBLISHER_KEY_ID:-}
+      READINESS_PUBLISHER_CERT_SHA256: ${READINESS_PUBLISHER_CERT_SHA256:-}
+      DEPLOYED_SOURCE_SHA: ${DEPLOYED_SOURCE_SHA:-}
+      RUNTIME_ARTIFACT_CHECKSUM: ${RUNTIME_ARTIFACT_CHECKSUM:-}
+      QUARANTINE_ENCRYPTION_KEY_FILE: /run/secrets/quarantine-encryption-key
+      QUARANTINE_FINGERPRINT_SECRET_FILE: /run/secrets/quarantine-fingerprint-key
+    volumes:
+      - /etc/codestra/secrets/middleware-runtime/middleware-event-gateway-database-url:/run/secrets/database_url:ro
+      - /etc/codestra/secrets/vicidial-mtls:/run/secrets/vicidial-mtls:ro
+      - /etc/codestra/secrets/vicidial-callback-hmac:/run/secrets/vicidial-callback-hmac:ro
+      - /etc/codestra/secrets/telephony-publisher/keys.json:/run/secrets/telephony-publisher-keys.json:ro
+      - /etc/codestra/secrets/middleware-runtime/quarantine-encryption-key:/run/secrets/quarantine-encryption-key:ro
+      - /etc/codestra/secrets/middleware-runtime/quarantine-fingerprint-key:/run/secrets/quarantine-fingerprint-key:ro
+    networks: [middleware_backend, middleware_edge]
+
+  middleware-integration-api:
+    <<: *runtime
+    command: [python, -m, app.entrypoints.integration_api]
+    networks:
+      - middleware_backend
+      - middleware_edge
+      - identity_service
+      - provisioning_private
+      - odoo_module_staging
+      - codestra_internal_integration
+      - n8n_staging_control
+    volumes:
+      - /etc/codestra/secrets/middleware-runtime/middleware-integration-api-database-url:/run/secrets/database_url:ro
+      - /etc/codestra/secrets/vicidial-mtls:/run/secrets/vicidial-mtls:ro
+      - /etc/codestra/secrets/codestra-compose/provisioning/client_secret:/run/secrets/provisioning/client_secret:ro
+      - /etc/codestra/secrets/codestra-compose/provisioning/ca.crt:/run/secrets/provisioning/ca.crt:ro
+      - /etc/codestra/secrets/codestra-compose/odoo_identity_hmac:/run/secrets/odoo/identity_hmac:ro
+      - /etc/codestra/secrets/middleware-runtime/quarantine-encryption-key:/run/secrets/quarantine-encryption-key:ro
+      - /etc/codestra/secrets/middleware-runtime/quarantine-fingerprint-key:/run/secrets/quarantine-fingerprint-key:ro
+      - /etc/codestra/secrets/middleware-runtime/quarantine-reviewer-key:/run/secrets/quarantine-reviewer-key:ro
+      - /etc/codestra/secrets/internal-n8n/middleware-client-secret:/run/secrets/middleware_n8n_client_secret:ro
+      - /etc/codestra/secrets/internal-n8n/odoo-results-client-secret:/run/secrets/odoo_results_client_secret:ro
+      - /etc/codestra/secrets/internal-n8n/runtime-hmac:/run/secrets/n8n_runtime_hmac:ro
+      - /etc/codestra/secrets/klyrow-mail/event-hmac:/run/secrets/klyrow_mail_event_hmac:ro
+      - /etc/codestra/secrets/middleware-staging/postly/postiz_api_key:/run/secrets/postiz_api_key:ro
+      - /etc/codestra/pki/internal-integration/ca.crt:/run/secrets/internal_integration_ca:ro
+    environment:
+      <<: *safe-flags
+      SERVICE_NAME: middleware-integration-api
+      # The public API persists idempotency, inbox/outbox, callback, delivery,
+      # and audit state. Readiness must fail closed when PostgreSQL is absent.
+      HEALTH_REQUIRE_DATABASE: "true"
+      QUARANTINE_ENCRYPTION_KEY_FILE: /run/secrets/quarantine-encryption-key
+      QUARANTINE_FINGERPRINT_SECRET_FILE: /run/secrets/quarantine-fingerprint-key
+      QUARANTINE_REVIEWER_SECRET_FILE: /run/secrets/quarantine-reviewer-key
+      N8N_PRODUCTION_TARGET_URL: https://n8n.internal.codestra.agency/webhook/codestra/v1/events
+      N8N_TARGET_CA_FILE: /run/secrets/internal_integration_ca
+      N8N_RUNTIME_HEALTH_URL: http://n8n:5678/healthz
+      MIDDLEWARE_N8N_TOKEN_URL: http://keycloak:8080/realms/codestra/protocol/openid-connect/token
+      MIDDLEWARE_N8N_CLIENT_ID: codestra-middleware-production
+      MIDDLEWARE_N8N_CLIENT_SECRET_FILE: /run/secrets/middleware_n8n_client_secret
+      MIDDLEWARE_N8N_AUDIENCE: codestra-n8n-production
+      MIDDLEWARE_N8N_SCOPE: n8n.events.submit
+      N8N_SERVICE_ISSUER: https://auth.codestra.co/realms/codestra
+      N8N_SERVICE_AUDIENCE: middleware-api
+      N8N_SERVICE_JWKS_URL: http://keycloak:8080/realms/codestra/protocol/openid-connect/certs
+      N8N_SERVICE_CLIENT_ID: codestra-n8n-production
+      ODOO_RESULTS_URL: https://odoo.internal.codestra.agency/api/v1/integration/results
+      ODOO_RESULTS_TOKEN_URL: http://keycloak:8080/realms/codestra/protocol/openid-connect/token
+      ODOO_RESULTS_CLIENT_ID: codestra-middleware-odoo-results
+      ODOO_RESULTS_CLIENT_SECRET_FILE: /run/secrets/odoo_results_client_secret
+      ODOO_RESULTS_AUDIENCE: codestra-odoo
+      ODOO_RESULTS_SCOPE: odoo.integration.results.write
+      ODOO_RESULTS_CA_FILE: /run/secrets/internal_integration_ca
+      KLYROW_MAIL_INGRESS_ENABLED: "false"
+      KLYROW_MAIL_HMAC_SECRET_FILE: /run/secrets/klyrow_mail_event_hmac
+      N8N_RUNTIME_ENABLED: "true"
+      N8N_RUNTIME_HMAC_SECRET_FILE: /run/secrets/n8n_runtime_hmac
+      POSTIZ_INTERNAL_BASE_URL: http://10.40.0.3:8443
+      POSTIZ_API_KEY_FILE: /run/secrets/postiz_api_key
+
+  middleware-klyrow-mail-odoo-worker:
+    <<: *worker
+    command: [python, -m, app.entrypoints.klyrow_mail_odoo_worker]
+    environment:
+      <<: *safe-flags
+      SERVICE_NAME: middleware-klyrow-mail-odoo-worker
+      KLYROW_MAIL_ODOO_DELIVERY_ENABLED: "false"
+      KLYROW_MAIL_ODOO_URL: https://odoo.internal.codestra.agency
+      KLYROW_MAIL_ODOO_API_KEY_FILE: /run/secrets/klyrow_mail_odoo_api_key
+      KLYROW_MAIL_ODOO_CA_FILE: /run/secrets/internal_integration_ca
+    volumes:
+      - /etc/codestra/secrets/middleware-runtime/middleware-integration-api-database-url:/run/secrets/database_url:ro
+      - /etc/codestra/secrets/klyrow-mail/odoo-api-key:/run/secrets/klyrow_mail_odoo_api_key:ro
+      - /etc/codestra/pki/internal-integration/ca.crt:/run/secrets/internal_integration_ca:ro
+    networks: [middleware_backend, codestra_internal_integration]
+
+  middleware-scraper-odoo-delivery-worker:
+    <<: *worker
+    command: [python, -m, app.entrypoints.scraper_odoo_delivery_worker]
+    environment:
+      <<: *safe-flags
+      SERVICE_NAME: middleware-scraper-odoo-delivery
+      SCRAPER_MIDDLEWARE_DELIVERY_ENABLED: "false"
+    volumes:
+      - /etc/codestra/secrets/middleware-runtime/middleware-integration-api-database-url:/run/secrets/database_url:ro
+    expose: ["8095"]
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - >-
+          import urllib.request;
+          urllib.request.urlopen('http://127.0.0.1:8095/metrics', timeout=3)
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  middleware-policy-engine:
+    <<: *runtime
+    command: [python, -m, app.entrypoints.policy_engine]
+    environment:
+      <<: *safe-flags
+      SERVICE_NAME: middleware-policy-engine
+      POLICY_MODE: shadow
+    volumes:
+      - /etc/codestra/secrets/middleware-runtime/middleware-policy-engine-database-url:/run/secrets/database_url:ro
+    networks: [middleware_backend, middleware_edge]
+
+  middleware-sync-worker:
+    <<: *worker
+    command: [python, -m, app.entrypoints.sync_worker]
+    environment:
+      <<: *safe-flags
+      SERVICE_NAME: middleware-sync-worker
+      QUEUE_NAME: middleware.sync.odoo.v1
+      ODOO_READ_ENABLED: "false"
+      ODOO_SYNC_WORKER_ENABLED: "false"
+      ODOO_RESULT_DELIVERY_ENABLED: "false"
+      ODOO_STAGING_WRITES_ENABLED: "false"
+      ODOO_PRODUCTION_WRITES_ENABLED: "false"
+      LIVE_WRITES_ENABLED: "false"
+      ODOO_BASE_URL: http://odoo19-staging:8069
+      ODOO_TOKEN_URL: http://keycloak-staging:8080/realms/codestra/protocol/openid-connect/token
+      ODOO_CLIENT_ID: codestra-middleware-staging
+      ODOO_CLIENT_SECRET_FILE: /run/secrets/odoo_client_secret
+      ODOO_AUDIENCE: codestra-odoo-integration
+      ODOO_SCOPE: service.attest monitor.read odoo.integration.outbox.claim odoo.integration.outbox.read odoo.integration.outbox.renew odoo.integration.outbox.acknowledge odoo.integration.outbox.fail odoo.integration.outbox.release
+      ODOO_CONNECT_TIMEOUT: "5"
+      ODOO_READ_TIMEOUT: "15"
+      ODOO_MAX_RETRIES: "3"
+      ODOO_SYNC_WORKER_ID: codestra-middleware-odoo-sync-staging
+      ODOO_SYNC_BATCH_SIZE: "25"
+      ODOO_SYNC_LEASE_SECONDS: "60"
+    volumes:
+      - /etc/codestra/secrets/middleware-runtime/middleware-sync-worker-database-url:/run/secrets/database_url:ro
+      - /opt/codestra/secrets/identity-staging/middleware_client_secret:/run/secrets/odoo_client_secret:ro
+    networks:
+      - middleware_backend
+      - identity_service
+      - codestra_internal_integration
+
+  middleware-notification-worker:
+    <<: *worker
+    command: [python, -m, app.entrypoints.notification_worker]
+    environment:
+      <<: *safe-flags
+      SERVICE_NAME: middleware-notification-worker
+      QUEUE_NAME: middleware.notification.v1
+    volumes:
+      - /etc/codestra/secrets/middleware-runtime/middleware-notification-worker-database-url:/run/secrets/database_url:ro
+
+  middleware-n8n-runtime-worker:
+    <<: *worker
+    command: [python, -m, app.entrypoints.n8n_runtime_worker]
+    environment:
+      <<: *safe-flags
+      SERVICE_NAME: middleware-n8n-runtime-worker
+      N8N_RUNTIME_ENABLED: "true"
+      N8N_RUNTIME_BASE_URL: http://webhook:5678
+      N8N_RUNTIME_HMAC_SECRET_FILE: /run/secrets/n8n_runtime_hmac
+    volumes:
+      - /etc/codestra/secrets/middleware-runtime/middleware-integration-api-database-url:/run/secrets/database_url:ro
+      - /etc/codestra/secrets/internal-n8n/runtime-hmac:/run/secrets/n8n_runtime_hmac:ro
+    networks:
+      - middleware_backend
+      - n8n_staging_control
+    healthcheck: &worker-healthcheck
+      test: [CMD, python, -c, "import os; os.kill(1, 0)"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+  middleware-social-n8n-delivery-worker:
+    <<: *worker
+    command: [python, -m, app.entrypoints.social_n8n_delivery_worker]
+    environment:
+      <<: *safe-flags
+      SERVICE_NAME: middleware-social-n8n-delivery-worker
+      N8N_RUNTIME_ENABLED: "true"
+      SOCIAL_N8N_EVENTS_ENABLED: "false"
+      SOCIAL_N8N_DELIVERY_WORKER_ENABLED: "false"
+    volumes:
+      - /etc/codestra/secrets/middleware-runtime/middleware-integration-api-database-url:/run/secrets/database_url:ro
+    healthcheck: *worker-healthcheck
+
+  middleware-postly-polling-worker:
+    <<: *worker
+    command: [python, -m, app.entrypoints.postly_polling_worker]
+    environment:
+      <<: *safe-flags
+      SERVICE_NAME: middleware-postly-polling-worker
+      POSTLY_POLLING_ENABLED: "false"
+      POSTIZ_INTERNAL_BASE_URL: http://10.40.0.3:8443
+      POSTIZ_API_KEY_FILE: /run/secrets/postiz_api_key
+      SOCIAL_PUBLISH_ENABLED: "false"
+      POSTIZ_PUBLISH_ENABLED: "false"
+    volumes:
+      - /etc/codestra/secrets/middleware-runtime/middleware-integration-api-database-url:/run/secrets/database_url:ro
+      - /etc/codestra/secrets/middleware-staging/postly/postiz_api_key:/run/secrets/postiz_api_key:ro
+    networks:
+      - middleware_backend
+      - middleware_edge
+    healthcheck: *worker-healthcheck
+
+  middleware-reconciliation-worker:
+    <<: *worker
+    command: [python, -m, app.entrypoints.reconciliation_worker]
+    environment:
+      <<: *safe-flags
+      SERVICE_NAME: middleware-reconciliation-worker
+      QUEUE_NAME: middleware.reconciliation.v1
+      WORKER_INTERVAL_SECONDS: "60"
+    volumes:
+      - /etc/codestra/secrets/middleware-runtime/middleware-reconciliation-worker-database-url:/run/secrets/database_url:ro
+
+  middleware-scheduler:
+    <<: *worker
+    command: [python, -m, app.entrypoints.scheduler]
+    environment:
+      <<: *safe-flags
+      SERVICE_NAME: middleware-scheduler
+      QUEUE_NAME: middleware.scheduler.v1
+      OUTBOX_WORKER_ENABLED: "false"
+    volumes:
+      - /etc/codestra/secrets/middleware-runtime/middleware-scheduler-database-url:/run/secrets/database_url:ro
+
+  middleware-odoo-result-worker:
+    <<: *worker
+    command: [python, -m, app.entrypoints.odoo_result_worker]
+    environment:
+      <<: *safe-flags
+      SERVICE_NAME: middleware-odoo-result-worker
+      QUEUE_NAME: odoo-results
+      ENVIRONMENT: production
+      ODOO_RESULT_DELIVERY_ENABLED: "false"
+      ODOO_RESULTS_URL: https://odoo.internal.codestra.agency/api/v1/integration/results
+      ODOO_RESULTS_TOKEN_URL: http://keycloak:8080/realms/codestra/protocol/openid-connect/token
+      ODOO_RESULTS_CLIENT_ID: codestra-middleware-odoo-results
+      ODOO_RESULTS_CLIENT_SECRET_FILE: /run/secrets/odoo_results_client_secret
+      ODOO_RESULTS_AUDIENCE: codestra-odoo
+      ODOO_RESULTS_SCOPE: odoo.integration.results.write
+      ODOO_RESULTS_CA_FILE: /run/secrets/internal_integration_ca
+      ODOO_SERVICE_CREDENTIAL_REFERENCE: secret://production/odoo-results-client
+      REGISTRY_SNAPSHOT_SIGNING_KEY_FILE: /run/secrets/registry_snapshot_signing_key
+    volumes:
+      - /etc/codestra/secrets/middleware-runtime/middleware-odoo-result-worker-database-url:/run/secrets/database_url:ro
+      - /etc/codestra/secrets/internal-n8n/odoo-results-client-secret:/run/secrets/odoo_results_client_secret:ro
+      - /etc/codestra/pki/internal-integration/ca.crt:/run/secrets/internal_integration_ca:ro
+      - /etc/codestra/secrets/internal-n8n/registry-snapshot-key:/run/secrets/registry_snapshot_signing_key:ro
+    networks:
+      - middleware_backend
+      - identity_service
+      - codestra_internal_integration
+
+  # Odoo campaign-control saga: Odoo outbox -> synthetic adapter -> actual-state
+  # readback. Disabled by default; production write routes are kill-switched in
+  # the registry (migration 0066) regardless of this flag.
+  middleware-odoo-campaign-saga-worker:
+    <<: *worker
+    command: [python, -m, app.entrypoints.odoo_campaign_saga_worker]
+    environment:
+      <<: *safe-flags
+      SERVICE_NAME: middleware-odoo-campaign-saga-worker
+      QUEUE_NAME: odoo-campaign-saga
+      ENVIRONMENT: production
+      ODOO_CAMPAIGN_SAGA_ENABLED: "false"
+      ODOO_CAMPAIGN_SAGA_ADAPTER: synthetic
+      ODOO_CAMPAIGN_SAGA_LEASE_SECONDS: "90"
+      ODOO_CAMPAIGN_SAGA_RETRY_LIMIT: "3"
+      ODOO_RESULTS_TOKEN_URL: http://keycloak:8080/realms/codestra/protocol/openid-connect/token
+      ODOO_RESULTS_CLIENT_ID: codestra-middleware-odoo-results
+      ODOO_RESULTS_CLIENT_SECRET_FILE: /run/secrets/odoo_results_client_secret
+      ODOO_RESULTS_AUDIENCE: codestra-odoo
+      ODOO_RESULTS_CA_FILE: /run/secrets/internal_integration_ca
+      ODOO_SERVICE_CREDENTIAL_REFERENCE: secret://production/odoo-results-client
+      REGISTRY_SNAPSHOT_SIGNING_KEY_FILE: /run/secrets/registry_snapshot_signing_key
+    volumes:
+      - /etc/codestra/secrets/middleware-runtime/middleware-odoo-campaign-saga-worker-database-url:/run/secrets/database_url:ro
+      - /etc/codestra/secrets/internal-n8n/odoo-results-client-secret:/run/secrets/odoo_results_client_secret:ro
+      - /etc/codestra/pki/internal-integration/ca.crt:/run/secrets/internal_integration_ca:ro
+      - /etc/codestra/secrets/internal-n8n/registry-snapshot-key:/run/secrets/registry_snapshot_signing_key:ro
+    networks:
+      - middleware_backend
+      - identity_service
+      - codestra_internal_integration
+
+  middleware-evidence-runner:
+    <<: *worker
+    command: [python, -m, app.entrypoints.evidence_runner]
+    environment:
+      <<: *safe-flags
+      SERVICE_NAME: middleware-evidence-runner
+      QUEUE_NAME: middleware.evidence.v1
+      WORKER_INTERVAL_SECONDS: "60"
+    volumes:
+      - /etc/codestra/secrets/middleware-runtime/middleware-evidence-runner-database-url:/run/secrets/database_url:ro
+
+  middleware-extension-allocator:
+    <<: *runtime
+    command: [python, -m, app.entrypoints.extension_allocator]
+    environment:
+      <<: *safe-flags
+      SERVICE_NAME: codestra-extension-allocator
+    volumes:
+      - /etc/codestra/secrets/middleware-runtime/middleware-extension-allocator-database-url:/run/secrets/database_url:ro
+
+  middleware-telephony-provisioning:
+    <<: *runtime
+    command: [python, -m, app.entrypoints.telephony_provisioning]
+    environment:
+      <<: *safe-flags
+      SERVICE_NAME: codestra-telephony-provisioning
+    volumes:
+      - /etc/codestra/secrets/middleware-runtime/middleware-telephony-provisioning-database-url:/run/secrets/database_url:ro
+
+  middleware-vicidial-adapter:
+    <<: *worker
+    command: [python, -m, app.entrypoints.vicidial_adapter]
+    environment:
+      <<: *safe-flags
+      SERVICE_NAME: codestra-vicidial-adapter
+      QUEUE_NAME: telephony.vicidial.provisioning
+    volumes:
+      - /etc/codestra/secrets/middleware-runtime/middleware-vicidial-adapter-database-url:/run/secrets/database_url:ro
+
+  middleware-pjsip-adapter:
+    <<: *worker
+    command: [python, -m, app.entrypoints.pjsip_adapter]
+    environment:
+      <<: *safe-flags
+      SERVICE_NAME: codestra-pjsip-adapter
+      QUEUE_NAME: telephony.pjsip.provisioning
+    volumes:
+      - /etc/codestra/secrets/middleware-runtime/middleware-pjsip-adapter-database-url:/run/secrets/database_url:ro
+
+  middleware-webphone-session-issuer:
+    <<: *runtime
+    command: [python, -m, app.entrypoints.webphone_session_issuer]
+    environment:
+      <<: *safe-flags
+      SERVICE_NAME: codestra-webphone-session-issuer
+    volumes:
+      - /etc/codestra/secrets/middleware-runtime/middleware-webphone-session-issuer-database-url:/run/secrets/database_url:ro
+    networks:
+      - middleware_backend
+      - identity_service
+
+  middleware-vicidial-odoo-projection:
+    <<: *worker
+    command: [python, -m, workers.run_vicidial_odoo_projection]
+    environment:
+      <<: *safe-flags
+      SERVICE_NAME: codestra-vicidial-odoo-projection
+      # Enabling this worker also requires RUNTIME_PROFILE_ID to select a
+      # profile whose vicidial-odoo-projection-runtime-authority.v1.json
+      # entry has mode "synthetic-only" (only the staging profile does
+      # today; both production profiles are "blocked-pending-protected-
+      # authority" and will refuse to start). See app/vicidial_odoo_projection_config.py.
+      NATS_URL: tls://nats.middleware-staging.svc.cluster.local:4222
+      NATS_STREAM: CODESTRA_STAGING_EVENTS
+      NATS_SUBJECT_PREFIX: codestra.staging.events
+      NATS_CREDS_FILE: /run/secrets/middleware-staging-vicidial-odoo-nats.creds
+      VICIDIAL_ODOO_DURABLE_CONSUMER: codestra-vicidial-odoo-staging-v1
+      VICIDIAL_ODOO_STATE_PATH: /var/lib/codestra-middleware/vicidial-odoo-projection.sqlite3
+      VICIDIAL_ODOO_HMAC_SECRET_FILE: /run/secrets/middleware-staging-vicidial-odoo-hmac
+      ODOO_19_BASE_URL: https://odoo-staging.internal.codestra
+      VICIDIAL_ODOO_BATCH_SIZE: "10"
+    volumes:
+      - /etc/codestra/secrets/middleware-runtime/middleware-vicidial-odoo-projection-database-url:/run/secrets/database_url:ro
+      - /etc/codestra/secrets/middleware-runtime/middleware-vicidial-odoo-projection-nats-creds:/run/secrets/middleware-staging-vicidial-odoo-nats.creds:ro
+      - /etc/codestra/secrets/middleware-runtime/middleware-vicidial-odoo-projection-hmac:/run/secrets/middleware-staging-vicidial-odoo-hmac:ro
+      - /etc/codestra/state/middleware-vicidial-odoo-projection:/var/lib/codestra-middleware:rw
+    networks:
+      - middleware_backend
+      - codestra_internal_integration
+
+networks:
+  middleware_backend:
+    external: true
+    name: codestra_backend
+  middleware_edge:
+    external: true
+    name: codestra_edge
+  identity_service:
+    external: true
+    name: codestra-identity_identity_service
+  provisioning_private:
+    external: true
+    name: codestra-provisioning-service_private
+  odoo_module_staging:
+    external: true
+    name: codestra-odoo19-module-staging_isolated
+  codestra_internal_integration:
+    external: true
+    name: codestra-internal-integration
+  n8n_staging_control:
+    external: true
+    name: codestra-n8n-middleware-staging-control
+
+secrets:
+  redis_url:
+    file: /etc/codestra/secrets/codestra-compose/redis_url
+  middleware_secret:
+    file: /etc/codestra/secrets/codestra-compose/middleware_secret
+  webhook_shared_secret:
+    file: /etc/codestra/secrets/codestra-compose/webhook_shared_secret

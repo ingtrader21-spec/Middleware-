@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "service_id": "codestra-telemetry",
+  "tenant": "codestra-platform",
+  "repository": "appolon1908-hue/Codestra-Telemetry",
+  "environments": [
+    "development",
+    "staging",
+    "production"
+  ],
+  "observation_sources": {
+    "codestra-telemetry-collector": {
+      "client": "codestra-telemetry-collector",
+      "environments": [
+        "development",
+        "staging",
+        "production"
+      ]
+    }
+  },
+  "required_signals": [
+    "metrics",
+    "logs",
+    "traces"
+  ],
+  "required_components": [
+    "alloy",
+    "prometheus",
+    "loki",
+    "tempo"
+  ],
+  "approved_config_digest": "REPLACE_WITH_SHA256_DIGEST"
+}

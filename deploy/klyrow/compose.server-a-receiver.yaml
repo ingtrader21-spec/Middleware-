@@ -1,0 +1,25 @@
+services:
+  middleware-integration-api:
+    # The host Caddy receiver is the only Klyrow network entry point. Keep the
+    # application listener loopback-only so provider traffic must pass mTLS,
+    # source-IP policy, request-size limits, and credential-redacted logging.
+    ports:
+      - name: klyrow-receiver
+        target: 8095
+        published: "18181"
+        host_ip: 127.0.0.1
+        protocol: tcp
+    environment:
+      KLYROW_MAIL_INGRESS_ENABLED: "true"
+
+  middleware-klyrow-mail-odoo-worker:
+    # Klyrow never connects to Odoo. This middleware-owned worker is the sole
+    # delivery authority after the API has authenticated and persisted mail.
+    environment:
+      KLYROW_MAIL_ODOO_DELIVERY_ENABLED: "true"
+      KLYROW_MAIL_ODOO_DATABASE: codestra_odoo
+      KLYROW_MAIL_ODOO_USERNAME: codestra.middleware@service.internal
+    networks:
+      middleware_backend: {}
+      codestra_internal_integration:
+        ipv4_address: ${KLYROW_MAIL_RPC_CLIENT_IP:?reserve the reviewed private mail-worker IPv4 address}

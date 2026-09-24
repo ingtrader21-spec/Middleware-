@@ -1,0 +1,80 @@
+name: Approved order orchestration
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    # RUNTIME_MUTATION_DISABLED=true: order validation is not authorized during production orchestration review.
+    if: ${{ false }}
+    name: order-orchestration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Install validation dependencies
+        run: >-
+          python -m pip install --disable-pip-version-check
+          -e '.[test]'
+          pyyaml jsonschema pytest-asyncio
+      - name: Compile Python
+        run: python -m compileall -q app tests scripts
+      - name: Targeted lint
+        run: ruff check app/order_orchestration.py app/api/v1/orders.py app/metrics.py tests/test_order_orchestration.py tests/test_integrations_gateway.py scripts/validate-order-orchestration.py
+      - name: Middleware tests
+        run: python -m pytest -q
+      - name: Order artifacts
+        run: python scripts/validate-order-orchestration.py
+      - name: Provider workflow and registry validation
+        run: |
+          python - <<'PY'
+          import json, pathlib
+          roots = [pathlib.Path('integrations/n8n/approved-orders'), pathlib.Path('integrations/n8n/qwen-tasks'), pathlib.Path('integrations/n8n/vicidial-orchestration'), pathlib.Path('integrations/n8n/postiz-orchestration')]
+          files = [p for root in roots for p in root.glob('*.json') if p.name != 'workflow-registry.json']
+          assert len(files) == 51, len(files)
+          for path in files:
+              data = json.loads(path.read_text())
+              assert data.get('active') is False
+              assert data.get('nodes')
+              assert 'connections' in data
+          registry = json.loads(pathlib.Path('integrations/n8n/cross-system-workflow-registry.json').read_text())
+          assert len(registry['workflows']) == 51
+          assert len({w['workflow_code'] for w in registry['workflows']}) == 51
+          assert len({w['n8n_workflow_id'] for w in registry['workflows']}) == 51
+          assert all(w['active'] is False for w in registry['workflows'])
+          PY
+      - name: Offline provider mocks
+        run: python -m pytest -q tests/test_provider_mocks.py tests/test_cross_system_mock_sales.py tests/test_ai_tasks.py
+      - name: Monitoring and dashboard validation
+        run: |
+          python - <<'PY'
+          import json, pathlib, yaml
+          rules = pathlib.Path('monitoring/middleware-alerts.yaml')
+          data = yaml.safe_load(rules.read_text())
+          names = [r['alert'] for g in data['groups'] for r in g['rules']]
+          required = {'CodestraOrderFailureRateHigh','CodestraOrderQueueBacklog','CodestraOrderExecutionStale','CodestraOrderDeadLetterIncrease','CodestraOrderCallbackFailures','CodestraOrderReconciliationMismatch','CodestraN8nOrderWorkflowUnavailable','CodestraOrderRetryRateHigh','CodestraOrderApprovalBacklog'}
+          assert required <= set(names)
+          assert all({'severity','service','component'} <= set(r['labels']) for g in data['groups'] for r in g['rules'] if r['alert'].startswith('CodestraOrder') or r['alert'].startswith('CodestraN8nOrder'))
+          json.loads(pathlib.Path('monitoring/dashboards/approved-order-orchestration.json').read_text())
+          PY
+      - name: Secret and direct-path scan
+        run: |
+          python - <<'PY'
+          import pathlib
+          import re
+          roots = [pathlib.Path('integrations/n8n/approved-orders'), pathlib.Path('integrations/n8n/qwen-tasks'), pathlib.Path('integrations/n8n/vicidial-orchestration'), pathlib.Path('integrations/n8n/postiz-orchestration')]
+          text = '\\n'.join(p.read_text() for root in roots for p in root.glob('*.json'))
+          assert not re.search(r'(api[_-]?key|password|secret)\\s*[:=]\\s*["\'][^$][^"\']{8,}', text, re.I)
+          assert 'postgresql://' not in text.lower()
+          PY
+      - name: Whitespace
+        run: git diff --check

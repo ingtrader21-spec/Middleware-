@@ -1,0 +1,447 @@
+{
+  "schema_version": "4.0",
+  "identity_key": "github_repository_id",
+  "authority_source": "config/repository-authorities.v1.json",
+  "name_alias_source": "config/repository-name-aliases.v1.json",
+  "scope": "authority-backed systems on current protected main",
+  "policy": {
+    "counts_are_derived": true,
+    "repository_names_are_mutable_attributes": true,
+    "repository_ids_are_immutable_identity": true,
+    "release_state_is_not_embedded": true,
+    "runtime_certification_is_not_embedded": true,
+    "middleware_is_cross_system_command_authority": true,
+    "n8n_is_orchestration_only": true,
+    "provider_callbacks_terminate_at_middleware": true,
+    "frontends_hold_no_provider_credentials": true,
+    "documentation_is_not_deployment_authorization": true
+  },
+  "systems": [
+    {
+      "component": "middleware",
+      "github_repository_id": 1347559071,
+      "current_repository": "ingtrader21-spec/Middleware-",
+      "authority_role": "cross-system-control-plane",
+      "lifecycle": "active",
+      "cell": "middleware-core",
+      "integration_mode": "middleware-authority",
+      "middleware_relationship": "authority",
+      "adapter_id": null,
+      "name_aliases": []
+    },
+    {
+      "component": "caddy",
+      "github_repository_id": 1350228103,
+      "current_repository": "appolon1908-hue/Caddy",
+      "authority_role": "shared-edge-tls-reverse-proxy",
+      "lifecycle": "active",
+      "cell": "edge-identity",
+      "integration_mode": "edge-compatibility",
+      "middleware_relationship": "compatibility",
+      "adapter_id": null,
+      "name_aliases": []
+    },
+    {
+      "component": "kong",
+      "github_repository_id": 1347790742,
+      "current_repository": "appolon1908-hue/Kong",
+      "authority_role": "api-gateway-policy-routes-plugins",
+      "lifecycle": "active",
+      "cell": "edge-identity",
+      "integration_mode": "gateway-compatibility",
+      "middleware_relationship": "compatibility",
+      "adapter_id": null,
+      "name_aliases": []
+    },
+    {
+      "component": "keycloak",
+      "github_repository_id": 1347523366,
+      "current_repository": "appolon1908-hue/Keycloak",
+      "authority_role": "identity-clients-scopes-token-issuance",
+      "lifecycle": "active",
+      "cell": "edge-identity",
+      "integration_mode": "identity-compatibility",
+      "middleware_relationship": "identity-authority",
+      "adapter_id": null,
+      "name_aliases": []
+    },
+    {
+      "component": "n8n",
+      "github_repository_id": 1347560645,
+      "current_repository": "appolon1908-hue/N8N",
+      "authority_role": "automation-workflow-source",
+      "lifecycle": "active",
+      "cell": "automation",
+      "integration_mode": "orchestration-client",
+      "middleware_relationship": "caller",
+      "adapter_id": null,
+      "name_aliases": []
+    },
+    {
+      "component": "odoo",
+      "github_repository_id": 1347522940,
+      "current_repository": "appolon1908-hue/Odoo",
+      "authority_role": "odoo-modules-business-crm-source",
+      "lifecycle": "active",
+      "cell": "communications",
+      "integration_mode": "business-system-adapter",
+      "middleware_relationship": "target-and-event-source",
+      "adapter_id": "odoo-19",
+      "name_aliases": []
+    },
+    {
+      "component": "telnexa-sms",
+      "github_repository_id": 1334764612,
+      "current_repository": "appolon1908-hue/telnexa",
+      "authority_role": "jasmin-sms-runtime-billing-webhooks",
+      "lifecycle": "active",
+      "cell": "communications",
+      "integration_mode": "provider-adapter",
+      "middleware_relationship": "target-and-event-source",
+      "adapter_id": "telnexa-sms",
+      "name_aliases": []
+    },
+    {
+      "component": "telnexa-web",
+      "github_repository_id": 1346958528,
+      "current_repository": "appolon1908-hue/Telnexa-web",
+      "authority_role": "telnexa-public-website-onboarding",
+      "lifecycle": "active",
+      "cell": "product-clients",
+      "integration_mode": "public-intake-client",
+      "middleware_relationship": "caller",
+      "adapter_id": null,
+      "name_aliases": []
+    },
+    {
+      "component": "klyrow-email",
+      "github_repository_id": 1334863061,
+      "current_repository": "appolon1908-hue/klyrow.com",
+      "authority_role": "email-postal-mautic-runtime",
+      "lifecycle": "active",
+      "cell": "communications",
+      "integration_mode": "provider-adapter",
+      "middleware_relationship": "target-and-event-source",
+      "adapter_id": "klyrow-email",
+      "name_aliases": []
+    },
+    {
+      "component": "klyrow-web",
+      "github_repository_id": 1346968526,
+      "current_repository": "appolon1908-hue/klyrow-Website-",
+      "authority_role": "klyrow-public-marketing-frontend",
+      "lifecycle": "active",
+      "cell": "product-clients",
+      "integration_mode": "public-intake-client",
+      "middleware_relationship": "caller",
+      "adapter_id": null,
+      "name_aliases": []
+    },
+    {
+      "component": "kyqra-crawler",
+      "github_repository_id": 1334792686,
+      "current_repository": "appolon1908-hue/kyqra-crawler",
+      "authority_role": "canonical-crawler-runtime",
+      "lifecycle": "active",
+      "cell": "crawler",
+      "integration_mode": "provider-adapter",
+      "middleware_relationship": "target-and-event-source",
+      "adapter_id": "kyqra-crawler",
+      "name_aliases": []
+    },
+    {
+      "component": "kyqra-legacy",
+      "github_repository_id": 1334764212,
+      "current_repository": "appolon1908-hue/kyqra",
+      "authority_role": "legacy-reference-only",
+      "lifecycle": "deprecated",
+      "cell": "legacy-disabled",
+      "integration_mode": "disabled",
+      "middleware_relationship": "none",
+      "adapter_id": null,
+      "name_aliases": []
+    },
+    {
+      "component": "vicidial-asterisk",
+      "github_repository_id": 1347744324,
+      "current_repository": "appolon1908-hue/Vicidialer-Codestra",
+      "authority_role": "voice-contact-center-connector-runtime",
+      "lifecycle": "active",
+      "cell": "telephony-restricted",
+      "integration_mode": "provider-adapter",
+      "middleware_relationship": "target-and-event-source",
+      "adapter_id": "vicidial-restricted",
+      "name_aliases": []
+    },
+    {
+      "component": "provisioning",
+      "github_repository_id": 1339900477,
+      "current_repository": "appolon1908-hue/codestra-provisioning-service",
+      "authority_role": "identity-access-provisioning-runtime",
+      "lifecycle": "active",
+      "cell": "core-control-plane",
+      "integration_mode": "provider-adapter",
+      "middleware_relationship": "target-and-event-source",
+      "adapter_id": "provisioning-service",
+      "name_aliases": []
+    },
+    {
+      "component": "sdk",
+      "github_repository_id": 1349042079,
+      "current_repository": "appolon1908-hue/SDK-repository",
+      "authority_role": "developer-facing-contracts-sdks-connector-kit",
+      "lifecycle": "active",
+      "cell": "governance",
+      "integration_mode": "contract-authority",
+      "middleware_relationship": "governance",
+      "adapter_id": null,
+      "name_aliases": []
+    },
+    {
+      "component": "social",
+      "github_repository_id": 1348783113,
+      "current_repository": "appolon1908-hue/social.codestra.co",
+      "authority_role": "social-postiz-product-source",
+      "lifecycle": "active",
+      "cell": "communications",
+      "integration_mode": "provider-adapter",
+      "middleware_relationship": "target-and-event-source",
+      "adapter_id": "postly-social",
+      "name_aliases": []
+    },
+    {
+      "component": "ai",
+      "github_repository_id": 1351354401,
+      "current_repository": "appolon1908-hue/Codestra-AI",
+      "authority_role": "ai-provider-product-source",
+      "lifecycle": "active",
+      "cell": "product-clients",
+      "integration_mode": "product-client",
+      "middleware_relationship": "caller",
+      "adapter_id": null,
+      "name_aliases": []
+    },
+    {
+      "component": "marketing",
+      "github_repository_id": 1351352422,
+      "current_repository": "appolon1908-hue/Codestra-Marketing-",
+      "authority_role": "marketing-provider-product-source",
+      "lifecycle": "active",
+      "cell": "product-clients",
+      "integration_mode": "product-client",
+      "middleware_relationship": "caller",
+      "adapter_id": null,
+      "name_aliases": []
+    },
+    {
+      "component": "scrapper",
+      "github_repository_id": 1329513537,
+      "current_repository": "appolon1908-hue/scrapper",
+      "authority_role": "legacy-business-scrapper-source-and-migration-evidence",
+      "lifecycle": "legacy-migration",
+      "cell": "legacy-disabled",
+      "integration_mode": "disabled",
+      "middleware_relationship": "none",
+      "adapter_id": null,
+      "name_aliases": []
+    },
+    {
+      "component": "beyvra-backend",
+      "github_repository_id": 1319831182,
+      "current_repository": "appolon1908-hue/beyvra-backend",
+      "authority_role": "independent-product-backend",
+      "lifecycle": "active",
+      "cell": "financial-isolated",
+      "integration_mode": "product-adapter-nonfinancial",
+      "middleware_relationship": "caller-and-target",
+      "adapter_id": "beyvra-nonfinancial",
+      "name_aliases": []
+    },
+    {
+      "component": "beyvra-frontend",
+      "github_repository_id": 1320246591,
+      "current_repository": "appolon1908-hue/beyvra-frontend",
+      "authority_role": "independent-product-frontend",
+      "lifecycle": "active",
+      "cell": "financial-isolated",
+      "integration_mode": "product-client",
+      "middleware_relationship": "caller",
+      "adapter_id": null,
+      "name_aliases": []
+    },
+    {
+      "component": "moneybee-backend",
+      "github_repository_id": 1343760409,
+      "current_repository": "appolon1908-hue/Moneybee-Backend",
+      "authority_role": "independent-product-backend",
+      "lifecycle": "active",
+      "cell": "product-clients",
+      "integration_mode": "product-client",
+      "middleware_relationship": "caller",
+      "adapter_id": null,
+      "name_aliases": []
+    },
+    {
+      "component": "moneybee-frontend",
+      "github_repository_id": 1343759743,
+      "current_repository": "appolon1908-hue/Moneybee-frontend-",
+      "authority_role": "independent-product-frontend",
+      "lifecycle": "active",
+      "cell": "product-clients",
+      "integration_mode": "product-client",
+      "middleware_relationship": "caller",
+      "adapter_id": null,
+      "name_aliases": []
+    },
+    {
+      "component": "breero",
+      "github_repository_id": 1331354808,
+      "current_repository": "appolon1908-hue/Breero.com",
+      "authority_role": "independent-product",
+      "lifecycle": "active",
+      "cell": "product-clients",
+      "integration_mode": "product-client",
+      "middleware_relationship": "caller",
+      "adapter_id": null,
+      "name_aliases": []
+    },
+    {
+      "component": "larim-a-backend",
+      "github_repository_id": 1343962951,
+      "current_repository": "appolon1908-hue/LARIM-A-Backend",
+      "authority_role": "independent-product-backend",
+      "lifecycle": "active",
+      "cell": "product-clients",
+      "integration_mode": "product-client",
+      "middleware_relationship": "caller",
+      "adapter_id": null,
+      "name_aliases": []
+    },
+    {
+      "component": "larim-a-frontend",
+      "github_repository_id": 1343962199,
+      "current_repository": "appolon1908-hue/LARIM-A-Fornt-end",
+      "authority_role": "independent-product-frontend",
+      "lifecycle": "active",
+      "cell": "product-clients",
+      "integration_mode": "product-client",
+      "middleware_relationship": "caller",
+      "adapter_id": null,
+      "name_aliases": [
+        {
+          "repository": "appolon1908-hue/LARIM-A-Frontend",
+          "status": "PREPARED_NOT_RENAMED"
+        }
+      ]
+    },
+    {
+      "component": "booked4seasons",
+      "github_repository_id": 1332044491,
+      "current_repository": "appolon1908-hue/booked4seasons",
+      "authority_role": "independent-product",
+      "lifecycle": "active",
+      "cell": "product-clients",
+      "integration_mode": "public-intake-client",
+      "middleware_relationship": "caller",
+      "adapter_id": null,
+      "name_aliases": []
+    },
+    {
+      "component": "codestra-public-site",
+      "github_repository_id": 1319808791,
+      "current_repository": "appolon1908-hue/codestra",
+      "authority_role": "public-site-source",
+      "lifecycle": "active",
+      "cell": "product-clients",
+      "integration_mode": "public-intake-client",
+      "middleware_relationship": "caller",
+      "adapter_id": null,
+      "name_aliases": []
+    },
+    {
+      "component": "restaurant-frontend",
+      "github_repository_id": 1221155447,
+      "current_repository": "appolon1908-hue/Frontend-Resturant-",
+      "authority_role": "independent-product-frontend",
+      "lifecycle": "active",
+      "cell": "product-clients",
+      "integration_mode": "public-intake-client",
+      "middleware_relationship": "caller",
+      "adapter_id": null,
+      "name_aliases": [
+        {
+          "repository": "appolon1908-hue/restaurant-frontend",
+          "status": "PREPARED_NOT_RENAMED"
+        }
+      ]
+    },
+    {
+      "component": "freight-platform-frontend",
+      "github_repository_id": 1343761049,
+      "current_repository": "appolon1908-hue/transportaion-Frontend",
+      "authority_role": "independent-product-frontend",
+      "lifecycle": "active",
+      "cell": "product-clients",
+      "integration_mode": "product-client",
+      "middleware_relationship": "caller",
+      "adapter_id": null,
+      "name_aliases": [
+        {
+          "repository": "appolon1908-hue/freight-platform-frontend",
+          "status": "PREPARED_NOT_RENAMED"
+        }
+      ]
+    },
+    {
+      "component": "social-control-plane",
+      "github_repository_id": 1351353723,
+      "current_repository": "appolon1908-hue/Codesrea-Social-",
+      "authority_role": "provider-neutral-social-control-plane-architecture",
+      "lifecycle": "planned-name-review",
+      "cell": "planned-control-planes",
+      "integration_mode": "planned-client",
+      "middleware_relationship": "caller",
+      "adapter_id": null,
+      "name_aliases": [
+        {
+          "repository": "appolon1908-hue/Codestra-Social-Control-Plane",
+          "status": "PREPARED_NOT_RENAMED"
+        }
+      ]
+    },
+    {
+      "component": "platform-documentation",
+      "github_repository_id": 1350724356,
+      "current_repository": "appolon1908-hue/documentaions",
+      "authority_role": "cross-repository-documentation-authority",
+      "lifecycle": "active",
+      "cell": "governance",
+      "integration_mode": "documentation-reference",
+      "middleware_relationship": "governance",
+      "adapter_id": null,
+      "name_aliases": [
+        {
+          "repository": "appolon1908-hue/Codestra-Documentation",
+          "status": "PREPARED_NOT_RENAMED"
+        }
+      ]
+    },
+    {
+      "component": "platform-infrastructure",
+      "github_repository_id": 1350724865,
+      "current_repository": "appolon1908-hue/Infustruction-repo",
+      "authority_role": "shared-infrastructure-and-release-governance",
+      "lifecycle": "active",
+      "cell": "governance",
+      "integration_mode": "infrastructure-coordinator",
+      "middleware_relationship": "governance",
+      "adapter_id": null,
+      "name_aliases": [
+        {
+          "repository": "appolon1908-hue/Codestra-Infrastructure",
+          "status": "PREPARED_NOT_RENAMED"
+        }
+      ]
+    }
+  ]
+}

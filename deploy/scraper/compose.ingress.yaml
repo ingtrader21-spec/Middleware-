@@ -1,0 +1,21 @@
+services:
+  middleware-integration-api:
+    environment:
+      SCRAPER_RESULT_INGEST_ENABLED: ${SCRAPER_RESULT_INGEST_ENABLED:-false}
+      SALES_SCRAPER_IDENTITY: ${SALES_SCRAPER_IDENTITY:-}
+      SALES_SCRAPER_TENANT_ID: ${SALES_SCRAPER_TENANT_ID:-}
+      SALES_SCRAPER_CAMPAIGN_ALLOWLIST: ${SALES_SCRAPER_CAMPAIGN_ALLOWLIST:-}
+      SALES_SCRAPER_HMAC_KEY_IDS: ${SALES_SCRAPER_HMAC_KEY_IDS:-}
+      SALES_SCRAPER_HMAC_KEYS_DIRECTORY: /run/secrets/scraper-ingress/hmac-keys
+      SALES_SCRAPER_JWT_ISSUER: https://auth.codestra.co/realms/codestra
+      SALES_SCRAPER_JWT_AUDIENCE: codestra-scraper-ingress
+      SALES_SCRAPER_JWT_JWKS_URL: http://keycloak:8080/realms/codestra/protocol/openid-connect/certs
+      SALES_SCRAPER_JWT_AUTHORIZED_PARTIES: ${SALES_SCRAPER_IDENTITY:-}
+      SALES_SCRAPER_JWT_REQUIRED_SCOPE: scraper.events.write
+      SALES_SCRAPER_JWT_REQUIRED_ROLE: scraper-publisher
+      SALES_SCRAPER_RATE_LIMIT_PER_MINUTE: ${SALES_SCRAPER_RATE_LIMIT_PER_MINUTE:-60}
+    volumes:
+      - type: bind
+        source: /etc/codestra/secrets/scraper-ingress/hmac-keys
+        target: /run/secrets/scraper-ingress/hmac-keys
+        read_only: true

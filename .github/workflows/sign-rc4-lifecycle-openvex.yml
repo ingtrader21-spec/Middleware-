@@ -1,0 +1,124 @@
+name: Sign RC4 Lifecycle OpenVEX
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: sign-rc4-lifecycle-openvex
+  cancel-in-progress: false
+
+jobs:
+  sign:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: security-release
+    timeout-minutes: 15
+    steps:
+      - name: Check out immutable workflow revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify repository, main ref, decision, provenance, and bindings
+        shell: bash
+        working-directory: security/vex/rc4-lifecycle
+        run: |
+          set -euo pipefail
+          test "${GITHUB_REPOSITORY}" = "appolon1908-hue/Middleware-"
+          test "${GITHUB_REF}" = "refs/heads/main"
+          test "$(git -C ../../.. rev-parse --is-shallow-repository)" = "false"
+
+          ! grep -nE '<[^>]+>|NOT_PROVIDED|PLACEHOLDER|PENDING_HUMAN_APPROVAL' \
+            security-owner-decision.md openvex.json
+          grep -qx 'Decision: APPROVED_FIXED_BACKPORT' \
+            security-owner-decision.md
+
+          sha256sum -c openvex.json.sha256
+          sha256sum -c candidate-provenance.json.sha256
+          test "$(sha256sum openvex.json | cut -d' ' -f1)" = \
+            "98781f84367a84014ead301c384cdb533a20fd25e7ad53b16827c12adcd57ce8"
+          test "$(sha256sum candidate-provenance.json | cut -d' ' -f1)" = \
+            "af1e0891fb003223ee93f2349752613f4cd17a67bab826ff31b3717f2537f5d2"
+
+          test "$(jq '.statements | length' openvex.json)" = "6"
+          test "$(jq '[.statements[].products[0]["@id"]] | unique | length' openvex.json)" = "2"
+          test "$(jq '[.statements[].products[0]["@id"] | select(. == "pkg:oci/middleware@sha256%3A8902cd852ab0b03701b3c5ab6b28d184c6a632e9d9b0deb39b0d5280ed38ed46?repository_url=index.docker.io%2Fcodestra")] | length' openvex.json)" = "3"
+          test "$(jq '[.statements[].products[0]["@id"] | select(. == "pkg:oci/telephony-event-gateway@sha256%3A5cdf841d45f5aa195494b7577c1b7f2f8396abae472dfeb02baa1ac5dc2fdf18?repository_url=index.docker.io%2Fcodestra")] | length' openvex.json)" = "3"
+          test "$(jq '[.statements[].vulnerability.name] | unique | length' openvex.json)" = "3"
+          test "$(jq '[.statements[] | select(.status == "fixed")] | length' openvex.json)" = "6"
+          test "$(jq '[.statements[].products[0].subcomponents[0]["@id"] | select(. == "pkg:generic/python@3.13.14")] | length' openvex.json)" = "6"
+
+          grep -q '041eeb242c68ba8f606b7023c728575d389a2739' \
+            candidate-provenance.json
+          grep -q 'dbf927247e6f16538e7ec65d8084c7faaba5c290' \
+            candidate-provenance.json
+          grep -q 'sha256:8902cd852ab0b03701b3c5ab6b28d184c6a632e9d9b0deb39b0d5280ed38ed46' \
+            security-owner-decision.md
+          grep -q 'sha256:5cdf841d45f5aa195494b7577c1b7f2f8396abae472dfeb02baa1ac5dc2fdf18' \
+            security-owner-decision.md
+
+      - name: Install checksum-pinned cosign
+        shell: bash
+        env:
+          COSIGN_VERSION: v3.1.2
+          COSIGN_SHA256: f7622ed3cf22e55e1ae6377c080979ff77a22da9981c11df222a2e444991e7cf
+        run: |
+          set -euo pipefail
+          url="https://github.com/sigstore/cosign/releases/download/${COSIGN_VERSION}/cosign-linux-amd64"
+          curl --fail --location --proto '=https' --tlsv1.2 \
+            --output "${RUNNER_TEMP}/cosign" "${url}"
+          echo "${COSIGN_SHA256}  ${RUNNER_TEMP}/cosign" | sha256sum -c -
+          install -m 0755 "${RUNNER_TEMP}/cosign" "${RUNNER_TEMP}/bin-cosign"
+          "${RUNNER_TEMP}/bin-cosign" version | tee cosign-version.txt
+
+      - name: Keyless sign exact RC4 OpenVEX blob
+        shell: bash
+        env:
+          COSIGN_EXPERIMENTAL: "1"
+        run: |
+          set -euo pipefail
+          cp security/vex/rc4-lifecycle/openvex.json rc4-lifecycle-openvex.unsigned.json
+          "${RUNNER_TEMP}/bin-cosign" sign-blob \
+            --yes \
+            --bundle rc4-lifecycle-openvex.sigstore.json \
+            rc4-lifecycle-openvex.unsigned.json
+
+      - name: Independently verify identity, issuer, and transparency bundle
+        shell: bash
+        env:
+          EXPECTED_IDENTITY: https://github.com/appolon1908-hue/Middleware-/.github/workflows/sign-rc4-lifecycle-openvex.yml@refs/heads/main
+          EXPECTED_ISSUER: https://token.actions.githubusercontent.com
+        run: |
+          set -euo pipefail
+          "${RUNNER_TEMP}/bin-cosign" verify-blob \
+            --bundle rc4-lifecycle-openvex.sigstore.json \
+            --certificate-identity "${EXPECTED_IDENTITY}" \
+            --certificate-oidc-issuer "${EXPECTED_ISSUER}" \
+            rc4-lifecycle-openvex.unsigned.json \
+            | tee rc4-lifecycle-openvex.verification.txt
+          sha256sum \
+            rc4-lifecycle-openvex.unsigned.json \
+            rc4-lifecycle-openvex.sigstore.json \
+            rc4-lifecycle-openvex.verification.txt \
+            cosign-version.txt \
+            > rc4-lifecycle-signed-artifacts.sha256
+
+      - name: Upload immutable run-scoped signing evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rc4-lifecycle-openvex-sigstore-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          overwrite: false
+          retention-days: 90
+          path: |
+            rc4-lifecycle-openvex.unsigned.json
+            rc4-lifecycle-openvex.sigstore.json
+            rc4-lifecycle-openvex.verification.txt
+            rc4-lifecycle-signed-artifacts.sha256
+            cosign-version.txt

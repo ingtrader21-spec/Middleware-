@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.codestra.co/provider-canary-evidence.v1.schema.json",
+  "title": "Codestra provider canary evidence v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "channel",
+    "provider",
+    "provider_reference",
+    "terminal_status",
+    "observed_at",
+    "source",
+    "destination_fingerprint",
+    "payload_fingerprint",
+    "facts"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "channel": {"enum": ["email", "sms", "voice", "social"]},
+    "provider": {"type": "string", "pattern": "^[a-z][a-z0-9._-]{1,63}$"},
+    "provider_reference": {"type": "string", "pattern": "^[A-Za-z0-9._:/-]{1,512}$"},
+    "terminal_status": {"type": "string", "pattern": "^[a-z][a-z0-9._-]{1,63}$"},
+    "observed_at": {"type": "string", "format": "date-time"},
+    "source": {"enum": ["provider_api", "provider_webhook", "provider_cdr"]},
+    "destination_fingerprint": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "payload_fingerprint": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "facts": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["delivery_event_id", "delivery_status", "provider_message_id", "recipient_fingerprint", "occurred_at"],
+          "properties": {
+            "delivery_event_id": {"$ref": "#/$defs/safeString"},
+            "delivery_status": {"const": "delivered"},
+            "provider_message_id": {"$ref": "#/$defs/safeString"},
+            "recipient_fingerprint": {"$ref": "#/$defs/fingerprint"},
+            "occurred_at": {"type": "string", "format": "date-time"}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["delivery_receipt_id", "delivery_status", "provider_message_id", "destination_fingerprint", "occurred_at"],
+          "properties": {
+            "delivery_receipt_id": {"$ref": "#/$defs/safeString"},
+            "delivery_status": {"const": "delivered"},
+            "provider_message_id": {"$ref": "#/$defs/safeString"},
+            "destination_fingerprint": {"$ref": "#/$defs/fingerprint"},
+            "occurred_at": {"type": "string", "format": "date-time"}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["cdr_id", "disposition", "duration_seconds", "hangup_cause", "destination_fingerprint", "occurred_at"],
+          "properties": {
+            "cdr_id": {"$ref": "#/$defs/safeString"},
+            "disposition": {"enum": ["ANSWER", "ANSWERED", "COMPLETED", "answer", "answered", "completed"]},
+            "duration_seconds": {"type": "integer", "minimum": 1},
+            "hangup_cause": {"$ref": "#/$defs/safeString"},
+            "destination_fingerprint": {"$ref": "#/$defs/fingerprint"},
+            "occurred_at": {"type": "string", "format": "date-time"}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["post_id", "account_reference_fingerprint", "content_fingerprint", "publication_state", "occurred_at"],
+          "properties": {
+            "post_id": {"$ref": "#/$defs/safeString"},
+            "account_reference_fingerprint": {"$ref": "#/$defs/fingerprint"},
+            "content_fingerprint": {"$ref": "#/$defs/fingerprint"},
+            "publication_state": {"const": "published"},
+            "occurred_at": {"type": "string", "format": "date-time"}
+          }
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "safeString": {"type": "string", "minLength": 1, "maxLength": 512},
+    "fingerprint": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+  }
+}

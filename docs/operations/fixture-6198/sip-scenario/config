@@ -1,0 +1,12 @@
+# Inert future-run configuration. No account or credential is stored here.
+sip_listen		10.40.0.1:61980
+audio_player		alsa,null
+audio_source		aufile,/run/codestra-fixture-6198/test-tone-8k-mono-s16.wav
+module_path		/usr/lib/baresip/modules
+module			stdio.so
+module			menu.so
+module			g711.so
+module			alsa.so
+module			aufile.so
+module			contact.so
+module_app		account.so

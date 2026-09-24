@@ -1,0 +1,248 @@
+{
+  "version": 6,
+  "base_branch": "main",
+  "deployment_from_workstream_branches": false,
+  "canonical_contract_branch": "core/integration-contracts",
+  "connectivity_map": "config/connectivity-map.json",
+  "canonical_event_schema": "contracts/platform/event-envelope.v1.schema.json",
+  "external_authorities": {
+    "integration_and_release": {
+      "repository": "appolon1908-hue/codestra-production-platform",
+      "branch": "release/production-activation",
+      "contract_catalog": "contracts/catalog.v1.json",
+      "runtime_composition": "composition/runtime-composition.v1.json",
+      "release_manifest_schema": "release/platform-release-manifest.v1.schema.json",
+      "caddy_config_home": "operations/caddy"
+    },
+    "crawler_source": {
+      "repository": "appolon1908-hue/kyqra-crawler",
+      "branch": "main",
+      "retired_repository": "appolon1908-hue/kyqra"
+    }
+  },
+  "synchronization_policy": {
+    "main_must_be_ancestor_of_active_work": true,
+    "completed_workstreams_refresh_from_main": true,
+    "direct_workstream_deployment": false,
+    "immutable_release_from_merged_sha_only": true
+  },
+  "workstreams": [
+    {
+      "branch": "integration/odoo-19",
+      "category": "application",
+      "runtime_status": "declared_active_scope",
+      "scope": "CRM, contacts, leads, activities, campaigns, callbacks, appointments, delivery results, reconciliation, and Odoo adapter tests"
+    },
+    {
+      "branch": "integration/n8n",
+      "category": "application",
+      "runtime_status": "declared_active_scope",
+      "scope": "Workflow automation, normalized event processing, signed webhooks, inactive-by-default workflow exports, replay protection, and n8n adapter tests"
+    },
+    {
+      "branch": "integration/vicidial",
+      "category": "telephony",
+      "runtime_status": "declared_active_scope",
+      "scope": "Call-center campaigns, agents, dispositions, call results, callbacks, restricted adapter commands, read-back comparison, and write-denial tests"
+    },
+    {
+      "branch": "integration/asterisk-pjsip",
+      "category": "telephony",
+      "runtime_status": "declared_active_scope",
+      "scope": "Asterisk and PJSIP endpoints, extensions, trunks, call infrastructure, health, and telephony contract tests"
+    },
+    {
+      "branch": "integration/telnexa-sms",
+      "category": "messaging",
+      "runtime_status": "declared_active_scope",
+      "scope": "SMS submission, delivery status callbacks, inbound events, signatures, replay protection, suppression, rate limiting, and reconciliation"
+    },
+    {
+      "branch": "integration/klyrow-email",
+      "category": "messaging",
+      "runtime_status": "declared_active_scope",
+      "scope": "Email submission, lifecycle events, bounces, complaints, suppression, templates, deduplication, callbacks, and reconciliation"
+    },
+    {
+      "branch": "integration/postly-social",
+      "category": "social",
+      "runtime_status": "declared_active_scope",
+      "scope": "Social-media polling, publishing and delivery events, account isolation, retry behavior, callbacks, and reconciliation"
+    },
+    {
+      "branch": "integration/keycloak",
+      "category": "identity",
+      "runtime_status": "declared_active_scope",
+      "scope": "OIDC and JWKS validation, service identities, roles, claims, audience and issuer enforcement, authorization policy, and identity tests"
+    },
+    {
+      "branch": "platform/kong",
+      "category": "platform",
+      "runtime_status": "declared_active_scope",
+      "scope": "API gateway services, routes, plugins, authentication, mTLS, rate limits, allowlists, transformations, and gateway tests"
+    },
+    {
+      "branch": "platform/caddy",
+      "category": "platform",
+      "runtime_status": "declared_active_scope",
+      "scope": "Middleware-side route compatibility and edge validation. Canonical production Caddy desired state lives in appolon1908-hue/codestra-production-platform at operations/caddy"
+    },
+    {
+      "branch": "platform/postgresql",
+      "category": "platform",
+      "runtime_status": "declared_active_scope",
+      "scope": "Durable records, event ledger, outbox, audit, mappings, schema, migrations, least-privilege roles, backup and restore, and rollback tests"
+    },
+    {
+      "branch": "platform/redis",
+      "category": "platform",
+      "runtime_status": "declared_active_scope",
+      "scope": "Temporary queues, caching, leases, idempotency state, locks, retry scheduling, recovery behavior, and Redis integration tests"
+    },
+    {
+      "branch": "platform/nats-jetstream",
+      "category": "platform",
+      "runtime_status": "required_shared_primitive",
+      "scope": "Central durable at-least-once domain event transport, stream and consumer policy, service identity, deduplication, replay, and transport integration tests"
+    },
+    {
+      "branch": "platform/temporal",
+      "category": "platform",
+      "runtime_status": "required_shared_primitive",
+      "scope": "Recoverable long-running provisioning, reconciliation, callback, delayed-process, privacy, and controlled retry workflows"
+    },
+    {
+      "branch": "platform/rabbitmq",
+      "category": "legacy-provider-local",
+      "runtime_status": "provider_local_not_central_verification_only",
+      "scope": "Legacy inventory for provider-local Telnexa and Klyrow RabbitMQ only; it is forbidden as a Codestra central event transport or Middleware dependency"
+    },
+    {
+      "branch": "integration/mautic",
+      "category": "marketing",
+      "runtime_status": "not_observed_on_middleware_host_verification_only",
+      "scope": "Mautic contacts, campaigns, segments, API and webhook contracts, authentication, idempotent synchronization, delivery events, reconciliation, and runtime verification"
+    },
+    {
+      "branch": "integration/postal-email",
+      "category": "messaging",
+      "runtime_status": "not_observed_on_middleware_host_verification_only",
+      "scope": "Postal email submission, lifecycle events, bounces, complaints, suppression, signatures, deduplication, reconciliation, and runtime verification"
+    },
+    {
+      "branch": "integration/jasmin-sms",
+      "category": "messaging",
+      "runtime_status": "not_observed_on_middleware_host_verification_only",
+      "scope": "Jasmin HTTP and SMPP submission, delivery receipts, inbound messages, authentication, replay protection, suppression, rate limiting, reconciliation, and runtime verification"
+    },
+    {
+      "branch": "integration/crawlee",
+      "category": "crawler",
+      "runtime_status": "not_observed_on_middleware_host_verification_only",
+      "scope": "Crawlee job contracts, crawl policies, tenant and job isolation, queue ownership, result ingestion, retries, replay behavior, and runtime verification"
+    },
+    {
+      "branch": "testing/playwright",
+      "category": "testing",
+      "runtime_status": "not_observed_on_middleware_host_verification_only",
+      "scope": "Playwright browser end-to-end tests, synthetic no-write canaries, authentication flows, trace and artifact handling, deterministic test data, and runtime verification"
+    },
+    {
+      "branch": "observability/prometheus",
+      "category": "observability",
+      "runtime_status": "declared_active_scope",
+      "scope": "Metrics collection, scrape configuration, recording rules, retention, and Prometheus validation"
+    },
+    {
+      "branch": "observability/grafana",
+      "category": "observability",
+      "runtime_status": "declared_active_scope",
+      "scope": "Dashboards, data sources, access controls, release identity panels, and Grafana provisioning"
+    },
+    {
+      "branch": "observability/alertmanager",
+      "category": "observability",
+      "runtime_status": "declared_active_scope",
+      "scope": "Alert routing, grouping, inhibition, receiver contracts, escalation, and notification tests"
+    },
+    {
+      "branch": "observability/loki",
+      "category": "observability",
+      "runtime_status": "declared_active_scope",
+      "scope": "Central logs, labels, retention, queries, tenant boundaries, secret redaction, and Loki validation"
+    },
+    {
+      "branch": "observability/blackbox-exporter",
+      "category": "observability",
+      "runtime_status": "declared_active_scope",
+      "scope": "HTTP, HTTPS, TCP and TLS probes, target definitions, authentication-safe checks, and blackbox alerts"
+    },
+    {
+      "branch": "observability/node-exporter",
+      "category": "observability",
+      "runtime_status": "declared_active_scope",
+      "scope": "Host metrics, filesystem and network collection, collector restrictions, and host alerts"
+    },
+    {
+      "branch": "observability/cadvisor",
+      "category": "observability",
+      "runtime_status": "declared_active_scope",
+      "scope": "Container resource metrics, labels, access restrictions, retention, and container alerts"
+    },
+    {
+      "branch": "observability/postgresql-exporter",
+      "category": "observability",
+      "runtime_status": "declared_active_scope",
+      "scope": "PostgreSQL exporter queries, least-privilege monitoring role, database metrics, and alerts"
+    },
+    {
+      "branch": "observability/redis-exporter",
+      "category": "observability",
+      "runtime_status": "declared_active_scope",
+      "scope": "Redis exporter authentication, queue and memory metrics, replication metrics, and alerts"
+    },
+    {
+      "branch": "core/integration-contracts",
+      "category": "shared-core",
+      "runtime_status": "required_shared_primitive",
+      "scope": "Canonical API and event contracts, system registry, identity and tenant metadata, correlation and idempotency rules, error semantics, compatibility policy, and communication tests"
+    },
+    {
+      "branch": "core/event-ledger-outbox",
+      "category": "shared-core",
+      "runtime_status": "required_shared_primitive",
+      "scope": "Canonical normalized events, durable event ledger, transactional outbox, leases, retries, dead letters, audit, and reconciliation"
+    },
+    {
+      "branch": "core/webhook-inbox-replay",
+      "category": "shared-core",
+      "runtime_status": "required_shared_primitive",
+      "scope": "Signed inbound inbox, timestamp bounds, replay protection, idempotency, deduplication, quarantine, and controlled replay"
+    },
+    {
+      "branch": "core/workers-scheduler",
+      "category": "shared-core",
+      "runtime_status": "required_shared_primitive",
+      "scope": "Background workers, schedulers, concurrency, queue ownership, graceful shutdown, retries, health, readiness, and restart behavior"
+    },
+    {
+      "branch": "integration/kyqra",
+      "category": "configured-unverified",
+      "runtime_status": "configured_worker_not_observed",
+      "scope": "Kyqra contracts and runtime verification against the canonical appolon1908-hue/kyqra-crawler source only, until a running worker, endpoint, ownership, and deployment path are confirmed"
+    },
+    {
+      "branch": "integration/beyvra",
+      "category": "configured-unverified",
+      "runtime_status": "configured_runtime_not_confirmed",
+      "scope": "Beyvra contracts and runtime verification only until the active service, endpoint, ownership, and deployment path are confirmed"
+    }
+  ],
+  "not_observed_with_verification_branches": [
+    "integration/mautic",
+    "integration/postal-email",
+    "integration/jasmin-sms",
+    "integration/crawlee",
+    "testing/playwright"
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "middleware": {
+    "repository": "Codestra-SRL/codestra-middleware",
+    "pull_request": 5,
+    "source_commit": "041eeb242c68ba8f606b7023c728575d389a2739",
+    "image": "codestra/middleware@sha256:8902cd852ab0b03701b3c5ab6b28d184c6a632e9d9b0deb39b0d5280ed38ed46"
+  },
+  "gateway": {
+    "repository": "Codestra-SRL/telephony-event-gateway",
+    "pull_request": 1,
+    "source_commit": "dbf927247e6f16538e7ec65d8084c7faaba5c290",
+    "image": "codestra/telephony-event-gateway@sha256:5cdf841d45f5aa195494b7577c1b7f2f8396abae472dfeb02baa1ac5dc2fdf18"
+  },
+  "patched_python": {
+    "image": "codestra/python@sha256:541d6acdaa39568e8e9ba2a12f707ce167a819e553025256c29918a9509fe0c2",
+    "version": "3.13.14",
+    "snapshot_commit": "0c624565381fcc9b5b3701df985fc80cb148efe8",
+    "backports": {
+      "CVE-2026-11940": "771d12dda5140313db0ac550292987975651bbde",
+      "CVE-2026-15308": "7933f4bf7131aa4140750f9404f5de0aa2969ced",
+      "CVE-2026-11972": "3f031d431f80668e14f3bc066bbf4369cd9281b9"
+    }
+  }
+}

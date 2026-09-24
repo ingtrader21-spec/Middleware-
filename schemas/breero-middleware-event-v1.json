@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.breero.com/integrations/middleware-event-v1.json",
+  "title": "BREERO Middleware CRM Event V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["event_id", "event_type", "schema_version", "aggregate_id", "aggregate_version", "occurred_at", "idempotency_key", "source", "payload"],
+  "properties": {
+    "event_id": {"type": "string", "format": "uuid"},
+    "event_type": {"enum": ["breero.service_request.created", "breero.contact_request.created", "breero.provider_interest.created", "breero.lead_dispute.created"]},
+    "schema_version": {"const": 1},
+    "aggregate_id": {"type": "string", "format": "uuid"},
+    "aggregate_version": {"type": "integer", "minimum": 1},
+    "occurred_at": {"type": "string", "format": "date-time"},
+    "idempotency_key": {"type": "string", "minLength": 1, "maxLength": 255},
+    "source": {"const": "breero"},
+    "payload": {"type": "object", "maxProperties": 20}
+  }
+}

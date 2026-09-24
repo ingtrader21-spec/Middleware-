@@ -1,0 +1,8 @@
+# Apply last during installation and read-only verification on Server A.
+services:
+  middleware-integration-api:
+    environment:
+      KLYROW_MAIL_INGRESS_ENABLED: "false"
+  middleware-klyrow-mail-odoo-worker:
+    environment:
+      KLYROW_MAIL_ODOO_DELIVERY_ENABLED: "false"

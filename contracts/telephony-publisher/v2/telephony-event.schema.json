@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://codestra.internal/contracts/telephony-publisher/2.0/event.schema.json",
+  "title": "Codestra Telephony Publisher Event v2.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "event_id", "event_type", "source_system", "created_at",
+    "occurred_at", "boot_session_id", "sequence", "call_uniqueid",
+    "correlation_id", "business_unit", "campaign", "agent_id",
+    "customer_reference", "payload", "policy_decision", "recording_reference",
+    "delivery", "privacy", "idempotency"
+  ],
+  "properties": {
+    "schema_version": {"const": "2.0"},
+    "event_id": {"type": "string", "format": "uuid"},
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "agent.login", "agent.ready", "agent.pause", "call.ringing",
+        "call.answered", "call.connected", "call.held", "call.disconnected",
+        "call.dial_started", "call.dial_ended", "call.queue_entered",
+        "call.queue_left", "call.transferred", "call.conference_joined",
+        "call.conference_left", "call.hung_up", "recording.reference",
+        "endpoint.registered", "endpoint.unregistered",
+        "endpoint.registration_changed", "telephony.observation_gap",
+        "synthetic.publisher_canary"
+      ]
+    },
+    "source_system": {
+      "type": "object", "additionalProperties": false,
+      "required": ["system", "server"],
+      "properties": {
+        "system": {"const": "asterisk-ami"},
+        "server": {"type": "string", "minLength": 1, "maxLength": 128},
+        "source_event": {"type": ["string", "null"], "maxLength": 128}
+      }
+    },
+    "created_at": {"type": "string", "format": "date-time"},
+    "occurred_at": {"type": "string", "format": "date-time"},
+    "boot_session_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "sequence": {"type": ["integer", "null"], "minimum": 0},
+    "call_uniqueid": {"type": ["string", "null"], "maxLength": 128},
+    "correlation_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "business_unit": {"type": ["string", "null"], "maxLength": 64},
+    "campaign": {"type": ["string", "null"], "maxLength": 64},
+    "agent_id": {"type": ["string", "null"], "maxLength": 64},
+    "customer_reference": {"type": ["string", "null"], "maxLength": 128},
+    "payload": {"type": "object", "maxProperties": 128},
+    "policy_decision": {
+      "type": "object", "additionalProperties": false,
+      "required": ["consent", "calling_hours"],
+      "properties": {
+        "consent": {"enum": ["allowed", "denied", "not_applicable", "unknown"]},
+        "calling_hours": {"enum": ["allowed", "denied", "not_applicable", "unknown"]},
+        "reason_code": {"type": ["string", "null"], "maxLength": 64}
+      }
+    },
+    "recording_reference": {
+      "type": ["object", "null"], "additionalProperties": false,
+      "required": ["reference", "media_included"],
+      "properties": {
+        "reference": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+        "media_included": {"const": false}
+      }
+    },
+    "delivery": {
+      "type": "object", "additionalProperties": false,
+      "required": ["attempt", "max_attempts", "first_queued_at", "expires_at"],
+      "properties": {
+        "attempt": {"type": "integer", "minimum": 0, "maximum": 3},
+        "max_attempts": {"type": "integer", "minimum": 1, "maximum": 3},
+        "first_queued_at": {"type": "string", "format": "date-time"},
+        "expires_at": {"type": "string", "format": "date-time"}
+      }
+    },
+    "privacy": {
+      "type": "object", "additionalProperties": false,
+      "required": ["classification", "contains_customer_data"],
+      "properties": {
+        "classification": {"enum": ["synthetic", "internal", "confidential"]},
+        "contains_customer_data": {"type": "boolean"}
+      }
+    },
+    "idempotency": {
+      "type": "object", "additionalProperties": false,
+      "required": ["key", "behavior"],
+      "properties": {
+        "key": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "behavior": {"const": "same_event_id_and_body_is_duplicate; conflict_is_permanent"}
+      }
+    }
+  }
+}

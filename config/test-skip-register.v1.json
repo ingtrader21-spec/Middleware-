@@ -1,0 +1,216 @@
+{
+  "schema_version": "1.0",
+  "baseline": {
+    "commit": "3f95d771667b2a5e29f9cbd589d8309f2201bdd7",
+    "passed": 503,
+    "skipped": 45
+  },
+  "registered_files": [
+    {
+      "path": "tests/test_agent_provisioning.py",
+      "gate": "DATABASE_URL",
+      "required_job": "Disposable PostgreSQL Redis integration"
+    },
+    {
+      "path": "tests/test_agent_provisioning_reads.py",
+      "gate": "DATABASE_URL",
+      "required_job": "Disposable PostgreSQL Redis integration"
+    },
+    {
+      "path": "tests/test_agent_realtime_authorization.py",
+      "gate": "DATABASE_URL",
+      "required_job": "Disposable PostgreSQL Redis integration"
+    },
+    {
+      "path": "tests/test_calls_and_activity.py",
+      "gate": "DATABASE_URL",
+      "required_job": "Disposable PostgreSQL Redis integration"
+    },
+    {
+      "path": "tests/test_session_context.py",
+      "gate": "DATABASE_URL",
+      "required_job": "Disposable PostgreSQL Redis integration"
+    },
+    {
+      "path": "tests/test_presence_and_queues.py",
+      "gate": "DATABASE_URL",
+      "required_job": "Disposable PostgreSQL Redis integration"
+    },
+    {
+      "path": "tests/test_tenants_and_campaigns.py",
+      "gate": "DATABASE_URL",
+      "required_job": "Disposable PostgreSQL Redis integration"
+    },
+    {
+      "path": "tests/test_odoo_integration_sync_status.py",
+      "gate": "DATABASE_URL",
+      "required_job": "Disposable PostgreSQL Redis integration"
+    },
+    {
+      "path": "tests/test_vicidial_odoo_projection_lifecycle_sync.py",
+      "gate": "DATABASE_URL",
+      "required_job": "Disposable PostgreSQL Redis integration"
+    },
+    {
+      "path": "tests/integration/test_postgres_redis.py",
+      "gate": "RUNTIME_INTEGRATION_TESTS",
+      "required_job": "Disposable PostgreSQL Redis integration"
+    },
+    {
+      "path": "tests/integration/test_outbox_dispatch_lease.py",
+      "gate": "RUNTIME_INTEGRATION_TESTS",
+      "required_job": "Disposable PostgreSQL Redis integration"
+    },
+    {
+      "path": "tests/integration/test_control_api.py",
+      "gate": "RUNTIME_INTEGRATION_TESTS",
+      "required_job": "Disposable PostgreSQL Redis integration"
+    },
+    {
+      "path": "tests/integration/test_communications_store.py",
+      "gate": "RUNTIME_INTEGRATION_TESTS",
+      "required_job": "Disposable PostgreSQL Redis integration"
+    },
+    {
+      "path": "tests/integration/test_observability_incidents.py",
+      "gate": "RUNTIME_INTEGRATION_TESTS",
+      "required_job": "Disposable PostgreSQL Redis integration"
+    },
+    {
+      "path": "tests/integration/test_synthetic_acceptance.py",
+      "gate": "RUNTIME_INTEGRATION_TESTS",
+      "required_job": "Synthetic no-effect acceptance E2E"
+    },
+    {
+      "path": "tests/integration/test_nats_jetstream.py",
+      "gate": "NATS_INTEGRATION_TESTS",
+      "required_job": "Disposable NATS JetStream integration"
+    },
+    {
+      "path": "tests/integration/test_temporal_workflows.py",
+      "gate": "TEMPORAL_INTEGRATION_TESTS",
+      "required_job": "Temporal critical workflow integration"
+    },
+    {
+      "path": "tests/integration/test_email_unknown_outcome_reconciliation.py",
+      "gate": "TEMPORAL_INTEGRATION_TESTS",
+      "required_job": "Temporal critical workflow integration"
+    },
+    {
+      "path": "tests/integration/test_durable_outbox.py",
+      "gate": "TEST_DATABASE_URL",
+      "required_job": "Disposable PostgreSQL Redis integration"
+    },
+    {
+      "path": "tests/integration/test_invalid_event_quarantine.py",
+      "gate": "TEST_DATABASE_URL",
+      "required_job": "Disposable PostgreSQL Redis integration"
+    },
+    {
+      "path": "tests/integration/test_n8n_transport_durable.py",
+      "gate": "TEST_DATABASE_URL",
+      "required_job": "Disposable PostgreSQL Redis integration"
+    },
+    {
+      "path": "tests/integration/test_sales_database.py",
+      "gate": "TEST_DATABASE_URL",
+      "required_job": "Disposable PostgreSQL Redis integration"
+    },
+    {
+      "path": "tests/integration/test_social_n8n_phase_n2_runtime.py",
+      "gate": "TEST_DATABASE_URL",
+      "required_job": "Disposable PostgreSQL Redis integration"
+    },
+    {
+      "path": "tests/integration/test_social_staging_runtime.py",
+      "gate": "TEST_DATABASE_URL+TEST_REDIS_URL",
+      "required_job": "Disposable PostgreSQL Redis integration"
+    },
+    {
+      "path": "tests/integration/test_telephony_command_journal.py",
+      "gate": "TEST_DATABASE_URL",
+      "required_job": "Disposable PostgreSQL Redis integration"
+    },
+    {
+      "path": "tests/integration/test_telephony_originate.py",
+      "gate": "TEST_DATABASE_URL",
+      "required_job": "Disposable PostgreSQL Redis integration"
+    },
+    {
+      "path": "tests/integration/test_telephony_reservation.py",
+      "gate": "TEST_DATABASE_URL",
+      "required_job": "Disposable PostgreSQL Redis integration"
+    },
+    {
+      "path": "tests/test_ai_job_platform.py",
+      "gate": "DATABASE_URL",
+      "required_job": "Disposable PostgreSQL Redis integration"
+    },
+    {
+      "path": "tests/test_ai_orchestration_db.py",
+      "gate": "DATABASE_URL",
+      "required_job": "Disposable PostgreSQL Redis integration"
+    },
+    {
+      "path": "tests/test_ai_worker_queue_runtime.py",
+      "gate": "DATABASE_URL",
+      "required_job": "Disposable PostgreSQL Redis integration"
+    },
+    {
+      "path": "tests/test_openai_worker_runtime.py",
+      "gate": "DATABASE_URL",
+      "required_job": "Disposable PostgreSQL Redis integration"
+    },
+    {
+      "path": "tests/test_tts_job_runtime.py",
+      "gate": "DATABASE_URL",
+      "required_job": "Disposable PostgreSQL Redis integration"
+    },
+    {
+      "path": "tests/pairing/test_selected_server_b.py",
+      "gate": "CODESTRA_SELECTED_SERVER_B_ROOT+CODESTRA_SELECTED_SERVER_B_SHA",
+      "required_job": "Calling contract"
+    },
+    {
+      "path": "services/connector-runtime/tests/test_storage_contract.py",
+      "gate": "ADMIN_DATABASE_URL+APP_DATABASE_URL",
+      "required_job": "Connector storage v1"
+    },
+    {
+      "path": "tests/integration/test_automation_v2_store.py",
+      "gate": "RUNTIME_INTEGRATION_TESTS",
+      "required_job": "Disposable PostgreSQL Redis integration"
+    },
+    {
+      "path": "tests/integration/test_runtime_migration_certification.py",
+      "gate": "RUNTIME_INTEGRATION_TESTS",
+      "required_job": "Disposable PostgreSQL Redis integration"
+    },
+    {
+      "path": "tests/test_campaign_design.py",
+      "gate": "TEST_DATABASE_URL",
+      "required_job": "Run migration chain and database tests"
+    },
+    {
+      "path": "tests/test_observability_sync.py",
+      "gate": "TEST_DATABASE_URL",
+      "required_job": "Test exact repository SHA"
+    },
+    {
+      "path": "tests/integration/test_platform_kernel_postgres.py",
+      "gate": "RUNTIME_INTEGRATION_TESTS",
+      "required_job": "Disposable PostgreSQL Redis integration"
+    },
+    {
+      "path": "tests/test_release_authority.py",
+      "gate": "GIT_METADATA+SYMLINK_SUPPORT",
+      "required_job": "docker-test-build"
+    }
+  ],
+  "policy": {
+    "unregistered_skip_allowed": false,
+    "permanent_skip_allowed": false,
+    "xfail_requires_work_code_owner_and_expiry": true,
+    "shared_staging_or_production_dependency_allowed": false
+  }
+}

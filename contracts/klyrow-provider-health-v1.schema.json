@@ -1,0 +1,46 @@
+{
+  "$id": "https://contracts.codestra.co/klyrow/klyrow-provider-health-v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "checked_at": {
+      "format": "date-time",
+      "title": "Checked At",
+      "type": "string"
+    },
+    "provider": {
+      "maxLength": 100,
+      "minLength": 1,
+      "title": "Provider",
+      "type": "string"
+    },
+    "reason_code": {
+      "anyOf": [
+        {
+          "maxLength": 100,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Reason Code"
+    },
+    "status": {
+      "enum": [
+        "HEALTHY",
+        "DEGRADED",
+        "UNAVAILABLE"
+      ],
+      "title": "Status",
+      "type": "string"
+    }
+  },
+  "required": [
+    "provider",
+    "status",
+    "checked_at"
+  ],
+  "title": "ProviderHealthData",
+  "type": "object"
+}

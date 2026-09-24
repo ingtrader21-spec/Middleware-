@@ -1,0 +1,276 @@
+#!/usr/bin/env python3
+"""Machine-readable, non-mutating production preflight. Never registers or calls."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+import subprocess
+import sys
+from datetime import datetime
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from app.core.webrtc_production_policy import Policy  # noqa: E402
+
+REQUIRED_TECHNICAL_GATES = (
+    "PROTECTED_SOURCE_ALIGNMENT",
+    "TRIVY",
+    "DNS",
+    "TLS",
+    "WSS",
+    "SECURITY_HEADERS",
+    "CORS",
+    "COOKIE_SECURITY",
+    "OIDC_NEGATIVE_MATRIX",
+    "PYTHON_FULL_SUITE",
+    "BROWSER_MATRIX",
+    "NON_TELEPHONY_LOAD_TEST",
+    "WSS_SOAK",
+    "REALTIME_SOAK",
+    "BROWSER_RESOURCE_SOAK",
+    "MULTI_TAB_STRESS",
+    "INACTIVE_CANDIDATE_DEPLOYMENT",
+    "BACKUP_REFERENCES",
+    "BACKUP_RESTORE_VALIDATION",
+    "CURRENT_ARTIFACT_BINDING",
+    "ROLLBACK_ARTIFACT",
+    "ROLLBACK_ISOLATION_TEST",
+    "ROLLBACK_AUTOMATION",
+    "PRODUCTION_POLICY_ENGINE",
+    "EMERGENCY_BLOCK",
+    "PREMIUM_BLOCK",
+    "PROHIBITED_BLOCK",
+    "INTERNATIONAL_POLICY",
+    "CALLING_HOURS_ENGINE",
+    "CONSENT_ENGINE",
+    "RECORDING_POLICY_ENGINE",
+    "PILOT_ALLOWLIST_ENGINE",
+    "PILOT_CAPACITY_CONTROL",
+    "PILOT_KILL_SWITCH",
+    "KILL_SWITCH_PRECEDENCE",
+    "PRODUCTION_CONFIG_FAIL_CLOSED",
+    "OBSERVABILITY",
+    "ALERTING",
+    "FINAL_CANDIDATE_SIGNED",
+    "FINAL_SBOM",
+    "FINAL_PROVENANCE",
+)
+
+PROTECTED_RELEASE_GATES = {
+    "FINAL_CANDIDATE_SIGNED": "signature",
+    "FINAL_SBOM": "sbom_attestation",
+    "FINAL_PROVENANCE": "provenance_attestation",
+}
+TRUSTED_OIDC_ISSUER = "https://token.actions.githubusercontent.com"
+TRUSTED_WORKFLOW_PREFIX = (
+    "https://github.com/ingtrader21-spec/Middleware-/.github/workflows/"
+)
+REQUIRED_BACKUPS = {
+    "middleware",
+    "policy",
+    "vicidial",
+    "asterisk",
+    "keycloak",
+    "release_metadata",
+    "pilot_packet",
+}
+
+
+def emit(name: str, status: str, detail: str = "") -> str:
+    suffix = f" DETAIL={detail}" if detail else ""
+    print(f"{name}={status}{suffix}")
+    return status
+
+
+def load(path: Path) -> dict:
+    return json.loads(path.read_text()) if path.is_file() else {}
+
+
+def protected_record_valid(record: object, release: dict) -> bool:
+    if not isinstance(record, dict):
+        return False
+    return bool(
+        record.get("status") == "PASS"
+        and record.get("authority") == "github-actions-protected"
+        and str(record.get("workflow_run_id", "")).isdigit()
+        and str(record.get("artifact_id", "")).isdigit()
+        and record.get("verification") == "PASS"
+        and record.get("oidc_issuer") == TRUSTED_OIDC_ISSUER
+        and str(record.get("workflow_identity", "")).startswith(
+            TRUSTED_WORKFLOW_PREFIX
+        )
+        and str(record.get("workflow_identity", "")).endswith("@refs/heads/main")
+        and record.get("source_sha") == release.get("protected_source_sha")
+        and record.get("image_digest") == release.get("image_digest")
+    )
+
+
+def authoritative_gate(name: str, technical: dict, release: dict) -> bool:
+    gates = technical.get("gates", {})
+    if gates.get(name) != "PASS":
+        return False
+    if name in PROTECTED_RELEASE_GATES:
+        return protected_record_valid(
+            technical.get("protected_release", {}).get(PROTECTED_RELEASE_GATES[name]),
+            release,
+        )
+    if name == "BACKUP_REFERENCES":
+        backups = technical.get("backups", {})
+        return REQUIRED_BACKUPS.issubset(backups) and all(
+            isinstance(backups[item], dict)
+            and backups[item].get("verification") == "PASS"
+            and backups[item].get("restore_verification") == "PASS"
+            and backups[item].get("created_at")
+            and backups[item].get("source_system")
+            and backups[item].get("checksum")
+            and backups[item].get("encryption_status") in {"ENCRYPTED", "NOT_REQUIRED"}
+            and backups[item].get("retention_location")
+            and backups[item].get("restore_procedure")
+            for item in REQUIRED_BACKUPS
+        )
+    if name == "CURRENT_ARTIFACT_BINDING":
+        binding = technical.get("current_artifact_binding", {})
+        return bool(
+            binding.get("approval_reference")
+            and binding.get("verification") == "PASS"
+            and binding.get("source_sha") == release.get("protected_source_sha")
+            and binding.get("running_digest")
+            and binding.get("running_digest") == binding.get("approved_digest")
+            and binding.get("approved_digest") == release.get("image_digest")
+        )
+    if name in {"ROLLBACK_ARTIFACT", "ROLLBACK_ISOLATION_TEST", "ROLLBACK_AUTOMATION"}:
+        rollback = technical.get("rollback", {})
+        artifact_ok = bool(
+            rollback.get("source_sha")
+            and rollback.get("image_digest")
+            and rollback.get("artifact_reference")
+            and rollback.get("signature_verification") == "PASS"
+            and rollback.get("sbom_attestation") == "PASS"
+            and rollback.get("provenance_attestation") == "PASS"
+            and rollback.get("migration_compatibility") == "PASS"
+        )
+        if name == "ROLLBACK_ISOLATION_TEST":
+            return artifact_ok and rollback.get("isolation_test") == "PASS"
+        if name == "ROLLBACK_AUTOMATION":
+            return artifact_ok and rollback.get("automation_validation") == "PASS"
+        return artifact_ok
+    return True
+
+
+def human_approval_valid(item: object, release: dict) -> bool:
+    if not isinstance(item, dict):
+        return False
+    try:
+        datetime.fromisoformat(str(item.get("timestamp", "")).replace("Z", "+00:00"))
+    except ValueError:
+        return False
+    return bool(
+        item.get("decision") == "APPROVE"
+        and item.get("name")
+        and item.get("role")
+        and item.get("scope")
+        and item.get("evidence_reference")
+        and item.get("protected_source_sha") == release.get("protected_source_sha")
+        and item.get("image_digest") == release.get("image_digest")
+    )
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--policy",
+        type=Path,
+        default=ROOT / "config/webrtc-production-policy.default-deny.json",
+    )
+    parser.add_argument(
+        "--release", type=Path, default=ROOT / "evidence/webrtc-release-manifest.json"
+    )
+    parser.add_argument(
+        "--technical",
+        type=Path,
+        default=ROOT / "evidence/webrtc-technical-evidence.json",
+    )
+    parser.add_argument(
+        "--human",
+        type=Path,
+        default=ROOT / "evidence/webrtc-human-approval-manifest.json",
+    )
+    args = parser.parse_args()
+
+    results: list[str] = []
+    pstn_disabled = os.getenv("LIVE_PSTN_DIALING", "false").lower() == "false"
+    production_disabled = (
+        os.getenv("PRODUCTION_DIALING_ENABLED", "false").lower() == "false"
+    )
+    print(f"PSTN_DIALING={'DISABLED' if pstn_disabled else 'ENABLED'}")
+    print(
+        f"PRODUCTION_DIALING={'DISABLED' if production_disabled else 'ENABLED'}"
+    )
+    results.append(emit("PSTN_DIALING_DISABLED", "PASS" if pstn_disabled else "FAIL"))
+    results.append(
+        emit(
+            "PRODUCTION_DIALING_DISABLED",
+            "PASS" if production_disabled else "FAIL",
+        )
+    )
+    policy = Policy.from_file(args.policy)
+    results.append(emit("PILOT_KILL_SWITCH", "PASS" if policy.kill_switch else "FAIL"))
+    policy_safe = (
+        policy.version
+        and policy.emergency_blocking
+        and policy.premium_blocking
+        and policy.consent_required
+    )
+    results.append(emit("PRODUCTION_POLICY_ENGINE", "PASS" if policy_safe else "FAIL"))
+
+    release = load(args.release)
+    artifact = Path(release.get("artifact_file", ""))
+    expected = release.get("artifact_sha256", "")
+    actual = (
+        hashlib.sha256(artifact.read_bytes()).hexdigest() if artifact.is_file() else ""
+    )
+    results.append(
+        emit("RELEASE_BINDING", "PASS" if actual and actual == expected else "FAIL")
+    )
+    head = subprocess.check_output(
+        ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True
+    ).strip()
+    build_sha = release.get("protected_source_sha")
+    results.append(
+        emit("SOURCE_BUILD_SHA_MATCH", "PASS" if head == build_sha else "FAIL")
+    )
+
+    technical = load(args.technical)
+    gate_statuses = {
+        name: "PASS" if authoritative_gate(name, technical, release) else "FAIL"
+        for name in REQUIRED_TECHNICAL_GATES
+    }
+    for name, status in gate_statuses.items():
+        results.append(emit(name, status))
+    passed = sum(status == "PASS" for status in gate_statuses.values())
+    print(f"STRICT_GATE_COUNT={passed}_OF_{len(REQUIRED_TECHNICAL_GATES)}")
+    print(
+        "TECHNICAL_READINESS_PERCENT="
+        f"{(100 * passed / len(REQUIRED_TECHNICAL_GATES)):.1f}"
+    )
+
+    human = load(args.human)
+    missing = [
+        name
+        for name, item in human.get("approvals", {}).items()
+        if not human_approval_valid(item, release)
+    ]
+    human_status = "BLOCKED_HUMAN" if missing else "PASS"
+    results.append(emit("HUMAN_APPROVALS", human_status, ",".join(missing)))
+    technical_failed = "FAIL" in results
+    final = "FAIL" if technical_failed else human_status
+    emit("FINAL_PREFLIGHT", final)
+    return 1 if technical_failed else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

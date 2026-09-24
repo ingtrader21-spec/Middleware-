@@ -1,0 +1,62 @@
+name: Identity webhook contract
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/identity-webhook-contract.yml
+      - config/identity-access-map.json
+      - config/api-webhook-contracts.json
+      - config/connectivity-map.json
+      - contracts/platform/event-envelope.v1.schema.json
+      - scripts/validate_identity_webhook_contracts.py
+      - tests/test_identity_webhook_contract_validation.py
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/identity-webhook-contract.yml
+      - config/identity-access-map.json
+      - config/api-webhook-contracts.json
+      - config/connectivity-map.json
+      - contracts/platform/event-envelope.v1.schema.json
+      - scripts/validate_identity_webhook_contracts.py
+      - tests/test_identity_webhook_contract_validation.py
+
+permissions:
+  contents: read
+
+concurrency:
+  group: identity-webhook-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  identity-webhook-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check out exact source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Prove exact source identity
+        env:
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -Eeuo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD_SHA"
+          test -z "$(git status --porcelain)"
+      - name: Validate identity and webhook contract
+        run: |
+          set -Eeuo pipefail
+          python3 -m py_compile \
+            scripts/validate_identity_webhook_contracts.py \
+            tests/test_identity_webhook_contract_validation.py
+          python3 -m unittest -v tests.test_identity_webhook_contract_validation
+          python3 scripts/validate_identity_webhook_contracts.py
+          git diff --check

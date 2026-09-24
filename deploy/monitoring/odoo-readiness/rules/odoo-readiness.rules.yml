@@ -1,0 +1,53 @@
+groups:
+  - name: odoo-readiness
+    rules:
+      - alert: CodestraOdooDown
+        expr: probe_success{job="odoo-blackbox"} == 0
+        for: 2m
+        labels: {severity: critical, service: odoo, environment: production}
+        annotations: {summary: Odoo endpoint unavailable, description: Odoo HTTPS health probe is failing, runbook: operations/runbooks/odoo-down.md}
+      - alert: CodestraOdooHighLatency
+        expr: probe_duration_seconds{job="odoo-blackbox"} > 2
+        for: 5m
+        labels: {severity: warning, service: odoo, environment: production}
+        annotations: {summary: Odoo latency elevated, description: Odoo probe latency exceeds threshold, runbook: operations/runbooks/odoo-latency.md}
+      - alert: CodestraPostgresDown
+        expr: pg_up == 0
+        for: 2m
+        labels: {severity: critical, service: postgres, environment: production}
+        annotations: {summary: PostgreSQL exporter unavailable, description: PostgreSQL is not reporting metrics, runbook: operations/runbooks/postgres-down.md}
+      - alert: CodestraPostgresConnectionSaturation
+        expr: pg_stat_database_numbackends / pg_settings_max_connections > 0.8
+        for: 5m
+        labels: {severity: warning, service: postgres, environment: production}
+        annotations: {summary: PostgreSQL connections saturated, description: PostgreSQL connection utilization is high, runbook: operations/runbooks/postgres-connections.md}
+      - alert: CodestraDiskSpaceLow
+        expr: node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"} < 0.1
+        for: 5m
+        labels: {severity: warning, service: host, environment: production}
+        annotations: {summary: Host disk space low, description: Root filesystem free space is below threshold, runbook: operations/runbooks/disk-space.md}
+      - alert: CodestraContainerRestartLoop
+        expr: increase(container_restart_count[15m]) >= 3
+        for: 5m
+        labels: {severity: critical, service: containers, environment: production}
+        annotations: {summary: Container restart loop, description: A container is restarting repeatedly, runbook: operations/runbooks/container-restarts.md}
+      - alert: CodestraHttpsEndpointDown
+        expr: probe_success{job="caddy-blackbox"} == 0
+        for: 2m
+        labels: {severity: critical, service: caddy, environment: production}
+        annotations: {summary: HTTPS endpoint unavailable, description: Caddy HTTPS probe is failing, runbook: operations/runbooks/https-endpoint.md}
+      - alert: CodestraTlsCertificateExpiring
+        expr: probe_ssl_earliest_cert_expiry{job="caddy-blackbox"} - time() < 14 * 86400
+        for: 15m
+        labels: {severity: warning, service: caddy, environment: production}
+        annotations: {summary: TLS certificate expiring, description: Certificate expires within fourteen days, runbook: operations/runbooks/tls-expiry.md}
+      - alert: CodestraRedisDown
+        expr: redis_up == 0
+        for: 2m
+        labels: {severity: critical, service: redis, environment: production}
+        annotations: {summary: Redis exporter unavailable, description: Redis is not reporting metrics, runbook: operations/runbooks/redis-down.md}
+      - alert: CodestraMiddlewareDown
+        expr: up{job="middleware"} == 0
+        for: 2m
+        labels: {severity: critical, service: middleware, environment: production}
+        annotations: {summary: Middleware metrics unavailable, description: Middleware metrics endpoint is unavailable, runbook: operations/runbooks/middleware-down.md}

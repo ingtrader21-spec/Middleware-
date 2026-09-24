@@ -1,0 +1,26 @@
+{
+  "contract_version": "codestra.scraper-n8n.v1",
+  "active_default": false,
+  "production_delivery_enabled_default": false,
+  "customer_communication_enabled": false,
+  "allowed_tenant": "TENANT-SYNTHETIC",
+  "allowed_campaign": "TEST_SYN",
+  "required_prefix": "ZZ_CDX_SCRAPER_CANARY_",
+  "workflows": [
+    "CdstScraperIngestionCanaryV1.json",
+    "CdstScraperDeadLetterCanaryV1.json"
+  ],
+  "allowed_node_types": [
+    "n8n-nodes-base.webhook",
+    "n8n-nodes-base.code",
+    "n8n-nodes-base.respondToWebhook"
+  ],
+  "forbidden_capabilities": [
+    "email",
+    "sms",
+    "customer_webhook",
+    "vicidial",
+    "telephony",
+    "social_publish"
+  ]
+}

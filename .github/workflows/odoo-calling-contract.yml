@@ -1,0 +1,81 @@
+name: Odoo calling endpoint contract
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: odoo-calling-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  calling-contract:
+    # RUNTIME_MUTATION_DISABLED=true: calling-contract is disabled until its external fixture is approved.
+    if: ${{ false }}
+    name: Calling contract (${{ matrix.source }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        source: [head, merge]
+    services:
+      postgres:
+        image: postgres@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
+        env:
+          POSTGRES_USER: middleware
+          POSTGRES_PASSWORD: middleware_ci_only
+          POSTGRES_DB: middleware_test_calling
+        ports: [5432:5432]
+        options: >-
+          --health-cmd "pg_isready -U middleware -d middleware_test_calling"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event_name == 'pull_request' && matrix.source == 'head' && github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Check out exact selected Server B source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: appolon1908-hue/Vicidialer-Codestra
+          ref: 9ac8ef4840f78ba4ad9b816e4e409298505103ce
+          ssh-key: ${{ secrets.SELECTED_SERVER_B_DEPLOY_KEY }}
+          path: selected-server-b
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.13'
+      - name: Verify checkout and install locked dependencies
+        env:
+          EXPECTED_SHA: ${{ github.event_name == 'pull_request' && matrix.source == 'head' && github.event.pull_request.head.sha || github.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          python -m pip install --require-hashes \
+            -r requirements-test.txt
+      - name: Exercise HTTP contracts and PostgreSQL reservation atomicity
+        env:
+          CALLING_TEST_DATABASE_URL: postgresql://middleware:middleware_ci_only@127.0.0.1:5432/middleware_test_calling
+          TEMPORAL_INTEGRATION_TESTS: '1'
+          CODESTRA_SELECTED_SERVER_B_ROOT: ${{ github.workspace }}/selected-server-b
+          CODESTRA_SELECTED_SERVER_B_SHA: 9ac8ef4840f78ba4ad9b816e4e409298505103ce
+        run: |
+          test -d "$CODESTRA_SELECTED_SERVER_B_ROOT/.git"
+          test "$(git -C "$CODESTRA_SELECTED_SERVER_B_ROOT" rev-parse HEAD)" = \
+            "$CODESTRA_SELECTED_SERVER_B_SHA"
+          python -m unittest discover -s tests -p 'test_calling*.py' -v
+          python -m pytest -q \
+            tests/test_calling_api.py \
+            tests/test_vicidial_internal_call_adapter.py \
+            tests/test_reconciliation_activity.py
+          TEMPORAL_INTEGRATION_TESTS=1 python -m pytest -q \
+            tests/integration/test_temporal_workflows.py
+          sudo -n env \
+            "PATH=$PATH" \
+            "CODESTRA_SELECTED_SERVER_B_ROOT=$CODESTRA_SELECTED_SERVER_B_ROOT" \
+            "CODESTRA_SELECTED_SERVER_B_SHA=$CODESTRA_SELECTED_SERVER_B_SHA" \
+            python -m pytest -q \
+            tests/pairing/test_selected_server_b.py
+          python scripts/generate_connector_artifacts.py --check
+          python scripts/validate_integration_fabric.py

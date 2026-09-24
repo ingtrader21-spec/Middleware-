@@ -1,0 +1,163 @@
+{
+  "name": "COD Reconciliation Event Production v2",
+  "active": false,
+  "nodes": [
+    {
+      "id": "webhook",
+      "name": "Authenticated Event Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-900, 0],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "codestra/v1/events",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "credentials": {
+        "jwtAuth": {
+          "name": "codestra-middleware-production-public-key"
+        }
+      }
+    },
+    {
+      "id": "normalize",
+      "name": "Validate and Build Registration",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-650, 0],
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\nconst req = $json.body;\nconst headers = $json.headers;\nconst token = String(headers.authorization || '').replace(/^Bearer\\s+/, '');\nconst claims = JSON.parse(Buffer.from(token.split('.')[1] || '', 'base64url').toString());\nconst scopes = new Set(String(claims.scope || '').split(/\\s+/));\nconst aud = Array.isArray(claims.aud) ? claims.aud : [claims.aud];\nif (claims.azp !== 'codestra-middleware-production' || !aud.includes('codestra-n8n-production') || claims.environment !== 'production' || !scopes.has('n8n.events.submit')) throw new Error('service claims rejected');\nif (!claims.business_units?.includes('BU-400-COD') || !claims.campaigns?.includes('CMP-400-COD')) throw new Error('service scope rejected');\nif (req.environment !== 'production' || req.business_unit_public_id !== 'BU-400-COD' || req.campaign_public_id !== 'CMP-400-COD' || req.event_type !== 'reconciliation.run') throw new Error('event scope rejected');\nif (req.attempt_number !== 1 || req.workflow?.public_id !== $workflow.id) throw new Error('workflow binding rejected');\nconst canonical = value => Array.isArray(value) ? `[${value.map(canonical).join(',')}]` : value && typeof value === 'object' ? `{${Object.keys(value).sort().map(k => `${JSON.stringify(k)}:${canonical(value[k])}`).join(',')}}` : JSON.stringify(value);\nconst sha = value => `sha256:${crypto.createHash('sha256').update(typeof value === 'string' ? value : canonical(value)).digest('hex')}`;\nif (sha(req.payload) !== req.payload_hash) throw new Error('payload hash rejected');\nconst now = new Date().toISOString();\nconst registration = {\n  schema_version:'1.0', registration_id:crypto.randomUUID(), delivery_id:req.delivery_id,\n  event_id:req.event_id, workflow_id:$workflow.id, workflow_version:req.workflow.version,\n  execution_id:$execution.id, environment:'production',\n  idempotency_key:`registration:${req.delivery_id}:${$execution.id}`,\n  correlation_id:req.correlation_id, payload_hash:req.payload_hash,\n  request_hash:sha(req), received_at:req.recorded_at, registered_at:now\n};\nconst raw = canonical(registration);\nreturn [{json:{request:req, registration, registration_raw:raw, registration_headers:{'X-Codestra-Timestamp':String(Math.floor(Date.now()/1000)),'X-Codestra-Nonce':crypto.randomUUID(),'X-Codestra-Body-SHA256':sha(raw),'X-Codestra-Correlation-ID':req.correlation_id}}}];"
+      }
+    },
+    {
+      "id": "register",
+      "name": "Middleware Execution Registration",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-390, 0],
+      "parameters": {
+        "method": "POST",
+        "url": "https://middleware.internal.codestra.agency/api/v1/n8n/executions/register",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "X-Codestra-Timestamp", "value": "={{$('Validate and Build Registration').item.json.registration_headers['X-Codestra-Timestamp']}}"},
+            {"name": "X-Codestra-Nonce", "value": "={{$('Validate and Build Registration').item.json.registration_headers['X-Codestra-Nonce']}}"},
+            {"name": "X-Codestra-Body-SHA256", "value": "={{$('Validate and Build Registration').item.json.registration_headers['X-Codestra-Body-SHA256']}}"},
+            {"name": "X-Codestra-Correlation-ID", "value": "={{$('Validate and Build Registration').item.json.registration_headers['X-Codestra-Correlation-ID']}}"}
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{$('Validate and Build Registration').item.json.registration_raw}}",
+        "options": {
+          "redirect": {"redirect": {"followRedirects": false}},
+          "timeout": 10000
+        }
+      },
+      "credentials": {
+        "oAuth2Api": {"name": "codestra-n8n-production"}
+      }
+    },
+    {
+      "id": "response",
+      "name": "Durably Accepted Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [-120, -80],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ {schema_version:'1.0',accepted:true,persisted:$json.persisted,delivery_id:$json.delivery_id,event_id:$json.event_id,registration_id:$json.registration_id,execution_id:$json.execution_id,workflow_id:$json.workflow_id,workflow_version:$json.workflow_version,idempotency_status:$json.idempotency_status,accepted_at:$json.persisted_at,response_hash:$json.response_hash} }}",
+        "options": {"responseCode": 202}
+      }
+    },
+    {
+      "id": "sink",
+      "name": "Internal Reconciliation Test Sink",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [130, -80],
+      "parameters": {}
+    },
+    {
+      "id": "ackbody",
+      "name": "Build Durable Acknowledgement",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [380, -80],
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\nconst source = $('Validate and Build Registration').item.json;\nconst registered = $('Middleware Execution Registration').item.json;\nconst canonical = value => Array.isArray(value) ? `[${value.map(canonical).join(',')}]` : value && typeof value === 'object' ? `{${Object.keys(value).sort().map(k => `${JSON.stringify(k)}:${canonical(value[k])}`).join(',')}}` : JSON.stringify(value);\nconst sha = value => `sha256:${crypto.createHash('sha256').update(typeof value === 'string' ? value : canonical(value)).digest('hex')}`;\nconst now = new Date().toISOString();\nconst result = {operation:'reconciliation.run',mode:'internal-report-only',test_run_id:source.request.payload.test_run_id};\nconst acknowledgement = {schema_version:'1.0',acknowledgement_id:crypto.randomUUID(),registration_id:registered.registration_id,delivery_id:source.request.delivery_id,event_id:source.request.event_id,workflow_id:$workflow.id,workflow_version:source.request.workflow.version,execution_id:$execution.id,execution_status:'SUCCEEDED',result_classification:'RECONCILIATION_COMPLETE',result_hash:sha(result),attempt_number:1,correlation_id:source.request.correlation_id,policy_hash:source.request.policy.hash,started_at:source.registration.registered_at,completed_at:now,metrics:{duration_ms:Math.max(0,Date.now()-Date.parse(source.registration.registered_at))}};\nconst raw = canonical(acknowledgement);\nreturn [{json:{acknowledgement,acknowledgement_raw:raw,acknowledgement_headers:{'X-Codestra-Timestamp':String(Math.floor(Date.now()/1000)),'X-Codestra-Nonce':crypto.randomUUID(),'X-Codestra-Body-SHA256':sha(raw),'X-Codestra-Correlation-ID':source.request.correlation_id}}}];"
+      }
+    },
+    {
+      "id": "ack",
+      "name": "Middleware Durable Acknowledgement",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [640, -80],
+      "parameters": {
+        "method": "POST",
+        "url": "https://middleware.internal.codestra.agency/api/v1/n8n/acknowledgements",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "X-Codestra-Timestamp", "value": "={{$json.acknowledgement_headers['X-Codestra-Timestamp']}}"},
+            {"name": "X-Codestra-Nonce", "value": "={{$json.acknowledgement_headers['X-Codestra-Nonce']}}"},
+            {"name": "X-Codestra-Body-SHA256", "value": "={{$json.acknowledgement_headers['X-Codestra-Body-SHA256']}}"},
+            {"name": "X-Codestra-Correlation-ID", "value": "={{$json.acknowledgement_headers['X-Codestra-Correlation-ID']}}"}
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{$json.acknowledgement_raw}}",
+        "options": {
+          "redirect": {"redirect": {"followRedirects": false}},
+          "timeout": 10000
+        }
+      },
+      "credentials": {
+        "oAuth2Api": {"name": "codestra-n8n-production"}
+      }
+    }
+  ],
+  "connections": {
+    "Authenticated Event Webhook": {"main": [[{"node": "Validate and Build Registration", "type": "main", "index": 0}]]},
+    "Validate and Build Registration": {"main": [[{"node": "Middleware Execution Registration", "type": "main", "index": 0}]]},
+    "Middleware Execution Registration": {"main": [[{"node": "Durably Accepted Response", "type": "main", "index": 0}]]},
+    "Durably Accepted Response": {"main": [[{"node": "Internal Reconciliation Test Sink", "type": "main", "index": 0}]]},
+    "Internal Reconciliation Test Sink": {"main": [[{"node": "Build Durable Acknowledgement", "type": "main", "index": 0}]]},
+    "Build Durable Acknowledgement": {"main": [[{"node": "Middleware Durable Acknowledgement", "type": "main", "index": 0}]]}
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": false,
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionTimeout": 30
+  },
+  "meta": {
+    "codestra_environment": "production",
+    "workflow_version": "2.0.0",
+    "business_unit_allowlist": ["BU-400-COD"],
+    "campaign_allowlist": ["CMP-400-COD"],
+    "event_type_allowlist": ["reconciliation.run"],
+    "destination_class": "INTERNAL_MIDDLEWARE_N8N_TEST_SINK",
+    "kill_switch": "N8N_PRODUCTION_WORKFLOWS_ENABLED",
+    "rate_limit_per_minute": 25,
+    "concurrency_limit": 1,
+    "rollback_workflow_version": "1.0.0",
+    "credential_references": [
+      "codestra-middleware-production-public-key",
+      "codestra-n8n-production"
+    ]
+  }
+}

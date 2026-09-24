@@ -1,0 +1,144 @@
+{
+  "generated_at": "2026-08-20T13:05:00Z",
+  "safety": {
+    "pstn_dialing": false,
+    "production_dialing": false,
+    "calls_placed": 0,
+    "sip_register_performed": false,
+    "deployment_authorized": false
+  },
+  "release": {
+    "evidence_scope": "HISTORICAL_LOCAL_BASELINE",
+    "authoritative_for_protected_release": false,
+    "protected_source_sha": "9b817116ae6233af708d201f0233c1f707ee32b7",
+    "final_artifact_digest": "sha256:d8177cdafd080a90723ef3afe1d6ca096d0c00278eb9d0601c3c4100022ee2f9",
+    "signature": "LOCAL_ONLY_NOT_ACCEPTED",
+    "sbom_attestation": "LOCAL_ONLY_NOT_ACCEPTED",
+    "provenance_attestation": "LOCAL_ONLY_NOT_ACCEPTED",
+    "release_binding": "LOCAL_ONLY_NOT_ACCEPTED",
+    "protected_source_clean": false,
+    "sbom_digest": "sha256:27ab69a62d6ff698a62b2e7a53a78d353b35b5fec61543cdcb938923b7116210"
+  },
+  "scores": {
+    "Release Security": {
+      "weight": 15,
+      "earned": 8,
+      "status": "FAIL"
+    },
+    "Identity": {
+      "weight": 10,
+      "earned": 8,
+      "status": "PARTIAL"
+    },
+    "Realtime/WebSocket": {
+      "weight": 10,
+      "earned": 8,
+      "status": "PARTIAL"
+    },
+    "WebRTC/SIP.js": {
+      "weight": 10,
+      "earned": 10,
+      "status": "PASS"
+    },
+    "Telephony Policy": {
+      "weight": 15,
+      "earned": 15,
+      "status": "PASS"
+    },
+    "Network Security": {
+      "weight": 10,
+      "earned": 6,
+      "status": "PARTIAL"
+    },
+    "Observability": {
+      "weight": 10,
+      "earned": 10,
+      "status": "PASS"
+    },
+    "Rollback/Recovery": {
+      "weight": 10,
+      "earned": 5,
+      "status": "PARTIAL"
+    },
+    "Deployment Automation": {
+      "weight": 5,
+      "earned": 4,
+      "status": "PARTIAL"
+    },
+    "Human Pilot Approvals": {
+      "weight": 5,
+      "earned": 0,
+      "status": "BLOCKED_HUMAN"
+    }
+  },
+  "technical_readiness_percent": 77.9,
+  "overall_readiness_percent": 74,
+  "technical_deployment_ready": "FAIL",
+  "production_pilot_activation_ready": "BLOCKED",
+  "technical_blockers": [
+    "The implemented source is an uncommitted working tree and therefore cannot truthfully equal a protected source SHA.",
+    "Trivy crashed in its vulnerability database engine; container/OS HIGH and CRITICAL counts are not certified.",
+    "Production DNS and Server B SSH were unavailable during final validation, so WSS production, active-call reconfirmation, inactive-slot, load, and soak gates remain unproved.",
+    "No current approved/running deployment digest inventory or restorable production backup reference was available."
+  ],
+  "human_approvals_remaining": [
+    "PRODUCTION_CAMPAIGN_SELECTION",
+    "BUSINESS_UNIT_APPROVAL",
+    "PILOT_AGENT_SELECTION",
+    "SUPERVISOR_ACCEPTANCE",
+    "CARRIER_PRODUCTION_AUTHORIZATION",
+    "CALLER_ID_OWNERSHIP",
+    "CALLER_ID_CAMPAIGN_AUTHORIZATION",
+    "DESTINATION_OWNER_CONSENT",
+    "CALLING_WINDOW_APPROVAL",
+    "RECORDING_POLICY_APPROVAL",
+    "TELEPHONY_OWNER_APPROVAL",
+    "SECURITY_OWNER_APPROVAL",
+    "COMPLIANCE_OWNER_APPROVAL",
+    "BUSINESS_OWNER_APPROVAL"
+  ],
+  "campaign_technical_readiness_matrix": [
+    {
+      "campaign": "RLP100",
+      "state": "PROPOSED_DISABLED",
+      "activation": false
+    },
+    {
+      "campaign": "TRD200",
+      "state": "PROPOSED_DISABLED",
+      "activation": false
+    },
+    {
+      "campaign": "MOY300",
+      "state": "PROPOSED_DISABLED",
+      "activation": false
+    },
+    {
+      "campaign": "COD400",
+      "state": "PROPOSED_DISABLED",
+      "activation": false
+    },
+    {
+      "campaign": "SCP500",
+      "state": "PROPOSED_DISABLED",
+      "activation": false
+    },
+    {
+      "campaign": "MBL600",
+      "state": "PROPOSED_DISABLED",
+      "activation": false
+    },
+    {
+      "campaign": "FTP700",
+      "state": "PROPOSED_DISABLED",
+      "activation": false
+    },
+    {
+      "campaign": "CAL800",
+      "state": "PROPOSED_DISABLED",
+      "activation": false
+    }
+  ],
+  "pilot_agent_candidate_matrix": [],
+  "supervisor_readiness_matrix": []
+}

@@ -1,0 +1,46 @@
+[Unit]
+Description=Codestra restricted development agent (Server A)
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=3
+ConditionPathExists=/run/codestra-agent-a/tls/server.crt
+ConditionPathExists=/run/codestra-agent-a/tls/server.key
+ConditionPathExists=/run/codestra-agent-a/tls/controller-ca.crt
+ConditionPathExists=/run/codestra-agent-a/secrets/approval-signing.key
+
+[Service]
+Type=exec
+User=codestra-agent-a
+Group=codestra-agent-a
+Environment=SERVER_A_AGENT_ENABLED=false
+Environment=SERVER_A_AGENT_BIND=10.40.0.1:9443
+Environment=CONTROLLER_WORKSPACE_ALLOWLIST=/opt/codestra/middleware,/opt/codestra/worktrees
+Environment=CONTROLLER_APPROVAL_SIGNING_KEY_FILE=/run/codestra-agent-a/secrets/approval-signing.key
+ExecStart=/opt/codestra/controller-agent/venv/bin/uvicorn app.entrypoints.server_a_agent:app --host 10.40.0.1 --port 9443 --ssl-certfile /run/codestra-agent-a/tls/server.crt --ssl-keyfile /run/codestra-agent-a/tls/server.key --ssl-ca-certs /run/codestra-agent-a/tls/controller-ca.crt --ssl-cert-reqs 2 --no-server-header
+Restart=on-failure
+RestartSec=5s
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+CapabilityBoundingSet=
+AmbientCapabilities=
+SystemCallArchitectures=native
+ReadOnlyPaths=/opt/codestra/middleware /opt/codestra/worktrees
+ReadWritePaths=/opt/codestra/worktrees
+RuntimeDirectory=codestra-agent-a
+RuntimeDirectoryMode=0700
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

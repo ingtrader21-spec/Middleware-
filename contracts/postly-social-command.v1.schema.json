@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.codestra.co/middleware/postly-social-command.v1.json",
+  "title": "Codestra Postly social publication command",
+  "allOf": [
+    {
+      "$ref": "https://contracts.codestra.co/platform/command-envelope.v1.schema.json"
+    },
+    {
+      "properties": {
+        "command_type": {"const": "social.publication.publish.v1"},
+        "command_version": {"const": "1.0"},
+        "target": {"const": "postly-social"},
+        "capability": {"const": "SOCIAL_PUBLISH"},
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "publication_id",
+            "channel",
+            "account_reference",
+            "content",
+            "scheduled_at",
+            "client_reference"
+          ],
+          "properties": {
+            "publication_id": {"type": "string", "format": "uuid"},
+            "channel": {"const": "social"},
+            "account_reference": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "description": "Provider-side connected account identifier. Middleware never holds social network credentials."
+            },
+            "content": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["text"],
+              "properties": {
+                "text": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 25000
+                },
+                "media_urls": {
+                  "type": "array",
+                  "maxItems": 20,
+                  "items": {
+                    "type": "string",
+                    "format": "uri",
+                    "maxLength": 2048
+                  }
+                }
+              }
+            },
+            "scheduled_at": {
+              "type": ["string", "null"],
+              "format": "date-time"
+            },
+            "client_reference": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120
+            }
+          }
+        }
+      }
+    }
+  ]
+}

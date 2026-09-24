@@ -1,0 +1,190 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.codestra.co/middleware/odoo-lead-command.v1.json",
+  "title": "Codestra Odoo CRM lead upsert command",
+  "allOf": [
+    {
+      "$ref": "https://contracts.codestra.co/platform/command-envelope.v1.schema.json"
+    },
+    {
+      "properties": {
+        "command_type": {"const": "crm.lead.upsert"},
+        "command_version": {"const": "1.0"},
+        "target": {"const": "odoo-19"},
+        "capability": {"const": "ODOO_WRITE"},
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "lead_source",
+            "source_record_id",
+            "initial_stage",
+            "review_required",
+            "allow_external_contact",
+            "provenance",
+            "consent",
+            "lead"
+          ],
+          "properties": {
+            "lead_source": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "source_record_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255
+            },
+            "initial_stage": {"enum": ["new", "review_pending"]},
+            "review_required": {"type": "boolean"},
+            "allow_external_contact": {"type": "boolean"},
+            "provenance": {"$ref": "#/$defs/provenance"},
+            "consent": {"$ref": "#/$defs/consent"},
+            "lead": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["name", "description", "contact", "company", "tags"],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 255
+                },
+                "description": {
+                  "type": ["string", "null"],
+                  "maxLength": 10000
+                },
+                "contact": {"$ref": "#/$defs/contact"},
+                "company": {"$ref": "#/$defs/company"},
+                "campaign_code": {
+                  "type": ["string", "null"],
+                  "maxLength": 128
+                },
+                "tags": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "uniqueItems": true,
+                  "maxItems": 50
+                }
+              }
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "payload": {
+                "properties": {"review_required": {"const": true}}
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "payload": {
+                "properties": {
+                  "initial_stage": {"const": "review_pending"},
+                  "allow_external_contact": {"const": false}
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "$defs": {
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "captured_by", "source_reference", "legal_basis"],
+      "properties": {
+        "method": {
+          "enum": ["submitted_by_person", "crawler_discovery", "scraper_import"]
+        },
+        "captured_by": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "source_reference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "legal_basis": {
+          "enum": [
+            "consent",
+            "legitimate_interest_review_required",
+            "contract_request",
+            "unknown_review_required"
+          ]
+        },
+        "content_digest": {
+          "type": ["string", "null"],
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "consent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "channels"],
+      "properties": {
+        "status": {
+          "enum": ["granted", "denied", "not_applicable", "unknown"]
+        },
+        "captured_at": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        },
+        "policy_version": {
+          "type": ["string", "null"],
+          "maxLength": 128
+        },
+        "channels": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["email", "sms", "phone"],
+          "properties": {
+            "email": {"type": "boolean"},
+            "sms": {"type": "boolean"},
+            "phone": {"type": "boolean"}
+          }
+        }
+      }
+    },
+    "contact": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {"type": ["string", "null"], "maxLength": 255},
+        "email": {
+          "type": ["string", "null"],
+          "format": "email",
+          "maxLength": 320
+        },
+        "phone": {"type": ["string", "null"], "maxLength": 64},
+        "preferred_language": {
+          "type": ["string", "null"],
+          "maxLength": 16
+        }
+      }
+    },
+    "company": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {"type": ["string", "null"], "maxLength": 255},
+        "domain": {"type": ["string", "null"], "maxLength": 255},
+        "industry": {"type": ["string", "null"], "maxLength": 255}
+      }
+    }
+  }
+}

@@ -1,0 +1,112 @@
+{
+  "version": 1,
+  "repository_role": "sole_cross_system_write_boundary",
+  "middleware_system": "codestra-middleware",
+  "orchestration_system": "n8n",
+  "business_system_of_record": "odoo-19",
+  "ownership": {
+    "middleware": [
+      "service_authorization",
+      "tenant_isolation",
+      "contract_validation",
+      "event_normalization",
+      "idempotency",
+      "semantic_replay_detection",
+      "correlation_ids",
+      "signed_webhook_inbox",
+      "transactional_outbox",
+      "retry_and_backoff",
+      "dead_letter_queues",
+      "circuit_breakers",
+      "consent_and_suppression_checks",
+      "provider_adapters",
+      "odoo_mappings",
+      "n8n_trigger_contracts",
+      "telephony_command_records",
+      "audit_and_reconciliation"
+    ],
+    "n8n": [
+      "workflow_orchestration",
+      "scheduling_approved_middleware_commands",
+      "human_approval_and_operational_routing"
+    ],
+    "odoo-19": [
+      "customers_and_contacts",
+      "leads_and_opportunities",
+      "activities_and_campaigns",
+      "call_history",
+      "post_call_forms_and_notes",
+      "callbacks_and_appointments",
+      "consent_and_communication_preferences",
+      "sms_and_email_history",
+      "delivery_results",
+      "agent_and_supervisor_business_views",
+      "business_reporting"
+    ]
+  },
+  "mutating_path_requirements": {
+    "entrypoint": "middleware",
+    "service_authorization_required": true,
+    "tenant_authorization_required": true,
+    "contract_validation_required": true,
+    "idempotency_required": true,
+    "semantic_replay_detection_required": true,
+    "correlation_id_required": true,
+    "causation_id_required": true,
+    "audit_record_required": true,
+    "transactional_outbox_for_external_effects": true,
+    "durable_inbox_for_callbacks": true,
+    "bounded_retry_and_dead_letter_required": true,
+    "provider_reconciliation_after_unknown_outcome": true,
+    "consent_and_suppression_required_when_applicable": true
+  },
+  "odoo_write_policy": {
+    "approved_interfaces": [
+      "odoo_service_api",
+      "odoo_orm_bridge"
+    ],
+    "direct_postgresql_write_allowed": false,
+    "external_service_database_credentials_allowed": false,
+    "service_identity_required": true,
+    "tenant_mapping_required": true,
+    "idempotency_required": true,
+    "generic_model_write_endpoint_allowed": false
+  },
+  "n8n_policy": {
+    "owns_orchestration_only": true,
+    "may_call": [
+      "middleware_command_api",
+      "middleware_query_api",
+      "middleware_trigger_contract"
+    ],
+    "must_not_own": [
+      "provider_credentials",
+      "service_authorization",
+      "tenant_isolation",
+      "contract_validation",
+      "idempotency",
+      "semantic_replay_detection",
+      "retry_state",
+      "dead_letter_state",
+      "odoo_mappings",
+      "provider_adapters",
+      "audit_ledger"
+    ],
+    "direct_mutating_calls_to_business_or_provider_systems_allowed": false,
+    "approved_http_base_variable": "MIDDLEWARE_BASE_URL",
+    "approved_http_path_prefixes": [
+      "/v1/commands",
+      "/v1/queries",
+      "/v1/triggers"
+    ],
+    "http_request_nodes_must_target_middleware": true
+  },
+  "forbidden_write_paths": [
+    "n8n_to_odoo",
+    "n8n_to_provider",
+    "external_service_to_odoo_postgresql",
+    "external_service_to_provider_without_middleware",
+    "browser_or_portal_to_odoo",
+    "browser_or_portal_to_provider"
+  ]
+}

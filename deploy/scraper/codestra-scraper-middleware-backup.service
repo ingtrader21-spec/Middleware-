@@ -1,0 +1,18 @@
+[Unit]
+Description=Codestra encrypted online middleware off-server backup
+After=docker.service network-online.target
+Requires=docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+UMask=0077
+ExecStart=/opt/codestra/operations/backup/scraper-middleware-offserver.sh
+TimeoutStartSec=30m
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/opt/codestra/backups /etc/codestra/backup-gpg

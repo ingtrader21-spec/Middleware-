@@ -1,0 +1,7 @@
+# Tempo (2026-09-17) — Codestra-Tempo @ `911218affcd3`
+
+- Receiver TLS (`/run/secrets/tempo_server_cert|key`, min 1.2) closes the gateway→Tempo handshake gap found at source stage; vParquet4; enterprise profile validator PASS.
+- `trace-propagation-contract.v1.json`: W3C `traceparent`/`tracestate`, correlation header `X-Correlation-ID` → span attribute `correlation.id` (opaque, ≤ 128, never personal); required span attributes `service.name service.version deployment.id codestra.application codestra.business deployment.environment.name correlation.id`; forbidden attributes include `authorization cookie password api_key client_secret access_token private_key database_url x-vault-token x-openbao-token jwt db.statement exception.message user.email phone tenant_id customer_id user_id`; hops `caddy → kong → middleware → odoo / n8n` all `planned`; asynchronous work joins by span links.
+- TEST_SYN proof (`scripts/certify_test_syn.py::trace_propagation`): polls `GET /api/traces/<trace_id>` within the wait window, flattens OTLP JSON (hex or base64 trace ids), requires spans from `caddy`, `kong` and `middleware` sharing the request `correlation.id`, reports `odoo`/`n8n` as observed or planned, counts span links, asserts a single trace id, and never records forbidden attributes (only `correlation.id/correlation_id service_id environment deployment_id http.route http.status_code` are kept).
+
+Runtime TEST_SYN trace on staging: **not produced** (no edge credentials / staging deployment).

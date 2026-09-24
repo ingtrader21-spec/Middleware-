@@ -1,0 +1,52 @@
+name: codestra-qwen-auth-verifier
+
+services:
+  qwen-auth-verifier:
+    image: ghcr.io/codestra-srl/qwen-auth-verifier@sha256:cc7e2457fdd69fdd1bf766831f8f86396495b47e377e86b2d9df1d4fb5432390
+    user: "10001:10001"
+    init: true
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 64
+    mem_limit: 256m
+    cpus: 0.25
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=16m,uid=10001,gid=10001
+    environment:
+      QWEN_SERVICE_ID: qwen-ai-01
+      QWEN_HMAC_KEY_ID: qwen-ai-01-hmac-20260804-01
+      QWEN_HMAC_SECRET_FILE: /run/secrets/qwen-hmac
+      QWEN_CLIENT_CA_FILE: /run/secrets/client-ca.crt
+      # X.509 INTEGER value for serial 58E06D577107AD0B753B7098B9131B797548CDFD.
+      QWEN_CERTIFICATE_SERIAL: "507396079750943841071109526780094961193782398461"
+      QWEN_CERTIFICATE_URI_SAN: spiffe://codestra.internal/service/qwen-ai-01
+      QWEN_CERTIFICATE_IP_SAN: 10.40.0.4
+      QWEN_REPLAY_DIRECTORY: /var/lib/codestra/qwen-auth-replay
+      QWEN_TRUSTED_PROXY_CIDR: 10.250.241.2/32
+      QWEN_ALLOWED_CLOCK_SKEW_SECONDS: "300"
+    volumes:
+      - /run/codestra/qwen-auth-verifier-secrets/qwen-hmac:/run/secrets/qwen-hmac:ro
+      - /run/codestra/qwen-auth-verifier-secrets/client-ca.crt:/run/secrets/client-ca.crt:ro
+      - qwen_auth_replay:/var/lib/codestra/qwen-auth-replay
+    expose:
+      - "8095"
+    networks:
+      qwen_auth_private:
+        ipv4_address: 10.250.241.3
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8095/healthz', timeout=2); urllib.request.urlopen('http://127.0.0.1:8095/readyz', timeout=2)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+volumes:
+  qwen_auth_replay: {}
+
+networks:
+  qwen_auth_private:
+    external: true
+    name: codestra_qwen_auth_private
