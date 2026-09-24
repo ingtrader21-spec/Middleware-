@@ -87,6 +87,34 @@ def engine(profile: str = "test") -> CampaignRecyclingEngine:
     return CampaignRecyclingEngine(PolicyProfile.load(profile))
 
 
+def delivery_event(**overrides):
+    value = {
+        "event_id": "evt-mcr-00000001",
+        "event_type": "open",
+        "source": "klyrow",
+        "provider": "postal",
+        "tenant_id": "TEST_SYN_TENANT",
+        "lead_id": "100-L-00000001",
+        "channel": "email",
+        "campaign_id": "klyrow:cmp-a",
+        "campaign_version": 1,
+        "exposure_idempotency_key": "mcr1:" + "1" * 64,
+        "message_id": None,
+        "provider_message_id": "pm-1",
+        "correlation_id": "corr-event-1",
+        "causation_id": None,
+        "occurred_at": NOW.isoformat(),
+        "received_at": NOW.isoformat(),
+        "payload_hash": "e" * 64,
+        "origin": {
+            "inbox": "klyrow_delivery_event_inbox",
+            "inbox_event_id": "raw-1",
+        },
+    }
+    value.update(overrides)
+    return value
+
+
 def test_test_profile_is_configured_and_production_is_fail_closed() -> None:
     assert PolicyProfile.load("test").configured is True
     assert PolicyProfile.load("production").configured is False
@@ -328,6 +356,11 @@ class FakeConn:
 
     async def execute(self, sql, *args):
         self.executed.append(("execute", sql, args))
+        normalized = " ".join(sql.split())
+        if normalized.startswith("UPDATE "):
+            return "UPDATE 1"
+        if normalized.startswith("DELETE "):
+            return "DELETE 1"
         return "INSERT 0 1"
 
 
@@ -481,6 +514,87 @@ async def test_channel_health_and_suppression_share_transaction() -> None:
 
 
 @pytest.mark.asyncio
+async def test_delivery_event_health_effect_requires_address_ref() -> None:
+    store = PostgresCampaignRecyclingStore(FakePool(FakeConn()))
+    with pytest.raises(CampaignRecyclingConflict, match="address_ref"):
+        await store.apply_delivery_event(
+            delivery_event(event_type="delivered"),
+            address_ref=None,
+        )
+
+
+@pytest.mark.asyncio
+async def test_delivery_event_source_channel_pair_fails_closed() -> None:
+    store = PostgresCampaignRecyclingStore(FakePool(FakeConn()))
+    with pytest.raises(CampaignRecyclingConflict, match="Klyrow"):
+        await store.apply_delivery_event(
+            delivery_event(channel="sms"),
+            address_ref="addr-sms-1",
+        )
+
+
+@pytest.mark.asyncio
+async def test_delivery_event_exact_replay_returns_duplicate() -> None:
+    conn = FakeConn()
+    conn.fetchrow_results = [
+        None,
+        {
+            "id": 7,
+            "source": "klyrow",
+            "event_id": "evt-mcr-00000001",
+            "payload_hash": "e" * 64,
+            "origin_inbox": "klyrow_delivery_event_inbox",
+            "origin_event_id": "raw-1",
+            "projection_state": "applied",
+        },
+    ]
+    store = PostgresCampaignRecyclingStore(FakePool(conn))
+    result = await store.apply_delivery_event(delivery_event())
+    assert result == {
+        "event_id": "evt-mcr-00000001",
+        "duplicate": True,
+        "projection_state": "applied",
+        "projection_note": None,
+    }
+
+
+@pytest.mark.asyncio
+async def test_delivery_event_digest_collision_is_rejected() -> None:
+    conn = FakeConn()
+    conn.fetchrow_results = [
+        None,
+        {
+            "id": 7,
+            "source": "klyrow",
+            "event_id": "evt-mcr-00000001",
+            "payload_hash": "f" * 64,
+            "origin_inbox": "klyrow_delivery_event_inbox",
+            "origin_event_id": "raw-1",
+            "projection_state": "applied",
+        },
+    ]
+    store = PostgresCampaignRecyclingStore(FakePool(conn))
+    with pytest.raises(CampaignRecyclingConflict, match="different evidence"):
+        await store.apply_delivery_event(delivery_event())
+
+
+@pytest.mark.asyncio
+async def test_delivery_event_without_exposure_is_durable_partial() -> None:
+    conn = FakeConn()
+    conn.fetchrow_results = [{"id": 9, "projection_state": "pending"}, None]
+    store = PostgresCampaignRecyclingStore(FakePool(conn))
+    result = await store.apply_delivery_event(delivery_event())
+    assert result["duplicate"] is False
+    assert result["projection_state"] == "partial"
+    assert result["projection_note"] == "exposure_not_found"
+    assert any(
+        "UPDATE mcr_delivery_events" in item[1]
+        for item in conn.executed
+        if item[0] == "execute"
+    )
+
+
+@pytest.mark.asyncio
 async def test_illegal_lifecycle_transition_fails_before_db() -> None:
     store = PostgresCampaignRecyclingStore(FakePool(FakeConn()))
     with pytest.raises(CampaignRecyclingConflict):
@@ -500,7 +614,11 @@ async def test_illegal_lifecycle_transition_fails_before_db() -> None:
 @pytest.mark.asyncio
 async def test_exposure_and_command_share_one_transaction_boundary() -> None:
     conn = FakeConn()
-    conn.fetchrow_results = [{"exposure_id": uuid4()}]
+    conn.fetchrow_results = [
+        {"exposure_id": uuid4()},
+        {"state": "ELIGIBLE", "version": 3},
+        {"state": "ELIGIBLE", "version": 3},
+    ]
     pool = FakePool(conn)
     command_store = PostgresCommandStore(pool, owns_pool=False)
     command_store.submit_on_connection = AsyncMock(return_value=object())
@@ -563,6 +681,9 @@ def test_migration_is_single_successor_and_does_not_enable_effects() -> None:
     )
     assert 'revision = "0068_campaign_recycling_core"' in source
     assert 'down_revision = "0067_service_catalog_monitoring_state"' in source
+    assert "transition_id uuid NOT NULL UNIQUE" in source
+    assert "correlation_id text NOT NULL" in source
+    assert "ledger_version bigint NOT NULL DEFAULT 1" in source
     for table in (
         "mcr_lead_lifecycle_current",
         "mcr_lead_lifecycle_events",
@@ -571,6 +692,25 @@ def test_migration_is_single_successor_and_does_not_enable_effects() -> None:
         "mcr_exposures",
     ):
         assert f"CREATE TABLE {table}" in source
+    assert "WHATSAPP_DELIVERY" not in source
+    assert "EMAIL_DELIVERY" not in source
+    assert "SMS_DELIVERY" not in source
+    assert "PRODUCTION_DIALING" not in source
+
+
+
+def test_delivery_event_migration_is_successor_and_fail_closed() -> None:
+    source = (
+        __import__("pathlib")
+        .Path("migrations/versions/0069_campaign_recycling_delivery_events.py")
+        .read_text(encoding="utf-8")
+    )
+    assert 'revision = "0069_campaign_recycling_delivery_events"' in source
+    assert 'down_revision = "0068_campaign_recycling_core"' in source
+    assert "CREATE TABLE mcr_delivery_events" in source
+    assert "UNIQUE (tenant_id, source, event_id)" in source
+    assert "uq_mcr_delivery_event_origin" in source
+    assert "projection_state" in source
     assert "WHATSAPP_DELIVERY" not in source
     assert "EMAIL_DELIVERY" not in source
     assert "SMS_DELIVERY" not in source

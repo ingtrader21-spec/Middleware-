@@ -8,6 +8,7 @@
   "provider_effects_enabled": false,
   "allowed_runtime_files": [
     "app/core/campaign_recycling.py",
-    "migrations/versions/0068_campaign_recycling_core.py"
+    "migrations/versions/0068_campaign_recycling_core.py",
+    "migrations/versions/0069_campaign_recycling_delivery_events.py"
   ]
 }

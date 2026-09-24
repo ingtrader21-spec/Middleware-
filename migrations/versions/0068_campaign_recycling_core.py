@@ -87,6 +87,7 @@ def upgrade() -> None:
     op.execute(
         f"""CREATE TABLE mcr_lead_lifecycle_events (
           event_id bigserial PRIMARY KEY,
+          transition_id uuid NOT NULL UNIQUE,
           tenant_id text NOT NULL,
           lead_id text NOT NULL,
           version bigint NOT NULL CHECK (version >= 1),
@@ -163,6 +164,7 @@ def upgrade() -> None:
           touch_index integer NOT NULL CHECK (touch_index >= 1),
           idempotency_key text NOT NULL,
           command_id uuid NOT NULL,
+          correlation_id text NOT NULL,
           decision_id uuid NOT NULL,
           policy_version text NOT NULL,
           sender_identity_id uuid,
@@ -181,6 +183,7 @@ def upgrade() -> None:
           engagement_outcome_at timestamptz,
           negative_outcome_at timestamptz,
           updated_at timestamptz NOT NULL,
+          ledger_version bigint NOT NULL DEFAULT 1 CHECK (ledger_version >= 1),
           PRIMARY KEY (tenant_id, exposure_id),
           UNIQUE (tenant_id, lead_id, campaign_id, campaign_version, channel, touch_index),
           UNIQUE (tenant_id, idempotency_key),

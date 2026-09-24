@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, Literal, Mapping, Sequence
-from uuid import UUID
+from uuid import NAMESPACE_URL, UUID, uuid4, uuid5
 
 import asyncpg
 
@@ -45,6 +45,80 @@ CHANNEL_HEALTH_STATES = frozenset(
     }
 )
 SUPPRESSION_REQUIRED_HEALTH = frozenset({"complained", "unsubscribed", "suppressed"})
+
+DELIVERY_EVENT_TYPES = frozenset(
+    {
+        "accepted",
+        "queued",
+        "dispatched",
+        "delivered",
+        "deferred",
+        "soft_bounce",
+        "hard_bounce",
+        "complaint",
+        "unsubscribe",
+        "open",
+        "read",
+        "click",
+        "reply",
+        "conversion",
+    }
+)
+TRANSPORT_EVENT_STATUS = {
+    "accepted": "accepted",
+    "queued": "queued",
+    "dispatched": "dispatched",
+    "delivered": "delivered",
+    "deferred": "indeterminate",
+}
+TRANSPORT_STATUS_RANK = {
+    "reserved": 0,
+    "accepted": 1,
+    "queued": 2,
+    "dispatched": 3,
+    "indeterminate": 4,
+    "delivered": 5,
+    "failed": 100,
+    "cancelled": 100,
+    "suppressed": 100,
+    "expired": 100,
+}
+TRANSPORT_TERMINAL = frozenset(
+    {"delivered", "failed", "cancelled", "suppressed", "expired"}
+)
+ENGAGEMENT_RANK = {
+    "none": 0,
+    "open": 1,
+    "read": 2,
+    "click": 3,
+    "reply": 4,
+    "conversion": 5,
+}
+NEGATIVE_RANK = {
+    "none": 0,
+    "soft_bounce": 1,
+    "hard_bounce": 2,
+    "unsubscribe": 3,
+    "complaint": 4,
+}
+HEALTH_EVENT_STATE = {
+    "delivered": ("valid", "DELIVERY_CONFIRMED"),
+    "soft_bounce": ("soft_bounce", "SOFT_BOUNCE"),
+    "hard_bounce": ("hard_bounce", "HARD_BOUNCE"),
+    "complaint": ("complained", "COMPLAINT"),
+    "unsubscribe": ("unsubscribed", "UNSUBSCRIBE"),
+}
+HEALTH_SEVERITY = {
+    "unknown": 0,
+    "possible": 0,
+    "valid": 1,
+    "soft_bounce": 2,
+    "invalid": 3,
+    "hard_bounce": 3,
+    "unsubscribed": 4,
+    "complained": 5,
+    "suppressed": 6,
+}
 
 REASON_PRECEDENCE = (
     "POLICY_NOT_CONFIGURED",
@@ -605,80 +679,22 @@ class PostgresCampaignRecyclingStore:
         evidence_ref: str | None = None,
         occurred_at: datetime | None = None,
     ) -> int:
-        if to_state not in LEGAL_TRANSITIONS.get(from_state, frozenset()):
-            raise CampaignRecyclingConflict(
-                f"illegal lifecycle transition {from_state!r}->{to_state!r}"
-            )
         occurred_at = _utc(occurred_at or datetime.now(UTC))
         async with self.pool.acquire() as conn:
             async with conn.transaction():
-                current = await conn.fetchrow(
-                    """
-                    SELECT state, version
-                    FROM mcr_lead_lifecycle_current
-                    WHERE tenant_id=$1 AND lead_id=$2
-                    FOR UPDATE
-                    """,
-                    tenant_id,
-                    lead_id,
+                return await _transition_lifecycle_on_connection(
+                    conn,
+                    tenant_id=tenant_id,
+                    lead_id=lead_id,
+                    expected_from=from_state,
+                    to_state=to_state,
+                    reason_code=reason_code,
+                    source=source,
+                    correlation_id=correlation_id,
+                    evidence_hash=evidence_hash,
+                    evidence_ref=evidence_ref,
+                    occurred_at=occurred_at,
                 )
-                actual_from = current["state"] if current else None
-                if actual_from != from_state:
-                    raise CampaignRecyclingConflict(
-                        f"lifecycle version conflict: expected {from_state!r}, current {actual_from!r}"
-                    )
-                version = int(current["version"]) + 1 if current else 1
-                if current is None:
-                    await conn.execute(
-                        """
-                        INSERT INTO mcr_lead_lifecycle_current
-                          (tenant_id,lead_id,state,version,updated_at)
-                        VALUES ($1,$2,$3,$4,$5)
-                        """,
-                        tenant_id,
-                        lead_id,
-                        to_state,
-                        version,
-                        occurred_at,
-                    )
-                else:
-                    result = await conn.execute(
-                        """
-                        UPDATE mcr_lead_lifecycle_current
-                        SET state=$3, version=$4, updated_at=$5
-                        WHERE tenant_id=$1 AND lead_id=$2 AND version=$6
-                        """,
-                        tenant_id,
-                        lead_id,
-                        to_state,
-                        version,
-                        occurred_at,
-                        int(current["version"]),
-                    )
-                    if result != "UPDATE 1":
-                        raise CampaignRecyclingConflict(
-                            "lifecycle optimistic update lost"
-                        )
-                await conn.execute(
-                    """
-                    INSERT INTO mcr_lead_lifecycle_events
-                      (tenant_id,lead_id,version,from_state,to_state,reason_code,source,
-                       occurred_at,recorded_at,correlation_id,evidence_hash,evidence_ref)
-                    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,now(),$9,$10,$11)
-                    """,
-                    tenant_id,
-                    lead_id,
-                    version,
-                    from_state,
-                    to_state,
-                    reason_code,
-                    source,
-                    occurred_at,
-                    correlation_id,
-                    evidence_hash,
-                    evidence_ref,
-                )
-                return version
 
     async def record_channel_health(
         self,
@@ -825,6 +841,517 @@ class PostgresCampaignRecyclingStore:
             )
         return row is not None
 
+    async def apply_delivery_event(
+        self,
+        event: Mapping[str, Any],
+        *,
+        address_ref: str | None = None,
+    ) -> dict[str, Any]:
+        required = {
+            "event_id",
+            "event_type",
+            "source",
+            "provider",
+            "tenant_id",
+            "lead_id",
+            "channel",
+            "campaign_id",
+            "campaign_version",
+            "exposure_idempotency_key",
+            "message_id",
+            "provider_message_id",
+            "correlation_id",
+            "causation_id",
+            "occurred_at",
+            "received_at",
+            "payload_hash",
+            "origin",
+        }
+        missing = sorted(required - set(event))
+        if missing:
+            raise CampaignRecyclingConflict(
+                f"delivery event missing required fields: {missing}"
+            )
+        event_type = str(event["event_type"])
+        source = str(event["source"])
+        tenant_id = str(event["tenant_id"])
+        lead_id = str(event["lead_id"])
+        channel = str(event["channel"])
+        if event_type not in DELIVERY_EVENT_TYPES:
+            raise CampaignRecyclingConflict(
+                f"unknown normalized delivery event type {event_type}"
+            )
+        if channel not in CHANNEL_ORDER:
+            raise CampaignRecyclingConflict(f"unknown delivery channel {channel}")
+        if source == "klyrow" and channel != "email":
+            raise CampaignRecyclingConflict("Klyrow normalized events must be email")
+        if source == "telnexa" and channel != "sms":
+            raise CampaignRecyclingConflict("Telnexa normalized events must be sms")
+        if source == "evolution" and channel != "whatsapp":
+            raise CampaignRecyclingConflict(
+                "Evolution normalized events must be whatsapp"
+            )
+
+        event_id = str(event["event_id"])
+        correlation_id = str(event["correlation_id"])
+        payload_hash = str(event["payload_hash"])
+        if len(payload_hash) != 64 or any(
+            char not in "0123456789abcdef" for char in payload_hash
+        ):
+            raise CampaignRecyclingConflict(
+                "delivery event payload_hash must be lowercase sha256"
+            )
+        occurred_at = _coerce_event_datetime(event["occurred_at"])
+        received_at = _coerce_event_datetime(event["received_at"])
+        campaign_id = event.get("campaign_id")
+        campaign_version = event.get("campaign_version")
+        exposure_key = event.get("exposure_idempotency_key")
+        message_id = event.get("message_id")
+        provider_message_id = event.get("provider_message_id")
+        origin = event.get("origin")
+        origin_inbox: str | None = None
+        origin_event_id: str | None = None
+        if origin is not None:
+            if not isinstance(origin, Mapping):
+                raise CampaignRecyclingConflict("delivery event origin must be an object")
+            origin_inbox = str(origin.get("inbox") or "")
+            origin_event_id = str(origin.get("inbox_event_id") or "")
+            if not origin_inbox or not origin_event_id:
+                raise CampaignRecyclingConflict(
+                    "delivery event origin requires inbox and inbox_event_id"
+                )
+        normalized_json = json.dumps(
+            dict(event),
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+            default=_json_default,
+        )
+        health_effect = HEALTH_EVENT_STATE.get(event_type)
+        if health_effect is not None and not address_ref:
+            raise CampaignRecyclingConflict(
+                f"delivery event {event_type} requires an opaque address_ref"
+            )
+
+        notes: list[str] = []
+        async with self.pool.acquire() as conn:
+            async with conn.transaction():
+                inserted = await conn.fetchrow(
+                    """
+                    INSERT INTO mcr_delivery_events (
+                      tenant_id,source,event_id,event_type,lead_id,channel,campaign_id,
+                      campaign_version,exposure_idempotency_key,address_ref,provider,
+                      message_id,provider_message_id,correlation_id,causation_id,
+                      payload_hash,occurred_at,received_at,origin_inbox,origin_event_id,
+                      normalized_event,projection_state
+                    ) VALUES (
+                      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,
+                      $16,$17,$18,$19,$20,$21::jsonb,'pending'
+                    )
+                    ON CONFLICT DO NOTHING
+                    RETURNING id, projection_state
+                    """,
+                    tenant_id,
+                    source,
+                    event_id,
+                    event_type,
+                    lead_id,
+                    channel,
+                    campaign_id,
+                    campaign_version,
+                    exposure_key,
+                    address_ref,
+                    event.get("provider"),
+                    message_id,
+                    provider_message_id,
+                    correlation_id,
+                    event.get("causation_id"),
+                    payload_hash,
+                    occurred_at,
+                    received_at,
+                    origin_inbox,
+                    origin_event_id,
+                    normalized_json,
+                )
+                if inserted is None:
+                    existing = await conn.fetchrow(
+                        """
+                        SELECT id, source, event_id, payload_hash, origin_inbox,
+                               origin_event_id, projection_state
+                        FROM mcr_delivery_events
+                        WHERE tenant_id=$1
+                          AND (
+                            (source=$2 AND event_id=$3)
+                            OR (
+                              $4::text IS NOT NULL
+                              AND origin_inbox=$4
+                              AND origin_event_id=$5
+                            )
+                          )
+                        ORDER BY id
+                        LIMIT 1
+                        FOR UPDATE
+                        """,
+                        tenant_id,
+                        source,
+                        event_id,
+                        origin_inbox,
+                        origin_event_id,
+                    )
+                    if existing is None:
+                        raise CampaignRecyclingConflict(
+                            "delivery event conflict could not be reconciled"
+                        )
+                    if (
+                        existing["source"] != source
+                        or existing["event_id"] != event_id
+                        or existing["payload_hash"] != payload_hash
+                        or existing["origin_inbox"] != origin_inbox
+                        or existing["origin_event_id"] != origin_event_id
+                    ):
+                        raise CampaignRecyclingConflict(
+                            "delivery event identity was reused with different evidence"
+                        )
+                    event_row_id = int(existing["id"])
+                    if existing["projection_state"] == "applied":
+                        return {
+                            "event_id": event_id,
+                            "duplicate": True,
+                            "projection_state": "applied",
+                            "projection_note": None,
+                        }
+                else:
+                    event_row_id = int(inserted["id"])
+
+                exposure = None
+                if exposure_key is not None:
+                    exposure = await conn.fetchrow(
+                        """
+                        SELECT exposure_id, lead_id, campaign_id, campaign_version,
+                               channel, status, engagement_outcome, negative_outcome,
+                               message_id, provider_message_id, status_at,
+                               engagement_outcome_at, negative_outcome_at, ledger_version
+                        FROM mcr_exposures
+                        WHERE tenant_id=$1 AND idempotency_key=$2
+                        FOR UPDATE
+                        """,
+                        tenant_id,
+                        str(exposure_key),
+                    )
+                    if exposure is None:
+                        notes.append("exposure_not_found")
+                    else:
+                        if exposure["lead_id"] != lead_id or exposure["channel"] != channel:
+                            raise CampaignRecyclingConflict(
+                                "delivery event does not match exposure lead/channel"
+                            )
+                        if (
+                            campaign_id is not None
+                            and exposure["campaign_id"] != campaign_id
+                        ):
+                            raise CampaignRecyclingConflict(
+                                "delivery event campaign_id does not match exposure"
+                            )
+                        if (
+                            campaign_version is not None
+                            and int(exposure["campaign_version"])
+                            != int(campaign_version)
+                        ):
+                            raise CampaignRecyclingConflict(
+                                "delivery event campaign_version does not match exposure"
+                            )
+                        if (
+                            message_id is not None
+                            and exposure["message_id"] is not None
+                            and str(exposure["message_id"]) != str(message_id)
+                        ):
+                            raise CampaignRecyclingConflict(
+                                "delivery event message_id conflicts with exposure"
+                            )
+                        if (
+                            provider_message_id is not None
+                            and exposure["provider_message_id"] is not None
+                            and str(exposure["provider_message_id"])
+                            != str(provider_message_id)
+                        ):
+                            raise CampaignRecyclingConflict(
+                                "delivery event provider_message_id conflicts with exposure"
+                            )
+                        status = str(exposure["status"])
+                        new_status = status
+                        mapped_status = TRANSPORT_EVENT_STATUS.get(event_type)
+                        if (
+                            mapped_status is not None
+                            and status not in TRANSPORT_TERMINAL
+                            and TRANSPORT_STATUS_RANK[mapped_status]
+                            > TRANSPORT_STATUS_RANK.get(status, -1)
+                        ):
+                            new_status = mapped_status
+
+                        engagement = str(exposure["engagement_outcome"])
+                        new_engagement = engagement
+                        if (
+                            event_type in ENGAGEMENT_RANK
+                            and ENGAGEMENT_RANK[event_type]
+                            > ENGAGEMENT_RANK.get(engagement, -1)
+                        ):
+                            new_engagement = event_type
+
+                        negative = str(exposure["negative_outcome"])
+                        new_negative = negative
+                        if (
+                            event_type in NEGATIVE_RANK
+                            and NEGATIVE_RANK[event_type]
+                            > NEGATIVE_RANK.get(negative, -1)
+                        ):
+                            new_negative = event_type
+
+                        status_changed = new_status != status
+                        engagement_changed = new_engagement != engagement
+                        negative_changed = new_negative != negative
+                        await conn.execute(
+                            """
+                            UPDATE mcr_exposures
+                            SET status=$3,
+                                engagement_outcome=$4,
+                                negative_outcome=$5,
+                                message_id=COALESCE(message_id,$6),
+                                provider_message_id=COALESCE(provider_message_id,$7),
+                                dispatched_at=CASE
+                                  WHEN $8='dispatched' THEN COALESCE(dispatched_at,$9)
+                                  ELSE dispatched_at END,
+                                accepted_at=CASE
+                                  WHEN $8='accepted' THEN COALESCE(accepted_at,$9)
+                                  ELSE accepted_at END,
+                                delivered_at=CASE
+                                  WHEN $8='delivered' THEN COALESCE(delivered_at,$9)
+                                  ELSE delivered_at END,
+                                status_at=CASE WHEN $10 THEN $9 ELSE status_at END,
+                                engagement_outcome_at=CASE
+                                  WHEN $11 THEN $9 ELSE engagement_outcome_at END,
+                                negative_outcome_at=CASE
+                                  WHEN $12 THEN $9 ELSE negative_outcome_at END,
+                                updated_at=now(),
+                                ledger_version=ledger_version + CASE
+                                  WHEN $10 OR $11 OR $12 OR
+                                       (message_id IS NULL AND $6 IS NOT NULL) OR
+                                       (provider_message_id IS NULL AND $7 IS NOT NULL)
+                                  THEN 1 ELSE 0 END
+                            WHERE tenant_id=$1 AND exposure_id=$2
+                            """,
+                            tenant_id,
+                            exposure["exposure_id"],
+                            new_status,
+                            new_engagement,
+                            new_negative,
+                            message_id,
+                            provider_message_id,
+                            event_type,
+                            occurred_at,
+                            status_changed,
+                            engagement_changed,
+                            negative_changed,
+                        )
+                elif event_type not in {"unsubscribe", "conversion"}:
+                    notes.append("exposure_identity_missing")
+
+                if health_effect is not None:
+                    target_health, health_reason = health_effect
+                    assert address_ref is not None
+                    current_health = await conn.fetchrow(
+                        """
+                        SELECT state, health_version
+                        FROM mcr_channel_health
+                        WHERE tenant_id=$1 AND lead_id=$2 AND channel=$3
+                          AND address_ref=$4
+                        FOR UPDATE
+                        """,
+                        tenant_id,
+                        lead_id,
+                        channel,
+                        address_ref,
+                    )
+                    current_state = (
+                        str(current_health["state"])
+                        if current_health is not None
+                        else "unknown"
+                    )
+                    should_update = (
+                        current_health is None
+                        or HEALTH_SEVERITY[target_health]
+                        > HEALTH_SEVERITY.get(current_state, -1)
+                        or (
+                            target_health == current_state
+                            and event_type in {"complaint", "unsubscribe"}
+                        )
+                    )
+                    if should_update:
+                        health_source = {
+                            "klyrow": "klyrow_delivery_event",
+                            "telnexa": "telnexa_delivery_event",
+                            "evolution": "evolution_delivery_event",
+                        }.get(source, "leads_authority")
+                        await conn.execute(
+                            """
+                            INSERT INTO mcr_channel_health (
+                              tenant_id,lead_id,channel,address_ref,state,previous_state,
+                              source,reason_code,occurred_at,recorded_at,evidence_hash,
+                              health_version,correlation_id,updated_at
+                            ) VALUES (
+                              $1,$2,$3,$4,$5,$6,$7,$8,$9,now(),$10,1,$11,now()
+                            )
+                            ON CONFLICT (tenant_id,lead_id,channel,address_ref)
+                            DO UPDATE SET
+                              state=EXCLUDED.state,
+                              previous_state=mcr_channel_health.state,
+                              source=EXCLUDED.source,
+                              reason_code=EXCLUDED.reason_code,
+                              occurred_at=EXCLUDED.occurred_at,
+                              recorded_at=now(),
+                              evidence_hash=EXCLUDED.evidence_hash,
+                              health_version=mcr_channel_health.health_version + 1,
+                              correlation_id=EXCLUDED.correlation_id,
+                              updated_at=now()
+                            """,
+                            tenant_id,
+                            lead_id,
+                            channel,
+                            address_ref,
+                            target_health,
+                            current_health["state"]
+                            if current_health is not None
+                            else None,
+                            health_source,
+                            health_reason,
+                            occurred_at,
+                            payload_hash,
+                            correlation_id,
+                        )
+                    if event_type in {"complaint", "unsubscribe"}:
+                        suppression_id = uuid5(
+                            NAMESPACE_URL,
+                            (
+                                f"mcr:{tenant_id}:{source}:{event_id}:"
+                                f"suppression:{channel}"
+                            ),
+                        )
+                        await conn.execute(
+                            """
+                            INSERT INTO mcr_suppressions (
+                              tenant_id,suppression_id,lead_id,scope,channel,campaign_id,
+                              reason,source,occurred_at,evidence_hash,requested_by
+                            ) VALUES (
+                              $1,$2,$3,'channel',$4,NULL,$5,$6,$7,$8,$9
+                            )
+                            ON CONFLICT (tenant_id,suppression_id) DO NOTHING
+                            """,
+                            tenant_id,
+                            suppression_id,
+                            lead_id,
+                            channel,
+                            event_type,
+                            source,
+                            occurred_at,
+                            payload_hash,
+                            f"delivery-event:{source}",
+                        )
+
+                lifecycle_target: str | None = None
+                lifecycle_reason: str | None = None
+                automated = bool(event.get("automated_suspected", False))
+                if event_type in {"click", "reply"} and not (
+                    event_type == "click" and automated
+                ):
+                    lifecycle_target = "ENGAGED"
+                    lifecycle_reason = "STRONG_ENGAGEMENT_RECORDED"
+                elif event_type == "conversion":
+                    lifecycle_target = "CONVERTED"
+                    lifecycle_reason = "CONVERSION_RECORDED"
+
+                if lifecycle_target is not None and lifecycle_reason is not None:
+                    current = await conn.fetchrow(
+                        """
+                        SELECT state, version
+                        FROM mcr_lead_lifecycle_current
+                        WHERE tenant_id=$1 AND lead_id=$2
+                        FOR UPDATE
+                        """,
+                        tenant_id,
+                        lead_id,
+                    )
+                    if current is None:
+                        notes.append("lifecycle_state_missing")
+                    else:
+                        current_state = str(current["state"])
+                        if (
+                            lifecycle_target == "ENGAGED"
+                            and current_state == "ELIGIBLE"
+                        ):
+                            await _transition_lifecycle_on_connection(
+                                conn,
+                                tenant_id=tenant_id,
+                                lead_id=lead_id,
+                                expected_from="ELIGIBLE",
+                                to_state="ACTIVE_CYCLE",
+                                reason_code="CYCLE_STARTED",
+                                source="delivery_event",
+                                correlation_id=correlation_id,
+                                evidence_hash=payload_hash,
+                                evidence_ref=f"delivery:{source}:{event_id}",
+                                occurred_at=occurred_at,
+                            )
+                            current_state = "ACTIVE_CYCLE"
+                        if lifecycle_target in LEGAL_TRANSITIONS.get(
+                            current_state, frozenset()
+                        ):
+                            await _transition_lifecycle_on_connection(
+                                conn,
+                                tenant_id=tenant_id,
+                                lead_id=lead_id,
+                                expected_from=current_state,
+                                to_state=lifecycle_target,
+                                reason_code=lifecycle_reason,
+                                source=(
+                                    "odoo_conversion"
+                                    if event_type == "conversion" and source == "odoo"
+                                    else "delivery_event"
+                                ),
+                                correlation_id=correlation_id,
+                                evidence_hash=payload_hash,
+                                evidence_ref=f"delivery:{source}:{event_id}",
+                                occurred_at=occurred_at,
+                            )
+                        elif current_state not in {
+                            lifecycle_target,
+                            "CONVERTED",
+                            "SUPPRESSED",
+                        }:
+                            notes.append(
+                                f"lifecycle_transition_not_applicable:"
+                                f"{current_state}->{lifecycle_target}"
+                            )
+
+                projection_state = "partial" if notes else "applied"
+                projection_note = ";".join(notes) if notes else None
+                await conn.execute(
+                    """
+                    UPDATE mcr_delivery_events
+                    SET projection_state=$2,
+                        projection_note=$3,
+                        projected_at=now()
+                    WHERE id=$1
+                    """,
+                    event_row_id,
+                    projection_state,
+                    projection_note,
+                )
+                return {
+                    "event_id": event_id,
+                    "duplicate": False,
+                    "projection_state": projection_state,
+                    "projection_note": projection_note,
+                }
+
     async def journey(
         self,
         *,
@@ -846,7 +1373,7 @@ class PostgresCampaignRecyclingStore:
             )
             lifecycle = await conn.fetch(
                 """
-                SELECT event_id, version, from_state, to_state, reason_code, source,
+                SELECT event_id, transition_id, version, from_state, to_state, reason_code, source,
                        occurred_at, recorded_at, correlation_id, evidence_hash,
                        evidence_ref
                 FROM mcr_lead_lifecycle_events
@@ -884,11 +1411,11 @@ class PostgresCampaignRecyclingStore:
             exposures = await conn.fetch(
                 """
                 SELECT exposure_id, campaign_id, campaign_version, channel, touch_index,
-                       idempotency_key, command_id, decision_id, policy_version,
+                       idempotency_key, command_id, correlation_id, decision_id, policy_version,
                        sender_identity_id, status, engagement_outcome, negative_outcome,
                        message_id, provider_message_id, reserved_at, dispatched_at,
                        accepted_at, delivered_at, status_at, engagement_outcome_at,
-                       negative_outcome_at, updated_at
+                       negative_outcome_at, updated_at, ledger_version
                 FROM mcr_exposures
                 WHERE tenant_id=$1 AND lead_id=$2
                 ORDER BY reserved_at DESC, exposure_id
@@ -1086,11 +1613,11 @@ class PostgresCampaignRecyclingStore:
                     """
                     INSERT INTO mcr_exposures
                       (exposure_id,tenant_id,lead_id,campaign_id,campaign_version,
-                       channel,touch_index,idempotency_key,command_id,decision_id,
-                       policy_version,sender_identity_id,status,engagement_outcome,
-                       negative_outcome,reserved_at,status_at,updated_at)
-                    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'reserved',
-                            'none','none',$13,$13,$13)
+                       channel,touch_index,idempotency_key,command_id,correlation_id,
+                       decision_id,policy_version,sender_identity_id,status,engagement_outcome,
+                       negative_outcome,reserved_at,status_at,updated_at,ledger_version)
+                    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'reserved',
+                            'none','none',$14,$14,$14,1)
                     ON CONFLICT DO NOTHING
                     RETURNING exposure_id
                     """,
@@ -1103,6 +1630,7 @@ class PostgresCampaignRecyclingStore:
                     touch_index,
                     idempotency_key,
                     command.command_id,
+                    command.correlation_id,
                     decision_id,
                     policy_version,
                     sender_identity_id,
@@ -1159,6 +1687,50 @@ class PostgresCampaignRecyclingStore:
                         )
                     return False, None
 
+                lifecycle = await conn.fetchrow(
+                    """
+                    SELECT state, version
+                    FROM mcr_lead_lifecycle_current
+                    WHERE tenant_id=$1 AND lead_id=$2
+                    FOR UPDATE
+                    """,
+                    tenant_id,
+                    lead_id,
+                )
+                if lifecycle is None:
+                    raise CampaignRecyclingConflict(
+                        "lead lifecycle state is required before exposure reservation"
+                    )
+                current_state = str(lifecycle["state"])
+                transition = {
+                    "ELIGIBLE": ("ACTIVE_CYCLE", "CYCLE_STARTED"),
+                    "ENGAGED": ("ACTIVE_CYCLE", "ENGAGED_SEQUENCE_CONTINUED"),
+                    "REACTIVATION": ("ACTIVE_CYCLE", "REACTIVATION_TOUCH_ISSUED"),
+                }.get(current_state)
+                if transition is not None:
+                    evidence_hash = hashlib.sha256(
+                        (
+                            f"{decision_id}:{policy_version}:{idempotency_key}"
+                        ).encode("utf-8")
+                    ).hexdigest()
+                    await _transition_lifecycle_on_connection(
+                        conn,
+                        tenant_id=tenant_id,
+                        lead_id=lead_id,
+                        expected_from=current_state,
+                        to_state=transition[0],
+                        reason_code=transition[1],
+                        source="middleware_policy",
+                        correlation_id=command.correlation_id,
+                        evidence_hash=evidence_hash,
+                        evidence_ref=f"mcr-decision:{decision_id}",
+                        occurred_at=reserved_at,
+                    )
+                elif current_state != "ACTIVE_CYCLE":
+                    raise CampaignRecyclingConflict(
+                        f"lifecycle state {current_state} cannot reserve an exposure"
+                    )
+
                 operation = await store.submit_on_connection(
                     conn,
                     command,
@@ -1171,6 +1743,92 @@ class PostgresCampaignRecyclingStore:
                     },
                 )
                 return True, operation
+
+
+async def _transition_lifecycle_on_connection(
+    conn: asyncpg.Connection,
+    *,
+    tenant_id: str,
+    lead_id: str,
+    expected_from: str | None,
+    to_state: str,
+    reason_code: str,
+    source: str,
+    correlation_id: str,
+    evidence_hash: str,
+    evidence_ref: str | None,
+    occurred_at: datetime,
+) -> int:
+    if to_state not in LEGAL_TRANSITIONS.get(expected_from, frozenset()):
+        raise CampaignRecyclingConflict(
+            f"illegal lifecycle transition {expected_from!r}->{to_state!r}"
+        )
+    current = await conn.fetchrow(
+        """
+        SELECT state, version
+        FROM mcr_lead_lifecycle_current
+        WHERE tenant_id=$1 AND lead_id=$2
+        FOR UPDATE
+        """,
+        tenant_id,
+        lead_id,
+    )
+    actual_from = current["state"] if current else None
+    if actual_from != expected_from:
+        raise CampaignRecyclingConflict(
+            f"lifecycle version conflict: expected {expected_from!r}, current {actual_from!r}"
+        )
+    version = int(current["version"]) + 1 if current else 1
+    if current is None:
+        await conn.execute(
+            """
+            INSERT INTO mcr_lead_lifecycle_current
+              (tenant_id,lead_id,state,version,updated_at)
+            VALUES ($1,$2,$3,$4,$5)
+            """,
+            tenant_id,
+            lead_id,
+            to_state,
+            version,
+            occurred_at,
+        )
+    else:
+        result = await conn.execute(
+            """
+            UPDATE mcr_lead_lifecycle_current
+            SET state=$3, version=$4, updated_at=$5
+            WHERE tenant_id=$1 AND lead_id=$2 AND version=$6
+            """,
+            tenant_id,
+            lead_id,
+            to_state,
+            version,
+            occurred_at,
+            int(current["version"]),
+        )
+        if result != "UPDATE 1":
+            raise CampaignRecyclingConflict("lifecycle optimistic update lost")
+    await conn.execute(
+        """
+        INSERT INTO mcr_lead_lifecycle_events
+          (transition_id,tenant_id,lead_id,version,from_state,to_state,reason_code,source,
+           occurred_at,recorded_at,correlation_id,evidence_hash,evidence_ref)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,now(),$10,$11,$12)
+        """,
+        uuid4(),
+        tenant_id,
+        lead_id,
+        version,
+        expected_from,
+        to_state,
+        reason_code,
+        source,
+        occurred_at,
+        correlation_id,
+        evidence_hash,
+        evidence_ref,
+    )
+    return version
 
 
 def _leaf_values(value: Any) -> list[Any]:
@@ -1190,6 +1848,31 @@ def _sort_reasons(reasons: Sequence[str] | Any) -> tuple[str, ...]:
             ),
         )
     )
+
+
+def _coerce_event_datetime(value: Any) -> datetime:
+    if isinstance(value, datetime):
+        return _utc(value)
+    if not isinstance(value, str) or not value.strip():
+        raise CampaignRecyclingConflict("delivery event timestamp must be ISO-8601")
+    text = value.strip()
+    if text.endswith("Z"):
+        text = text[:-1] + "+00:00"
+    try:
+        parsed = datetime.fromisoformat(text)
+    except ValueError as exc:
+        raise CampaignRecyclingConflict(
+            "delivery event timestamp must be ISO-8601"
+        ) from exc
+    return _utc(parsed)
+
+
+def _json_default(value: Any) -> str:
+    if isinstance(value, datetime):
+        return _utc(value).isoformat()
+    if isinstance(value, UUID):
+        return str(value)
+    raise TypeError(f"not JSON serializable: {type(value).__name__}")
 
 
 def _utc(value: datetime) -> datetime:
