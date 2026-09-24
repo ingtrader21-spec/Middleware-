@@ -589,13 +589,9 @@ async def resolve_reconciliation(operation_id: UUID, body: ReconciliationResolve
     runtime, platform = _runtime(request)
     tenant_id = _tenant_for_read(request, principal)
     required_header(request, "X-Correlation-ID", minimum=1, maximum=180)
-    required_header(request, "Idempotency-Key", minimum=8, maximum=180)
-    current = await platform.kernel.get(tenant_id, operation_id)
-    if current.state != "reconciliation_required":
-        raise CommandNotFound("reconciliation operation was not found")
-    if current.resource_version != body.expected_version:
-        from app.commands import CommandConflict
-        raise CommandConflict("expected_version is stale")
+    idempotency_key = required_header(
+        request, "Idempotency-Key", minimum=8, maximum=180
+    )
     if not body.evidence:
         raise RequestValidationError("reconciliation evidence is required")
     operation = await runtime.commands.reconcile(
@@ -606,6 +602,8 @@ async def resolve_reconciliation(operation_id: UUID, body: ReconciliationResolve
         reason=body.reason,
         provider_operation_id=body.provider_operation_id,
         evidence=body.evidence,
+        idempotency_key=idempotency_key,
+        expected_version=body.expected_version,
     )
     return _respond(200, _status(operation), correlation_id=operation.correlation_id)
 

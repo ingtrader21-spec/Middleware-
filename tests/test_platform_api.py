@@ -314,3 +314,64 @@ def test_dead_letter_and_reconciliation_surfaces_are_tenant_scoped(stack: Stack)
         assert client.get("/platform/v1/reconciliation", headers={"Authorization": f"Bearer {token(scope='platform.command')}"}).status_code == 401
         assert client.get(f"/platform/v1/dead-letters/{uuid4()}", headers=auth).status_code == 404
         assert client.get(f"/platform/v1/reconciliation/{uuid4()}", headers=auth).status_code == 404
+
+
+def test_reconciliation_resolution_is_idempotent_and_content_bound(stack: Stack) -> None:
+    import asyncio
+    from uuid import UUID
+
+    with TestClient(stack.app) as client:
+        _, body = submit(client)
+        command_id = UUID(body["command_id"])
+        for state in ("queued", "dispatching", "reconciliation_required"):
+            asyncio.run(
+                stack.store.transition(
+                    TENANT,
+                    command_id,
+                    new_state=state,
+                    actor_id="test",
+                    reason="force bounded operator reconciliation",
+                )
+            )
+        current = asyncio.run(stack.store.get(TENANT, command_id))
+        operator = token(
+            scope="platform.command platform.command.read platform.command.replay",
+            roles=("platform-operator",),
+        )
+        auth = {
+            "Authorization": f"Bearer {operator}",
+            "X-Correlation-ID": "resolve-corr",
+            "Idempotency-Key": "resolve-idem-0001",
+        }
+        payload = {
+            "expected_version": current.resource_version,
+            "matched": True,
+            "reason": "provider readback matched",
+            "provider_operation_id": "provider-op-1",
+            "evidence": {"task_id": 9, "profile_id": 5, "listed": True},
+        }
+        first = client.post(
+            f"/platform/v1/reconciliation/{command_id}/resolve",
+            json=payload,
+            headers=auth,
+        )
+        assert first.status_code == 200, first.text
+        assert first.json()["state"] == "COMPLETED"
+        first_version = first.json()["resource_version"]
+
+        replay = client.post(
+            f"/platform/v1/reconciliation/{command_id}/resolve",
+            json=payload,
+            headers=auth,
+        )
+        assert replay.status_code == 200, replay.text
+        assert replay.json()["state"] == "COMPLETED"
+        assert replay.json()["resource_version"] == first_version
+
+        conflict = client.post(
+            f"/platform/v1/reconciliation/{command_id}/resolve",
+            json={**payload, "evidence": {**payload["evidence"], "listed": False}},
+            headers=auth,
+        )
+        assert conflict.status_code == 409
+        assert conflict.json()["error"]["code"] == "command_conflict"
