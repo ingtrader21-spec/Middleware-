@@ -16,7 +16,7 @@ RUN apk add --no-cache \
       build-base=0.5-r4 \
       bzip2-dev=1.0.8-r6 \
       curl=8.22.0-r0 \
-      expat-dev=2.8.4-r0 \
+      expat-dev=2.8.5-r0 \
       gdbm-dev=1.26-r0 \
       libffi-dev=3.5.2-r1 \
       linux-headers=7.0.0-r1 \
@@ -50,11 +50,11 @@ RUN curl --fail --location --proto '=https' --tlsv1.2 \
       --with-system-expat \
  && make -j"$(nproc)" \
  && make install
-RUN python -c 'import html.parser,http.cookies,inspect,pyexpat,sys,tarfile; assert sys.version_info[:3] == (3,12,14); assert "unfiltered.replace" in inspect.getsource(tarfile.TarFile.makelink_with_filter); assert "_pending_len" in inspect.getsource(html.parser.HTMLParser.feed); assert "_has_control_character" in inspect.getsource(http.cookies.Morsel.update); assert pyexpat.EXPAT_VERSION == "expat_2.8.4"'
+RUN python -c 'import html.parser,http.cookies,inspect,pyexpat,sys,tarfile; assert sys.version_info[:3] == (3,12,14); assert "unfiltered.replace" in inspect.getsource(tarfile.TarFile.makelink_with_filter); assert "_pending_len" in inspect.getsource(html.parser.HTMLParser.feed); assert "_has_control_character" in inspect.getsource(http.cookies.Morsel.update); assert pyexpat.EXPAT_VERSION == "expat_2.8.5"'
 
 FROM ${PYTHON_BASE} AS verified-python
 USER root
-RUN apk add --no-cache expat=2.8.4-r0
+RUN apk add --no-cache expat=2.8.5-r0
 RUN rm -rf /usr/local/*
 COPY --from=python-builder /usr/local /usr/local
 
