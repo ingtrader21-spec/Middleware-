@@ -1,0 +1,2 @@
+# git format-patch output: blank context lines and the "-- " signature are whitespace by construction
+*.patch -whitespace -text
