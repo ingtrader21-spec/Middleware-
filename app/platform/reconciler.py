@@ -174,8 +174,18 @@ class Reconciler:
 
         if readback.status is ReadbackStatus.MATCHED:
             await self.commands.reconcile(
-                claim.tenant_id, claim.command_id, matched=True, actor_id=actor,
-                reason="reconciliation read-back matched", provider_operation_id=readback.provider_operation_id, evidence=evidence,
+                claim.tenant_id,
+                claim.command_id,
+                matched=True,
+                actor_id=actor,
+                reason="reconciliation read-back matched",
+                provider_operation_id=readback.provider_operation_id,
+                evidence=evidence,
+                idempotency_key=(
+                    f"reconcile-worker:{claim.command_id}:"
+                    f"{operation.resource_version}:{claim.reconciliation_attempts}:matched"
+                ),
+                expected_version=operation.resource_version,
             )
             await self.source.resolve(claim, reconciler_id=actor, action="complete", reason="reconciliation read-back matched")
             self.metrics.reconciliation_decisions.labels(adapter=adapter.adapter_id, result="completed").inc()
@@ -194,8 +204,18 @@ class Reconciler:
 
         if readback.status is ReadbackStatus.MISMATCH:
             await self.commands.reconcile(
-                claim.tenant_id, claim.command_id, matched=False, actor_id=actor,
-                reason="reconciliation read-back mismatch", provider_operation_id=readback.provider_operation_id, evidence=evidence,
+                claim.tenant_id,
+                claim.command_id,
+                matched=False,
+                actor_id=actor,
+                reason="reconciliation read-back mismatch",
+                provider_operation_id=readback.provider_operation_id,
+                evidence=evidence,
+                idempotency_key=(
+                    f"reconcile-worker:{claim.command_id}:"
+                    f"{operation.resource_version}:{claim.reconciliation_attempts}:mismatch"
+                ),
+                expected_version=operation.resource_version,
             )
             self.metrics.reconciliation_decisions.labels(adapter=adapter.adapter_id, result="mismatch").inc()
         else:
