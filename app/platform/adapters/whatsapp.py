@@ -1,4 +1,4 @@
-﻿"""WhatsApp provider adapter for the Middleware V3 command kernel.
+"""WhatsApp provider adapter for the Middleware V3 command kernel.
 
 Middleware owns authorization, idempotency, durable outbox, retry, DLQ/replay,
 reconciliation and audit. This adapter only translates one accepted V3 command
