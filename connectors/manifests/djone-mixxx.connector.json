@@ -10,7 +10,7 @@
   "direct_n8n_access": false,
   "runtime_binding": {
     "status": "UNVERIFIED_TEMPLATE_ONLY",
-    "base_url": "https://djone.internal.codestra.agency",
+    "base_url": "https://djone.internal.invalid",
     "health_path": "/health",
     "operation_path_template": "/v1/commands/{operation_id}"
   },
