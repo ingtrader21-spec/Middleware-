@@ -29,7 +29,6 @@ from app.commands import API_OPERATION_STATES, CommandCapabilityDisabled, Comman
 from app.platform.kernel import PLATFORM_OPERATOR_ROLE, SCOPE_COMMAND, SCOPE_COMMAND_READ, SCOPE_COMMAND_REPLAY
 from app.platform.principal import KernelPrincipal, authenticate
 from app.platform.resilience import ReplayMode
-from app.platform.registry import AdapterRegistryError
 from app.security import AuthorizationError, RequestValidationError
 from app.storage import RUNTIME_SCHEMA_VERSION, StorageError
 
