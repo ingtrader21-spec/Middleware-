@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0",
+  "milestone": "MCR-10",
+  "contract_sha": "b3f44dd4b8ad8976f10394051d2f13cc17443155",
+  "implementation_enabled": true,
+  "routes_registered": false,
+  "production_authorized": false,
+  "provider_effects_enabled": false,
+  "allowed_runtime_files": [
+    "app/core/campaign_recycling.py",
+    "migrations/versions/0068_campaign_recycling_core.py",
+    "migrations/versions/0069_campaign_recycling_delivery_events.py"
+  ]
+}
