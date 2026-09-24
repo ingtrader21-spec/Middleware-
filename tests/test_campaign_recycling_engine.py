@@ -308,6 +308,7 @@ class _Acquire:
 class FakeConn:
     def __init__(self):
         self.fetchrow_results = []
+        self.fetch_results = []
         self.executed = []
 
     def transaction(self):
@@ -318,6 +319,12 @@ class FakeConn:
         if self.fetchrow_results:
             return self.fetchrow_results.pop(0)
         return None
+
+    async def fetch(self, sql, *args):
+        self.executed.append(("fetch", sql, args))
+        if self.fetch_results:
+            return self.fetch_results.pop(0)
+        return []
 
     async def execute(self, sql, *args):
         self.executed.append(("execute", sql, args))
@@ -330,6 +337,102 @@ class FakePool:
 
     def acquire(self):
         return _Acquire(self.conn)
+
+
+@pytest.mark.asyncio
+async def test_journey_read_is_bounded_and_serializable() -> None:
+    conn = FakeConn()
+    conn.fetchrow_results = [
+        {
+            "tenant_id": "TEST_SYN_TENANT",
+            "lead_id": "100-L-00000001",
+            "state": "ELIGIBLE",
+            "version": 3,
+            "updated_at": NOW,
+        }
+    ]
+    conn.fetch_results = [
+        [
+            {
+                "event_id": 1,
+                "version": 1,
+                "from_state": None,
+                "to_state": "NEW",
+                "reason_code": "LEAD_REGISTERED",
+                "source": "leads",
+                "occurred_at": NOW - timedelta(days=2),
+                "recorded_at": NOW - timedelta(days=2),
+                "correlation_id": "corr-1",
+                "evidence_hash": "a" * 64,
+                "evidence_ref": None,
+            }
+        ],
+        [
+            {
+                "channel": "email",
+                "address_ref": "addr-email-1",
+                "state": "valid",
+                "previous_state": "unknown",
+                "source": "lead_validation",
+                "reason_code": "VALIDATION_PASSED",
+                "occurred_at": NOW - timedelta(days=1),
+                "recorded_at": NOW - timedelta(days=1),
+                "evidence_hash": "b" * 64,
+                "health_version": 2,
+                "correlation_id": "corr-2",
+                "updated_at": NOW - timedelta(days=1),
+            }
+        ],
+        [],
+        [],
+    ]
+    store = PostgresCampaignRecyclingStore(FakePool(conn))
+    result = await store.journey(
+        tenant_id="TEST_SYN_TENANT",
+        lead_id="100-L-00000001",
+        limit=100,
+    )
+    assert result["current"]["state"] == "ELIGIBLE"
+    assert result["lifecycle"][0]["to_state"] == "NEW"
+    assert result["channel_health"][0]["channel"] == "email"
+    assert result["truncated"] is False
+
+
+@pytest.mark.asyncio
+async def test_journey_limit_fails_closed() -> None:
+    store = PostgresCampaignRecyclingStore(FakePool(FakeConn()))
+    with pytest.raises(CampaignRecyclingConflict, match="journey limit"):
+        await store.journey(
+            tenant_id="TEST_SYN_TENANT",
+            lead_id="100-L-00000001",
+            limit=201,
+        )
+
+
+@pytest.mark.asyncio
+async def test_load_snapshot_uses_explicit_address_refs() -> None:
+    conn = FakeConn()
+    conn.fetchrow_results = [
+        {"state": "ELIGIBLE", "version": 3, "updated_at": NOW},
+        {
+            "channel": "email",
+            "address_ref": "addr-email-1",
+            "state": "valid",
+            "occurred_at": NOW - timedelta(days=1),
+        },
+    ]
+    conn.fetch_results = [[], [], []]
+    store = PostgresCampaignRecyclingStore(FakePool(conn))
+    loaded = await store.load_snapshot(
+        tenant_id="TEST_SYN_TENANT",
+        lead_id="100-L-00000001",
+        address_refs={"email": "addr-email-1"},
+        policy=PolicyProfile.load("test"),
+    )
+    assert loaded.lifecycle_state == "ELIGIBLE"
+    assert loaded.channel_health["email"].address_ref == "addr-email-1"
+    assert loaded.exposures == ()
+    assert loaded.suppressions == ()
 
 
 @pytest.mark.asyncio

@@ -825,6 +825,225 @@ class PostgresCampaignRecyclingStore:
             )
         return row is not None
 
+    async def journey(
+        self,
+        *,
+        tenant_id: str,
+        lead_id: str,
+        limit: int = 100,
+    ) -> dict[str, Any]:
+        if limit < 1 or limit > 200:
+            raise CampaignRecyclingConflict("journey limit must be between 1 and 200")
+        async with self.pool.acquire() as conn:
+            current = await conn.fetchrow(
+                """
+                SELECT tenant_id, lead_id, state, version, updated_at
+                FROM mcr_lead_lifecycle_current
+                WHERE tenant_id=$1 AND lead_id=$2
+                """,
+                tenant_id,
+                lead_id,
+            )
+            lifecycle = await conn.fetch(
+                """
+                SELECT event_id, version, from_state, to_state, reason_code, source,
+                       occurred_at, recorded_at, correlation_id, evidence_hash,
+                       evidence_ref
+                FROM mcr_lead_lifecycle_events
+                WHERE tenant_id=$1 AND lead_id=$2
+                ORDER BY version DESC
+                LIMIT $3
+                """,
+                tenant_id,
+                lead_id,
+                limit,
+            )
+            health = await conn.fetch(
+                """
+                SELECT channel, address_ref, state, previous_state, source,
+                       reason_code, occurred_at, recorded_at, evidence_hash,
+                       health_version, correlation_id, updated_at
+                FROM mcr_channel_health
+                WHERE tenant_id=$1 AND lead_id=$2
+                ORDER BY channel, address_ref
+                """,
+                tenant_id,
+                lead_id,
+            )
+            suppressions = await conn.fetch(
+                """
+                SELECT suppression_id, scope, channel, campaign_id, reason, source,
+                       occurred_at, evidence_hash, requested_by, created_at
+                FROM mcr_suppressions
+                WHERE tenant_id=$1 AND lead_id=$2
+                ORDER BY occurred_at, suppression_id
+                """,
+                tenant_id,
+                lead_id,
+            )
+            exposures = await conn.fetch(
+                """
+                SELECT exposure_id, campaign_id, campaign_version, channel, touch_index,
+                       idempotency_key, command_id, decision_id, policy_version,
+                       sender_identity_id, status, engagement_outcome, negative_outcome,
+                       message_id, provider_message_id, reserved_at, dispatched_at,
+                       accepted_at, delivered_at, status_at, engagement_outcome_at,
+                       negative_outcome_at, updated_at
+                FROM mcr_exposures
+                WHERE tenant_id=$1 AND lead_id=$2
+                ORDER BY reserved_at DESC, exposure_id
+                LIMIT $3
+                """,
+                tenant_id,
+                lead_id,
+                limit,
+            )
+        return {
+            "tenant_id": tenant_id,
+            "lead_id": lead_id,
+            "current": dict(current) if current is not None else None,
+            "lifecycle": [dict(row) for row in reversed(lifecycle)],
+            "channel_health": [dict(row) for row in health],
+            "suppressions": [dict(row) for row in suppressions],
+            "exposures": [dict(row) for row in reversed(exposures)],
+            "truncated": len(lifecycle) == limit or len(exposures) == limit,
+        }
+
+    async def load_snapshot(
+        self,
+        *,
+        tenant_id: str,
+        lead_id: str,
+        address_refs: Mapping[Channel, str],
+        policy: PolicyProfile,
+    ) -> LeadSnapshot:
+        max_lifetime = int(
+            policy.values.get("exposure", {}).get("max_lifetime_all_campaigns") or 0
+        )
+        exposure_limit = max(1, max_lifetime + 1 if max_lifetime else 1)
+        async with self.pool.acquire() as conn:
+            current = await conn.fetchrow(
+                """
+                SELECT state, version, updated_at
+                FROM mcr_lead_lifecycle_current
+                WHERE tenant_id=$1 AND lead_id=$2
+                """,
+                tenant_id,
+                lead_id,
+            )
+            if current is None:
+                raise CampaignRecyclingConflict("lead lifecycle state does not exist")
+
+            health_rows = []
+            for channel, address_ref in address_refs.items():
+                if channel not in CHANNEL_ORDER:
+                    raise CampaignRecyclingConflict(f"unknown campaign channel {channel}")
+                row = await conn.fetchrow(
+                    """
+                    SELECT channel, address_ref, state, occurred_at
+                    FROM mcr_channel_health
+                    WHERE tenant_id=$1 AND lead_id=$2 AND channel=$3 AND address_ref=$4
+                    """,
+                    tenant_id,
+                    lead_id,
+                    channel,
+                    address_ref,
+                )
+                if row is not None:
+                    health_rows.append(row)
+
+            suppression_rows = await conn.fetch(
+                """
+                SELECT suppression_id, scope, channel, campaign_id, reason, occurred_at
+                FROM mcr_suppressions
+                WHERE tenant_id=$1 AND lead_id=$2
+                ORDER BY occurred_at, suppression_id
+                """,
+                tenant_id,
+                lead_id,
+            )
+            exposure_rows = await conn.fetch(
+                """
+                SELECT campaign_id, campaign_version, channel, touch_index, status,
+                       reserved_at, engagement_outcome, negative_outcome
+                FROM mcr_exposures
+                WHERE tenant_id=$1 AND lead_id=$2
+                ORDER BY reserved_at DESC, exposure_id
+                LIMIT $3
+                """,
+                tenant_id,
+                lead_id,
+                exposure_limit,
+            )
+            lifecycle_rows = await conn.fetch(
+                """
+                SELECT to_state, occurred_at
+                FROM mcr_lead_lifecycle_events
+                WHERE tenant_id=$1 AND lead_id=$2
+                  AND to_state IN ('COOLING','REACTIVATION')
+                ORDER BY version
+                """,
+                tenant_id,
+                lead_id,
+            )
+
+        health_by_channel: dict[Channel, ChannelHealth] = {}
+        for row in health_rows:
+            channel = row["channel"]
+            health_by_channel[channel] = ChannelHealth(
+                state=row["state"],
+                occurred_at=_utc(row["occurred_at"]),
+                address_ref=row["address_ref"],
+            )
+
+        suppressions = tuple(
+            Suppression(
+                scope=row["scope"],
+                reason=row["reason"],
+                occurred_at=_utc(row["occurred_at"]),
+                suppression_id=str(row["suppression_id"]),
+                channel=row["channel"],
+                campaign_id=row["campaign_id"],
+            )
+            for row in suppression_rows
+        )
+        exposures = tuple(
+            Exposure(
+                campaign_id=row["campaign_id"],
+                campaign_version=int(row["campaign_version"]),
+                channel=row["channel"],
+                touch_index=int(row["touch_index"]),
+                status=row["status"],
+                reserved_at=_utc(row["reserved_at"]),
+                engagement_outcome=row["engagement_outcome"],
+                negative_outcome=row["negative_outcome"],
+            )
+            for row in exposure_rows
+        )
+
+        cooling_until: datetime | None = None
+        reactivation_cycles = 0
+        for row in lifecycle_rows:
+            if row["to_state"] == "COOLING":
+                seconds = int(
+                    policy.values.get("cooling", {}).get("min_cooling_seconds") or 0
+                )
+                cooling_until = _utc(row["occurred_at"]) + timedelta(seconds=seconds)
+            elif row["to_state"] == "REACTIVATION":
+                reactivation_cycles += 1
+
+        return LeadSnapshot(
+            tenant_id=tenant_id,
+            lead_id=lead_id,
+            lifecycle_state=current["state"],
+            lifecycle_version=int(current["version"]),
+            channel_health=health_by_channel,
+            suppressions=suppressions,
+            exposures=exposures,
+            cooling_until=cooling_until,
+            reactivation_cycles=reactivation_cycles,
+        )
+
     async def reserve_exposure_and_command(
         self,
         *,
