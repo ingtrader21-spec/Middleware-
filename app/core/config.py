@@ -346,6 +346,19 @@ class Settings(BaseSettings):
     umbrella_n8n_external_provider_writes: bool = Field(
         default=False, validation_alias=AliasChoices("N8N_EXTERNAL_PROVIDER_WRITES", "umbrella_n8n_external_provider_writes")
     )
+    # Codestra Evolution WhatsApp provider adapter (internal, behind Middleware V3).
+    evolution_whatsapp_base_url: str = Field(
+        default="", validation_alias=AliasChoices("EVOLUTION_WHATSAPP_BASE_URL", "evolution_whatsapp_base_url")
+    )
+    evolution_whatsapp_service_token: str = Field(
+        default="", validation_alias=AliasChoices("EVOLUTION_WHATSAPP_SERVICE_TOKEN", "evolution_whatsapp_service_token")
+    )
+    evolution_whatsapp_provider: str = Field(
+        default="evolution", validation_alias=AliasChoices("EVOLUTION_WHATSAPP_PROVIDER", "evolution_whatsapp_provider")
+    )
+    evolution_whatsapp_instance_id: str = Field(
+        default="", validation_alias=AliasChoices("EVOLUTION_WHATSAPP_INSTANCE_ID", "evolution_whatsapp_instance_id")
+    )
     # Odoo 19 CRM lead delivery (Appolon lineage). Distinct from the registry
     # backed ``odoo_base_url`` used by the outbox sync worker.
     odoo_19_base_url: str = Field(
