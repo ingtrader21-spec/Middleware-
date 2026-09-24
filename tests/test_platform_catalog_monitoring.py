@@ -35,7 +35,7 @@ REFERENCE = {
 }
 SERVICE = {
     "service_id": "sample-api", "owner": "platform", "tenant_mode": "multi-tenant",
-    "type": "api", "repository": "appolon1908-hue/sample-api", "environments": ["staging"],
+    "type": "api", "repository": "ingtrader21-spec/sample-api", "environments": ["staging"],
     "dependencies": [], "data_classification": "confidential", "slo_profile": "customer-api",
     "alert_profile": "business-critical",
     "deployment_id": "sample-api-staging-1", "host_id": "core-01", "private_origin": "http://sample-api:8080",
