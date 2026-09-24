@@ -1,0 +1,146 @@
+HEAD=018e4d04fed88fcbbafd8cf1695bc35c15f462a6 on fix/post-transfer-governance-pins-20260921
+
+################ production-orchestrator-contract
+RELEASE_INTENT_SELF_TEST=PASS
+PRODUCTION_ORCHESTRATOR_CONTRACT=PASS
+
+################ release-intent-self-test
+RELEASE_INTENT_SELF_TEST=PASS
+
+################ test-upstream-signing-identity
+..........
+----------------------------------------------------------------------
+Ran 10 tests in 0.009s
+
+OK
+
+################ release-policy-review-tests
+test_closed_draft_and_wrong_pr (test_release_policy_review.ReviewTests.test_closed_draft_and_wrong_pr) ... ok
+test_comment_does_not_replace_approval (test_release_policy_review.ReviewTests.test_comment_does_not_replace_approval) ... ok
+test_duplicate_review_identity (test_release_policy_review.ReviewTests.test_duplicate_review_identity) ... ok
+test_exact_independent_approval (test_release_policy_review.ReviewTests.test_exact_independent_approval) ... ok
+test_invalid_candidate_sha (test_release_policy_review.ReviewTests.test_invalid_candidate_sha) ... ok
+test_missing_approval (test_release_policy_review.ReviewTests.test_missing_approval) ... ok
+test_post_transfer_repository_identity (test_release_policy_review.ReviewTests.test_post_transfer_repository_identity) ... ok
+test_repository_and_branch_binding (test_release_policy_review.ReviewTests.test_repository_and_branch_binding) ... ok
+test_reviewer_must_be_collaborator (test_release_policy_review.ReviewTests.test_reviewer_must_be_collaborator) ... ok
+test_self_review (test_release_policy_review.ReviewTests.test_self_review) ... ok
+test_stale_approval (test_release_policy_review.ReviewTests.test_stale_approval) ... ok
+test_substitute_reviewer (test_release_policy_review.ReviewTests.test_substitute_reviewer) ... ok
+test_unknown_review_state (test_release_policy_review.ReviewTests.test_unknown_review_state) ... ok
+test_withdrawn_or_changes_requested (test_release_policy_review.ReviewTests.test_withdrawn_or_changes_requested) ... ok
+test_closure_values_and_test_inputs_remain_bound_without_execution (test_release_policy_review.SourceTests.test_closure_values_and_test_inputs_remain_bound_without_execution) ... ok
+
+----------------------------------------------------------------------
+Ran 15 tests in 1.335s
+
+OK
+........
+----------------------------------------------------------------------
+Ran 8 tests in 0.001s
+
+OK
+
+################ test-deploy-readiness-build-context
+...
+----------------------------------------------------------------------
+Ran 3 tests in 5.228s
+
+OK
+..........                                                               [100%]
+10 passed in 1.56s
+..                                                                       [100%]
+2 passed in 1.53s
+
+################ source-authority-matrix
+SOURCE_AUTHORITY_MATRIX=PASS
+.....
+----------------------------------------------------------------------
+Ran 5 tests in 0.345s
+
+OK
+10:06AM INF scanned ~4760721 bytes (4.76 MB) in 9.95s
+10:06AM INF no leaks found
+PASS: reproduce original false positive
+PASS: allow only archived Podman context
+PASS: keep same numeric credentials detectable
+PASS: keep other credentials detectable
+PASS: do not allow another evidence path
+PASS: allow typed Git SHA field
+PASS: prove default token detection
+PASS: do not allow unrelated token family
+PASS: prove default generic-key detection
+PASS: do not allow unrelated generic key
+PASS: reproduce source-refresh SHA false positive
+PASS: allow exact reviewed source-refresh SHA
+PASS: allow exact reviewed resolved-refresh SHA
+PASS: allow exact reviewed resolved conflict SHA
+PASS: do not allow refreshed SHA in other files
+PASS: keep tokens detectable in resolved lock
+PASS: keep generic keys detectable in resolved lock
+PASS: reproduce September SHA false positive
+PASS: allow exact September source SHA
+PASS: allow exact September resolved SHA
+PASS: allow exact September resolved conflict SHA
+PASS: keep September SHA detectable outside lock files
+PASS: keep September SHA detectable in credential fields
+GITLEAKS_POLICY_REGRESSIONS=PASS (23 cases)
+
+################ calling-contract-pin
+CALLING_CONTRACT_PIN=PASS
+CALLING_CONTRACT_MERGE_RESULT=PASS
+
+################ test-provenance-integrity(python-parts)
+provenance predicate generated: True
+............................................s                            [100%]
+44 passed, 1 skipped in 11.65s
+
+################ repository-name-authority
+Codestra repository-name authority validation: PASS
+Repository record and one-cutover transition authority: PASS
+.ERROR: PostgreSQL Exporter is referenced by gateway source in operations/caddy/postgres-exporter.caddy
+.ERROR: PostgreSQL Exporter port is host-published in deploy/compose.yaml
+.ERROR: PostgreSQL Exporter port is host-published in deploy/compose.yaml
+.ERROR: PostgreSQL Exporter is referenced by gateway source in k8s/metrics-route.yaml
+.ERROR: release/synthetic-source-lock.json binds repository ID 1351353723 to conflicting repository fields (repository=appolon1908-hue/unapproved-social-fork); expected appolon1908-hue/Codesrea-Social-
+..ERROR: historical Stage 6 source lock content changed
+.ERROR: release/synthetic-conflict.json binds repository ID 1351353723 to conflicting repository fields (repository=appolon1908-hue/unapproved-social-fork); expected appolon1908-hue/Codesrea-Social-
+.ERROR: Stage 6-8 social-control release repository must use appolon1908-hue/Codesrea-Social-, found appolon1908-hue/unapproved-social-fork
+.ERROR: PostgreSQL Exporter is exposed by a public Kubernetes service or hostPort in k8s/postgres-exporter-deployment.yaml
+..ERROR: planned repository target appears in active operational source before cutover: appolon1908-hue/restaurant-frontend in release/synthetic-lock.json
+..ERROR: PostgreSQL Exporter is exposed by a public Kubernetes service or hostPort in k8s/postgres-exporter-service.yaml
+..ERROR: release/synthetic-multi-entry-lock.json binds repository ID 1351353723 to conflicting repository fields (repository=appolon1908-hue/unapproved-social-fork); expected appolon1908-hue/Codesrea-Social-
+.ERROR: release/synthetic-source-lock.toml binds repository ID 1351353723 to conflicting repository fields (repository=appolon1908-hue/unapproved-social-fork); expected appolon1908-hue/Codesrea-Social-
+.ERROR: repository mappings do not exactly match the approved migration set
+.ERROR: release/synthetic-source-lock.yaml binds repository ID 1351353723 to conflicting repository fields (repository=appolon1908-hue/unapproved-social-fork); expected appolon1908-hue/Codesrea-Social-
+.ERROR: production.tf binds repository ID 1351353723 to conflicting repository fields (repository=attacker/unapproved-fork); expected appolon1908-hue/Codesrea-Social-
+..ERROR: synthetic.json binds repository ID 1351353723 to conflicting repository fields (repository=appolon1908-hue/unapproved-social-fork); expected appolon1908-hue/Codesrea-Social-
+..ERROR: cutover PR may not add or remove governed repository IDs
+..ERROR: unsupported repository status transition for repository ID 1: PREPARED_NOT_RENAMED -> ROLLED_BACK_VERIFIED
+.ERROR: unsupported repository status transition for repository ID 1: RENAMED_VERIFIED -> PREPARED_NOT_RENAMED
+...ERROR: one_repository_per_cutover violation: status changed for repository IDs [1, 2]
+..
+----------------------------------------------------------------------
+Ran 32 tests in 0.163s
+
+OK
+
+################ independent-release-policy-review(repaired)
+head_sha=018e4d04fed88fcbbafd8cf1695bc35c15f462a6
+{"base_sha": "018e4d04fed88fcbbafd8cf1695bc35c15f462a6", "base_source_sha256": "0071fc853ad6a7122619bd0eee75eb6fb794036bfe0e2d80a8f3c75c59960750", "candidate_executed": false, "candidate_source_sha256": "0071fc853ad6a7122619bd0eee75eb6fb794036bfe0e2d80a8f3c75c59960750", "head_sha": "018e4d04fed88fcbbafd8cf1695bc35c15f462a6", "pull_request": 127, "repository": "ingtrader21-spec/Infustruction-repo", "review_id": 1, "reviewer_id": 77101516, "status": "PASS"}
+## negative: repository ID env mismatch must fail
+RELEASE_POLICY_REVIEW=FAIL: workflow repository ID mismatch
+## negative: pre-transfer slug in env must fail
+RELEASE_POLICY_REVIEW=FAIL: workflow repository mismatch
+
+=================== SUMMARY on 018e4d04fed88fcbbafd8cf1695bc35c15f462a6
+calling-contract-pin                             PASS
+independent-release-policy-review(repaired)      PASS
+production-orchestrator-contract                 PASS
+release-intent-self-test                         PASS
+release-policy-review-tests                      PASS
+repository-name-authority                        PASS
+source-authority-matrix                          PASS
+test-deploy-readiness-build-context              PASS
+test-provenance-integrity(python-parts)          PASS
+test-upstream-signing-identity                   PASS
