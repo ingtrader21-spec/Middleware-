@@ -8,6 +8,7 @@
     "CRAWLER_EXECUTION": false,
     "CRAWLER_WRITEBACK": false,
     "DEAD_LETTER_REPLAY": false,
+    "DJONE_CONTROL": false,
     "EMAIL_DELIVERY": false,
     "EXTERNAL_MODEL_CALLS": false,
     "INTERNAL_TELEPHONY_CALLS": false,
