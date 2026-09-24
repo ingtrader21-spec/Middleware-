@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 import re
 from urllib.parse import parse_qsl, unquote, urlsplit
 
@@ -84,6 +84,12 @@ def _query_values(parsed: object) -> dict[str, str]:
     return values
 
 
+def _is_absolute_tls_path(value: str) -> bool:
+    """Validate DSN path syntax independently from the tooling host OS."""
+
+    return PurePosixPath(value).is_absolute() or PureWindowsPath(value).is_absolute()
+
+
 def _validate_tls_paths(
     query: dict[str, str], *, validate_files: bool
 ) -> dict[str, Path]:
@@ -92,10 +98,10 @@ def _validate_tls_paths(
         raw = query.get(key, "")
         if not raw:
             continue
-        path = Path(unquote(raw))
-        if not path.is_absolute():
+        decoded = unquote(raw)
+        if not _is_absolute_tls_path(decoded):
             raise DatabaseConnectionError(f"{key} must be an absolute path")
-        paths[key] = path
+        paths[key] = Path(decoded)
 
     if bool(paths.get("sslcert")) != bool(paths.get("sslkey")):
         raise DatabaseConnectionError("sslcert and sslkey must be configured together")
