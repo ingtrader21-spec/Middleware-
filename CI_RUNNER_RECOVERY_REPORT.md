@@ -154,3 +154,77 @@ None. No PR has green required checks. No protection or ruleset was edited or by
    - Pushing either needs `! gh auth refresh -h github.com -s workflow`.
    - Expect the artifact-storage quota to block `container-security`'s `upload-artifact`, as in Kong #120.
 4. Mission owners for #312/#313/#314 fix the code failures in section 8. The catalog fixture owner is #312; the closure pin has to be re-derived per head; #314 also has route-contract coverage and staging profile drift. After that, re-obtain current-head approvals.
+
+---
+
+# Re-verification — 2026-09-24T23:00Z–23:45Z
+
+**Status: still BLOCKED. Execution has not begun on any required job.** The runner is healthy and persistent. No source change was safe to push, so none was made.
+
+## A. Hosted Actions billing: still locked
+
+| Evidence | Value |
+|---|---|
+| Newest PR run (#319, head `b957f4a6f132cbb1e08302f0897fc1b6547a6608`) | Middleware CI `36070349641`, 2026-09-24T22:58Z. All 11 PR jobs `failure`, `runner_id=0`, empty `runner_name`, labels `ubuntu-24.04`, **0 steps**, done in ~2–4 s |
+| Fresh exact-head rerun, #312 | run `35914711384` **attempt 3**, head `8d7c2e05031e4a040545d2e70c5344f7465dbbc8`. Jobs `107873824262…107873836180`, all `runner_id=0`, 0 steps |
+| Annotation (job `107873824398`, "Validate middleware source head") | `The job was not started because your account is locked due to a billing issue.` |
+| Account billing API | Not readable: token lacks `user` scope (`gh auth refresh -h github.com -s user` would allow it) |
+
+## B. Artifact and cache capacity (Middleware- repo)
+
+- Artifacts: **3,847 active, 1.15 GB** (`actions/artifacts`, all `expired=false`).
+- Actions cache: 68 entries, 4.57 GB (under the 10 GB per-repo limit).
+- Kong #120 hit the account's artifact storage quota on `upload-artifact`. After rerouting, Middleware `container-security` (SBOM upload) is the job most likely to hit the same quota. I did **not** delete artifacts: they may be governance/release evidence, and deleting them can't be undone. The owner decides whether to prune.
+
+## C. Exact-head runner assignment (stack)
+
+| PR | Exact head | Latest Middleware CI run | Assignment |
+|---|---|---|---|
+| #312 → main | `8d7c2e05031e4a040545d2e70c5344f7465dbbc8` (0 behind main) | `35914711384` attempt 3 | runner_id 0, 0 steps (billing) |
+| #313 → #312 | `6e28f33f9af9980adaf97d7cc5afa2bc5055579c` | `35949718873` attempt 1 | runner_id 0, 0 steps (billing) |
+| #314 → #313 | `ed2f6ff91372828ebb1da353f22f9f04c3f0076b` | `35959248893` attempt 1 | runner_id 0, 0 steps (billing) |
+
+Heads are unchanged since the first report. #313 and #314 were not re-run: they would only produce more billing-locked results.
+
+Last observed self-hosted execution on this account: Kong run `35905497941`, job `security`, **runner_id 22 `codestra-ubuntu-kong`, 17 steps**, 2026-09-24T02:49:54Z. So self-hosted runners were not affected by the billing lock. No job has targeted a self-hosted label since.
+
+## D. `codestra-ubuntu-middleware` health and persistence
+
+| Check | Result |
+|---|---|
+| GitHub | runner **id 22**, `codestra-ubuntu-middleware`, `online`, `busy=false`, labels `middleware-ci,self-hosted,Linux,X64` |
+| Survived reboot | Host booted 2026-09-24 11:23 local, after the 08:32 install. User unit came back automatically: `enabled` + `active`, Listener PID 7428 |
+| Linger | `Linger=yes` |
+| Listener | `Session created` / `Listening for Jobs` (16:44:48Z). One transient `BrokerServer` socket cancel at 17:54:37Z recovered by itself. OAuth token refreshes continue (22:36Z) |
+| Clock | After the reboot the service start time and diag log name show **2026-07-27** (`Runner_20260727-204425-utc.log`), i.e. the hardware clock was wrong at boot. NTP has corrected it (`System clock synchronized: yes`). Recommendation: `sudo timedatectl set-local-rtc 0 && sudo hwclock --systohc` so the next boot doesn't start with a stale clock (TLS/OIDC tokens are time-sensitive) |
+| Job prerequisites | actions/python-versions has Linux x64 builds for **3.12.14 and 3.13.15 on Ubuntu 26.04**. Docker 29.8.0 is usable by the runner user. 333 GB free |
+| Kong / Leads | Kong id 22 and Leads id 2 runners online, their system units `active`, untouched |
+
+## E. Safe routing proposal: stage-2 content, validated locally, not pushed
+
+The earlier plain `runs-on: [self-hosted, …]` proposal would send **fork** PRs to this desktop. On a public repo whose fork-approval policy is `first_time_contributors`, that crosses the public-fork trust boundary. The revised proposal keeps fork PRs on GitHub-hosted runners, which fail closed while the billing lock lasts. Only same-repo PRs and pushes to `main` use the desktop runner:
+
+```yaml
+runs-on: ${{ (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON('["self-hosted","Linux","X64","middleware-ci"]') || 'ubuntu-24.04' }}
+```
+
+Applied to all 12 `ubuntu-24.04` jobs in `.github/workflows/middleware-ci.yml`. Proposed file SHA-256: `2ef0e17b9dfd469f36de4f0ba846237957a3e88ffcc2874c4377d71bee2eea82`.
+
+Local verification against `origin/main` `0606b0d`:
+- YAML equivalence: 12 jobs; job names (= required contexts) unchanged; every key other than `runs-on` byte-for-byte equal; fork guard present on all 12 jobs.
+- `actionlint`: pass.
+- `scripts/run_ci.sh` pre-pytest validators all passed ("Middleware repository validation passed for 2039 file(s)", workstream, connectivity and site-route validators).
+- Full pytest: **not completed**. The first run hit my 25-minute timeout, and the rerun was stopped by Claude Code when the host ran critically low on memory (load average ~81 on 4 CPUs from other sessions). I did not restart it.
+- `derive_trust_pins.py --check` (read-only): **7 stale pins**, `ACTIVE_STALE_AFTER=7`, `UNKNOWN_TRUST_TABLES=0`, `LAUNCHER_PARITY=NO`, successor `FINAL_VALIDATOR_SHA256=220e4d44769d2075373a938e45eaaf11d3ad8680495f9cbb60a0a10556a2d71f`. This is the same governed gate as before and needs the launcher-first two-stage transition authorized by code owner `@appolon1908-hue`.
+
+Why nothing was pushed:
+1. The pin re-derivation was previously declined as security-weakening and needs owner authorization.
+2. This terminal cannot push workflow files: remote is HTTPS through the `gh` OAuth token (scopes `gist, read:org, repo`, **no `workflow`**), and there is no SSH key (`git@github.com: Permission denied (publickey)`).
+3. The stage-1 launcher PR can't get green required checks while the billing lock lasts.
+
+## F. Updated exact next actions
+
+1. **Owner:** clear the billing lock for `ingtrader21-spec` (https://github.com/settings/billing). This unblocks everything with no repo change. Then run, in order: `gh run rerun 35914711384 --failed -R ingtrader21-spec/Middleware-` (#312), then `35949718873` (#313), then `35959248893` (#314).
+2. If self-hosted routing is still wanted: `@appolon1908-hue` authorizes the stage-1 launcher successor `220e4d44…d71f` (from `derive_trust_pins.py --emit-transition`), then stage 2 = the fork-aware diff above plus `--apply-candidate`. Push from a credential with `workflow` scope (`! gh auth refresh -h github.com -s workflow`).
+3. Optional hardening (owner decision; tightens rather than weakens): fork-PR approval `all_external_contributors`.
+4. Code failures already found on #312/#313/#314 (first report, section 8) still need to be fixed by each PR's mission owner.
