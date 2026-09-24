@@ -17,9 +17,9 @@
   },
   "public_edge_contract": {
     "path": "deploy/public-api-route-contract.json",
-    "sha256": "0724a0c6a67a570d5ca2bbaca736804b831a3a5c9ea3df17d5cd81762ca588ba",
-    "routes": 117,
-    "shared_edge": 105,
+    "sha256": "82280b363b3aeb0566e88925d1f0434b2b3845cb4d8bce433b48ef3d0a740c0c",
+    "routes": 128,
+    "shared_edge": 116,
     "private_only": 2,
     "denied": 10
   },
