@@ -331,7 +331,7 @@
       "type": "boolean"
     },
     "decision_hash": {
-      "description": "sha256 of the canonical decision inputs and outputs, excluding decision_id, evaluated_at and correlation_id. Execute must present the plan's hash; a mismatch on re-evaluation is 409 plan_stale.",
+      "description": "sha256 of the canonical decision inputs and outputs, excluding decision_id, evaluated_at, correlation_id and decision_hash. Execute must present the plan's hash; a mismatch on re-evaluation is 409 plan_stale.",
       "$ref": "lifecycle.v1.schema.json#/$defs/Sha256"
     },
     "correlation_id": {
