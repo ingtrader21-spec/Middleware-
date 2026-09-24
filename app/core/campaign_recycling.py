@@ -545,6 +545,18 @@ class CampaignRecyclingEngine:
             and snapshot.reactivation_cycles >= int(max_cycles)
         ):
             reasons.append("REACTIVATION_LIMIT_REACHED")
+        if (
+            snapshot.lifecycle_state == "REACTIVATION"
+            and self._value(
+                "reactivation", "requires_distinct_campaign_version", default=True
+            )
+            and any(
+                exposure.campaign_id == candidate.campaign_id
+                and exposure.campaign_version == candidate.campaign_version
+                for exposure in snapshot.exposures
+            )
+        ):
+            reasons.append("CAMPAIGN_VERSION_EXHAUSTED")
 
         exposure_cfg = self.policy.values.get("exposure", {})
         max_lifetime = int(exposure_cfg.get("max_lifetime_all_campaigns") or 0)
@@ -571,10 +583,7 @@ class CampaignRecyclingEngine:
         max_recent = int(exposure_cfg.get("max_recent_all_campaigns") or 0)
         if max_recent and len(recent) >= max_recent:
             reasons.append("RECENT_WINDOW_CAP_REACHED")
-            temporal_until.append(
-                min(_utc(e.reserved_at) for e in recent)
-                + timedelta(seconds=recent_window)
-            )
+            temporal_until.append(_cap_release_at(recent, max_recent, recent_window))
 
         channel_cfg = self.policy.values.get("channel_caps", {}).get(
             candidate.channel, {}
@@ -592,8 +601,7 @@ class CampaignRecyclingEngine:
         if max_channel and len(channel_recent) >= max_channel:
             reasons.append("CHANNEL_CAP_REACHED")
             temporal_until.append(
-                min(_utc(e.reserved_at) for e in channel_recent)
-                + timedelta(seconds=channel_window)
+                _cap_release_at(channel_recent, max_channel, channel_window)
             )
 
         campaign_cfg = self.policy.values.get("campaign", {})
@@ -742,7 +750,7 @@ class PostgresCampaignRecyclingStore:
                 )
                 version = int(current["health_version"]) + 1 if current else 1
                 previous_state = current["state"] if current else None
-                await conn.execute(
+                committed = await conn.fetchrow(
                     """
                     INSERT INTO mcr_channel_health
                       (tenant_id,lead_id,channel,address_ref,state,previous_state,
@@ -761,6 +769,7 @@ class PostgresCampaignRecyclingStore:
                       health_version=mcr_channel_health.health_version + 1,
                       correlation_id=EXCLUDED.correlation_id,
                       updated_at=now()
+                    RETURNING health_version
                     """,
                     tenant_id,
                     lead_id,
@@ -775,6 +784,10 @@ class PostgresCampaignRecyclingStore:
                     version,
                     correlation_id,
                 )
+                if committed is None:
+                    raise CampaignRecyclingConflict(
+                        "channel-health upsert returned no committed version"
+                    )
                 if state in SUPPRESSION_REQUIRED_HEALTH:
                     assert suppression_id is not None
                     assert suppression_scope is not None
@@ -800,7 +813,7 @@ class PostgresCampaignRecyclingStore:
                         evidence_hash,
                         suppression_requested_by,
                     )
-                return version
+                return int(committed["health_version"])
 
     async def add_suppression(
         self,
@@ -845,6 +858,7 @@ class PostgresCampaignRecyclingStore:
         self,
         event: Mapping[str, Any],
         *,
+        policy: PolicyProfile,
         address_ref: str | None = None,
     ) -> dict[str, Any]:
         required = {
@@ -1160,7 +1174,7 @@ class PostgresCampaignRecyclingStore:
                     assert address_ref is not None
                     current_health = await conn.fetchrow(
                         """
-                        SELECT state, health_version
+                        SELECT state, health_version, occurred_at
                         FROM mcr_channel_health
                         WHERE tenant_id=$1 AND lead_id=$2 AND channel=$3
                           AND address_ref=$4
@@ -1171,6 +1185,44 @@ class PostgresCampaignRecyclingStore:
                         channel,
                         address_ref,
                     )
+                    if event_type == "soft_bounce":
+                        escalation_count = policy.values.get(
+                            "channel_health", {}
+                        ).get("soft_bounce_escalation_count")
+                        if escalation_count is None:
+                            notes.append("soft_bounce_escalation_not_configured")
+                        else:
+                            # Consecutive soft bounces for this address since the
+                            # last confirmed delivery, including this event.
+                            streak = await conn.fetchrow(
+                                """
+                                SELECT count(*) AS soft_bounce_count
+                                FROM mcr_delivery_events
+                                WHERE tenant_id=$1 AND lead_id=$2 AND channel=$3
+                                  AND address_ref=$4 AND event_type='soft_bounce'
+                                  AND occurred_at > COALESCE(
+                                    (SELECT max(occurred_at)
+                                     FROM mcr_delivery_events
+                                     WHERE tenant_id=$1 AND lead_id=$2
+                                       AND channel=$3 AND address_ref=$4
+                                       AND event_type='delivered'),
+                                    '-infinity'::timestamptz
+                                  )
+                                """,
+                                tenant_id,
+                                lead_id,
+                                channel,
+                                address_ref,
+                            )
+                            if streak is None:
+                                raise CampaignRecyclingConflict(
+                                    "soft-bounce streak could not be read"
+                                )
+                            if int(streak["soft_bounce_count"]) >= int(
+                                escalation_count
+                            ):
+                                target_health = "hard_bounce"
+                                health_reason = "SOFT_BOUNCE_ESCALATED"
                     current_state = (
                         str(current_health["state"])
                         if current_health is not None
@@ -1183,6 +1235,10 @@ class PostgresCampaignRecyclingStore:
                         or (
                             target_health == current_state
                             and event_type in {"complaint", "unsubscribe"}
+                        )
+                        or (
+                            target_health == current_state == "soft_bounce"
+                            and occurred_at > _utc(current_health["occurred_at"])
                         )
                     )
                     if should_update:
@@ -1835,6 +1891,15 @@ def _leaf_values(value: Any) -> list[Any]:
     if isinstance(value, Mapping):
         return [leaf for child in value.values() for leaf in _leaf_values(child)]
     return [value]
+
+
+def _cap_release_at(
+    window_exposures: Sequence[Exposure], cap: int, window_seconds: int
+) -> datetime:
+    # The window count drops below the cap only once the oldest
+    # (count - cap + 1) exposures have aged out.
+    reserved = sorted(_utc(exposure.reserved_at) for exposure in window_exposures)
+    return reserved[len(reserved) - cap] + timedelta(seconds=window_seconds)
 
 
 def _sort_reasons(reasons: Sequence[str] | Any) -> tuple[str, ...]:

@@ -314,6 +314,111 @@ def test_reactivation_limit_blocks_when_exhausted() -> None:
     assert "REACTIVATION_LIMIT_REACHED" in result.reason_codes
 
 
+def test_recent_window_cap_over_by_two_waits_for_threshold_exposure() -> None:
+    # 12 exposures vs cap 10, all outside the 7-day email channel window.
+    exposures = tuple(
+        Exposure(
+            campaign_id=f"klyrow:cmp-old-{index}",
+            campaign_version=1,
+            channel="email",
+            touch_index=1,
+            status="delivered",
+            reserved_at=NOW - timedelta(days=29 - index),
+        )
+        for index in range(12)
+    )
+    result = engine().evaluate(
+        snapshot(exposures=exposures),
+        [candidate(campaign_id="klyrow:cmp-new")],
+        now=NOW,
+    )
+    assert result.reason_codes == ("RECENT_WINDOW_CAP_REACHED",)
+    # Third-oldest (-27d) must expire before the count drops to 9.
+    assert result.next_eligible_at == NOW + timedelta(days=3)
+
+    still_capped = engine().evaluate(
+        snapshot(exposures=exposures),
+        [candidate(campaign_id="klyrow:cmp-new")],
+        now=NOW + timedelta(days=1, seconds=1),
+    )
+    assert still_capped.reason_codes == ("RECENT_WINDOW_CAP_REACHED",)
+    released = engine().evaluate(
+        snapshot(exposures=exposures),
+        [candidate(campaign_id="klyrow:cmp-new")],
+        now=result.next_eligible_at + timedelta(seconds=1),
+    )
+    assert released.eligible is True
+
+
+def test_channel_cap_over_by_two_waits_for_threshold_exposure() -> None:
+    # 5 email exposures vs cap 3 in a 168h window.
+    exposures = tuple(
+        Exposure(
+            campaign_id=f"klyrow:cmp-old-{hours}",
+            campaign_version=1,
+            channel="email",
+            touch_index=1,
+            status="delivered",
+            reserved_at=NOW - timedelta(hours=hours),
+        )
+        for hours in (150, 140, 130, 120, 110)
+    )
+    result = engine().evaluate(
+        snapshot(exposures=exposures),
+        [candidate(campaign_id="klyrow:cmp-new")],
+        now=NOW,
+    )
+    assert result.reason_codes == ("CHANNEL_CAP_REACHED",)
+    assert result.next_eligible_at == NOW + timedelta(hours=38)
+
+    still_capped = engine().evaluate(
+        snapshot(exposures=exposures),
+        [candidate(campaign_id="klyrow:cmp-new")],
+        now=NOW + timedelta(hours=18, seconds=1),
+    )
+    assert still_capped.reason_codes == ("CHANNEL_CAP_REACHED",)
+    released = engine().evaluate(
+        snapshot(exposures=exposures),
+        [candidate(campaign_id="klyrow:cmp-new")],
+        now=result.next_eligible_at + timedelta(seconds=1),
+    )
+    assert released.eligible is True
+
+
+def test_reactivation_requires_distinct_campaign_version() -> None:
+    prior = Exposure(
+        campaign_id="klyrow:cmp-a",
+        campaign_version=1,
+        channel="email",
+        touch_index=1,
+        status="delivered",
+        reserved_at=NOW - timedelta(days=100),
+    )
+    reactivating = snapshot(
+        lifecycle_state="REACTIVATION", reactivation_cycles=1, exposures=(prior,)
+    )
+    same_version = engine().evaluate(
+        reactivating, [candidate(touch_index=2)], now=NOW
+    )
+    assert same_version.eligible is False
+    assert same_version.reason_codes == ("CAMPAIGN_VERSION_EXHAUSTED",)
+    assert same_version.next_eligible_at is None
+
+    new_version = engine().evaluate(
+        reactivating, [candidate(campaign_version=2)], now=NOW
+    )
+    assert new_version.eligible is True
+    assert new_version.selected is not None
+    assert new_version.selected.campaign_version == 2
+
+    active = engine().evaluate(
+        snapshot(lifecycle_state="ACTIVE_CYCLE", exposures=(prior,)),
+        [candidate(touch_index=2)],
+        now=NOW,
+    )
+    assert active.eligible is True
+
+
 class _Txn:
     async def __aenter__(self):
         return self
@@ -489,7 +594,7 @@ async def test_suppression_health_requires_atomic_suppression() -> None:
 @pytest.mark.asyncio
 async def test_channel_health_and_suppression_share_transaction() -> None:
     conn = FakeConn()
-    conn.fetchrow_results = [None]
+    conn.fetchrow_results = [None, {"health_version": 1}]
     store = PostgresCampaignRecyclingStore(FakePool(conn))
     version = await store.record_channel_health(
         tenant_id="TEST_SYN_TENANT",
@@ -508,9 +613,137 @@ async def test_channel_health_and_suppression_share_transaction() -> None:
         suppression_requested_by="svc-klyrow",
     )
     assert version == 1
-    statements = [item[1] for item in conn.executed if item[0] == "execute"]
+    statements = [item[1] for item in conn.executed]
     assert any("INSERT INTO mcr_channel_health" in sql for sql in statements)
     assert any("INSERT INTO mcr_suppressions" in sql for sql in statements)
+
+
+@pytest.mark.asyncio
+async def test_channel_health_returns_committed_version_on_conflict() -> None:
+    conn = FakeConn()
+    # The pre-read saw no row, but a concurrent insert won; the upsert
+    # takes the ON CONFLICT path and PostgreSQL commits version 2.
+    conn.fetchrow_results = [None, {"health_version": 2}]
+    store = PostgresCampaignRecyclingStore(FakePool(conn))
+    version = await store.record_channel_health(
+        tenant_id="TEST_SYN_TENANT",
+        lead_id="100-L-00000001",
+        channel="email",
+        address_ref="addr-email-1",
+        state="valid",
+        source="lead_validation",
+        reason_code="VALIDATION_PASSED",
+        occurred_at=NOW,
+        evidence_hash="d" * 64,
+        correlation_id="corr-health-3",
+    )
+    assert version == 2
+    upsert = next(
+        sql for kind, sql, _ in conn.executed if "INSERT INTO mcr_channel_health" in sql
+    )
+    assert "RETURNING health_version" in upsert
+
+    missing = FakeConn()
+    missing.fetchrow_results = [None, None]
+    with pytest.raises(CampaignRecyclingConflict, match="no committed version"):
+        await PostgresCampaignRecyclingStore(FakePool(missing)).record_channel_health(
+            tenant_id="TEST_SYN_TENANT",
+            lead_id="100-L-00000001",
+            channel="email",
+            address_ref="addr-email-1",
+            state="valid",
+            source="lead_validation",
+            reason_code="VALIDATION_PASSED",
+            occurred_at=NOW,
+            evidence_hash="d" * 64,
+            correlation_id="corr-health-4",
+        )
+
+
+def _soft_bounce_conn(streak: int) -> FakeConn:
+    conn = FakeConn()
+    conn.fetchrow_results = [
+        {"id": 11, "projection_state": "pending"},
+        {
+            "exposure_id": uuid4(),
+            "lead_id": "100-L-00000001",
+            "campaign_id": "klyrow:cmp-a",
+            "campaign_version": 1,
+            "channel": "email",
+            "status": "delivered",
+            "engagement_outcome": "none",
+            "negative_outcome": "soft_bounce",
+            "message_id": None,
+            "provider_message_id": "pm-1",
+            "status_at": NOW - timedelta(days=3),
+            "engagement_outcome_at": None,
+            "negative_outcome_at": NOW - timedelta(days=2),
+            "ledger_version": 2,
+        },
+        {
+            "state": "soft_bounce",
+            "health_version": 2,
+            "occurred_at": NOW - timedelta(days=2),
+        },
+        {"soft_bounce_count": streak},
+    ]
+    return conn
+
+
+def _health_upsert_args(conn: FakeConn) -> tuple:
+    return next(
+        args
+        for kind, sql, args in conn.executed
+        if kind == "execute" and "INSERT INTO mcr_channel_health" in sql
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("streak", "expected_state", "expected_reason"),
+    [
+        (2, "soft_bounce", "SOFT_BOUNCE"),
+        (3, "hard_bounce", "SOFT_BOUNCE_ESCALATED"),
+    ],
+)
+async def test_repeated_soft_bounce_escalates_at_policy_threshold(
+    streak: int, expected_state: str, expected_reason: str
+) -> None:
+    # Test profile soft_bounce_escalation_count is 3.
+    conn = _soft_bounce_conn(streak)
+    store = PostgresCampaignRecyclingStore(FakePool(conn))
+    result = await store.apply_delivery_event(
+        delivery_event(event_type="soft_bounce"),
+        policy=PolicyProfile.load("test"),
+        address_ref="addr-email-1",
+    )
+    assert result["projection_state"] == "applied"
+    streak_sql = next(
+        sql for kind, sql, _ in conn.executed if "soft_bounce_count" in sql
+    )
+    assert "event_type='soft_bounce'" in streak_sql
+    assert "event_type='delivered'" in streak_sql
+    args = _health_upsert_args(conn)
+    assert args[4] == expected_state
+    assert args[5] == "soft_bounce"
+    assert args[7] == expected_reason
+    # Repeated soft bounces advance authoritative timing to the new event.
+    assert args[8] == NOW
+
+
+@pytest.mark.asyncio
+async def test_soft_bounce_escalation_unconfigured_policy_is_partial() -> None:
+    conn = _soft_bounce_conn(99)
+    store = PostgresCampaignRecyclingStore(FakePool(conn))
+    result = await store.apply_delivery_event(
+        delivery_event(event_type="soft_bounce"),
+        policy=PolicyProfile.load("production"),
+        address_ref="addr-email-1",
+    )
+    assert result["projection_state"] == "partial"
+    assert result["projection_note"] == "soft_bounce_escalation_not_configured"
+    assert not any("soft_bounce_count" in sql for _, sql, _ in conn.executed)
+    assert _health_upsert_args(conn)[4] == "soft_bounce"
 
 
 @pytest.mark.asyncio
@@ -519,6 +752,7 @@ async def test_delivery_event_health_effect_requires_address_ref() -> None:
     with pytest.raises(CampaignRecyclingConflict, match="address_ref"):
         await store.apply_delivery_event(
             delivery_event(event_type="delivered"),
+            policy=PolicyProfile.load("test"),
             address_ref=None,
         )
 
@@ -529,6 +763,7 @@ async def test_delivery_event_source_channel_pair_fails_closed() -> None:
     with pytest.raises(CampaignRecyclingConflict, match="Klyrow"):
         await store.apply_delivery_event(
             delivery_event(channel="sms"),
+            policy=PolicyProfile.load("test"),
             address_ref="addr-sms-1",
         )
 
@@ -549,7 +784,9 @@ async def test_delivery_event_exact_replay_returns_duplicate() -> None:
         },
     ]
     store = PostgresCampaignRecyclingStore(FakePool(conn))
-    result = await store.apply_delivery_event(delivery_event())
+    result = await store.apply_delivery_event(
+        delivery_event(), policy=PolicyProfile.load("test")
+    )
     assert result == {
         "event_id": "evt-mcr-00000001",
         "duplicate": True,
@@ -575,7 +812,9 @@ async def test_delivery_event_digest_collision_is_rejected() -> None:
     ]
     store = PostgresCampaignRecyclingStore(FakePool(conn))
     with pytest.raises(CampaignRecyclingConflict, match="different evidence"):
-        await store.apply_delivery_event(delivery_event())
+        await store.apply_delivery_event(
+            delivery_event(), policy=PolicyProfile.load("test")
+        )
 
 
 @pytest.mark.asyncio
@@ -583,7 +822,9 @@ async def test_delivery_event_without_exposure_is_durable_partial() -> None:
     conn = FakeConn()
     conn.fetchrow_results = [{"id": 9, "projection_state": "pending"}, None]
     store = PostgresCampaignRecyclingStore(FakePool(conn))
-    result = await store.apply_delivery_event(delivery_event())
+    result = await store.apply_delivery_event(
+        delivery_event(), policy=PolicyProfile.load("test")
+    )
     assert result["duplicate"] is False
     assert result["projection_state"] == "partial"
     assert result["projection_note"] == "exposure_not_found"
