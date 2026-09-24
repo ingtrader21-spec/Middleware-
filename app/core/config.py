@@ -53,6 +53,7 @@ SUPPORTED_EXTERNAL_EFFECTS = frozenset(
         "CRAWLER_ODOO_DELIVERY_ENABLED",
         "SCRAPPER_ODOO_DELIVERY_ENABLED",
         "SMS_DELIVERY_ENABLED",
+        "WHATSAPP_DELIVERY_ENABLED",
         "EMAIL_DELIVERY_ENABLED",
         "SOCIAL_DELIVERY_ENABLED",
     }
@@ -64,6 +65,7 @@ EXTERNAL_DELIVERY_EFFECTS = frozenset(
         "CRAWLER_ODOO_DELIVERY_ENABLED",
         "SCRAPPER_ODOO_DELIVERY_ENABLED",
         "SMS_DELIVERY_ENABLED",
+        "WHATSAPP_DELIVERY_ENABLED",
         "EMAIL_DELIVERY_ENABLED",
     }
 )
@@ -95,6 +97,7 @@ EXTERNAL_EFFECT_FIELDS: dict[str, str] = {
     "CRAWLER_EXTERNAL_CONTACT_ENABLED": "crawler_external_contact_enabled",
     "SCRAPPER_EXTERNAL_CONTACT_ENABLED": "scrapper_external_contact_enabled",
     "SMS_DELIVERY_ENABLED": "effect_sms_delivery_enabled",
+    "WHATSAPP_DELIVERY_ENABLED": "effect_whatsapp_delivery_enabled",
     "EMAIL_DELIVERY_ENABLED": "effect_email_delivery_enabled",
     "SOCIAL_DELIVERY_ENABLED": "effect_social_delivery_enabled",
     "CRAWLER_EXECUTION_ENABLED": "crawler_execution_enabled",
@@ -311,6 +314,10 @@ class Settings(BaseSettings):
     scrapper_external_contact_enabled: bool = False
     effect_sms_delivery_enabled: bool = Field(
         default=False, validation_alias=AliasChoices("SMS_DELIVERY_ENABLED", "effect_sms_delivery_enabled")
+    )
+    effect_whatsapp_delivery_enabled: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("WHATSAPP_DELIVERY_ENABLED", "effect_whatsapp_delivery_enabled"),
     )
     effect_email_delivery_enabled: bool = Field(
         default=False, validation_alias=AliasChoices("EMAIL_DELIVERY_ENABLED", "effect_email_delivery_enabled")
