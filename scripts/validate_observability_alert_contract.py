@@ -462,7 +462,12 @@ def validate(root: Path = ROOT) -> tuple[int, int]:
         repository = require_string(
             candidate.get("repository"), f"invalid_adapter_repository:{connector_id}"
         )
-        if re.fullmatch(r"appolon1908-hue/[A-Za-z0-9_.-]+", repository) is None:
+        if (
+            re.fullmatch(
+                r"(?:ingtrader21-spec|appolon1908-hue)/[A-Za-z0-9_.-]+", repository
+            )
+            is None
+        ):
             fail(f"invalid_adapter_repository:{connector_id}")
         prefixes = require_string_list(
             candidate.get("command_prefixes"),

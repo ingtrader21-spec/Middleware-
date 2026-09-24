@@ -442,6 +442,18 @@
           "status": "PREPARED_NOT_RENAMED"
         }
       ]
+    },
+    {
+      "component": "djone",
+      "github_repository_id": 1382566617,
+      "current_repository": "ingtrader21-spec/DJONE",
+      "authority_role": "djone-mixxx-native-control-source",
+      "lifecycle": "active",
+      "cell": "communications",
+      "integration_mode": "provider-adapter",
+      "middleware_relationship": "target-and-event-source",
+      "adapter_id": "djone-mixxx",
+      "name_aliases": []
     }
   ]
 }

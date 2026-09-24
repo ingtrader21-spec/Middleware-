@@ -103,8 +103,9 @@ def validate() -> None:
         )
         adapter_prefixes[adapter_id] = set(command_prefixes)
         require(
-            adapter["repository"].startswith("appolon1908-hue/"),
-            'integration fabric invariant failed: adapter["repository"].startswith("appolon1908-hue/")',
+            adapter["repository"].startswith(("ingtrader21-spec/", "appolon1908-hue/")),
+            "integration fabric invariant failed: adapter repository is not "
+            "owned by a Codestra organization",
         )
 
     for policy in command_registry["commands"]:

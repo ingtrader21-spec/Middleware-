@@ -231,6 +231,12 @@
       "github_repository_id": 1350724865,
       "target_repository_after_cutover": "appolon1908-hue/Codestra-Infrastructure",
       "rename_status": "PREPARED_NOT_RENAMED"
+    },
+    {
+      "component": "djone",
+      "principal_repository": "ingtrader21-spec/DJONE",
+      "role": "djone-mixxx-native-control-source",
+      "github_repository_id": 1382566617
     }
   ],
   "reference_only": [

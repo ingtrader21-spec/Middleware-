@@ -7,6 +7,7 @@
     "CONNECTOR_DISABLE": false,
     "WEBHOOK_SECRET_ROTATION": false,
     "WEBHOOK_REPLAY_REQUEST": false,
-    "PROVISIONING_WRITE": false
+    "PROVISIONING_WRITE": false,
+    "DJONE_CONTROL": false
   }
 }
