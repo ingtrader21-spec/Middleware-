@@ -137,6 +137,9 @@ class CommandEnvelope(BaseModel):
 
     @model_validator(mode="after")
     def enforce_canonical_contract(self) -> "CommandEnvelope":
+        from app.identity_service_contract import validate_service_command
+
+        validate_service_command(self.command_type, self.target, self.capability, self.payload)
         validate_contract("command", self.model_dump(mode="json"))
         return self
 

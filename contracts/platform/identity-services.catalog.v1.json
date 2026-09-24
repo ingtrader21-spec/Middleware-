@@ -1,0 +1,79 @@
+{
+  "schema_version": "1.0",
+  "state": "DESIRED_ONLY",
+  "registration_endpoint": "/platform/v1/services",
+  "entries": [
+    {
+      "service_id": "face-id",
+      "owner": "face-id",
+      "tenant_mode": "multi-tenant",
+      "type": "api",
+      "repository": "ingtrader21-spec/FACE-ID",
+      "environments": [
+        "test",
+        "staging"
+      ],
+      "health_path": "/health/ready",
+      "metrics_path": "/metrics",
+      "openapi_path": "/openapi.json",
+      "dependencies": [],
+      "data_classification": "restricted",
+      "slo_profile": "internal-service",
+      "alert_profile": "internal-service"
+    },
+    {
+      "service_id": "face-liveness",
+      "owner": "face-liveness",
+      "tenant_mode": "multi-tenant",
+      "type": "api",
+      "repository": "ingtrader21-spec/Codestra-Face-Liveness",
+      "environments": [
+        "test",
+        "staging"
+      ],
+      "health_path": "/health/ready",
+      "metrics_path": "/metrics",
+      "openapi_path": "/openapi.json",
+      "dependencies": [],
+      "data_classification": "restricted",
+      "slo_profile": "internal-service",
+      "alert_profile": "internal-service"
+    },
+    {
+      "service_id": "camera-gateway",
+      "owner": "camera-gateway",
+      "tenant_mode": "multi-tenant",
+      "type": "api",
+      "repository": "ingtrader21-spec/Codestra-Camera-Gateway",
+      "environments": [
+        "test",
+        "staging"
+      ],
+      "health_path": "/health/ready",
+      "metrics_path": "/metrics",
+      "openapi_path": "/openapi.json",
+      "dependencies": [],
+      "data_classification": "restricted",
+      "slo_profile": "internal-service",
+      "alert_profile": "internal-service"
+    },
+    {
+      "service_id": "postgresql",
+      "owner": "postgresql",
+      "tenant_mode": "multi-tenant",
+      "type": "api",
+      "repository": "ingtrader21-spec/Codestra-PostgreSQL",
+      "environments": [
+        "test",
+        "staging"
+      ],
+      "health_path": "/health/ready",
+      "metrics_path": "/metrics",
+      "openapi_path": "/openapi.json",
+      "dependencies": [],
+      "data_classification": "restricted",
+      "slo_profile": "internal-service",
+      "alert_profile": "internal-service"
+    }
+  ]
+}

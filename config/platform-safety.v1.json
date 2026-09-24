@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "safety_version": "2026-09-19.1",
+  "safety_version": "2026-09-24.1",
   "description": "Safety Gate switch table for the V3 command kernel. Evaluated after the Policy Engine and before any command is persisted or executed. A config switch alone never activates an effect: the capability registry (config/capabilities.v2.json), the Settings effect gates and umbrella controls, a registered ready adapter, the environment and a valid identity must all agree. Kill switches here can only deny.",
   "global_kill_switch": false,
   "provider_kill_switches": {
@@ -16,7 +16,11 @@
     "provisioning-service": false,
     "telnexa-sms": false,
     "test-syn": false,
-    "vicidial-restricted": false
+    "vicidial-restricted": false,
+    "face-id": true,
+    "face-liveness": true,
+    "camera-gateway": true,
+    "postgresql": true
   },
   "synthetic_tenants": [
     "TEST_SYN"
@@ -210,6 +214,50 @@
       ],
       "campaign_scoped": false,
       "synthetic_tenant_required": true
+    },
+    "FACE_ID_VERIFY": {
+      "classification": "external_effect",
+      "effect_flags": [],
+      "umbrella_controls": [
+        "EXTERNAL_DELIVERY_ENABLED"
+      ],
+      "environments": [
+        "staging"
+      ],
+      "campaign_scoped": false
+    },
+    "FACE_LIVENESS_VERIFY": {
+      "classification": "external_effect",
+      "effect_flags": [],
+      "umbrella_controls": [
+        "EXTERNAL_DELIVERY_ENABLED"
+      ],
+      "environments": [
+        "staging"
+      ],
+      "campaign_scoped": false
+    },
+    "CAMERA_CAPTURE": {
+      "classification": "external_effect",
+      "effect_flags": [],
+      "umbrella_controls": [
+        "EXTERNAL_DELIVERY_ENABLED"
+      ],
+      "environments": [
+        "staging"
+      ],
+      "campaign_scoped": false
+    },
+    "POSTGRESQL_BACKUP": {
+      "classification": "external_effect",
+      "effect_flags": [],
+      "umbrella_controls": [
+        "EXTERNAL_DELIVERY_ENABLED"
+      ],
+      "environments": [
+        "staging"
+      ],
+      "campaign_scoped": false
     }
   },
   "limits": {

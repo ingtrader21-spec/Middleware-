@@ -145,6 +145,10 @@ PROVIDER_CELLS = {
 # are still mutable attributes, but an authority cannot invent or reassign the
 # numeric identity of a component.
 EXPECTED_REPOSITORY_IDENTITIES = {
+    "face-id": (1384373026, "ingtrader21-spec/FACE-ID"),
+    "face-liveness": (1386426580, "ingtrader21-spec/Codestra-Face-Liveness"),
+    "camera-gateway": (1386427236, "ingtrader21-spec/Codestra-Camera-Gateway"),
+    "postgresql": (1386427368, "ingtrader21-spec/Codestra-PostgreSQL"),
     "middleware": (1347559071, "ingtrader21-spec/Middleware-"),
     "caddy": (1350228103, "appolon1908-hue/Caddy"),
     "kong": (1347790742, "appolon1908-hue/Kong"),
@@ -183,6 +187,38 @@ EXPECTED_REPOSITORY_IDENTITIES = {
     "platform-infrastructure": (1350724865, "appolon1908-hue/Infustruction-repo"),
 }
 EXPECTED_SYSTEM_SECURITY_PROFILES = {
+    "face-id": (
+        "face-identity-service",
+        "active",
+        "core-control-plane",
+        "provider-adapter",
+        "target-and-event-source",
+        "face-id",
+    ),
+    "face-liveness": (
+        "face-liveness-service",
+        "active",
+        "core-control-plane",
+        "provider-adapter",
+        "target-and-event-source",
+        "face-liveness",
+    ),
+    "camera-gateway": (
+        "camera-capture-service",
+        "active",
+        "core-control-plane",
+        "provider-adapter",
+        "target-and-event-source",
+        "camera-gateway",
+    ),
+    "postgresql": (
+        "database-control-service",
+        "active",
+        "core-control-plane",
+        "provider-adapter",
+        "target-and-event-source",
+        "postgresql",
+    ),
     "middleware": (
         "cross-system-control-plane",
         "active",
@@ -501,6 +537,10 @@ EXPECTED_MIDDLEWARE_OWNED = (
     "combined cross-repository release evidence",
 )
 EXPECTED_CANONICAL_ADAPTER_OWNERS = {
+    "face-id": "ingtrader21-spec/FACE-ID",
+    "face-liveness": "ingtrader21-spec/Codestra-Face-Liveness",
+    "camera-gateway": "ingtrader21-spec/Codestra-Camera-Gateway",
+    "postgresql": "ingtrader21-spec/Codestra-PostgreSQL",
     "ai-provider": "appolon1908-hue/Codestra-AI",
     "beyvra-nonfinancial": "appolon1908-hue/beyvra-backend",
     "klyrow-alert-email": "appolon1908-hue/klyrow.com",
@@ -514,6 +554,25 @@ EXPECTED_CANONICAL_ADAPTER_OWNERS = {
     "vicidial-restricted": "appolon1908-hue/Vicidialer-Codestra",
 }
 EXPECTED_CANONICAL_ADAPTER_PROFILES = {
+    "face-id": ("core-communications", "ingtrader21-spec/FACE-ID", ("face-id.",), ()),
+    "face-liveness": (
+        "core-communications",
+        "ingtrader21-spec/Codestra-Face-Liveness",
+        ("face-liveness.",),
+        (),
+    ),
+    "camera-gateway": (
+        "core-communications",
+        "ingtrader21-spec/Codestra-Camera-Gateway",
+        ("camera-gateway.",),
+        (),
+    ),
+    "postgresql": (
+        "core-communications",
+        "ingtrader21-spec/Codestra-PostgreSQL",
+        ("postgresql.",),
+        (),
+    ),
     "ai-provider": ("core-communications", "appolon1908-hue/Codestra-AI", ("ai.",), ()),
     "beyvra-nonfinancial": (
         "beyvra-financial",
@@ -581,6 +640,30 @@ EXPECTED_CANONICAL_ADAPTER_PROFILES = {
     ),
 }
 EXPECTED_ADAPTER_BOUND_SYSTEMS = {
+    "face-id": (
+        "face-id",
+        "core-control-plane",
+        "provider-adapter",
+        "target-and-event-source",
+    ),
+    "face-liveness": (
+        "face-liveness",
+        "core-control-plane",
+        "provider-adapter",
+        "target-and-event-source",
+    ),
+    "camera-gateway": (
+        "camera-gateway",
+        "core-control-plane",
+        "provider-adapter",
+        "target-and-event-source",
+    ),
+    "postgresql": (
+        "postgresql",
+        "core-control-plane",
+        "provider-adapter",
+        "target-and-event-source",
+    ),
     "beyvra-backend": (
         "beyvra-nonfinancial",
         "financial-isolated",
@@ -631,6 +714,30 @@ EXPECTED_ADAPTER_BOUND_SYSTEMS = {
     ),
 }
 EXPECTED_CANONICAL_ADAPTER_OWNER_SECURITY = {
+    "face-id": (
+        "active",
+        "core-control-plane",
+        "provider-adapter",
+        "target-and-event-source",
+    ),
+    "face-liveness": (
+        "active",
+        "core-control-plane",
+        "provider-adapter",
+        "target-and-event-source",
+    ),
+    "camera-gateway": (
+        "active",
+        "core-control-plane",
+        "provider-adapter",
+        "target-and-event-source",
+    ),
+    "postgresql": (
+        "active",
+        "core-control-plane",
+        "provider-adapter",
+        "target-and-event-source",
+    ),
     "ai": ("active", "product-clients", "product-client", "caller"),
     "beyvra-backend": (
         "active",

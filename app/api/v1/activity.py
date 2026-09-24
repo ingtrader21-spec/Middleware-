@@ -186,7 +186,6 @@ async def get_activity(
     if ":" not in activity_id:
         raise HTTPException(422, "malformed activity_id")
     source, _, raw_id = activity_id.partition(":")
-    stmt: Any
 
     if source == "agent_provisioning_audit":
         provisioning_stmt = (
