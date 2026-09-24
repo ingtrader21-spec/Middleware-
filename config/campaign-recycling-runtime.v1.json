@@ -9,6 +9,11 @@
   "allowed_runtime_files": [
     "app/core/campaign_recycling.py",
     "migrations/versions/0068_campaign_recycling_core.py",
-    "migrations/versions/0069_campaign_recycling_delivery_events.py"
+    "migrations/versions/0069_campaign_recycling_delivery_events.py",
+    "app/core/config.py",
+    "deploy/observability-alerts/production.env.example",
+    "deploy/production/compose.canary.yaml",
+    "deploy/production/server/codestra-middleware-deploy",
+    "deploy/production/server-command-contract.v1.json"
   ]
 }
