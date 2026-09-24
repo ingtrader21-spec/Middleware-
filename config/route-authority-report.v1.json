@@ -6,9 +6,9 @@
   "summary": {
     "operations": 320,
     "by_classification": {
+      "APPROVED_DURABLE_OUTBOX_EXCEPTION": 5,
       "DENIED_LEGACY": 10,
       "DIRECT_INTERNAL_SERVICE": 3,
-      "DURABLE_OUTBOX_INTENT": 5,
       "INTERNAL_EVENT_INGRESS": 124,
       "KERNEL_WRAPPER": 15,
       "READ_ONLY": 163
@@ -21,14 +21,8 @@
       "POST /webphone-api/v1/revoke",
       "POST /webphone-api/v1/session"
     ],
-    "KERNEL_CONVERGENCE_PENDING": 5,
-    "kernel_convergence_pending": [
-      "POST /api/v1/n8n/acknowledgements",
-      "POST /v1/observability/incidents",
-      "POST /v1/observability/kpis",
-      "POST /webhooks/sms/inbound/",
-      "POST /webhooks/vicidial/call-result/"
-    ]
+    "KERNEL_CONVERGENCE_PENDING": 0,
+    "kernel_convergence_pending": []
   },
   "routes": [
     {
@@ -1188,7 +1182,7 @@
       "path": "/api/v1/n8n/acknowledgements",
       "owner": "app.api.v1.n8n_transport",
       "handler": "acknowledge_execution",
-      "classification": "DURABLE_OUTBOX_INTENT",
+      "classification": "APPROVED_DURABLE_OUTBOX_EXCEPTION",
       "kernel_delegate": null,
       "effectful": true,
       "provider": null,
@@ -1196,7 +1190,7 @@
       "capability": null,
       "adapter": null,
       "deprecation": "active",
-      "justification": "persists a durable outbox intent executed by a worker under the Settings effect gates; kernel convergence pending",
+      "justification": "reviewed narrow asynchronous ingress/projection exception: persists a durable outbox intent executed by a worker under the Settings effect gates; no direct provider transport in the handler",
       "source": "derived"
     },
     {
@@ -4292,7 +4286,7 @@
       "path": "/v1/observability/incidents",
       "owner": "app.api.v1.observability_sync",
       "handler": "submit_incident",
-      "classification": "DURABLE_OUTBOX_INTENT",
+      "classification": "APPROVED_DURABLE_OUTBOX_EXCEPTION",
       "kernel_delegate": null,
       "effectful": true,
       "provider": null,
@@ -4300,7 +4294,7 @@
       "capability": null,
       "adapter": null,
       "deprecation": "active",
-      "justification": "persists a durable outbox intent executed by a worker under the Settings effect gates; kernel convergence pending",
+      "justification": "reviewed narrow asynchronous ingress/projection exception: persists a durable outbox intent executed by a worker under the Settings effect gates; no direct provider transport in the handler",
       "source": "derived"
     },
     {
@@ -4356,7 +4350,7 @@
       "path": "/v1/observability/kpis",
       "owner": "app.api.v1.observability_sync",
       "handler": "submit_kpi",
-      "classification": "DURABLE_OUTBOX_INTENT",
+      "classification": "APPROVED_DURABLE_OUTBOX_EXCEPTION",
       "kernel_delegate": null,
       "effectful": true,
       "provider": null,
@@ -4364,7 +4358,7 @@
       "capability": null,
       "adapter": null,
       "deprecation": "active",
-      "justification": "persists a durable outbox intent executed by a worker under the Settings effect gates; kernel convergence pending",
+      "justification": "reviewed narrow asynchronous ingress/projection exception: persists a durable outbox intent executed by a worker under the Settings effect gates; no direct provider transport in the handler",
       "source": "derived"
     },
     {
@@ -5012,7 +5006,7 @@
       "path": "/webhooks/sms/inbound/",
       "owner": "app.api.v1.provider_webhooks",
       "handler": "telnexa_inbound_sms",
-      "classification": "DURABLE_OUTBOX_INTENT",
+      "classification": "APPROVED_DURABLE_OUTBOX_EXCEPTION",
       "kernel_delegate": null,
       "effectful": true,
       "provider": null,
@@ -5020,7 +5014,7 @@
       "capability": null,
       "adapter": null,
       "deprecation": "active",
-      "justification": "persists a durable outbox intent executed by a worker under the Settings effect gates; kernel convergence pending",
+      "justification": "reviewed narrow asynchronous ingress/projection exception: persists a durable outbox intent executed by a worker under the Settings effect gates; no direct provider transport in the handler",
       "source": "derived"
     },
     {
@@ -5028,7 +5022,7 @@
       "path": "/webhooks/vicidial/call-result/",
       "owner": "app.api.v1.provider_webhooks",
       "handler": "vicidial_call_result",
-      "classification": "DURABLE_OUTBOX_INTENT",
+      "classification": "APPROVED_DURABLE_OUTBOX_EXCEPTION",
       "kernel_delegate": null,
       "effectful": true,
       "provider": null,
@@ -5036,7 +5030,7 @@
       "capability": null,
       "adapter": null,
       "deprecation": "active",
-      "justification": "persists a durable outbox intent executed by a worker under the Settings effect gates; kernel convergence pending",
+      "justification": "reviewed narrow asynchronous ingress/projection exception: persists a durable outbox intent executed by a worker under the Settings effect gates; no direct provider transport in the handler",
       "source": "derived"
     },
     {
