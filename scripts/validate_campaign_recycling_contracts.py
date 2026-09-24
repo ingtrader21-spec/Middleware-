@@ -1126,7 +1126,7 @@ def check_no_runtime_activation(
                 continue
             text = path.read_text(encoding="utf-8", errors="ignore")
             hits = [marker for marker in RUNTIME_MARKERS if marker in text]
-            relative = str(path.relative_to(root))
+            relative = path.relative_to(root).as_posix()
             if hits and relative not in allowed_runtime_files:
                 errors.append(
                     f"runtime: {relative} references MCR-A surface {hits}"
