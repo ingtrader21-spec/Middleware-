@@ -1,0 +1,44 @@
+{
+  "schema": "codestra.middleware.api-postman-certification.v1",
+  "mission": "PAS-60/PAS-61 Middleware API & Postman certification authority",
+  "repository": "ingtrader21-spec/Middleware-",
+  "api_version": "/platform/v1",
+  "runtime": "middleware-integration-api:8095",
+  "openapi": {
+    "path": "contracts/platform/middleware-openapi.generated.json",
+    "sha256": "17816985d7c53dfe7d17ee343054c97b1a8363a4afdade8335d2572c904eba11",
+    "routes": 331
+  },
+  "route_authority": {
+    "path": "config/route-authority-report.v1.json",
+    "sha256": "537ec1eefef4853098907a4447903725b184d5bfc14a5b94136050234943c6dc",
+    "operations": 320,
+    "direct_effect_bypasses": 0
+  },
+  "public_edge_contract": {
+    "path": "deploy/public-api-route-contract.json",
+    "sha256": "0724a0c6a67a570d5ca2bbaca736804b831a3a5c9ea3df17d5cd81762ca588ba",
+    "routes": 117,
+    "shared_edge": 105,
+    "private_only": 2,
+    "denied": 10
+  },
+  "postman": {
+    "path": "postman/generated/Middleware-OpenAPI.postman_collection.json",
+    "sha256": "ef217d9e698128dc19fdc557b187102435f44f160fdb751f62739fce217c2e94",
+    "generator": "scripts/generate_postman.py"
+  },
+  "private_exposure": {
+    "internal_prefix": "/internal/",
+    "metrics_path": "/metrics",
+    "public_internal_routes": 0,
+    "public_metrics_routes": 0
+  },
+  "production_defaults": {
+    "allow_mutations": false,
+    "provider_effects": 0,
+    "production_effects": 0,
+    "production_go": "NO"
+  },
+  "status": "SOURCE_CERTIFIED"
+}
