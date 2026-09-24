@@ -21,6 +21,7 @@ REPOSITORY_PATTERN = re.compile(r"(?:ingtrader21-spec|appolon1908-hue)/[A-Za-z0-
 EXPECTED = {
     "ai": "appolon1908-hue/Codestra-AI",
     "caddy": "appolon1908-hue/Caddy",
+    "djone": "ingtrader21-spec/DJONE",
     "keycloak": "appolon1908-hue/Keycloak",
     "klyrow-email": "appolon1908-hue/klyrow.com",
     "klyrow-web": "appolon1908-hue/klyrow-Website-",

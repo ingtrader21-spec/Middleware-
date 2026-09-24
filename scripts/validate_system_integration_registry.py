@@ -181,6 +181,7 @@ EXPECTED_REPOSITORY_IDENTITIES = {
     "social-control-plane": (1351353723, "appolon1908-hue/Codesrea-Social-"),
     "platform-documentation": (1350724356, "appolon1908-hue/documentaions"),
     "platform-infrastructure": (1350724865, "appolon1908-hue/Infustruction-repo"),
+    "djone": (1382566617, "ingtrader21-spec/DJONE"),
 }
 EXPECTED_SYSTEM_SECURITY_PROFILES = {
     "middleware": (
@@ -447,6 +448,14 @@ EXPECTED_SYSTEM_SECURITY_PROFILES = {
         "governance",
         None,
     ),
+    "djone": (
+        "djone-mixxx-native-control-source",
+        "active",
+        "communications",
+        "provider-adapter",
+        "target-and-event-source",
+        "djone-mixxx",
+    ),
 }
 EXPECTED_REPOSITORY_RENAMES = {
     1221155447: (
@@ -503,6 +512,7 @@ EXPECTED_MIDDLEWARE_OWNED = (
 EXPECTED_CANONICAL_ADAPTER_OWNERS = {
     "ai-provider": "appolon1908-hue/Codestra-AI",
     "beyvra-nonfinancial": "appolon1908-hue/beyvra-backend",
+    "djone-mixxx": "ingtrader21-spec/DJONE",
     "klyrow-alert-email": "appolon1908-hue/klyrow.com",
     "klyrow-email": "appolon1908-hue/klyrow.com",
     "kyqra-crawler": "appolon1908-hue/kyqra-crawler",
@@ -534,6 +544,12 @@ EXPECTED_CANONICAL_ADAPTER_PROFILES = {
             "broker.",
             "provider.",
         ),
+    ),
+    "djone-mixxx": (
+        "core-communications",
+        "ingtrader21-spec/DJONE",
+        ("djone.",),
+        (),
     ),
     "klyrow-alert-email": (
         "core-communications",
@@ -587,6 +603,12 @@ EXPECTED_ADAPTER_BOUND_SYSTEMS = {
         "product-adapter-nonfinancial",
         "caller-and-target",
     ),
+    "djone": (
+        "djone-mixxx",
+        "communications",
+        "provider-adapter",
+        "target-and-event-source",
+    ),
     "klyrow-email": (
         "klyrow-email",
         "communications",
@@ -637,6 +659,12 @@ EXPECTED_CANONICAL_ADAPTER_OWNER_SECURITY = {
         "financial-isolated",
         "product-adapter-nonfinancial",
         "caller-and-target",
+    ),
+    "djone": (
+        "active",
+        "communications",
+        "provider-adapter",
+        "target-and-event-source",
     ),
     "klyrow-email": (
         "active",

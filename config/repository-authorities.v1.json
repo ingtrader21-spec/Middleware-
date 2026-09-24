@@ -28,6 +28,12 @@
       "github_repository_id": 1347559071
     },
     {
+      "component": "djone",
+      "principal_repository": "ingtrader21-spec/DJONE",
+      "role": "native-dj-runtime-and-control-source",
+      "github_repository_id": 1382566617
+    },
+    {
       "component": "caddy",
       "principal_repository": "appolon1908-hue/Caddy",
       "role": "shared-edge-tls-reverse-proxy",
@@ -231,6 +237,12 @@
       "github_repository_id": 1350724865,
       "target_repository_after_cutover": "appolon1908-hue/Codestra-Infrastructure",
       "rename_status": "PREPARED_NOT_RENAMED"
+    },
+    {
+      "component": "djone",
+      "principal_repository": "ingtrader21-spec/DJONE",
+      "role": "djone-mixxx-native-control-source",
+      "github_repository_id": 1382566617
     }
   ],
   "reference_only": [
