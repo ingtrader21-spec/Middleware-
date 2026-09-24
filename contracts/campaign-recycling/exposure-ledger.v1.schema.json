@@ -1,0 +1,437 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.codestra.co/campaign-recycling/exposure-ledger.v1.schema.json",
+  "title": "Campaign exposure ledger entry v1",
+  "description": "Durable identity and outcome of exactly one planned touch: lead x campaign x campaign_version x channel x touch_index. Owned by Middleware (command/idempotency authority). A ledger row is reserved before any command is emitted, so the same planned touch can never be issued twice. Contract only; no table or migration exists in MCR-A.",
+  "x-codestra-contract": {
+    "mission": "MCR-A",
+    "runtime_status": "contract_only",
+    "system_of_record": "middleware",
+    "command_envelope": "contracts/platform/command-envelope.v1.schema.json",
+    "message_status_source": "MessageStatus literal in app/communications.py"
+  },
+  "x-exposure-ledger": {
+    "natural_key": [
+      "tenant_id",
+      "lead_id",
+      "campaign_id",
+      "campaign_version",
+      "channel",
+      "touch_index"
+    ],
+    "unique_constraints": [
+      [
+        "tenant_id",
+        "lead_id",
+        "campaign_id",
+        "campaign_version",
+        "channel",
+        "touch_index"
+      ],
+      [
+        "tenant_id",
+        "idempotency_key"
+      ],
+      [
+        "tenant_id",
+        "command_id"
+      ]
+    ],
+    "idempotency_key_recipe": {
+      "prefix": "mcr1:",
+      "digest": "sha256",
+      "canonicalization": "JSON of the natural_key fields only, sort_keys=true, separators (',', ':'), UTF-8; identical to canonical_hash in app/core/lead_automation.py",
+      "example_input": {
+        "tenant_id": "TEST_SYN_TENANT",
+        "lead_id": "100-L-00000001",
+        "campaign_id": "klyrow:cmp_test_syn",
+        "campaign_version": 1,
+        "channel": "email",
+        "touch_index": 1
+      }
+    },
+    "concurrency_invariant": "Reservation is a single insert-if-absent on the natural key (and the derived idempotency_key) in the same transaction as the outbox command. The losing concurrent writer reads the existing row and emits nothing. A replay with the same idempotency_key and a different request digest is a 409 conflict and is quarantined, never re-issued.",
+    "immutable_after_reserve": [
+      "exposure_id",
+      "tenant_id",
+      "lead_id",
+      "campaign_id",
+      "campaign_version",
+      "channel",
+      "touch_index",
+      "idempotency_key",
+      "command_id",
+      "decision_id",
+      "policy_version",
+      "sender_identity_id",
+      "reserved_at"
+    ],
+    "reserved_statuses": [
+      "reserved"
+    ],
+    "transport_terminal_statuses": [
+      "delivered",
+      "failed",
+      "cancelled",
+      "suppressed",
+      "expired"
+    ],
+    "status_regression_rule": "A transport-terminal status is never overwritten by a later, lower transport status (mirrors the delivered-is-sticky rule in app/communications.py). Engagement and negative outcomes are recorded independently of transport status.",
+    "engagement_outcome_rank": [
+      "none",
+      "open",
+      "read",
+      "click",
+      "reply",
+      "conversion"
+    ],
+    "negative_outcome_rank": [
+      "none",
+      "soft_bounce",
+      "hard_bounce",
+      "unsubscribe",
+      "complaint"
+    ],
+    "outcome_rule": "Each outcome only moves up its rank; replays and out-of-order events never lower it."
+  },
+  "$defs": {
+    "ExposureStatus": {
+      "type": "string",
+      "enum": [
+        "reserved",
+        "accepted",
+        "queued",
+        "dispatched",
+        "delivered",
+        "failed",
+        "cancelled",
+        "suppressed",
+        "expired",
+        "indeterminate"
+      ]
+    },
+    "EngagementOutcome": {
+      "type": "string",
+      "enum": [
+        "none",
+        "open",
+        "read",
+        "click",
+        "reply",
+        "conversion"
+      ]
+    },
+    "NegativeOutcome": {
+      "type": "string",
+      "enum": [
+        "none",
+        "soft_bounce",
+        "hard_bounce",
+        "unsubscribe",
+        "complaint"
+      ]
+    },
+    "IdempotencyKey": {
+      "type": "string",
+      "pattern": "^mcr1:[0-9a-f]{64}$"
+    },
+    "CampaignVersion": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "TouchIndex": {
+      "description": "1-based position of this touch within the campaign version's sequence for this lead and channel.",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1000
+    },
+    "NullableTimestamp": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "exposure_id",
+    "tenant_id",
+    "lead_id",
+    "campaign_id",
+    "campaign_version",
+    "channel",
+    "touch_index",
+    "idempotency_key",
+    "command_id",
+    "correlation_id",
+    "decision_id",
+    "policy_version",
+    "sender_identity_id",
+    "status",
+    "engagement_outcome",
+    "negative_outcome",
+    "message_id",
+    "provider_message_id",
+    "reserved_at",
+    "dispatched_at",
+    "accepted_at",
+    "delivered_at",
+    "status_at",
+    "engagement_outcome_at",
+    "negative_outcome_at",
+    "updated_at",
+    "ledger_version"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "exposure_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "$ref": "lifecycle.v1.schema.json#/$defs/TenantId"
+    },
+    "lead_id": {
+      "$ref": "lifecycle.v1.schema.json#/$defs/LeadId"
+    },
+    "campaign_id": {
+      "$ref": "channel-health.v1.schema.json#/$defs/CampaignId"
+    },
+    "campaign_version": {
+      "$ref": "#/$defs/CampaignVersion"
+    },
+    "channel": {
+      "$ref": "channel-health.v1.schema.json#/$defs/Channel"
+    },
+    "touch_index": {
+      "$ref": "#/$defs/TouchIndex"
+    },
+    "idempotency_key": {
+      "$ref": "#/$defs/IdempotencyKey"
+    },
+    "command_id": {
+      "description": "command_id of the canonical command envelope emitted through the outbox.",
+      "type": "string",
+      "format": "uuid"
+    },
+    "correlation_id": {
+      "$ref": "lifecycle.v1.schema.json#/$defs/CorrelationId"
+    },
+    "decision_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "policy_version": {
+      "$ref": "next-action.v1.schema.json#/$defs/PolicyVersion"
+    },
+    "sender_identity_id": {
+      "description": "Stable internal sender-identity registry UUID. Required for email, SMS, and WhatsApp; nullable only for a channel whose v1 execution is unsupported.",
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "status": {
+      "$ref": "#/$defs/ExposureStatus"
+    },
+    "engagement_outcome": {
+      "$ref": "#/$defs/EngagementOutcome"
+    },
+    "negative_outcome": {
+      "$ref": "#/$defs/NegativeOutcome"
+    },
+    "message_id": {
+      "description": "Communications message id once the command is accepted by the communications service.",
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "provider_message_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1,
+      "maxLength": 998
+    },
+    "reserved_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "dispatched_at": {
+      "$ref": "#/$defs/NullableTimestamp"
+    },
+    "accepted_at": {
+      "$ref": "#/$defs/NullableTimestamp"
+    },
+    "delivered_at": {
+      "$ref": "#/$defs/NullableTimestamp"
+    },
+    "status_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "engagement_outcome_at": {
+      "$ref": "#/$defs/NullableTimestamp"
+    },
+    "negative_outcome_at": {
+      "$ref": "#/$defs/NullableTimestamp"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "ledger_version": {
+      "type": "integer",
+      "minimum": 1
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "reserved"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "provider_message_id": {
+            "type": "null"
+          },
+          "dispatched_at": {
+            "type": "null"
+          },
+          "accepted_at": {
+            "type": "null"
+          },
+          "delivered_at": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "delivered"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "delivered_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "engagement_outcome": {
+            "const": "none"
+          }
+        },
+        "required": [
+          "engagement_outcome"
+        ]
+      },
+      "then": {
+        "properties": {
+          "engagement_outcome_at": {
+            "type": "null"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "engagement_outcome_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "negative_outcome": {
+            "const": "none"
+          }
+        },
+        "required": [
+          "negative_outcome"
+        ]
+      },
+      "then": {
+        "properties": {
+          "negative_outcome_at": {
+            "type": "null"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "negative_outcome_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "channel": {
+            "enum": [
+              "email",
+              "sms",
+              "whatsapp"
+            ]
+          }
+        },
+        "required": [
+          "channel"
+        ]
+      },
+      "then": {
+        "properties": {
+          "sender_identity_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      }
+    }
+  ]
+}
