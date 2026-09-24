@@ -1,0 +1,1000 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Private independent service adapter API",
+    "version": "1.0.0",
+    "description": "Proposed service-owned contract; unverified and disabled. Never publicly route /internal or /metrics."
+  },
+  "servers": [
+    {
+      "url": "https://face-id.internal.invalid"
+    },
+    {
+      "url": "https://face-liveness.internal.invalid"
+    },
+    {
+      "url": "https://camera-gateway.internal.invalid"
+    },
+    {
+      "url": "https://postgresql.internal.invalid"
+    }
+  ],
+  "security": [
+    {
+      "workloadJwt": []
+    }
+  ],
+  "paths": {
+    "/health/ready": {
+      "get": {
+        "operationId": "adapterReadiness",
+        "responses": {
+          "200": {
+            "description": "Ready"
+          },
+          "503": {
+            "description": "Not ready"
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Tenant-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
+        "x-required-scope": "connector.<service>.read"
+      }
+    },
+    "/internal/v1/commands": {
+      "post": {
+        "operationId": "adapterSubmit",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Tenant-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "description": "The sole durable representation for a governed cross-system mutation request.",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "command_id",
+                      "command_type",
+                      "command_version",
+                      "target",
+                      "tenant_id",
+                      "requested_by",
+                      "correlation_id",
+                      "idempotency_key",
+                      "capability",
+                      "payload",
+                      "payload_sha256"
+                    ],
+                    "properties": {
+                      "command_id": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "command_type": {
+                        "type": "string",
+                        "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)+$",
+                        "maxLength": 180
+                      },
+                      "command_version": {
+                        "const": "1.0"
+                      },
+                      "target": {
+                        "type": "string",
+                        "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+                        "maxLength": 100
+                      },
+                      "tenant_id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 128
+                      },
+                      "requested_by": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 300
+                      },
+                      "correlation_id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 180
+                      },
+                      "idempotency_key": {
+                        "type": "string",
+                        "minLength": 8,
+                        "maxLength": 180
+                      },
+                      "capability": {
+                        "type": "string",
+                        "pattern": "^[A-Z][A-Z0-9_]{2,100}$"
+                      },
+                      "payload": {
+                        "type": "object"
+                      },
+                      "payload_sha256": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$"
+                      }
+                    },
+                    "allOf": [
+                      {
+                        "if": {
+                          "properties": {
+                            "command_type": {
+                              "const": "crm.lead.upsert"
+                            },
+                            "target": {
+                              "const": "odoo-19"
+                            }
+                          },
+                          "required": [
+                            "command_type",
+                            "target"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "command_version": {
+                              "const": "1.0"
+                            },
+                            "capability": {
+                              "const": "ODOO_WRITE"
+                            },
+                            "payload": {
+                              "$ref": "#/$defs/odoo_lead_payload"
+                            }
+                          }
+                        }
+                      }
+                    ],
+                    "$defs": {
+                      "odoo_lead_payload": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "lead_source",
+                          "source_record_id",
+                          "initial_stage",
+                          "review_required",
+                          "allow_external_contact",
+                          "provenance",
+                          "consent",
+                          "lead"
+                        ],
+                        "properties": {
+                          "lead_source": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 128
+                          },
+                          "source_record_id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 255
+                          },
+                          "initial_stage": {
+                            "enum": [
+                              "new",
+                              "review_pending"
+                            ]
+                          },
+                          "review_required": {
+                            "type": "boolean"
+                          },
+                          "allow_external_contact": {
+                            "type": "boolean"
+                          },
+                          "provenance": {
+                            "$ref": "#/$defs/provenance"
+                          },
+                          "consent": {
+                            "$ref": "#/$defs/consent"
+                          },
+                          "lead": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "name",
+                              "description",
+                              "contact",
+                              "company",
+                              "tags"
+                            ],
+                            "properties": {
+                              "name": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 255
+                              },
+                              "description": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "maxLength": 10000
+                              },
+                              "contact": {
+                                "$ref": "#/$defs/contact"
+                              },
+                              "company": {
+                                "$ref": "#/$defs/company"
+                              },
+                              "campaign_code": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "maxLength": 128
+                              },
+                              "tags": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 128
+                                },
+                                "uniqueItems": true,
+                                "maxItems": 50
+                              }
+                            }
+                          }
+                        },
+                        "allOf": [
+                          {
+                            "if": {
+                              "properties": {
+                                "review_required": {
+                                  "const": true
+                                }
+                              },
+                              "required": [
+                                "review_required"
+                              ]
+                            },
+                            "then": {
+                              "properties": {
+                                "initial_stage": {
+                                  "const": "review_pending"
+                                },
+                                "allow_external_contact": {
+                                  "const": false
+                                }
+                              }
+                            }
+                          }
+                        ]
+                      },
+                      "provenance": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "method",
+                          "captured_by",
+                          "source_reference",
+                          "legal_basis"
+                        ],
+                        "properties": {
+                          "method": {
+                            "enum": [
+                              "submitted_by_person",
+                              "crawler_discovery",
+                              "scraper_import"
+                            ]
+                          },
+                          "captured_by": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 128
+                          },
+                          "source_reference": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 1024
+                          },
+                          "legal_basis": {
+                            "enum": [
+                              "consent",
+                              "legitimate_interest_review_required",
+                              "contract_request",
+                              "unknown_review_required"
+                            ]
+                          },
+                          "content_digest": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "pattern": "^[a-f0-9]{64}$"
+                          }
+                        }
+                      },
+                      "consent": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "status",
+                          "channels"
+                        ],
+                        "properties": {
+                          "status": {
+                            "enum": [
+                              "granted",
+                              "denied",
+                              "not_applicable",
+                              "unknown"
+                            ]
+                          },
+                          "captured_at": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "policy_version": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "maxLength": 128
+                          },
+                          "channels": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "email",
+                              "sms",
+                              "phone"
+                            ],
+                            "properties": {
+                              "email": {
+                                "type": "boolean"
+                              },
+                              "sms": {
+                                "type": "boolean"
+                              },
+                              "phone": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "contact": {
+                        "type": [
+                          "object",
+                          "null"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "name": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "maxLength": 255
+                          },
+                          "email": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "email",
+                            "maxLength": 320
+                          },
+                          "phone": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "maxLength": 64
+                          },
+                          "preferred_language": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "maxLength": 16
+                          }
+                        }
+                      },
+                      "company": {
+                        "type": [
+                          "object",
+                          "null"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "name": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "maxLength": 255
+                          },
+                          "domain": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "maxLength": 255
+                          },
+                          "industry": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "maxLength": 255
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "required": [
+                          "command_type",
+                          "target",
+                          "capability",
+                          "payload"
+                        ],
+                        "properties": {
+                          "command_type": {
+                            "const": "face-id.verify.v1"
+                          },
+                          "target": {
+                            "const": "face-id"
+                          },
+                          "capability": {
+                            "const": "FACE_ID_VERIFY"
+                          },
+                          "payload": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "capture_ref",
+                              "liveness_ref",
+                              "subject_ref"
+                            ],
+                            "properties": {
+                              "capture_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              },
+                              "liveness_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              },
+                              "subject_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "required": [
+                          "command_type",
+                          "target",
+                          "capability",
+                          "payload"
+                        ],
+                        "properties": {
+                          "command_type": {
+                            "const": "face-liveness.verify.v1"
+                          },
+                          "target": {
+                            "const": "face-liveness"
+                          },
+                          "capability": {
+                            "const": "FACE_LIVENESS_VERIFY"
+                          },
+                          "payload": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "capture_ref",
+                              "challenge_ref"
+                            ],
+                            "properties": {
+                              "capture_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              },
+                              "challenge_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "required": [
+                          "command_type",
+                          "target",
+                          "capability",
+                          "payload"
+                        ],
+                        "properties": {
+                          "command_type": {
+                            "const": "camera-gateway.capture.v1"
+                          },
+                          "target": {
+                            "const": "camera-gateway"
+                          },
+                          "capability": {
+                            "const": "CAMERA_CAPTURE"
+                          },
+                          "payload": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "camera_ref",
+                              "consent_ref"
+                            ],
+                            "properties": {
+                              "camera_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              },
+                              "consent_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "required": [
+                          "command_type",
+                          "target",
+                          "capability",
+                          "payload"
+                        ],
+                        "properties": {
+                          "command_type": {
+                            "const": "postgresql.backup.v1"
+                          },
+                          "target": {
+                            "const": "postgresql"
+                          },
+                          "capability": {
+                            "const": "POSTGRESQL_BACKUP"
+                          },
+                          "payload": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "backup_policy_ref",
+                              "database_ref"
+                            ],
+                            "properties": {
+                              "backup_policy_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              },
+                              "database_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Service response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "operation_id",
+                    "command_id",
+                    "tenant_id"
+                  ],
+                  "properties": {
+                    "operation_id": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                    },
+                    "command_id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "tenant_id": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Service response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "operation_id",
+                    "command_id",
+                    "tenant_id"
+                  ],
+                  "properties": {
+                    "operation_id": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                    },
+                    "command_id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "tenant_id": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Idempotency conflict; no effect"
+          },
+          "default": {
+            "description": "Uncertain outcome requires readback; 400/401/403/422 guarantee no effect"
+          }
+        },
+        "x-required-scope": "connector.<service>.command"
+      }
+    },
+    "/internal/v1/commands/{command_id}": {
+      "get": {
+        "operationId": "adapterReadback",
+        "parameters": [
+          {
+            "name": "command_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Tenant-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Service response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "operation_id",
+                    "command_id",
+                    "tenant_id",
+                    "command_type",
+                    "idempotency_key",
+                    "payload_sha256",
+                    "state"
+                  ],
+                  "properties": {
+                    "operation_id": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                    },
+                    "command_id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "tenant_id": {
+                      "type": "string"
+                    },
+                    "command_type": {
+                      "enum": [
+                        "face-id.verify.v1",
+                        "face-liveness.verify.v1",
+                        "camera-gateway.capture.v1",
+                        "postgresql.backup.v1"
+                      ]
+                    },
+                    "idempotency_key": {
+                      "type": "string"
+                    },
+                    "payload_sha256": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "state": {
+                      "enum": [
+                        "accepted",
+                        "pending",
+                        "completed",
+                        "failed"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found for authenticated tenant; not proof of no effect"
+          }
+        },
+        "x-required-scope": "connector.<service>.read"
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "workloadJwt": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "PublicServiceCommand": {
+        "allOf": [
+          {
+            "$ref": "./middleware-openapi.generated.json#/components/schemas/KernelCommandRequest"
+          },
+          {
+            "oneOf": [
+              {
+                "type": "object",
+                "required": [
+                  "command_type",
+                  "payload"
+                ],
+                "properties": {
+                  "command_type": {
+                    "const": "face-id.verify.v1"
+                  },
+                  "target": {
+                    "const": "face-id"
+                  },
+                  "capability": {
+                    "const": "FACE_ID_VERIFY"
+                  },
+                  "payload": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "capture_ref",
+                      "liveness_ref",
+                      "subject_ref"
+                    ],
+                    "properties": {
+                      "capture_ref": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      },
+                      "liveness_ref": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      },
+                      "subject_ref": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "command_type",
+                  "payload"
+                ],
+                "properties": {
+                  "command_type": {
+                    "const": "face-liveness.verify.v1"
+                  },
+                  "target": {
+                    "const": "face-liveness"
+                  },
+                  "capability": {
+                    "const": "FACE_LIVENESS_VERIFY"
+                  },
+                  "payload": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "capture_ref",
+                      "challenge_ref"
+                    ],
+                    "properties": {
+                      "capture_ref": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      },
+                      "challenge_ref": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "command_type",
+                  "payload"
+                ],
+                "properties": {
+                  "command_type": {
+                    "const": "camera-gateway.capture.v1"
+                  },
+                  "target": {
+                    "const": "camera-gateway"
+                  },
+                  "capability": {
+                    "const": "CAMERA_CAPTURE"
+                  },
+                  "payload": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "camera_ref",
+                      "consent_ref"
+                    ],
+                    "properties": {
+                      "camera_ref": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      },
+                      "consent_ref": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "command_type",
+                  "payload"
+                ],
+                "properties": {
+                  "command_type": {
+                    "const": "postgresql.backup.v1"
+                  },
+                  "target": {
+                    "const": "postgresql"
+                  },
+                  "capability": {
+                    "const": "POSTGRESQL_BACKUP"
+                  },
+                  "payload": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "backup_policy_ref",
+                      "database_ref"
+                    ],
+                    "properties": {
+                      "backup_policy_ref": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      },
+                      "database_ref": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "x-public-platform-api": "/platform/v1/commands",
+  "x-required-tenant-header": "X-Tenant-ID",
+  "x-caller-contract": "docs/integrations/face-id-services-v3.md",
+  "x-workload-authorization": {
+    "issuer": "https://auth.codestra.co/realms/codestra",
+    "maximum_token_lifetime_seconds": 300,
+    "required_claims": [
+      "iss",
+      "aud",
+      "azp",
+      "exp",
+      "iat",
+      "tenant_id",
+      "scope"
+    ],
+    "signature_validation": "configured JWKS; asymmetric algorithm allowlist; reject none, expired and wrong audience",
+    "tenant_binding": "JWT tenant_id must equal X-Tenant-ID and command tenant_id",
+    "service_bindings": {
+      "face-id": {
+        "audience": "face-id",
+        "client_id": "connector-face-id",
+        "read_scope": "connector.face-id.read",
+        "command_scope": "connector.face-id.command"
+      },
+      "face-liveness": {
+        "audience": "face-liveness",
+        "client_id": "connector-face-liveness",
+        "read_scope": "connector.face-liveness.read",
+        "command_scope": "connector.face-liveness.command"
+      },
+      "camera-gateway": {
+        "audience": "camera-gateway",
+        "client_id": "connector-camera-gateway",
+        "read_scope": "connector.camera-gateway.read",
+        "command_scope": "connector.camera-gateway.command"
+      },
+      "postgresql": {
+        "audience": "postgresql",
+        "client_id": "connector-postgresql",
+        "read_scope": "connector.postgresql.read",
+        "command_scope": "connector.postgresql.command"
+      }
+    }
+  }
+}

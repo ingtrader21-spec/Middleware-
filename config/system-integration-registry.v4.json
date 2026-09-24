@@ -454,6 +454,54 @@
           "status": "PREPARED_NOT_RENAMED"
         }
       ]
+    },
+    {
+      "component": "face-id",
+      "github_repository_id": 1384373026,
+      "current_repository": "ingtrader21-spec/FACE-ID",
+      "authority_role": "face-identity-service",
+      "lifecycle": "active",
+      "cell": "core-control-plane",
+      "integration_mode": "provider-adapter",
+      "middleware_relationship": "target-and-event-source",
+      "adapter_id": "face-id",
+      "name_aliases": []
+    },
+    {
+      "component": "face-liveness",
+      "github_repository_id": 1386426580,
+      "current_repository": "ingtrader21-spec/Codestra-Face-Liveness",
+      "authority_role": "face-liveness-service",
+      "lifecycle": "active",
+      "cell": "core-control-plane",
+      "integration_mode": "provider-adapter",
+      "middleware_relationship": "target-and-event-source",
+      "adapter_id": "face-liveness",
+      "name_aliases": []
+    },
+    {
+      "component": "camera-gateway",
+      "github_repository_id": 1386427236,
+      "current_repository": "ingtrader21-spec/Codestra-Camera-Gateway",
+      "authority_role": "camera-capture-service",
+      "lifecycle": "active",
+      "cell": "core-control-plane",
+      "integration_mode": "provider-adapter",
+      "middleware_relationship": "target-and-event-source",
+      "adapter_id": "camera-gateway",
+      "name_aliases": []
+    },
+    {
+      "component": "postgresql",
+      "github_repository_id": 1386427368,
+      "current_repository": "ingtrader21-spec/Codestra-PostgreSQL",
+      "authority_role": "database-control-service",
+      "lifecycle": "active",
+      "cell": "core-control-plane",
+      "integration_mode": "provider-adapter",
+      "middleware_relationship": "target-and-event-source",
+      "adapter_id": "postgresql",
+      "name_aliases": []
     }
   ]
 }

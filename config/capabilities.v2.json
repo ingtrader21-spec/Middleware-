@@ -20,7 +20,11 @@
     "SMS_DELIVERY": false,
     "SOCIAL_PUBLISH": false,
     "TELEPHONY_ADMIN_WRITE": false,
-    "WHATSAPP_DELIVERY": false
+    "WHATSAPP_DELIVERY": false,
+    "FACE_ID_VERIFY": false,
+    "FACE_LIVENESS_VERIFY": false,
+    "CAMERA_CAPTURE": false,
+    "POSTGRESQL_BACKUP": false
   },
   "activation_requirements": [
     "protected_merged_sha",

@@ -17,8 +17,14 @@ FORBIDDEN_ADAPTER_REPOSITORIES = {
     MIDDLEWARE.casefold(),
 }
 IDENTIFIER_PATTERN = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*\Z")
-REPOSITORY_PATTERN = re.compile(r"(?:ingtrader21-spec|appolon1908-hue)/[A-Za-z0-9_.-]+\Z")
+REPOSITORY_PATTERN = re.compile(
+    r"(?:ingtrader21-spec|appolon1908-hue)/[A-Za-z0-9_.-]+\Z"
+)
 EXPECTED = {
+    "face-id": "ingtrader21-spec/FACE-ID",
+    "face-liveness": "ingtrader21-spec/Codestra-Face-Liveness",
+    "camera-gateway": "ingtrader21-spec/Codestra-Camera-Gateway",
+    "postgresql": "ingtrader21-spec/Codestra-PostgreSQL",
     "ai": "appolon1908-hue/Codestra-AI",
     "caddy": "appolon1908-hue/Caddy",
     "evolution-whatsapp": "ingtrader21-spec/Evolution-API",

@@ -237,6 +237,30 @@
       "github_repository_id": 1350724865,
       "target_repository_after_cutover": "appolon1908-hue/Codestra-Infrastructure",
       "rename_status": "PREPARED_NOT_RENAMED"
+    },
+    {
+      "component": "face-id",
+      "principal_repository": "ingtrader21-spec/FACE-ID",
+      "role": "face-identity-service",
+      "github_repository_id": 1384373026
+    },
+    {
+      "component": "face-liveness",
+      "principal_repository": "ingtrader21-spec/Codestra-Face-Liveness",
+      "role": "face-liveness-service",
+      "github_repository_id": 1386426580
+    },
+    {
+      "component": "camera-gateway",
+      "principal_repository": "ingtrader21-spec/Codestra-Camera-Gateway",
+      "role": "camera-capture-service",
+      "github_repository_id": 1386427236
+    },
+    {
+      "component": "postgresql",
+      "principal_repository": "ingtrader21-spec/Codestra-PostgreSQL",
+      "role": "database-control-service",
+      "github_repository_id": 1386427368
     }
   ],
   "reference_only": [

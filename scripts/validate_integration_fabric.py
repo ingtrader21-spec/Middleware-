@@ -101,8 +101,7 @@ def validate() -> None:
             isinstance(command_prefixes, list)
             and bool(command_prefixes)
             and all(
-                isinstance(prefix, str) and bool(prefix)
-                for prefix in command_prefixes
+                isinstance(prefix, str) and bool(prefix) for prefix in command_prefixes
             )
             and len(command_prefixes) == len(set(command_prefixes)),
             'integration fabric invariant failed: adapter["command_prefixes"]',

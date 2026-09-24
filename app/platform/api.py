@@ -22,7 +22,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.api_inputs import optional_header, required_header
 from app.commands import API_OPERATION_STATES, CommandCapabilityDisabled, CommandEnvelope, CommandNotFound, CommandOperation, OperationEvent, redact_metadata
@@ -66,6 +66,19 @@ class KernelCommandRequest(BaseModel):
     @classmethod
     def bound_payload(cls, value: dict[str, Any]) -> dict[str, Any]:
         return CommandEnvelope.bound_payload(value)
+
+    @model_validator(mode="after")
+    def service_payload_contract(self) -> "KernelCommandRequest":
+        from app.identity_service_contract import SERVICE_COMMANDS, validate_service_command
+
+        family = self.command_type.split(".", 1)[0]
+        binding = SERVICE_COMMANDS.get(family)
+        if binding is not None or self.target in SERVICE_COMMANDS:
+            validate_service_command(
+                self.command_type, self.target or family,
+                self.capability or (binding[0] if binding else ""), self.payload,
+            )
+        return self
 
     def envelope(self, *, target: str, capability: str) -> CommandEnvelope:
         return CommandEnvelope(
