@@ -733,6 +733,12 @@ class PostgresCampaignRecyclingStore:
             raise CampaignRecyclingConflict(
                 f"channel-health state {state} requires an atomic suppression record"
             )
+        if state in {"complained", "unsubscribed"}:
+            expected_reason = "complaint" if state == "complained" else "unsubscribe"
+            if suppression_scope != "channel" or suppression_reason != expected_reason:
+                raise CampaignRecyclingConflict(
+                    f"{state} delivery evidence requires channel-scoped {expected_reason} suppression"
+                )
         occurred_at = _utc(occurred_at)
         async with self.pool.acquire() as conn:
             async with conn.transaction():
@@ -769,6 +775,52 @@ class PostgresCampaignRecyclingStore:
                       health_version=mcr_channel_health.health_version + 1,
                       correlation_id=EXCLUDED.correlation_id,
                       updated_at=now()
+                    WHERE
+                      EXCLUDED.occurred_at > mcr_channel_health.occurred_at
+                      OR (
+                        EXCLUDED.occurred_at = mcr_channel_health.occurred_at
+                        AND CASE EXCLUDED.state
+                          WHEN 'suppressed' THEN 6
+                          WHEN 'complained' THEN 5
+                          WHEN 'unsubscribed' THEN 4
+                          WHEN 'hard_bounce' THEN 3
+                          WHEN 'invalid' THEN 3
+                          WHEN 'soft_bounce' THEN 2
+                          WHEN 'valid' THEN 1
+                          ELSE 0
+                        END >= CASE mcr_channel_health.state
+                          WHEN 'suppressed' THEN 6
+                          WHEN 'complained' THEN 5
+                          WHEN 'unsubscribed' THEN 4
+                          WHEN 'hard_bounce' THEN 3
+                          WHEN 'invalid' THEN 3
+                          WHEN 'soft_bounce' THEN 2
+                          WHEN 'valid' THEN 1
+                          ELSE 0
+                        END
+                      )
+                      OR (
+                        EXCLUDED.occurred_at < mcr_channel_health.occurred_at
+                        AND CASE EXCLUDED.state
+                          WHEN 'suppressed' THEN 6
+                          WHEN 'complained' THEN 5
+                          WHEN 'unsubscribed' THEN 4
+                          WHEN 'hard_bounce' THEN 3
+                          WHEN 'invalid' THEN 3
+                          WHEN 'soft_bounce' THEN 2
+                          WHEN 'valid' THEN 1
+                          ELSE 0
+                        END > CASE mcr_channel_health.state
+                          WHEN 'suppressed' THEN 6
+                          WHEN 'complained' THEN 5
+                          WHEN 'unsubscribed' THEN 4
+                          WHEN 'hard_bounce' THEN 3
+                          WHEN 'invalid' THEN 3
+                          WHEN 'soft_bounce' THEN 2
+                          WHEN 'valid' THEN 1
+                          ELSE 0
+                        END
+                      )
                     RETURNING health_version
                     """,
                     tenant_id,
