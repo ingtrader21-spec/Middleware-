@@ -26,9 +26,10 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.api_inputs import optional_header, required_header
 from app.commands import API_OPERATION_STATES, CommandCapabilityDisabled, CommandEnvelope, CommandNotFound, CommandOperation, OperationEvent, redact_metadata
-from app.platform.kernel import SCOPE_COMMAND, SCOPE_COMMAND_READ, SCOPE_COMMAND_REPLAY
+from app.platform.kernel import PLATFORM_OPERATOR_ROLE, SCOPE_COMMAND, SCOPE_COMMAND_READ, SCOPE_COMMAND_REPLAY
 from app.platform.principal import KernelPrincipal, authenticate
 from app.platform.resilience import ReplayMode
+from app.platform.registry import AdapterRegistryError
 from app.security import AuthorizationError, RequestValidationError
 from app.storage import RUNTIME_SCHEMA_VERSION, StorageError
 
@@ -153,6 +154,23 @@ class ReplayRequest(BaseModel):
     expected_version: int = Field(ge=1)
     reason: str = Field(min_length=1, max_length=500, pattern=r"^[A-Za-z0-9][A-Za-z0-9_.: -]*$")
     new_idempotency_key: str | None = Field(default=None, min_length=8, max_length=180)
+
+
+class ReconciliationReadbackRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    expected_version: int = Field(ge=1)
+    reason: str = Field(min_length=1, max_length=500, pattern=r"^[A-Za-z0-9][A-Za-z0-9_.: -]*$")
+
+
+class ReconciliationResolveRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    expected_version: int = Field(ge=1)
+    matched: bool
+    reason: str = Field(min_length=1, max_length=500, pattern=r"^[A-Za-z0-9][A-Za-z0-9_.: -]*$")
+    provider_operation_id: str | None = Field(default=None, max_length=256)
+    evidence: dict[str, Any] = Field(default_factory=dict)
 
 
 # ----------------------------------------------------------------------
@@ -408,6 +426,189 @@ async def replay_operation(operation_id: UUID, body: ReplayRequest, request: Req
         correlation_id=operation.correlation_id,
         location=f"/platform/v1/operations/{operation.command_id}",
     )
+
+
+
+# ----------------------------------------------------------------------
+# Operational discovery: adapters/connectors
+# ----------------------------------------------------------------------
+def _adapter_rows(request: Request) -> list[dict[str, Any]]:
+    _runtime_container, platform = _runtime(request)
+    return platform.registry.describe()
+
+
+@router.get("/adapters")
+async def list_adapters(request: Request) -> dict[str, Any]:
+    await authenticate(request, required_scope=SCOPE_COMMAND_READ)
+    return {"items": _adapter_rows(request)}
+
+
+@router.get("/adapters/{adapter_id}")
+async def get_adapter(adapter_id: str, request: Request) -> dict[str, Any]:
+    await authenticate(request, required_scope=SCOPE_COMMAND_READ)
+    for row in _adapter_rows(request):
+        if row["adapter_id"] == adapter_id:
+            return row
+    raise CommandNotFound("adapter was not found")
+
+
+def _connector_rows(request: Request) -> list[dict[str, Any]]:
+    rows: dict[str, dict[str, Any]] = {}
+    for adapter in _adapter_rows(request):
+        for connector_id in adapter["connector_ids"]:
+            rows[connector_id] = {
+                "connector_id": connector_id,
+                "adapter_id": adapter["adapter_id"],
+                "provider_family": adapter["provider_family"],
+                "capabilities": adapter["capabilities"],
+                "command_prefixes": adapter["command_prefixes"],
+                "supports_readback": adapter["supports_readback"],
+                "supports_cancel": adapter["supports_cancel"],
+                "supports_status": adapter["supports_status"],
+                "safe_reexecution": adapter["safe_reexecution"],
+                "external_effect": adapter["external_effect"],
+            }
+    return [rows[key] for key in sorted(rows)]
+
+
+@router.get("/connectors")
+async def list_connectors(request: Request) -> dict[str, Any]:
+    await authenticate(request, required_scope=SCOPE_COMMAND_READ)
+    return {"items": _connector_rows(request)}
+
+
+@router.get("/connectors/{connector_id}")
+async def get_connector(connector_id: str, request: Request) -> dict[str, Any]:
+    await authenticate(request, required_scope=SCOPE_COMMAND_READ)
+    for row in _connector_rows(request):
+        if row["connector_id"] == connector_id:
+            return row
+    raise CommandNotFound("connector was not found")
+
+
+# ----------------------------------------------------------------------
+# Canonical dead-letter API over the command ledger
+# ----------------------------------------------------------------------
+@router.get("/dead-letters")
+async def list_dead_letters(request: Request, limit: int = 100) -> dict[str, Any]:
+    principal = await authenticate(request, required_scope=SCOPE_COMMAND_READ)
+    runtime, _platform = _runtime(request)
+    tenant_id = _tenant_for_read(request, principal)
+    if limit < 1 or limit > 100:
+        raise RequestValidationError("limit must be between 1 and 100")
+    operations = await runtime.commands.list_operations(tenant_id, limit=limit, state="dead_lettered")
+    return {"items": [_status(operation).model_dump(mode="json") for operation in operations]}
+
+
+@router.get("/dead-letters/{operation_id}", response_model=OperationStatus)
+async def get_dead_letter(operation_id: UUID, request: Request) -> JSONResponse:
+    principal = await authenticate(request, required_scope=SCOPE_COMMAND_READ)
+    _runtime_container, platform = _runtime(request)
+    tenant_id = _tenant_for_read(request, principal)
+    operation = await platform.kernel.get(tenant_id, operation_id)
+    if operation.state != "dead_lettered":
+        raise CommandNotFound("dead-letter operation was not found")
+    return _respond(200, _status(operation), correlation_id=operation.correlation_id)
+
+
+@router.post("/dead-letters/{operation_id}/replay", response_model=OperationStatus, status_code=202)
+async def replay_dead_letter(operation_id: UUID, body: ReplayRequest, request: Request) -> JSONResponse:
+    principal = await authenticate(request, required_scope=SCOPE_COMMAND_REPLAY)
+    if PLATFORM_OPERATOR_ROLE not in principal.roles:
+        from app.platform.kernel import ReplayNotAllowed
+        raise ReplayNotAllowed("replay requires the platform-operator role")
+    _runtime_container, platform = _runtime(request)
+    tenant_id = _tenant_for_read(request, principal)
+    original = await platform.kernel.get(tenant_id, operation_id)
+    if original.state != "dead_lettered":
+        raise CommandNotFound("dead-letter operation was not found")
+    required_header(request, "X-Correlation-ID", minimum=1, maximum=180)
+    idempotency_key = required_header(request, "Idempotency-Key", minimum=8, maximum=180)
+    operation = await platform.kernel.replay(
+        tenant_id,
+        operation_id,
+        principal=principal,
+        mode=ReplayMode(body.mode),
+        idempotency_key=idempotency_key,
+        expected_version=body.expected_version,
+        reason=body.reason,
+        new_idempotency_key=body.new_idempotency_key,
+    )
+    return _respond(202, _status(operation), correlation_id=operation.correlation_id, location=f"/platform/v1/operations/{operation.command_id}")
+
+
+# ----------------------------------------------------------------------
+# Canonical reconciliation API over the command ledger
+# ----------------------------------------------------------------------
+@router.get("/reconciliation")
+async def list_reconciliation(request: Request, limit: int = 100) -> dict[str, Any]:
+    principal = await authenticate(request, required_scope=SCOPE_COMMAND_READ)
+    runtime, _platform = _runtime(request)
+    tenant_id = _tenant_for_read(request, principal)
+    if limit < 1 or limit > 100:
+        raise RequestValidationError("limit must be between 1 and 100")
+    operations = await runtime.commands.list_operations(tenant_id, limit=limit, state="reconciliation_required")
+    return {"items": [_status(operation).model_dump(mode="json") for operation in operations]}
+
+
+@router.get("/reconciliation/{operation_id}", response_model=OperationStatus)
+async def get_reconciliation(operation_id: UUID, request: Request) -> JSONResponse:
+    principal = await authenticate(request, required_scope=SCOPE_COMMAND_READ)
+    _runtime_container, platform = _runtime(request)
+    tenant_id = _tenant_for_read(request, principal)
+    operation = await platform.kernel.get(tenant_id, operation_id)
+    if operation.state != "reconciliation_required":
+        raise CommandNotFound("reconciliation operation was not found")
+    return _respond(200, _status(operation), correlation_id=operation.correlation_id)
+
+
+@router.post("/reconciliation/{operation_id}/readback", response_model=OperationStatus, status_code=202)
+async def request_reconciliation_readback(operation_id: UUID, body: ReconciliationReadbackRequest, request: Request) -> JSONResponse:
+    principal = await authenticate(request, required_scope=SCOPE_COMMAND_REPLAY)
+    _runtime_container, platform = _runtime(request)
+    tenant_id = _tenant_for_read(request, principal)
+    required_header(request, "X-Correlation-ID", minimum=1, maximum=180)
+    idempotency_key = required_header(request, "Idempotency-Key", minimum=8, maximum=180)
+    operation = await platform.kernel.replay(
+        tenant_id,
+        operation_id,
+        principal=principal,
+        mode=ReplayMode.REPROCESS,
+        idempotency_key=idempotency_key,
+        expected_version=body.expected_version,
+        reason=body.reason,
+    )
+    return _respond(202, _status(operation), correlation_id=operation.correlation_id)
+
+
+@router.post("/reconciliation/{operation_id}/resolve", response_model=OperationStatus)
+async def resolve_reconciliation(operation_id: UUID, body: ReconciliationResolveRequest, request: Request) -> JSONResponse:
+    principal = await authenticate(request, required_scope=SCOPE_COMMAND_REPLAY)
+    if PLATFORM_OPERATOR_ROLE not in principal.roles:
+        from app.platform.kernel import ReplayNotAllowed
+        raise ReplayNotAllowed("reconciliation resolution requires the platform-operator role")
+    runtime, platform = _runtime(request)
+    tenant_id = _tenant_for_read(request, principal)
+    required_header(request, "X-Correlation-ID", minimum=1, maximum=180)
+    required_header(request, "Idempotency-Key", minimum=8, maximum=180)
+    current = await platform.kernel.get(tenant_id, operation_id)
+    if current.state != "reconciliation_required":
+        raise CommandNotFound("reconciliation operation was not found")
+    if current.resource_version != body.expected_version:
+        from app.commands import CommandConflict
+        raise CommandConflict("expected_version is stale")
+    if not body.evidence:
+        raise RequestValidationError("reconciliation evidence is required")
+    operation = await runtime.commands.reconcile(
+        tenant_id,
+        operation_id,
+        matched=body.matched,
+        actor_id=principal.subject,
+        reason=body.reason,
+        provider_operation_id=body.provider_operation_id,
+        evidence=body.evidence,
+    )
+    return _respond(200, _status(operation), correlation_id=operation.correlation_id)
 
 
 # ----------------------------------------------------------------------
