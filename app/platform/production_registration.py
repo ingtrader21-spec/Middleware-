@@ -31,15 +31,30 @@ def validate_production_registration(
     if capability_registry.get("default_policy") != "DENY":
         raise ProductionRegistrationError("canonical capability default policy must be DENY")
 
-    known_adapters = {
-        str(item["id"])
-        for item in adapter_registry.get("adapters", [])
-        if isinstance(item, dict) and item.get("id")
-    }
-    capabilities = capability_registry.get("capabilities") or {}
+    registry_items = adapter_registry.get("adapters")
+    if not isinstance(registry_items, list) or not registry_items:
+        raise ProductionRegistrationError("canonical adapter registry must be a non-empty list")
+    known_adapters: set[str] = set()
+    for item in registry_items:
+        if not isinstance(item, dict) or not str(item.get("id") or "").strip():
+            raise ProductionRegistrationError("canonical adapter registry entries require ids")
+        adapter_id = str(item["id"])
+        if adapter_id in known_adapters:
+            raise ProductionRegistrationError(f"duplicate canonical adapter: {adapter_id}")
+        known_adapters.add(adapter_id)
+
+    capabilities = capability_registry.get("capabilities")
+    if not isinstance(capabilities, dict) or not capabilities:
+        raise ProductionRegistrationError("canonical capabilities must be a non-empty object")
+    if any(not isinstance(name, str) or not isinstance(value, bool) for name, value in capabilities.items()):
+        raise ProductionRegistrationError("canonical capabilities must map names to booleans")
+
+    registration_items = registration.get("adapters")
+    if not isinstance(registration_items, list) or not registration_items:
+        raise ProductionRegistrationError("production adapters must be a non-empty list")
     seen: set[str] = set()
 
-    for item in registration.get("adapters", []):
+    for item in registration_items:
         if not isinstance(item, dict):
             raise ProductionRegistrationError("adapter registration entries must be objects")
 
@@ -61,6 +76,15 @@ def validate_production_registration(
                 f"adapter must declare effect capabilities: {adapter_id}"
             )
 
+        if any(not isinstance(capability, str) or not capability for capability in effect_capabilities):
+            raise ProductionRegistrationError(
+                f"effect capabilities must be non-empty strings: {adapter_id}"
+            )
+        if len(effect_capabilities) != len(set(effect_capabilities)):
+            raise ProductionRegistrationError(
+                f"duplicate effect capability declaration: {adapter_id}"
+            )
+
         for capability in effect_capabilities:
             if capability not in capabilities:
                 raise ProductionRegistrationError(
@@ -70,6 +94,13 @@ def validate_production_registration(
                 raise ProductionRegistrationError(
                     f"effect capability must remain false: {capability}"
                 )
+
+    if seen != known_adapters:
+        missing = sorted(known_adapters - seen)
+        extra = sorted(seen - known_adapters)
+        raise ProductionRegistrationError(
+            f"production registration must exactly cover canonical adapters; missing={missing}, extra={extra}"
+        )
 
 
 def validate_repository_registration(repo_root: str | Path) -> None:
