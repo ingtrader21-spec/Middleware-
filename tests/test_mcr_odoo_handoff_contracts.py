@@ -104,7 +104,7 @@ def test_version_drift_and_malformed_readback(command):
     (True, 'other', ['crm.handoff.write'], 'forbidden'),
     (True, 'TEST_SYN_TENANT', [], 'forbidden'),
     (True, 'TEST_SYN_TENANT', ['crm.handoff.read'], 'forbidden'),
-    (True, 'TEST_SYN_TENANT', ['crm.handoff.write'], 'contract_only'),
+    (True, 'TEST_SYN_TENANT', ['crm.handoff.write'], 'persistence_ready'),
 ])
 def test_auth_and_effect_gate(command, verified, tenant, scopes, expected):
     assert handoff.admission(command, verified=verified, tenant=tenant, scopes=scopes) == expected
@@ -141,5 +141,5 @@ def test_staging_fixture_has_zero_effects(command, monkeypatch):
     monkeypatch.setattr(socket.socket, 'connect', prohibited)
     monkeypatch.setattr(socket, 'create_connection', prohibited)
     assert handoff.admission(command, verified=True, tenant=command['tenant_id'],
-                             scopes=['crm.handoff.write']) == 'contract_only'
+                             scopes=['crm.handoff.write']) == 'persistence_ready'
     assert handoff.validate() == []

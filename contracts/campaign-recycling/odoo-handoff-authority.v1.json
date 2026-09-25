@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "mission": "MCR-E",
-  "runtime_status": "contract_only",
+  "runtime_status": "persistence_implemented_http_identity_pending",
   "command_type": "crm.lifecycle.handoff",
   "command_authority": "middleware",
   "outbox_authority": "middleware",
@@ -58,5 +58,11 @@
     "app/commands.py",
     "app/worker.py",
     "app/odoo_transport.py"
-  ]
+  ],
+  "runtime_implementation": {
+    "store": "app/core/mcr_odoo_handoff.py",
+    "migration": "migrations/versions/0070_mcr_odoo_handoff.py",
+    "http_routes_registered": false,
+    "remaining_gate": "freeze Keycloak service-client assignment for crm.handoff.write/read/reconcile"
+  }
 }

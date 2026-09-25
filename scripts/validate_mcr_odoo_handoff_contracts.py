@@ -103,7 +103,7 @@ def admission(command: Any, *, verified: bool, tenant: str, scopes: list[str]) -
         return 'invalid_contract'
     if tenant != command['tenant_id'] or 'crm.handoff.write' not in scopes:
         return 'forbidden'
-    return 'contract_only'  # No flag or supplied credential can enable an effect.
+    return 'persistence_ready'  # Durable no-effect admission; HTTP/provider activation is separate.
 
 
 def retry_decision(outcome: str, *, attempts: int, age_seconds: int,
@@ -160,7 +160,7 @@ def validate() -> list[str]:
         Draft202012Validator.check_schema(load(name))
     authority = load('odoo-handoff-authority.v1.json')
     for key, expected in {
-        'runtime_status': 'contract_only', 'command_type': 'crm.lifecycle.handoff',
+        'runtime_status': 'persistence_implemented_http_identity_pending', 'command_type': 'crm.lifecycle.handoff',
         'command_authority': 'middleware', 'outbox_authority': 'middleware',
         'crm_authority': 'odoo', 'lifecycle_authority': 'leads', 'conversion_authority': 'odoo',
         'runtime_enabled': False, 'provider_calls_enabled': False,
@@ -174,7 +174,47 @@ def validate() -> list[str]:
             errors.append(f'authority mismatch: {key}')
     for name in ('max_attempts', 'max_age_seconds', 'base_delay_seconds', 'max_delay_seconds'):
         if authority['retry'].get(name) is not None:
-            errors.append(f'contract-only retry policy must be unset: {name}')
+            errors.append(f'provider retry policy must remain unset before HTTP/provider activation: {name}')
+
+    runtime = authority.get('runtime_implementation')
+    expected_runtime = {
+        'store': 'app/core/mcr_odoo_handoff.py',
+        'migration': 'migrations/versions/0070_mcr_odoo_handoff.py',
+        'http_routes_registered': False,
+        'remaining_gate': 'freeze Keycloak service-client assignment for crm.handoff.write/read/reconcile',
+    }
+    if runtime != expected_runtime:
+        errors.append('runtime implementation marker mismatch')
+    else:
+        store_path = ROOT / runtime['store']
+        migration_path = ROOT / runtime['migration']
+        if not store_path.is_file():
+            errors.append('missing Odoo handoff persistence store')
+        if not migration_path.is_file():
+            errors.append('missing Odoo handoff persistence migration')
+        if store_path.is_file():
+            source = store_path.read_text()
+            for token in (
+                'PostgresMcrOdooHandoffStore',
+                'mcr_odoo_handoffs',
+                'mcr_odoo_handoff_reconciliations',
+                'handoff runtime remains no-effect',
+            ):
+                if token not in source:
+                    errors.append(f'Odoo handoff store missing safety token: {token}')
+            for forbidden in ('httpx', 'odoo_transport', 'middleware_outbox'):
+                if forbidden in source:
+                    errors.append(f'Odoo handoff persistence must not perform provider dispatch: {forbidden}')
+        if migration_path.is_file():
+            migration = migration_path.read_text()
+            for token in (
+                'revision = "0070_mcr_odoo_handoff"',
+                'down_revision = "0069_campaign_recycling_delivery_events"',
+                'CREATE TABLE mcr_odoo_handoffs',
+                'CREATE TABLE mcr_odoo_handoff_reconciliations',
+            ):
+                if token not in migration:
+                    errors.append(f'Odoo handoff migration mismatch: {token}')
     for path in authority['reuse']:
         if not (ROOT / path).is_file():
             errors.append(f'missing reused authority: {path}')
@@ -213,12 +253,19 @@ def validate() -> list[str]:
             errors.append(f'OpenAPI missing metadata: {path}')
         if not {'401', '403', '409', '422', '503'} <= op.get('responses', {}).keys():
             errors.append(f'OpenAPI missing failure responses: {path}')
-    # No new MCR handoff dispatch entry point may be smuggled into this mission.
+    # Persistence is implemented, but HTTP/provider activation is still forbidden.
+    allowed_command_source = Path('app/core/mcr_odoo_handoff.py')
     for directory in ('app', 'middleware'):
-        for path in (ROOT / directory).rglob('*.py'):
+        root = ROOT / directory
+        if not root.exists():
+            continue
+        for path in root.rglob('*.py'):
             source = path.read_text()
-            if 'crm.lifecycle.handoff' in source or '/platform/v1/crm/handoffs' in source:
-                errors.append(f'contract-only handoff registered in runtime: {path.relative_to(ROOT)}')
+            rel = path.relative_to(ROOT)
+            if '/platform/v1/crm/handoffs' in source:
+                errors.append(f'Odoo handoff HTTP route registered before identity freeze: {rel}')
+            if 'crm.lifecycle.handoff' in source and rel != allowed_command_source:
+                errors.append(f'Odoo handoff command authority duplicated in runtime: {rel}')
     return errors
 
 
@@ -227,7 +274,7 @@ def main() -> int:
     if errors:
         print('\n'.join(errors))
         return 1
-    print('MCR-E handoff contracts valid; offline only; no runtime/provider/database effects')
+    print('MCR-E handoff contracts valid; persistence implemented; HTTP/provider effects remain disabled')
     return 0
 
 
