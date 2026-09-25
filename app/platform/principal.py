@@ -12,6 +12,7 @@ only, exact issuer, exact audience, bounded lifetime).
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+from enum import StrEnum
 from typing import Any, Mapping
 
 from fastapi import Request
@@ -44,6 +45,13 @@ def with_synthetic_authority(caller: ControlPlaneCaller, environment: str) -> Co
     )
 
 
+class PrincipalType(StrEnum):
+    HUMAN = "HUMAN"
+    SERVICE = "SERVICE"
+    WORKLOAD = "WORKLOAD"
+    SYSTEM = "SYSTEM"
+
+
 @dataclass(frozen=True)
 class KernelPrincipal:
     subject: str
@@ -52,9 +60,17 @@ class KernelPrincipal:
     roles: tuple[str, ...]
     scopes: tuple[str, ...]
     caller: ControlPlaneCaller
+    principal_type: PrincipalType = PrincipalType.HUMAN
+    actor_id: str | None = None
+    service_id: str | None = None
+    campaigns: tuple[str, ...] = ()
 
     def authorized_for(self, tenant_id: str) -> bool:
         return "*" not in self.tenants and tenant_id in self.tenants
+
+    @property
+    def principal_id(self) -> str:
+        return self.actor_id or self.service_id or self.subject
 
 
 def _string_items(value: Any, *, limit: int) -> tuple[str, ...]:
@@ -113,6 +129,17 @@ def principal_from_claims(claims: Mapping[str, Any], caller: ControlPlaneCaller,
     client_id = claims.get("azp")
     if client_id != caller.client_id:
         raise AuthorizationError("token azp does not match the authenticated caller")
+    username = claims.get("preferred_username")
+    explicit_type = str(claims.get("principal_type", "")).upper()
+    if explicit_type in PrincipalType.__members__:
+        principal_type = PrincipalType[explicit_type]
+    elif isinstance(username, str) and username.startswith("service-account-"):
+        principal_type = PrincipalType.SERVICE
+    elif caller.client_id in {"middleware-worker", "provisioning-service", "automation-service"}:
+        principal_type = PrincipalType.WORKLOAD
+    else:
+        principal_type = PrincipalType.HUMAN
+    campaigns = _string_items(claims.get("campaign_ids") or claims.get("campaigns"), limit=MAX_TENANTS)
     return KernelPrincipal(
         subject=subject.strip(),
         client_id=caller.client_id,
@@ -120,6 +147,10 @@ def principal_from_claims(claims: Mapping[str, Any], caller: ControlPlaneCaller,
         roles=roles_from_claims(claims, caller.client_id),
         scopes=_string_items(claims.get("scope"), limit=MAX_SCOPES),
         caller=caller,
+        principal_type=principal_type,
+        actor_id=subject.strip() if principal_type is PrincipalType.HUMAN else None,
+        service_id=caller.client_id if principal_type is not PrincipalType.HUMAN else None,
+        campaigns=campaigns,
     )
 
 
