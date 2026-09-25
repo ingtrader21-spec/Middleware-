@@ -6,7 +6,9 @@ closed. A configuration switch alone is never sufficient to activate an
 effect: an external-effect capability is admitted only when *every* one of
 these agrees —
 
-* the capability registry (``config/capabilities.v2.json``) enables it,
+* the capability registry (``config/capabilities.v2.json``) lists and enables
+  it — a capability it does not list is denied ``capability_unknown`` whatever
+  its classification,
 * every Settings effect gate and umbrella control the switch table names is
   on (``Settings.external_effects`` / ``Settings.umbrella_controls``),
 * the global and the provider kill switches are off,
@@ -254,7 +256,10 @@ class SafetyGate:
             reasons.append("provider_kill_switch")
         if gate is None:
             reasons.append("capability_without_safety_gate")
-        else:
+        if subject.capability not in self.policies.capabilities:
+            # Unknown to the capability registry: denied whatever its class.
+            reasons.append("capability_unknown")
+        if gate is not None:
             if environment not in gate.environments:
                 reasons.append("environment_not_authorized")
             if gate.campaign_scoped and not subject.campaign_id:
