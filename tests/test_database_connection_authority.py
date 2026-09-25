@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from app.core.config import ConfigurationError, Settings, WEBHOOK_PRODUCERS
+from app.core.config import ConfigurationError, Settings, WEBHOOK_PRODUCERS, _load_process_settings
 from app.db.connection import (
     DatabaseConnectionError,
     asyncpg_connection_kwargs,
@@ -143,6 +143,19 @@ def test_production_compose_profile_does_not_invent_verify_full(monkeypatch) -> 
     result = db_session._build_engine(config)
     assert result is not None
     assert captured["connect_args"]["dsn"] == config.database_url
+
+
+def test_process_settings_preserve_native_postgresql_dsn(monkeypatch) -> None:
+    native = "postgresql://u:p@db.internal/testdb?sslmode=require"
+    monkeypatch.setenv("APP_ENV", "test")
+    monkeypatch.setenv("DATABASE_URL", native)
+    monkeypatch.setenv("REDIS_URL", "redis://127.0.0.1:6379/0")
+    monkeypatch.delenv("DATABASE_URL_FILE", raising=False)
+    monkeypatch.delenv("REDIS_URL_FILE", raising=False)
+
+    process_settings = _load_process_settings()
+
+    assert process_settings.database_url == native
 
 
 def test_process_engine_uses_credential_free_sqlalchemy_url(monkeypatch) -> None:
