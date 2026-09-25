@@ -13,6 +13,8 @@ ROOT = Path(__file__).resolve().parents[1]
 OPENAPI = ROOT / "contracts/platform/middleware-openapi.generated.json"
 OUTPUT = ROOT / "postman/generated/Middleware-OpenAPI.postman_collection.json"
 HTTP_METHODS = ("get", "post", "put", "patch", "delete", "options", "head")
+SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
+
 
 
 def _json(value: Any) -> str:
@@ -125,6 +127,36 @@ def _request(doc: dict[str, Any], path: str, method: str, op: dict[str, Any]) ->
     }
 
 
+def _collection_events() -> list[dict[str, Any]]:
+    return [
+        {
+            "listen": "prerequest",
+            "script": {
+                "type": "text/javascript",
+                "exec": [
+                    "const safeMethods = ['GET','HEAD','OPTIONS'];",
+                    "const method = String(pm.request.method || '').toUpperCase();",
+                    "const allowEffectful = pm.variables.replaceIn('{{RUN_EFFECTFUL}}') === 'true';",
+                    "if (!safeMethods.includes(method) && !allowEffectful) {",
+                    "  pm.execution.skipRequest();",
+                    "}",
+                ],
+            },
+        },
+        {
+            "listen": "test",
+            "script": {
+                "type": "text/javascript",
+                "exec": [
+                    "pm.test('response is not 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+                    "const requestId = pm.response.headers.get('X-Request-ID') || pm.response.headers.get('X-Correlation-ID');",
+                    "if (requestId) { pm.test('response correlation identifier is non-empty', () => pm.expect(String(requestId).trim()).not.to.eql('')); }",
+                ],
+            },
+        },
+    ]
+
+
 def build() -> tuple[dict[str, Any], str]:
     doc = json.loads(OPENAPI.read_text(encoding="utf-8"))
     digest = hashlib.sha256(OPENAPI.read_bytes()).hexdigest()
@@ -146,15 +178,18 @@ def build() -> tuple[dict[str, Any], str]:
             "name": "Middleware OpenAPI - Generated",
             "description": (
                 "Generated from contracts/platform/middleware-openapi.generated.json. "
-                "Do not edit by hand; use scripts/generate_postman.py."
+                "Do not edit by hand; use scripts/generate_postman.py. "
+                "Effectful methods are skipped unless RUN_EFFECTFUL=true; every executed request asserts no 5xx response."
             ),
             "schema": (
                 "https://schema.getpostman.com/json/collection/"
                 "v2.1.0/collection.json"
             ),
         },
+        "event": _collection_events(),
         "variable": [
             {"key": "base_url", "value": "http://127.0.0.1:8095"},
+            {"key": "RUN_EFFECTFUL", "value": "false"},
             {"key": "bearer_token", "value": ""},
             {"key": "db_read_token", "value": ""},
             {"key": "db_verify_token", "value": ""},
