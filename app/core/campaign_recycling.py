@@ -1856,6 +1856,101 @@ class PostgresCampaignRecyclingStore:
             reactivation_cycles=reactivation_cycles,
         )
 
+    async def reconciliation_report(
+        self,
+        *,
+        tenant_id: str,
+        limit: int = 100,
+    ) -> dict[str, Any]:
+        """Read-only C9 drift/replay evidence for one tenant.
+
+        The report never repairs or dispatches.  It exposes enough durable
+        evidence for an operator/reconciler to decide whether a retry or
+        quarantine action is safe.
+        """
+        if not 1 <= limit <= 500:
+            raise CampaignRecyclingConflict("reconciliation limit must be 1..500")
+        async with self.pool.acquire() as conn:
+            missing_commands = await conn.fetch(
+                """
+                SELECT e.exposure_id,e.lead_id,e.campaign_id,e.campaign_version,
+                       e.channel,e.touch_index,e.idempotency_key,e.command_id,
+                       e.correlation_id,e.status,e.reserved_at
+                FROM mcr_exposures e
+                LEFT JOIN middleware_commands c
+                  ON c.tenant_id=e.tenant_id AND c.command_id=e.command_id
+                WHERE e.tenant_id=$1 AND c.command_id IS NULL
+                ORDER BY e.reserved_at,e.exposure_id
+                LIMIT $2
+                """,
+                tenant_id,
+                limit,
+            )
+            command_drift = await conn.fetch(
+                """
+                SELECT e.exposure_id,e.command_id,e.idempotency_key AS exposure_key,
+                       c.idempotency_key AS command_key,
+                       e.correlation_id AS exposure_correlation_id,
+                       c.correlation_id AS command_correlation_id,
+                       e.status AS exposure_status,c.state AS command_state
+                FROM mcr_exposures e
+                JOIN middleware_commands c
+                  ON c.tenant_id=e.tenant_id AND c.command_id=e.command_id
+                WHERE e.tenant_id=$1
+                  AND (
+                    c.idempotency_key<>e.idempotency_key
+                    OR c.correlation_id<>e.correlation_id
+                  )
+                ORDER BY e.reserved_at,e.exposure_id
+                LIMIT $2
+                """,
+                tenant_id,
+                limit,
+            )
+            delivery_backlog = await conn.fetch(
+                """
+                SELECT id,source,event_id,event_type,lead_id,channel,campaign_id,
+                       campaign_version,exposure_idempotency_key,correlation_id,
+                       payload_hash,projection_state,projection_note,received_at
+                FROM mcr_delivery_events
+                WHERE tenant_id=$1 AND projection_state<>'applied'
+                ORDER BY received_at,id
+                LIMIT $2
+                """,
+                tenant_id,
+                limit,
+            )
+            orphan_delivery_events = await conn.fetch(
+                """
+                SELECT d.id,d.source,d.event_id,d.lead_id,d.channel,d.campaign_id,
+                       d.campaign_version,d.exposure_idempotency_key,d.correlation_id,
+                       d.projection_state,d.projection_note,d.received_at
+                FROM mcr_delivery_events d
+                LEFT JOIN mcr_exposures e
+                  ON e.tenant_id=d.tenant_id
+                 AND e.idempotency_key=d.exposure_idempotency_key
+                WHERE d.tenant_id=$1
+                  AND d.exposure_idempotency_key IS NOT NULL
+                  AND e.exposure_id IS NULL
+                ORDER BY d.received_at,d.id
+                LIMIT $2
+                """,
+                tenant_id,
+                limit,
+            )
+        categories = {
+            "missing_commands": [dict(row) for row in missing_commands],
+            "command_drift": [dict(row) for row in command_drift],
+            "delivery_backlog": [dict(row) for row in delivery_backlog],
+            "orphan_delivery_events": [dict(row) for row in orphan_delivery_events],
+        }
+        return {
+            "tenant_id": tenant_id,
+            "healthy": not any(categories.values()),
+            "counts": {name: len(items) for name, items in categories.items()},
+            **categories,
+        }
+
     async def reserve_exposure_and_command(
         self,
         *,
@@ -1875,15 +1970,150 @@ class PostgresCampaignRecyclingStore:
         authenticated_subject: str,
         authenticated_client_id: str,
         reserved_at: datetime | None = None,
+        synthetic_execution_authorized: bool = False,
     ) -> tuple[bool, CommandOperation | None]:
-        # MCR-C has no certified execution authority. A plan, caller-supplied
-        # decision UUID, or generic command capability cannot authorize a send.
-        # Keep this boundary closed even if an unrelated command policy enables
-        # an adapter. Future activation requires a reviewed execution-evidence
-        # contract and atomic fresh policy revalidation, not a config toggle.
-        raise CampaignRecyclingConflict(
-            "PRODUCTION_NOT_AUTHORIZED: MCR execution evidence boundary is not certified"
+        """Atomically reserve one exposure and persist its command intent.
+
+        This is the C8 durable shell, not production authorization.  The only
+        executable path is the existing TEST_SYN no-effect capability.  The
+        public MCR execute endpoint remains hard-denied, and production/channel
+        commands cannot cross this boundary.
+        """
+        if (
+            not synthetic_execution_authorized
+            or tenant_id != "TEST_SYN_TENANT"
+            or command.tenant_id != tenant_id
+            or command.capability != "TEST_SYN_EXECUTE"
+            or command.target != "test-syn"
+            or not command.command_type.startswith("test.syn.")
+        ):
+            raise CampaignRecyclingConflict(
+                "PRODUCTION_NOT_AUTHORIZED: MCR execution evidence boundary is not certified"
+            )
+        if command.idempotency_key != idempotency_key:
+            raise CampaignRecyclingIdempotencyConflict(
+                "command and exposure idempotency keys must match"
+            )
+        if command.correlation_id.strip() == "":
+            raise CampaignRecyclingConflict("command correlation_id is required")
+        if not idempotency_key.startswith("mcr1:") or len(idempotency_key) != 69:
+            raise CampaignRecyclingIdempotencyConflict(
+                "MCR exposure idempotency key is invalid"
+            )
+        if channel != "voice" and sender_identity_id is None:
+            raise CampaignRecyclingConflict(
+                "sender identity is required for non-voice exposure"
+            )
+        command_service.validate_submission(
+            command,
+            authenticated_subject=authenticated_subject,
+            authenticated_client_id=authenticated_client_id,
         )
+        reserved_at = _utc(reserved_at or datetime.now(UTC))
+        natural = (
+            tenant_id,
+            lead_id,
+            campaign_id,
+            campaign_version,
+            channel,
+            touch_index,
+        )
+        async with self.pool.acquire() as conn:
+            async with conn.transaction():
+                await conn.execute(
+                    "SELECT pg_advisory_xact_lock($1)",
+                    int.from_bytes(
+                        bytes.fromhex(hashlib.sha256(idempotency_key.encode()).hexdigest())[:8],
+                        "big",
+                        signed=True,
+                    ),
+                )
+                existing = await conn.fetchrow(
+                    """
+                    SELECT exposure_id,idempotency_key,command_id,decision_id,policy_version,
+                           sender_identity_id,status
+                    FROM mcr_exposures
+                    WHERE tenant_id=$1 AND lead_id=$2 AND campaign_id=$3
+                      AND campaign_version=$4 AND channel=$5 AND touch_index=$6
+                    FOR UPDATE
+                    """,
+                    *natural,
+                )
+                if existing is not None:
+                    same = (
+                        existing["idempotency_key"] == idempotency_key
+                        and str(existing["command_id"]) == str(command.command_id)
+                        and str(existing["decision_id"]) == str(decision_id)
+                        and existing["policy_version"] == policy_version
+                        and (
+                            existing["sender_identity_id"] is None
+                            and sender_identity_id is None
+                            or str(existing["sender_identity_id"]) == str(sender_identity_id)
+                        )
+                    )
+                    if not same:
+                        raise CampaignRecyclingIdempotencyConflict(
+                            "exposure natural key already exists with different evidence"
+                        )
+                    return False, None
+
+                other = await conn.fetchrow(
+                    """
+                    SELECT exposure_id,lead_id,campaign_id,campaign_version,channel,touch_index
+                    FROM mcr_exposures
+                    WHERE tenant_id=$1 AND idempotency_key=$2
+                    FOR UPDATE
+                    """,
+                    tenant_id,
+                    idempotency_key,
+                )
+                if other is not None:
+                    raise CampaignRecyclingIdempotencyConflict(
+                        "idempotency key already belongs to a different exposure"
+                    )
+
+                await conn.execute(
+                    """
+                    INSERT INTO mcr_exposures
+                      (exposure_id,tenant_id,lead_id,campaign_id,campaign_version,channel,
+                       touch_index,idempotency_key,command_id,correlation_id,decision_id,
+                       policy_version,sender_identity_id,status,reserved_at,status_at,updated_at)
+                    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,
+                            'reserved',$14,$14,$14)
+                    """,
+                    exposure_id,
+                    tenant_id,
+                    lead_id,
+                    campaign_id,
+                    campaign_version,
+                    channel,
+                    touch_index,
+                    idempotency_key,
+                    command.command_id,
+                    command.correlation_id,
+                    decision_id,
+                    policy_version,
+                    sender_identity_id,
+                    reserved_at,
+                )
+                operation = await command_service.store.submit_on_connection(
+                    conn,
+                    command,
+                    authenticated_client_id=authenticated_client_id,
+                    decision_evidence={
+                        "source": "mcr_exposure_reservation",
+                        "exposure_id": str(exposure_id),
+                        "decision_id": str(decision_id),
+                        "policy_version": policy_version,
+                        "campaign_id": campaign_id,
+                        "campaign_version": campaign_version,
+                        "channel": channel,
+                        "touch_index": touch_index,
+                        "idempotency_key": idempotency_key,
+                    },
+                    trace={"correlation_id": command.correlation_id},
+                )
+                return True, operation
 
 
 async def _transition_lifecycle_on_connection(

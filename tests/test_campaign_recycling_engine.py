@@ -1107,6 +1107,282 @@ async def test_generic_command_authorization_cannot_bypass_mcr_execution_boundar
 
 
 
+
+
+def _synthetic_command(command_id: UUID, key: str) -> CommandEnvelope:
+    return CommandEnvelope(
+        command_id=command_id,
+        command_type="test.syn.mcr.reserve.v1",
+        command_version="1.0",
+        target="test-syn",
+        tenant_id="TEST_SYN_TENANT",
+        requested_by="svc-mcr",
+        correlation_id="corr-mcr-reserve",
+        idempotency_key=key,
+        capability="TEST_SYN_EXECUTE",
+        payload={"synthetic": True},
+    )
+
+
+def _synthetic_command_service(pool: FakePool) -> tuple[CommandService, PostgresCommandStore]:
+    command_store = PostgresCommandStore(pool, owns_pool=False)
+    command_store.submit_on_connection = AsyncMock(return_value=object())
+    policies = CommandPolicyRegistry(
+        (
+            CommandPolicy(
+                prefix="test.syn.",
+                target="test-syn",
+                capability="TEST_SYN_EXECUTE",
+                readback_required=True,
+            ),
+        ),
+        {"TEST_SYN_EXECUTE": True},
+    )
+    return CommandService(store=command_store, policies=policies), command_store
+
+
+@pytest.mark.asyncio
+async def test_synthetic_reservation_and_command_are_atomic_intent() -> None:
+    conn = _CountingConn()
+    conn.fetchrow_results = [None, None]
+    pool = FakePool(conn)
+    service, command_store = _synthetic_command_service(pool)
+    command_id = uuid4()
+    exposure_id = uuid4()
+    decision_id = uuid4()
+    key = "mcr1:" + "2" * 64
+    reserved, operation = await PostgresCampaignRecyclingStore(pool).reserve_exposure_and_command(
+        tenant_id="TEST_SYN_TENANT",
+        lead_id="100-L-00000001",
+        campaign_id="klyrow:test-syn-mcr",
+        campaign_version=1,
+        channel="email",
+        touch_index=1,
+        exposure_id=exposure_id,
+        decision_id=decision_id,
+        policy_version="mcr-policy-1.0.0",
+        sender_identity_id=UUID(SENDER),
+        idempotency_key=key,
+        command=_synthetic_command(command_id, key),
+        command_service=service,
+        authenticated_subject="svc-mcr",
+        authenticated_client_id="mcr-test",
+        reserved_at=NOW,
+        synthetic_execution_authorized=True,
+    )
+    assert reserved is True
+    assert operation is command_store.submit_on_connection.return_value
+    assert conn.transactions == 1
+    statements = _statements(conn)
+    assert any("pg_advisory_xact_lock" in sql for sql in statements)
+    insert = next(
+        args for kind, sql, args in conn.executed
+        if kind == "execute" and "INSERT INTO mcr_exposures" in sql
+    )
+    assert insert[0] == exposure_id
+    assert insert[1:8] == (
+        "TEST_SYN_TENANT", "100-L-00000001", "klyrow:test-syn-mcr",
+        1, "email", 1, key,
+    )
+    command_store.submit_on_connection.assert_awaited_once()
+    args, kwargs = command_store.submit_on_connection.await_args
+    assert args[0] is conn
+    assert kwargs["authenticated_client_id"] == "mcr-test"
+    assert kwargs["decision_evidence"]["exposure_id"] == str(exposure_id)
+    assert kwargs["decision_evidence"]["decision_id"] == str(decision_id)
+
+
+@pytest.mark.asyncio
+async def test_synthetic_reservation_identical_replay_does_not_emit_second_command() -> None:
+    command_id = uuid4()
+    decision_id = uuid4()
+    key = "mcr1:" + "3" * 64
+    conn = FakeConn()
+    conn.fetchrow_results = [{
+        "exposure_id": uuid4(),
+        "idempotency_key": key,
+        "command_id": command_id,
+        "decision_id": decision_id,
+        "policy_version": "mcr-policy-1.0.0",
+        "sender_identity_id": UUID(SENDER),
+        "status": "reserved",
+    }]
+    pool = FakePool(conn)
+    service, command_store = _synthetic_command_service(pool)
+    reserved, operation = await PostgresCampaignRecyclingStore(pool).reserve_exposure_and_command(
+        tenant_id="TEST_SYN_TENANT",
+        lead_id="100-L-00000001",
+        campaign_id="klyrow:test-syn-mcr",
+        campaign_version=1,
+        channel="email",
+        touch_index=1,
+        exposure_id=uuid4(),
+        decision_id=decision_id,
+        policy_version="mcr-policy-1.0.0",
+        sender_identity_id=UUID(SENDER),
+        idempotency_key=key,
+        command=_synthetic_command(command_id, key),
+        command_service=service,
+        authenticated_subject="svc-mcr",
+        authenticated_client_id="mcr-test",
+        reserved_at=NOW,
+        synthetic_execution_authorized=True,
+    )
+    assert reserved is False and operation is None
+    command_store.submit_on_connection.assert_not_awaited()
+    assert not any("INSERT INTO mcr_exposures" in sql for sql in _statements(conn))
+
+
+@pytest.mark.asyncio
+async def test_synthetic_reservation_conflicting_replay_fails_before_command() -> None:
+    key = "mcr1:" + "4" * 64
+    conn = FakeConn()
+    conn.fetchrow_results = [{
+        "exposure_id": uuid4(),
+        "idempotency_key": key,
+        "command_id": uuid4(),
+        "decision_id": uuid4(),
+        "policy_version": "mcr-policy-1.0.0",
+        "sender_identity_id": UUID(SENDER),
+        "status": "reserved",
+    }]
+    pool = FakePool(conn)
+    service, command_store = _synthetic_command_service(pool)
+    with pytest.raises(CampaignRecyclingIdempotencyConflict):
+        await PostgresCampaignRecyclingStore(pool).reserve_exposure_and_command(
+            tenant_id="TEST_SYN_TENANT",
+            lead_id="100-L-00000001",
+            campaign_id="klyrow:test-syn-mcr",
+            campaign_version=1,
+            channel="email",
+            touch_index=1,
+            exposure_id=uuid4(),
+            decision_id=uuid4(),
+            policy_version="mcr-policy-1.0.0",
+            sender_identity_id=UUID(SENDER),
+            idempotency_key=key,
+            command=_synthetic_command(uuid4(), key),
+            command_service=service,
+            authenticated_subject="svc-mcr",
+            authenticated_client_id="mcr-test",
+            reserved_at=NOW,
+            synthetic_execution_authorized=True,
+        )
+    command_store.submit_on_connection.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_synthetic_authorization_flag_cannot_enable_non_synthetic_tenant() -> None:
+    conn = FakeConn()
+    pool = FakePool(conn)
+    service, command_store = _synthetic_command_service(pool)
+    key = "mcr1:" + "5" * 64
+    command = _synthetic_command(uuid4(), key)
+    command = CommandEnvelope(
+        command_id=command.command_id,
+        command_type=command.command_type,
+        command_version=command.command_version,
+        target=command.target,
+        tenant_id="PROD_TENANT",
+        requested_by=command.requested_by,
+        correlation_id=command.correlation_id,
+        idempotency_key=command.idempotency_key,
+        capability=command.capability,
+        payload=command.payload,
+    )
+    with pytest.raises(CampaignRecyclingConflict, match="PRODUCTION_NOT_AUTHORIZED"):
+        await PostgresCampaignRecyclingStore(pool).reserve_exposure_and_command(
+            tenant_id="PROD_TENANT",
+            lead_id="100-L-00000001",
+            campaign_id="klyrow:test-syn-mcr",
+            campaign_version=1,
+            channel="email",
+            touch_index=1,
+            exposure_id=uuid4(),
+            decision_id=uuid4(),
+            policy_version="mcr-policy-1.0.0",
+            sender_identity_id=UUID(SENDER),
+            idempotency_key=key,
+            command=command,
+            command_service=service,
+            authenticated_subject="svc-mcr",
+            authenticated_client_id="mcr-test",
+            reserved_at=NOW,
+            synthetic_execution_authorized=True,
+        )
+    command_store.submit_on_connection.assert_not_awaited()
+    assert conn.executed == []
+
+
+
+
+@pytest.mark.asyncio
+async def test_reconciliation_report_is_tenant_bound_read_only_and_bounded() -> None:
+    conn = FakeConn()
+    conn.fetch_results = [
+        [{
+            "exposure_id": uuid4(), "lead_id": "100-L-00000001",
+            "campaign_id": "klyrow:test-syn-mcr", "campaign_version": 1,
+            "channel": "email", "touch_index": 1,
+            "idempotency_key": "mcr1:" + "6" * 64,
+            "command_id": uuid4(), "correlation_id": "corr-gap",
+            "status": "reserved", "reserved_at": NOW,
+        }],
+        [],
+        [{
+            "id": 7, "source": "klyrow", "event_id": "evt-gap",
+            "event_type": "delivered", "lead_id": "100-L-00000001",
+            "channel": "email", "campaign_id": "klyrow:test-syn-mcr",
+            "campaign_version": 1,
+            "exposure_idempotency_key": "mcr1:" + "7" * 64,
+            "correlation_id": "corr-event", "payload_hash": "a" * 64,
+            "projection_state": "partial", "projection_note": "exposure_missing",
+            "received_at": NOW,
+        }],
+        [],
+    ]
+    report = await PostgresCampaignRecyclingStore(FakePool(conn)).reconciliation_report(
+        tenant_id="TEST_SYN_TENANT", limit=25
+    )
+    assert report["tenant_id"] == "TEST_SYN_TENANT"
+    assert report["healthy"] is False
+    assert report["counts"] == {
+        "missing_commands": 1,
+        "command_drift": 0,
+        "delivery_backlog": 1,
+        "orphan_delivery_events": 0,
+    }
+    assert len(conn.executed) == 4
+    assert all(kind == "fetch" for kind, _, _ in conn.executed)
+    assert all(args == ("TEST_SYN_TENANT", 25) for _, _, args in conn.executed)
+    assert not any(
+        any(token in " ".join(sql.split()).upper() for token in (" INSERT ", " UPDATE ", " DELETE "))
+        for _, sql, _ in conn.executed
+    )
+
+
+@pytest.mark.asyncio
+async def test_reconciliation_report_healthy_when_no_drift() -> None:
+    conn = FakeConn()
+    conn.fetch_results = [[], [], [], []]
+    report = await PostgresCampaignRecyclingStore(FakePool(conn)).reconciliation_report(
+        tenant_id="TEST_SYN_TENANT"
+    )
+    assert report["healthy"] is True
+    assert all(value == 0 for value in report["counts"].values())
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("limit", [0, 501])
+async def test_reconciliation_report_rejects_unbounded_limits(limit: int) -> None:
+    conn = FakeConn()
+    with pytest.raises(CampaignRecyclingConflict, match="limit"):
+        await PostgresCampaignRecyclingStore(FakePool(conn)).reconciliation_report(
+            tenant_id="TEST_SYN_TENANT", limit=limit
+        )
+    assert conn.executed == []
+
+
 def test_migration_is_single_successor_and_does_not_enable_effects() -> None:
     source = (
         __import__("pathlib").Path("migrations/versions/0068_campaign_recycling_core.py")
