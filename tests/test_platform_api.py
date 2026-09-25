@@ -152,6 +152,7 @@ def test_submission_is_accepted_asynchronously_and_replayed_exactly(stack: Stack
         assert response.headers["Location"] == f"/platform/v1/operations/{body['command_id']}"
         assert response.headers["X-Correlation-ID"] == body["correlation_id"]
         assert response.headers["X-Command-ID"] == body["command_id"]
+        assert response.headers["X-Operation-Correlation-ID"] == body["correlation_id"]
         assert response.headers["Cache-Control"] == "no-store"
         assert response.headers["X-Content-Type-Options"] == "nosniff"
         accepted = response.json()
@@ -191,7 +192,8 @@ def test_operation_read_is_tenant_scoped_and_redacted(stack: Stack) -> None:
         status = read.json()
         assert status["state"] == "RECEIVED" and status["resource_version"] == 1
         assert read.headers["X-Command-ID"] == body["command_id"]
-        assert read.headers["X-Correlation-ID"] == body["correlation_id"]
+        assert read.headers["X-Correlation-ID"]
+        assert read.headers["X-Operation-Correlation-ID"] == body["correlation_id"]
         assert read.headers["Cache-Control"] == "no-store"
         assert read.headers["X-Content-Type-Options"] == "nosniff"
         assert "payload" not in status and "readback_evidence" not in status and "last_error" not in status
@@ -240,6 +242,8 @@ def test_cancel_uses_optimistic_concurrency_and_idempotency(stack: Stack) -> Non
         assert mismatch.status_code == 400
         cancelled = client.post(f"/platform/v1/operations/{body['command_id']}/cancel", json={"expected_version": 1, "reason": "operator request"}, headers=auth)
         assert cancelled.status_code == 200 and cancelled.json()["state"] == "CANCELLED" and cancelled.json()["resource_version"] == 2
+        assert cancelled.headers["X-Command-ID"] == body["command_id"]
+        assert cancelled.headers["X-Operation-Correlation-ID"] == body["correlation_id"]
         assert cancelled.json()["cancelled_at"] is not None
         replay = client.post(f"/platform/v1/operations/{body['command_id']}/cancel", json={"expected_version": 1, "reason": "operator request"}, headers=auth)
         assert replay.status_code == 200
@@ -267,6 +271,7 @@ def test_replay_requires_replay_scope_and_operator_role(stack: Stack) -> None:
         operator = token(scope="platform.command platform.command.read platform.command.replay", roles=("platform-operator",))
         reexecuted = client.post(f"/platform/v1/operations/{body['command_id']}/replay", json={"mode": "REEXECUTE", "expected_version": 1, "reason": "r", "new_idempotency_key": "idem-new-0000001"}, headers={**base, "Authorization": f"Bearer {operator}"})
         assert reexecuted.status_code == 202
+        assert reexecuted.headers["X-Operation-Correlation-ID"] == reexecuted.json()["correlation_id"]
         assert reexecuted.json()["operation_id"] != body["command_id"]
         assert reexecuted.headers["Location"].startswith("/platform/v1/operations/")
         bad_mode = client.post(f"/platform/v1/operations/{body['command_id']}/replay", json={"mode": "AGAIN", "expected_version": 1, "reason": "r"}, headers={**base, "Authorization": f"Bearer {operator}"})
