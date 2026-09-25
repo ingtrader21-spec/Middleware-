@@ -102,6 +102,18 @@
       "name_aliases": []
     },
     {
+      "component": "evolution-whatsapp",
+      "github_repository_id": 1384467115,
+      "current_repository": "ingtrader21-spec/Evolution-API",
+      "authority_role": "whatsapp-evolution-transport-runtime",
+      "lifecycle": "active",
+      "cell": "communications",
+      "integration_mode": "provider-adapter",
+      "middleware_relationship": "target-and-event-source",
+      "adapter_id": "evolution-whatsapp",
+      "name_aliases": []
+    },
+    {
       "component": "telnexa-web",
       "github_repository_id": 1346958528,
       "current_repository": "appolon1908-hue/Telnexa-web",
