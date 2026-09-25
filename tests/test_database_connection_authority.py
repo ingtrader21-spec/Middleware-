@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 
@@ -114,6 +115,26 @@ def test_tls_files_are_readable_and_private(tmp_path: Path) -> None:
             application_name="codestra-middleware/staging",
             secure_environment=True,
         )
+
+
+def test_locked_staging_profile_accepts_equivalent_sqlalchemy_asyncpg_scheme() -> None:
+    profile = json.loads(Path("config/runtime-profiles.v1.json").read_text())["profiles"]
+    staging = next(
+        item
+        for item in profile
+        if item["profile_id"] == "codestra-middleware-staging-v1"
+    )
+    settings = Settings(
+        database_url=(
+            "postgresql+asyncpg://middleware_staging:secret@"
+            "postgresql.middleware-staging.svc.cluster.local:5432/"
+            "codestra_staging?sslmode=verify-full"
+        )
+    )
+    settings._validate_database_profile(
+        staging["database"],
+        staging.get("database_alternates", []),
+    )
 
 
 def test_process_engine_uses_credential_free_sqlalchemy_url(monkeypatch) -> None:
