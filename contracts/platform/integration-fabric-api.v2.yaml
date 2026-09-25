@@ -874,6 +874,70 @@ paths:
           description: Required durable dependency unavailable
       security:
       - bearerAuth: []
+  /platform/v1/operations:
+    get:
+      tags:
+      - platform-command-kernel
+      summary: List Operations
+      operationId: list_operations_platform_v1_operations_get
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 100
+          title: Limit
+      - name: state
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: State
+      - name: command_type
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Command Type
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Cursor
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationList'
+        '400':
+          description: Invalid canonical request
+          content:
+            application/json:
+              schema: *id001
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+      security:
+      - bearerAuth: []
   /platform/v1/operations/{operation_id}:
     get:
       tags:
@@ -935,6 +999,53 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Timeline'
+        '400':
+          description: Invalid canonical request
+          content:
+            application/json:
+              schema: *id001
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+      security:
+      - bearerAuth: []
+  /platform/v1/operations/{operation_id}/attempts:
+    get:
+      tags:
+      - platform-command-kernel
+      summary: Get Attempts
+      operationId: get_attempts_platform_v1_operations__operation_id__attempts_get
+      parameters:
+      - name: operation_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Operation Id
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 100
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttemptList'
         '400':
           description: Invalid canonical request
           content:
@@ -16382,6 +16493,67 @@ components:
       - summary
       - expires_at
       title: ApprovalRequest
+    AttemptList:
+      properties:
+        operation_id:
+          type: string
+          format: uuid
+          title: Operation Id
+        items:
+          items:
+            $ref: '#/components/schemas/AttemptStatus'
+          type: array
+          title: Items
+      additionalProperties: false
+      type: object
+      required:
+      - operation_id
+      - items
+      title: AttemptList
+    AttemptStatus:
+      properties:
+        attempt_id:
+          type: integer
+          title: Attempt Id
+        operation_id:
+          type: string
+          format: uuid
+          title: Operation Id
+        attempt_number:
+          type: integer
+          title: Attempt Number
+        state:
+          type: string
+          title: State
+        provider_operation_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Provider Operation Id
+        error_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Error Code
+        started_at:
+          type: string
+          format: date-time
+          title: Started At
+        finished_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Finished At
+      additionalProperties: false
+      type: object
+      required:
+      - attempt_id
+      - operation_id
+      - attempt_number
+      - state
+      - started_at
+      title: AttemptStatus
     AuthorizeEmailProduction:
       properties:
         expectedVersion:
@@ -19175,6 +19347,23 @@ components:
       - safe_metadata
       - created_at
       title: OperationEventResponse
+    OperationList:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/OperationStatus'
+          type: array
+          title: Items
+        next_cursor:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Next Cursor
+      additionalProperties: false
+      type: object
+      required:
+      - items
+      title: OperationList
     OperationListResponse:
       properties:
         items:

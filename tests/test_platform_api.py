@@ -375,3 +375,97 @@ def test_reconciliation_resolution_is_idempotent_and_content_bound(stack: Stack)
         )
         assert conflict.status_code == 409
         assert conflict.json()["error"]["code"] == "command_conflict"
+
+
+def test_operation_collection_is_tenant_scoped_filterable_and_redacted(stack: Stack) -> None:
+    with TestClient(stack.app) as client:
+        first_response, first = submit(client)
+        second_response, second = submit(client)
+        assert first_response.status_code == second_response.status_code == 202
+
+        auth = {"Authorization": f"Bearer {token()}"}
+        third_response, third = submit(client)
+        assert third_response.status_code == 202
+
+        listed = client.get("/platform/v1/operations?limit=2", headers=auth)
+        assert listed.status_code == 200, listed.text
+        first_page = listed.json()
+        items = first_page["items"]
+        assert len(items) == 2
+        assert first_page["next_cursor"]
+        next_page = client.get(
+            "/platform/v1/operations",
+            params={"limit": 2, "cursor": first_page["next_cursor"]},
+            headers=auth,
+        )
+        assert next_page.status_code == 200, next_page.text
+        all_ids = {item["operation_id"] for item in items + next_page.json()["items"]}
+        assert {first["command_id"], second["command_id"], third["command_id"]} <= all_ids
+        assert {item["operation_id"] for item in items}.isdisjoint(
+            {item["operation_id"] for item in next_page.json()["items"]}
+        )
+        rendered = listed.text.lower()
+        for forbidden in ("payload", "password", "client_secret", "private_key", "bearer "):
+            assert forbidden not in rendered
+
+        received = client.get("/platform/v1/operations?state=RECEIVED", headers=auth)
+        assert received.status_code == 200
+        assert all(item["state"] == "RECEIVED" for item in received.json()["items"])
+
+        by_type = client.get(
+            "/platform/v1/operations",
+            params={"command_type": first["command_type"]},
+            headers=auth,
+        )
+        assert by_type.status_code == 200
+        assert all(item["command_type"] == first["command_type"] for item in by_type.json()["items"])
+
+        foreign = client.get(
+            "/platform/v1/operations",
+            headers={"Authorization": f"Bearer {token(tenants=('tenant-b',))}"},
+        )
+        assert foreign.status_code == 200
+        assert foreign.json() == {"items": [], "next_cursor": None}
+
+        assert client.get("/platform/v1/operations?limit=0", headers=auth).status_code == 400
+        assert client.get("/platform/v1/operations?state=NOT_A_STATE", headers=auth).status_code == 400
+        assert client.get("/platform/v1/operations?cursor=not-valid", headers=auth).status_code == 400
+
+
+def test_operation_attempts_are_safe_ordered_and_tenant_scoped(stack: Stack) -> None:
+    import asyncio
+
+    with TestClient(stack.app) as client:
+        _, body = submit(client)
+        asyncio.run(stack.bus.run_once())
+
+        auth = {"Authorization": f"Bearer {token()}"}
+        response = client.get(
+            f"/platform/v1/operations/{body['command_id']}/attempts",
+            headers=auth,
+        )
+        assert response.status_code == 200, response.text
+        payload = response.json()
+        assert payload["operation_id"] == body["command_id"]
+        assert len(payload["items"]) == 1
+        attempt = payload["items"][0]
+        assert attempt["attempt_number"] == 1
+        assert attempt["state"] == "COMPLETED"
+        assert attempt["provider_operation_id"].startswith("test-syn:")
+        assert list(sorted(item["attempt_number"] for item in payload["items"])) == [
+            item["attempt_number"] for item in payload["items"]
+        ]
+        rendered = response.text.lower()
+        for forbidden in ("error_detail", "payload", "password", "client_secret", "private_key"):
+            assert forbidden not in rendered
+
+        foreign = client.get(
+            f"/platform/v1/operations/{body['command_id']}/attempts",
+            headers={"Authorization": f"Bearer {token(tenants=('tenant-b',))}"},
+        )
+        assert foreign.status_code == 404
+
+        assert client.get(
+            f"/platform/v1/operations/{body['command_id']}/attempts?limit=101",
+            headers=auth,
+        ).status_code == 400

@@ -12690,6 +12690,52 @@
           }
         },
         {
+          "name": "List Operations",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "operations"
+              ],
+              "query": [
+                {
+                  "disabled": true,
+                  "key": "limit",
+                  "value": "{{limit}}"
+                },
+                {
+                  "disabled": true,
+                  "key": "state",
+                  "value": "{{state}}"
+                },
+                {
+                  "disabled": true,
+                  "key": "command_type",
+                  "value": "{{command_type}}"
+                },
+                {
+                  "disabled": true,
+                  "key": "cursor",
+                  "value": "{{cursor}}"
+                }
+              ],
+              "raw": "{{base_url}}/platform/v1/operations"
+            }
+          }
+        },
+        {
           "name": "Get Operation",
           "request": {
             "header": [
@@ -12712,6 +12758,39 @@
               ],
               "query": [],
               "raw": "{{base_url}}/platform/v1/operations/{operation_id}"
+            }
+          }
+        },
+        {
+          "name": "Get Attempts",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "operations",
+                "{operation_id}",
+                "attempts"
+              ],
+              "query": [
+                {
+                  "disabled": true,
+                  "key": "limit",
+                  "value": "{{limit}}"
+                }
+              ],
+              "raw": "{{base_url}}/platform/v1/operations/{operation_id}/attempts"
             }
           }
         },
