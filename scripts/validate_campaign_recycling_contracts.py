@@ -150,6 +150,48 @@ RUNTIME_SCAN_GLOBS = (
     "contracts/platform/middleware-openapi.generated.json",
 )
 
+PURE_DOMAIN_MODULE = Path("app/core/campaign_recycling.py")
+PURE_DOMAIN_FORBIDDEN_IMPORT_ROOTS = {
+    "asyncpg",
+    "sqlalchemy",
+    "fastapi",
+    "redis",
+    "requests",
+    "httpx",
+    "alembic",
+}
+PURE_DOMAIN_FORBIDDEN_TEXT = (
+    "APIRouter",
+    "FastAPI",
+    "Postgres",
+    "CommandEnvelope",
+    "CommandService",
+    "CommandOperation",
+    "provider_message_id",
+    "klyrow_delivery_event",
+    "/platform/",
+    "migrations/",
+)
+
+
+def _pure_domain_module_is_safe(path: Path) -> bool:
+    """Allow the C1 deterministic module without permitting runtime activation."""
+    text = path.read_text(encoding="utf-8", errors="ignore")
+    if any(marker in text for marker in PURE_DOMAIN_FORBIDDEN_TEXT):
+        return False
+    tree = ast.parse(text)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.AsyncFunctionDef):
+            return False
+        if isinstance(node, ast.Import):
+            if any(alias.name.split(".", 1)[0] in PURE_DOMAIN_FORBIDDEN_IMPORT_ROOTS for alias in node.names):
+                return False
+        if isinstance(node, ast.ImportFrom):
+            root = (node.module or "").split(".", 1)[0]
+            if root in PURE_DOMAIN_FORBIDDEN_IMPORT_ROOTS or (node.module or "").startswith("app.api"):
+                return False
+    return True
+
 
 def load_artifacts(root: Path = ROOT) -> dict[str, Any]:
     artifacts: dict[str, Any] = {
@@ -1095,11 +1137,18 @@ def check_no_runtime_activation(
         for path in sorted(root.glob(pattern)):
             if not path.is_file():
                 continue
+            relative = path.relative_to(root)
+            if relative == PURE_DOMAIN_MODULE:
+                if not _pure_domain_module_is_safe(path):
+                    errors.append(
+                        "runtime: app/core/campaign_recycling.py violates the pure-domain boundary"
+                    )
+                continue
             text = path.read_text(encoding="utf-8", errors="ignore")
             hits = [marker for marker in RUNTIME_MARKERS if marker in text]
             if hits:
                 errors.append(
-                    f"runtime: {path.relative_to(root)} references MCR-A surface {hits}"
+                    f"runtime: {relative} references MCR-A surface {hits}"
                 )
     serialized = (
         json.dumps({k: v for k, v in artifacts.items() if k != "doc"})
