@@ -1,6 +1,40 @@
 {
   "components": {
     "schemas": {
+      "ActivationState": {
+        "properties": {
+          "capabilities_activated": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 0,
+            "title": "Capabilities Activated",
+            "type": "array"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "performed": {
+            "const": false,
+            "title": "Performed",
+            "type": "boolean"
+          },
+          "provider_effects_enabled": {
+            "const": false,
+            "title": "Provider Effects Enabled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "performed",
+          "capabilities_activated",
+          "provider_effects_enabled",
+          "note"
+        ],
+        "title": "ActivationState",
+        "type": "object"
+      },
       "ApprovalRequest": {
         "additionalProperties": false,
         "properties": {
@@ -1181,6 +1215,48 @@
         "title": "CancelRequest",
         "type": "object"
       },
+      "CapabilityDecision": {
+        "properties": {
+          "capability": {
+            "title": "Capability",
+            "type": "string"
+          },
+          "decision": {
+            "enum": [
+              "GO",
+              "NO_GO"
+            ],
+            "title": "Decision",
+            "type": "string"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "required_umbrella_control": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Required Umbrella Control"
+          }
+        },
+        "required": [
+          "capability",
+          "decision",
+          "reasons",
+          "required_umbrella_control"
+        ],
+        "title": "CapabilityDecision",
+        "type": "object"
+      },
       "Change": {
         "additionalProperties": false,
         "properties": {
@@ -2154,6 +2230,254 @@
         "title": "DeadLetterReplayRequest",
         "type": "object"
       },
+      "DecisionPolicy": {
+        "properties": {
+          "activation_performed_by_this_service": {
+            "const": false,
+            "title": "Activation Performed By This Service",
+            "type": "boolean"
+          },
+          "default_decision": {
+            "const": "NO_GO",
+            "title": "Default Decision",
+            "type": "string"
+          },
+          "grantable_capabilities": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Grantable Capabilities",
+            "type": "array"
+          },
+          "max_approval_validity_seconds": {
+            "title": "Max Approval Validity Seconds",
+            "type": "integer"
+          },
+          "max_canary_error_rate": {
+            "title": "Max Canary Error Rate",
+            "type": "number"
+          },
+          "max_clock_skew_seconds": {
+            "title": "Max Clock Skew Seconds",
+            "type": "integer"
+          },
+          "max_evidence_age_seconds": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Max Evidence Age Seconds",
+            "type": "object"
+          },
+          "min_canary_duration_seconds": {
+            "title": "Min Canary Duration Seconds",
+            "type": "integer"
+          },
+          "non_grantable_umbrella_controls": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Non Grantable Umbrella Controls",
+            "type": "array"
+          },
+          "policy_version": {
+            "const": "production-go-no-go.v1",
+            "title": "Policy Version",
+            "type": "string"
+          },
+          "required_evidence": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Required Evidence",
+            "type": "array"
+          },
+          "schema_version": {
+            "const": "1.0",
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema_version",
+          "policy_version",
+          "default_decision",
+          "required_evidence",
+          "max_evidence_age_seconds",
+          "max_clock_skew_seconds",
+          "max_approval_validity_seconds",
+          "min_canary_duration_seconds",
+          "max_canary_error_rate",
+          "grantable_capabilities",
+          "non_grantable_umbrella_controls",
+          "activation_performed_by_this_service"
+        ],
+        "title": "DecisionPolicy",
+        "type": "object"
+      },
+      "DecisionReadback": {
+        "description": "Response of every decision endpoint; ``activation`` is always inert.",
+        "properties": {
+          "activation": {
+            "$ref": "#/components/schemas/ActivationState"
+          },
+          "authoritative": {
+            "title": "Authoritative",
+            "type": "boolean"
+          },
+          "authorized_capabilities": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Authorized Capabilities",
+            "type": "array"
+          },
+          "capabilities": {
+            "items": {
+              "$ref": "#/components/schemas/CapabilityDecision"
+            },
+            "title": "Capabilities",
+            "type": "array"
+          },
+          "decision": {
+            "enum": [
+              "GO",
+              "NO_GO"
+            ],
+            "title": "Decision",
+            "type": "string"
+          },
+          "decision_id": {
+            "title": "Decision Id",
+            "type": "string"
+          },
+          "denied_capabilities": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Denied Capabilities",
+            "type": "array"
+          },
+          "evaluated_at": {
+            "title": "Evaluated At",
+            "type": "string"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceAssessment"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "partial": {
+            "title": "Partial",
+            "type": "boolean"
+          },
+          "policy_version": {
+            "const": "production-go-no-go.v1",
+            "title": "Policy Version",
+            "type": "string"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "release": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReleaseIdentity"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "requested_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requested By"
+          },
+          "schema_version": {
+            "const": "1.0",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "request",
+              "evidence_store"
+            ],
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema_version",
+          "policy_version",
+          "decision_id",
+          "decision",
+          "authoritative",
+          "source",
+          "evaluated_at",
+          "requested_by",
+          "release",
+          "reasons",
+          "evidence",
+          "capabilities",
+          "authorized_capabilities",
+          "denied_capabilities",
+          "partial",
+          "activation"
+        ],
+        "title": "DecisionReadback",
+        "type": "object"
+      },
+      "DecisionRequest": {
+        "additionalProperties": false,
+        "description": "A release, the capabilities requested for it, and raw evidence.\n\nEvidence values stay untyped here so that one malformed document is\nreported as ``REJECTED`` for its kind instead of failing the whole call.",
+        "properties": {
+          "evidence": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Evidence",
+            "type": "object"
+          },
+          "release": {
+            "$ref": "#/components/schemas/ReleaseIdentity"
+          },
+          "requested_capabilities": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 32,
+            "minItems": 1,
+            "title": "Requested Capabilities",
+            "type": "array"
+          }
+        },
+        "required": [
+          "release",
+          "requested_capabilities"
+        ],
+        "title": "DecisionRequest",
+        "type": "object"
+      },
       "DeliveryResult": {
         "additionalProperties": false,
         "properties": {
@@ -2631,6 +2955,96 @@
           "correlation_id"
         ],
         "title": "Envelope",
+        "type": "object"
+      },
+      "EvidenceAssessment": {
+        "properties": {
+          "artifact_sha256": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Artifact Sha256"
+          },
+          "digest": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Digest"
+          },
+          "evidence_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Id"
+          },
+          "invalid_fields": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invalid Fields"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "observed_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observed At"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "ACCEPTED",
+              "MISSING",
+              "REJECTED"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "status",
+          "reasons",
+          "digest"
+        ],
+        "title": "EvidenceAssessment",
         "type": "object"
       },
       "FailureResult": {
@@ -5142,6 +5556,34 @@
           "reason"
         ],
         "title": "ReconciliationResolution",
+        "type": "object"
+      },
+      "ReleaseIdentity": {
+        "additionalProperties": false,
+        "properties": {
+          "image_digest": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Image Digest",
+            "type": "string"
+          },
+          "schema_head": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Schema Head",
+            "type": "string"
+          },
+          "source_sha": {
+            "pattern": "^[0-9a-f]{40}$",
+            "title": "Source Sha",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_sha",
+          "image_digest",
+          "schema_head"
+        ],
+        "title": "ReleaseIdentity",
         "type": "object"
       },
       "ReplayRequest": {
@@ -16337,6 +16779,167 @@
         "summary": "Status",
         "tags": [
           "internal-database"
+        ]
+      }
+    },
+    "/internal/v1/production/decision": {
+      "get": {
+        "operationId": "decision_readback_internal_v1_production_decision_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DecisionReadback"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "description": "Invalid canonical request"
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "403": {
+            "description": "Scope or tenant denied"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Version, state, or idempotency conflict"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Required durable dependency unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Decision Readback",
+        "tags": [
+          "internal-production-decision"
+        ]
+      }
+    },
+    "/internal/v1/production/decision/evaluate": {
+      "post": {
+        "operationId": "evaluate_decision_internal_v1_production_decision_evaluate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DecisionReadback"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "description": "Invalid canonical request"
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "403": {
+            "description": "Scope or tenant denied"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Version, state, or idempotency conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Required durable dependency unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Evaluate Decision",
+        "tags": [
+          "internal-production-decision"
+        ]
+      }
+    },
+    "/internal/v1/production/decision/policy": {
+      "get": {
+        "operationId": "decision_policy_internal_v1_production_decision_policy_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DecisionPolicy"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "description": "Invalid canonical request"
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "403": {
+            "description": "Scope or tenant denied"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Version, state, or idempotency conflict"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Required durable dependency unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Decision Policy",
+        "tags": [
+          "internal-production-decision"
         ]
       }
     },

@@ -807,6 +807,105 @@ paths:
           description: Required durable dependency unavailable
       security:
       - bearerAuth: []
+  /internal/v1/production/decision/policy:
+    get:
+      tags:
+      - internal-production-decision
+      summary: Decision Policy
+      operationId: decision_policy_internal_v1_production_decision_policy_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DecisionPolicy'
+        '400':
+          description: Invalid canonical request
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+      security:
+      - bearerAuth: []
+  /internal/v1/production/decision:
+    get:
+      tags:
+      - internal-production-decision
+      summary: Decision Readback
+      operationId: decision_readback_internal_v1_production_decision_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DecisionReadback'
+        '400':
+          description: Invalid canonical request
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+      security:
+      - bearerAuth: []
+  /internal/v1/production/decision/evaluate:
+    post:
+      tags:
+      - internal-production-decision
+      summary: Evaluate Decision
+      operationId: evaluate_decision_internal_v1_production_decision_evaluate_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DecisionRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DecisionReadback'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '400':
+          description: Invalid canonical request
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+      security:
+      - bearerAuth: []
   /platform/v1/commands:
     post:
       tags:
@@ -15895,6 +15994,32 @@ paths:
       - *id004
 components:
   schemas:
+    ActivationState:
+      properties:
+        performed:
+          type: boolean
+          const: false
+          title: Performed
+        capabilities_activated:
+          items:
+            type: string
+          type: array
+          maxItems: 0
+          title: Capabilities Activated
+        provider_effects_enabled:
+          type: boolean
+          const: false
+          title: Provider Effects Enabled
+        note:
+          type: string
+          title: Note
+      type: object
+      required:
+      - performed
+      - capabilities_activated
+      - provider_effects_enabled
+      - note
+      title: ActivationState
     ApprovalRequest:
       properties:
         tenant_id:
@@ -16757,6 +16882,34 @@ components:
       - expected_version
       - reason
       title: CancelRequest
+    CapabilityDecision:
+      properties:
+        capability:
+          type: string
+          title: Capability
+        decision:
+          type: string
+          enum:
+          - GO
+          - NO_GO
+          title: Decision
+        reasons:
+          items:
+            type: string
+          type: array
+          title: Reasons
+        required_umbrella_control:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Required Umbrella Control
+      type: object
+      required:
+      - capability
+      - decision
+      - reasons
+      - required_umbrella_control
+      title: CapabilityDecision
     Change:
       properties:
         expected_version:
@@ -17403,6 +17556,191 @@ components:
       - safe_replay_classification
       - replay_reason
       title: DeadLetterReplayRequest
+    DecisionPolicy:
+      properties:
+        schema_version:
+          type: string
+          const: '1.0'
+          title: Schema Version
+        policy_version:
+          type: string
+          const: production-go-no-go.v1
+          title: Policy Version
+        default_decision:
+          type: string
+          const: NO_GO
+          title: Default Decision
+        required_evidence:
+          items:
+            type: string
+          type: array
+          title: Required Evidence
+        max_evidence_age_seconds:
+          additionalProperties:
+            type: integer
+          type: object
+          title: Max Evidence Age Seconds
+        max_clock_skew_seconds:
+          type: integer
+          title: Max Clock Skew Seconds
+        max_approval_validity_seconds:
+          type: integer
+          title: Max Approval Validity Seconds
+        min_canary_duration_seconds:
+          type: integer
+          title: Min Canary Duration Seconds
+        max_canary_error_rate:
+          type: number
+          title: Max Canary Error Rate
+        grantable_capabilities:
+          items:
+            type: string
+          type: array
+          title: Grantable Capabilities
+        non_grantable_umbrella_controls:
+          items:
+            type: string
+          type: array
+          title: Non Grantable Umbrella Controls
+        activation_performed_by_this_service:
+          type: boolean
+          const: false
+          title: Activation Performed By This Service
+      type: object
+      required:
+      - schema_version
+      - policy_version
+      - default_decision
+      - required_evidence
+      - max_evidence_age_seconds
+      - max_clock_skew_seconds
+      - max_approval_validity_seconds
+      - min_canary_duration_seconds
+      - max_canary_error_rate
+      - grantable_capabilities
+      - non_grantable_umbrella_controls
+      - activation_performed_by_this_service
+      title: DecisionPolicy
+    DecisionReadback:
+      properties:
+        schema_version:
+          type: string
+          const: '1.0'
+          title: Schema Version
+        policy_version:
+          type: string
+          const: production-go-no-go.v1
+          title: Policy Version
+        decision_id:
+          type: string
+          title: Decision Id
+        decision:
+          type: string
+          enum:
+          - GO
+          - NO_GO
+          title: Decision
+        authoritative:
+          type: boolean
+          title: Authoritative
+        source:
+          type: string
+          enum:
+          - request
+          - evidence_store
+          title: Source
+        evaluated_at:
+          type: string
+          title: Evaluated At
+        requested_by:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Requested By
+        release:
+          anyOf:
+          - $ref: '#/components/schemas/ReleaseIdentity'
+          - type: 'null'
+        reasons:
+          items:
+            type: string
+          type: array
+          title: Reasons
+        evidence:
+          items:
+            $ref: '#/components/schemas/EvidenceAssessment'
+          type: array
+          title: Evidence
+        capabilities:
+          items:
+            $ref: '#/components/schemas/CapabilityDecision'
+          type: array
+          title: Capabilities
+        authorized_capabilities:
+          items:
+            type: string
+          type: array
+          title: Authorized Capabilities
+        denied_capabilities:
+          items:
+            type: string
+          type: array
+          title: Denied Capabilities
+        partial:
+          type: boolean
+          title: Partial
+        activation:
+          $ref: '#/components/schemas/ActivationState'
+      type: object
+      required:
+      - schema_version
+      - policy_version
+      - decision_id
+      - decision
+      - authoritative
+      - source
+      - evaluated_at
+      - requested_by
+      - release
+      - reasons
+      - evidence
+      - capabilities
+      - authorized_capabilities
+      - denied_capabilities
+      - partial
+      - activation
+      title: DecisionReadback
+      description: Response of every decision endpoint; ``activation`` is always inert.
+    DecisionRequest:
+      properties:
+        release:
+          $ref: '#/components/schemas/ReleaseIdentity'
+        requested_capabilities:
+          items:
+            type: string
+          type: array
+          maxItems: 32
+          minItems: 1
+          title: Requested Capabilities
+        evidence:
+          additionalProperties:
+            anyOf:
+            - type: object
+            - type: 'null'
+          type: object
+          title: Evidence
+      additionalProperties: false
+      type: object
+      required:
+      - release
+      - requested_capabilities
+      title: DecisionRequest
+      description: 'A release, the capabilities requested for it, and raw evidence.
+
+
+        Evidence values stay untyped here so that one malformed document is
+
+        reported as ``REJECTED`` for its kind instead of failing the whole call.'
     DeliveryResult:
       properties:
         callback_version:
@@ -17705,6 +18043,57 @@ components:
       - freshness
       - correlation_id
       title: Envelope
+    EvidenceAssessment:
+      properties:
+        kind:
+          type: string
+          title: Kind
+        status:
+          type: string
+          enum:
+          - ACCEPTED
+          - MISSING
+          - REJECTED
+          title: Status
+        reasons:
+          items:
+            type: string
+          type: array
+          title: Reasons
+        digest:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Digest
+        evidence_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Evidence Id
+        artifact_sha256:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Artifact Sha256
+        observed_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Observed At
+        invalid_fields:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Invalid Fields
+      type: object
+      required:
+      - kind
+      - status
+      - reasons
+      - digest
+      title: EvidenceAssessment
     FailureResult:
       properties:
         tenant_id:
@@ -19570,6 +19959,28 @@ components:
       - action
       - reason
       title: ReconciliationResolution
+    ReleaseIdentity:
+      properties:
+        source_sha:
+          type: string
+          pattern: ^[0-9a-f]{40}$
+          title: Source Sha
+        image_digest:
+          type: string
+          pattern: ^sha256:[0-9a-f]{64}$
+          title: Image Digest
+        schema_head:
+          type: string
+          maxLength: 200
+          minLength: 1
+          title: Schema Head
+      additionalProperties: false
+      type: object
+      required:
+      - source_sha
+      - image_digest
+      - schema_head
+      title: ReleaseIdentity
     ReplayRequest:
       properties:
         mode:
