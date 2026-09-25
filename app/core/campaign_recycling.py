@@ -379,6 +379,7 @@ class PolicyProfile:
     configured: bool
     production_authorized: bool
     channel_execution: Mapping[str, Mapping[str, Any]]
+    max_candidates_disclosed: int
 
     @classmethod
     def load(cls, profile: str, *, root: Path = ROOT) -> "PolicyProfile":
@@ -392,12 +393,22 @@ class PolicyProfile:
             raise CampaignRecyclingPolicyError(f"unknown policy profile {profile}")
         values = profiles[profile]["values"]
         configured = all(value is not None for value in _leaf_values(values))
+        max_candidates_disclosed = raw["decision"]["max_candidates_disclosed"]
+        if (
+            not isinstance(max_candidates_disclosed, int)
+            or isinstance(max_candidates_disclosed, bool)
+            or max_candidates_disclosed < 1
+        ):
+            raise CampaignRecyclingPolicyError(
+                "decision.max_candidates_disclosed must be a positive integer"
+            )
         return cls(
             policy_version=raw["policy_version"],
             values=values,
             configured=configured,
             production_authorized=raw["production"]["authorized"] is True,
             channel_execution=raw["channel_execution"],
+            max_candidates_disclosed=max_candidates_disclosed,
         )
 
 
@@ -416,6 +427,10 @@ class CampaignRecyclingEngine:
         evidence_stale_or_conflicting: bool = False,
     ) -> NextActionDecision:
         now = _utc(now or datetime.now(UTC))
+        if len(candidates) > self.policy.max_candidates_disclosed:
+            raise CampaignRecyclingPolicyError(
+                "candidate set exceeds decision.max_candidates_disclosed"
+            )
         ordered = sorted(
             candidates,
             key=lambda item: (

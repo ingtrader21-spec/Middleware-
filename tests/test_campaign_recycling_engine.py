@@ -16,6 +16,7 @@ from app.commands import (
 )
 from app.core.campaign_recycling import (
     CampaignRecyclingConflict,
+    CampaignRecyclingPolicyError,
     CampaignRecyclingIdempotencyConflict,
     CampaignRecyclingLifecycleConflict,
     CampaignRecyclingNotFound,
@@ -1366,3 +1367,19 @@ def test_delivery_payload_hash_excludes_received_at_and_itself() -> None:
     digest = delivery_event_payload_hash(event)
     assert digest == delivery_event_payload_hash({**event, "received_at": "x", "payload_hash": "y"})
     assert digest != delivery_event_payload_hash({**event, "event_type": "click"})
+
+
+def test_policy_loads_candidate_disclosure_limit() -> None:
+    assert PolicyProfile.load("test").max_candidates_disclosed == 200
+
+
+def test_candidate_set_above_disclosure_limit_fails_closed() -> None:
+    candidates = [
+        candidate(campaign_id=f"klyrow:cmp-{index:03d}", priority=index)
+        for index in range(201)
+    ]
+    with pytest.raises(
+        CampaignRecyclingPolicyError,
+        match="candidate set exceeds decision.max_candidates_disclosed",
+    ):
+        engine().evaluate(snapshot(), candidates, now=NOW)
