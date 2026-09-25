@@ -14,7 +14,9 @@ working.
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
+from uuid import UUID
 
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -23,6 +25,38 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from app.core.config import Settings, settings
+
+
+TENANT_CONTEXT_GUC = "app.tenant_id"
+
+
+def _canonical_tenant_id(tenant_id: str | UUID) -> str:
+    """Validate and normalize the tenant identifier used by PostgreSQL RLS."""
+    value = str(tenant_id).strip()
+    if not value:
+        raise ValueError("tenant_id is required")
+    try:
+        return str(UUID(value))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise ValueError("tenant_id must be a UUID") from exc
+
+
+async def set_transaction_tenant_context(
+    session: AsyncSession,
+    tenant_id: str | UUID,
+) -> str:
+    """Set the tenant identifier for the current PostgreSQL transaction only.
+
+    ``set_config(..., true)`` is PostgreSQL's transaction-local equivalent of
+    ``SET LOCAL``. The value is discarded on COMMIT/ROLLBACK, preventing
+    tenant context from leaking through pooled connections.
+    """
+    normalized = _canonical_tenant_id(tenant_id)
+    await session.execute(
+        text("SELECT set_config(:setting_name, :tenant_id, true)"),
+        {"setting_name": TENANT_CONTEXT_GUC, "tenant_id": normalized},
+    )
+    return normalized
 
 
 def _native_asyncpg_dsn(database_url: str) -> str:
