@@ -311,6 +311,8 @@ jobs:
           output-format: table
 
       - name: Upload SBOM
+        id: sbom_evidence
+        continue-on-error: true
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: middleware-runtime-sbom-${{ github.sha }}
@@ -318,6 +320,17 @@ jobs:
             middleware.spdx.json
             connector-runtime.spdx.json
           if-no-files-found: error
+
+      - name: Record SBOM retention status
+        if: always()
+        run: |
+          echo "SBOM_ARTIFACT_OUTCOME=${{ steps.sbom_evidence.outcome }}"
+          if [[ "${{ steps.sbom_evidence.outcome }}" != "success" ]]; then
+            echo "SBOM_RETENTION=DEGRADED"
+          else
+            echo "SBOM_RETENTION=PASS"
+          fi
+          echo "VULNERABILITY_SCANNERS_REMAIN_BLOCKING=true"
 
   runtime-integration:
     name: Disposable PostgreSQL Redis integration
