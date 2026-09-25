@@ -35,19 +35,18 @@ def test_core_v3_tables_are_explicit_tenant_owned():
         assert record.tenant_representation == "tenant_id_not_null"
 
 
-def test_verified_child_tables_are_classified_as_inherited_not_global():
+def test_verified_child_tables_are_explicit_after_pas86_remediation():
     records = {record.table: record for record in scan_tenant_inventory(ROOT)}
-    expected = {
-        "agent_provisioning_step": "agent_provisioning_request",
-        "agent_provisioning_audit": "agent_provisioning_request",
-        "callback_delivery": "callback_record",
-        "callback_popup_ack": "callback_record",
-    }
-    for table, parent in expected.items():
+    for table in (
+        "agent_provisioning_step",
+        "agent_provisioning_audit",
+        "callback_delivery",
+        "callback_popup_ack",
+    ):
         record = records[table]
-        assert record.ownership == "tenant_owned_inherited"
-        assert record.parent_table == parent
-        assert record.remediation
+        assert record.ownership == "tenant_owned"
+        assert record.tenant_representation == "tenant_id_not_null"
+        assert record.remediation is None
 
 
 def test_schema_migration_tables_are_global_metadata():
@@ -69,8 +68,10 @@ def test_unclassified_feature_tables_fail_closed_to_review_required():
         assert records[table].tenant_representation == "none_explicit"
 
 
-def test_remediation_list_includes_inherited_and_unclassified_tables():
+def test_remediation_list_excludes_pas86_resolved_children():
     items = {record.table for record in remediation_list(validate_inventory(ROOT))}
-    assert "agent_provisioning_step" in items
-    assert "callback_delivery" in items
+    assert "agent_provisioning_step" not in items
+    assert "agent_provisioning_audit" not in items
+    assert "callback_delivery" not in items
+    assert "callback_popup_ack" not in items
     assert "lead_automation_events" in items
