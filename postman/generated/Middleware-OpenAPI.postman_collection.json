@@ -12425,6 +12425,57 @@
     {
       "item": [
         {
+          "name": "List Adapters",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "adapters"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/adapters"
+            }
+          }
+        },
+        {
+          "name": "Get Adapter",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "adapters",
+                "{adapter_id}"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/adapters/{adapter_id}"
+            }
+          }
+        },
+        {
           "name": "Submit Command",
           "request": {
             "body": {
@@ -12460,6 +12511,168 @@
               ],
               "query": [],
               "raw": "{{base_url}}/platform/v1/commands"
+            }
+          }
+        },
+        {
+          "name": "Get Operation",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "commands",
+                "{operation_id}"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/commands/{operation_id}"
+            }
+          }
+        },
+        {
+          "name": "Get Timeline",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "commands",
+                "{operation_id}",
+                "history"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/commands/{operation_id}/history"
+            }
+          }
+        },
+        {
+          "name": "Replay Operation",
+          "request": {
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"expected_version\": 0,\n  \"mode\": \"\",\n  \"new_idempotency_key\": \"\",\n  \"reason\": \"\"\n}"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "type": "text",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "commands",
+                "{operation_id}",
+                "replay"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/commands/{operation_id}/replay"
+            }
+          }
+        },
+        {
+          "name": "Get Command Result",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "commands",
+                "{operation_id}",
+                "result"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/commands/{operation_id}/result"
+            }
+          }
+        },
+        {
+          "name": "Retry Command",
+          "request": {
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"expected_version\": 0,\n  \"reason\": \"\"\n}"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "type": "text",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "commands",
+                "{operation_id}",
+                "retry"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/commands/{operation_id}/retry"
             }
           }
         },
@@ -12651,6 +12864,78 @@
           }
         },
         {
+          "name": "List Dead Letters",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "dead-letters"
+              ],
+              "query": [
+                {
+                  "disabled": true,
+                  "key": "limit",
+                  "value": "{{limit}}"
+                }
+              ],
+              "raw": "{{base_url}}/platform/v1/dead-letters"
+            }
+          }
+        },
+        {
+          "name": "Redrive Dead Letter",
+          "request": {
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"expected_version\": 0,\n  \"reason\": \"\"\n}"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "type": "text",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "dead-letters",
+                "{operation_id}",
+                "redrive"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/dead-letters/{operation_id}/redrive"
+            }
+          }
+        },
+        {
           "name": "Describe Kernel",
           "request": {
             "header": [
@@ -12808,6 +13093,58 @@
               ],
               "query": [],
               "raw": "{{base_url}}/platform/v1/operations/{operation_id}/timeline"
+            }
+          }
+        },
+        {
+          "name": "Scan Reconciliation",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "POST",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "reconciliation",
+                "scan"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/reconciliation/scan"
+            }
+          }
+        },
+        {
+          "name": "Get Reconciliation",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "reconciliation",
+                "{operation_id}"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/reconciliation/{operation_id}"
             }
           }
         }

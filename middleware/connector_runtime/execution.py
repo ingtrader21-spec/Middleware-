@@ -63,6 +63,7 @@ class ExecutionContext:
     effects_allowed: bool = False
     operation_snapshot: Mapping[str, Any] = field(default_factory=dict)
     payload: Mapping[str, Any] = field(default_factory=dict)
+    http: Any = None
 
 @dataclass(frozen=True, slots=True)
 class ConnectorCapability:

@@ -169,6 +169,7 @@ def _adapter_context(
         trace_context={},
         test_syn=context.tenant_id == "TEST_SYN",
         payload=dict(payload or context.payload),
+        http=context.http,
     )
 
 
@@ -240,6 +241,7 @@ def execution_context(
             operation.model_dump(mode="json") if operation is not None else {}
         ),
         payload=dict(adapter_context.payload),
+        http=adapter_context.http,
     )
 
 

@@ -109,7 +109,8 @@ def test_whatsapp_capability_is_registered_but_off_by_default(test_settings):
     assert policy.capability == "WHATSAPP_DELIVERY"
     assert policies.capabilities["WHATSAPP_DELIVERY"] is False
 
-    adapters = provider_adapters(test_settings, http=None)
+    configured = test_settings.replace(evolution_whatsapp_base_url="https://evolution.internal", evolution_whatsapp_service_token="test-token")
+    adapters = provider_adapters(configured, http=None)
     evolution = next(item for item in adapters if item.adapter_id == "evolution-whatsapp")
     advertised = evolution.capabilities()
     assert advertised.connector_ids == ("evolution-whatsapp",)

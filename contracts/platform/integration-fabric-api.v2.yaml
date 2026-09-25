@@ -1673,6 +1673,76 @@ paths:
           description: Required durable dependency unavailable
       security:
       - bearerAuth: []
+  /platform/v1/adapters:
+    get:
+      tags:
+      - platform-command-kernel
+      summary: List Adapters
+      operationId: list_adapters_platform_v1_adapters_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdapterReadback'
+        '400':
+          description: Invalid canonical request
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+      security:
+      - bearerAuth: []
+  /platform/v1/adapters/{adapter_id}:
+    get:
+      tags:
+      - platform-command-kernel
+      summary: Get Adapter
+      operationId: get_adapter_platform_v1_adapters__adapter_id__get
+      parameters:
+      - name: adapter_id
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 100
+          pattern: ^[a-z0-9]+(?:-[a-z0-9]+)*$
+          title: Adapter Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdapterDetail'
+        '400':
+          description: Invalid canonical request
+          content:
+            application/json:
+              schema: *id001
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+      security:
+      - bearerAuth: []
   /v2/automation/jobs/claim:
     post:
       tags:
@@ -16494,6 +16564,233 @@ paths:
       - *id004
 components:
   schemas:
+    AdapterDetail:
+      properties:
+        environment:
+          type: string
+          title: Environment
+        registration_mode:
+          type: string
+          title: Registration Mode
+        registry_valid:
+          type: boolean
+          title: Registry Valid
+        provider_effects_enabled:
+          type: boolean
+          title: Provider Effects Enabled
+        adapter:
+          $ref: '#/components/schemas/AdapterRow'
+        capabilities:
+          additionalProperties:
+            $ref: '#/components/schemas/CapabilityState'
+          type: object
+          title: Capabilities
+      additionalProperties: false
+      type: object
+      required:
+      - environment
+      - registration_mode
+      - registry_valid
+      - provider_effects_enabled
+      - adapter
+      - capabilities
+      title: AdapterDetail
+    AdapterReadback:
+      properties:
+        environment:
+          type: string
+          title: Environment
+        source_sha:
+          type: string
+          title: Source Sha
+        registration_mode:
+          type: string
+          title: Registration Mode
+        registration:
+          anyOf:
+          - $ref: '#/components/schemas/RegistrationEvidence'
+          - type: 'null'
+        registry_valid:
+          type: boolean
+          title: Registry Valid
+        registry_error:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Registry Error
+        adapters:
+          items:
+            $ref: '#/components/schemas/AdapterRow'
+          type: array
+          title: Adapters
+        capabilities:
+          additionalProperties:
+            $ref: '#/components/schemas/CapabilityState'
+          type: object
+          title: Capabilities
+        unknown_capabilities:
+          items:
+            type: string
+          type: array
+          title: Unknown Capabilities
+        effectful_capabilities_enabled:
+          items:
+            type: string
+          type: array
+          title: Effectful Capabilities Enabled
+        provider_effects_enabled:
+          type: boolean
+          title: Provider Effects Enabled
+        readiness:
+          $ref: '#/components/schemas/AdapterReadinessEvidence'
+      additionalProperties: false
+      type: object
+      required:
+      - environment
+      - source_sha
+      - registration_mode
+      - registration
+      - registry_valid
+      - registry_error
+      - adapters
+      - capabilities
+      - unknown_capabilities
+      - effectful_capabilities_enabled
+      - provider_effects_enabled
+      - readiness
+      title: AdapterReadback
+    AdapterReadinessEvidence:
+      properties:
+        adapter_registry:
+          type: boolean
+          title: Adapter Registry
+        platform_adapters:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Platform Adapters
+        probed_adapter_ids:
+          items:
+            type: string
+          type: array
+          title: Probed Adapter Ids
+      additionalProperties: false
+      type: object
+      required:
+      - adapter_registry
+      - platform_adapters
+      - probed_adapter_ids
+      title: AdapterReadinessEvidence
+    AdapterRegistrationRow:
+      properties:
+        adapter_id:
+          type: string
+          title: Adapter Id
+        provider_family:
+          type: string
+          title: Provider Family
+        connector_ids:
+          items:
+            type: string
+          type: array
+          title: Connector Ids
+        capabilities:
+          items:
+            type: string
+          type: array
+          title: Capabilities
+        registered:
+          type: boolean
+          title: Registered
+        reason:
+          type: string
+          title: Reason
+      additionalProperties: false
+      type: object
+      required:
+      - adapter_id
+      - provider_family
+      - connector_ids
+      - capabilities
+      - registered
+      - reason
+      title: AdapterRegistrationRow
+    AdapterRow:
+      properties:
+        adapter_id:
+          type: string
+          title: Adapter Id
+        provider_family:
+          type: string
+          title: Provider Family
+        connector_ids:
+          items:
+            type: string
+          type: array
+          title: Connector Ids
+        capabilities:
+          items:
+            type: string
+          type: array
+          title: Capabilities
+        registered:
+          type: boolean
+          title: Registered
+        reason:
+          type: string
+          title: Reason
+        command_prefixes:
+          items:
+            type: string
+          type: array
+          title: Command Prefixes
+        capability_states:
+          additionalProperties:
+            type: boolean
+          type: object
+          title: Capability States
+        version:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Version
+        supports_readback:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Supports Readback
+        supports_cancel:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Supports Cancel
+        supports_status:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Supports Status
+        safe_reexecution:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Safe Reexecution
+        external_effect:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: External Effect
+      additionalProperties: false
+      type: object
+      required:
+      - adapter_id
+      - provider_family
+      - connector_ids
+      - capabilities
+      - registered
+      - reason
+      - command_prefixes
+      - capability_states
+      title: AdapterRow
     ApprovalRequest:
       properties:
         tenant_id:
@@ -17356,6 +17653,30 @@ components:
       - expected_version
       - reason
       title: CancelRequest
+    CapabilityState:
+      properties:
+        known:
+          type: boolean
+          title: Known
+        enabled:
+          type: boolean
+          title: Enabled
+        classification:
+          type: string
+          title: Classification
+        adapter_ids:
+          items:
+            type: string
+          type: array
+          title: Adapter Ids
+      additionalProperties: false
+      type: object
+      required:
+      - known
+      - enabled
+      - classification
+      - adapter_ids
+      title: CapabilityState
     Change:
       properties:
         expected_version:
@@ -20280,6 +20601,36 @@ components:
       - action
       - final_state
       title: ReconciliationScanResponse
+    RegistrationEvidence:
+      properties:
+        manifest_version:
+          type: string
+          title: Manifest Version
+        activation_authorized:
+          type: boolean
+          title: Activation Authorized
+        refused:
+          type: boolean
+          title: Refused
+        violations:
+          items:
+            type: string
+          type: array
+          title: Violations
+        adapters:
+          items:
+            $ref: '#/components/schemas/AdapterRegistrationRow'
+          type: array
+          title: Adapters
+      additionalProperties: false
+      type: object
+      required:
+      - manifest_version
+      - activation_authorized
+      - refused
+      - violations
+      - adapters
+      title: RegistrationEvidence
     ReplayRequest:
       properties:
         mode:

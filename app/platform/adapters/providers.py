@@ -468,7 +468,6 @@ def _try(name: str, build: Callable[[], BaseAdapter]) -> BaseAdapter | None:
 def provider_adapters(settings: Settings, *, http: httpx.AsyncClient | None) -> tuple[BaseAdapter, ...]:
     """The real provider adapters, each registered only when it validates."""
     from app.calling_contract import HANGUP, ORIGINATE
-    from app.platform.adapters.communications import EvolutionWhatsAppAdapter, SyntheticCommunicationSink
     from app.klyrow_email_adapter import KlyrowEmailAdapter, KlyrowEmailAdapterError
     from app.odoo_provider_adapter import OdooProviderAdapter, OdooProviderAdapterError
     from app.postly_social_adapter import PostlySocialAdapter, PostlySocialAdapterError
@@ -538,16 +537,6 @@ def provider_adapters(settings: Settings, *, http: httpx.AsyncClient | None) -> 
                 supported_command_types=frozenset({ORIGINATE, HANGUP}),
                 rejected_errors=(VicidialInternalCallPreDispatchRejected,),
                 required_settings=("VICIDIAL_INTERNAL_CALL_BASE_URL", "VICIDIAL_INTERNAL_CALL_SERVICE_IDENTITY", "VICIDIAL_INTERNAL_CALL_HMAC_FILE"),
-            ),
-        ),
-        (
-            "evolution-whatsapp",
-            lambda: EvolutionWhatsAppAdapter(
-                synthetic=(
-                    SyntheticCommunicationSink("evolution")
-                    if str(getattr(settings, "app_env", "")).lower() in {"development", "test"}
-                    else None
-                ),
             ),
         ),
         (

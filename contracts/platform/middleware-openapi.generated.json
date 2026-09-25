@@ -1,6 +1,346 @@
 {
   "components": {
     "schemas": {
+      "AdapterDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "adapter": {
+            "$ref": "#/components/schemas/AdapterRow"
+          },
+          "capabilities": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/CapabilityState"
+            },
+            "title": "Capabilities",
+            "type": "object"
+          },
+          "environment": {
+            "title": "Environment",
+            "type": "string"
+          },
+          "provider_effects_enabled": {
+            "title": "Provider Effects Enabled",
+            "type": "boolean"
+          },
+          "registration_mode": {
+            "title": "Registration Mode",
+            "type": "string"
+          },
+          "registry_valid": {
+            "title": "Registry Valid",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "environment",
+          "registration_mode",
+          "registry_valid",
+          "provider_effects_enabled",
+          "adapter",
+          "capabilities"
+        ],
+        "title": "AdapterDetail",
+        "type": "object"
+      },
+      "AdapterReadback": {
+        "additionalProperties": false,
+        "properties": {
+          "adapters": {
+            "items": {
+              "$ref": "#/components/schemas/AdapterRow"
+            },
+            "title": "Adapters",
+            "type": "array"
+          },
+          "capabilities": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/CapabilityState"
+            },
+            "title": "Capabilities",
+            "type": "object"
+          },
+          "effectful_capabilities_enabled": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Effectful Capabilities Enabled",
+            "type": "array"
+          },
+          "environment": {
+            "title": "Environment",
+            "type": "string"
+          },
+          "provider_effects_enabled": {
+            "title": "Provider Effects Enabled",
+            "type": "boolean"
+          },
+          "readiness": {
+            "$ref": "#/components/schemas/AdapterReadinessEvidence"
+          },
+          "registration": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RegistrationEvidence"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "registration_mode": {
+            "title": "Registration Mode",
+            "type": "string"
+          },
+          "registry_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Registry Error"
+          },
+          "registry_valid": {
+            "title": "Registry Valid",
+            "type": "boolean"
+          },
+          "source_sha": {
+            "title": "Source Sha",
+            "type": "string"
+          },
+          "unknown_capabilities": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Unknown Capabilities",
+            "type": "array"
+          }
+        },
+        "required": [
+          "environment",
+          "source_sha",
+          "registration_mode",
+          "registration",
+          "registry_valid",
+          "registry_error",
+          "adapters",
+          "capabilities",
+          "unknown_capabilities",
+          "effectful_capabilities_enabled",
+          "provider_effects_enabled",
+          "readiness"
+        ],
+        "title": "AdapterReadback",
+        "type": "object"
+      },
+      "AdapterReadinessEvidence": {
+        "additionalProperties": false,
+        "properties": {
+          "adapter_registry": {
+            "title": "Adapter Registry",
+            "type": "boolean"
+          },
+          "platform_adapters": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Platform Adapters"
+          },
+          "probed_adapter_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Probed Adapter Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "adapter_registry",
+          "platform_adapters",
+          "probed_adapter_ids"
+        ],
+        "title": "AdapterReadinessEvidence",
+        "type": "object"
+      },
+      "AdapterRegistrationRow": {
+        "additionalProperties": false,
+        "properties": {
+          "adapter_id": {
+            "title": "Adapter Id",
+            "type": "string"
+          },
+          "capabilities": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Capabilities",
+            "type": "array"
+          },
+          "connector_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Connector Ids",
+            "type": "array"
+          },
+          "provider_family": {
+            "title": "Provider Family",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "registered": {
+            "title": "Registered",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "adapter_id",
+          "provider_family",
+          "connector_ids",
+          "capabilities",
+          "registered",
+          "reason"
+        ],
+        "title": "AdapterRegistrationRow",
+        "type": "object"
+      },
+      "AdapterRow": {
+        "additionalProperties": false,
+        "properties": {
+          "adapter_id": {
+            "title": "Adapter Id",
+            "type": "string"
+          },
+          "capabilities": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Capabilities",
+            "type": "array"
+          },
+          "capability_states": {
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "title": "Capability States",
+            "type": "object"
+          },
+          "command_prefixes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Command Prefixes",
+            "type": "array"
+          },
+          "connector_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Connector Ids",
+            "type": "array"
+          },
+          "external_effect": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "External Effect"
+          },
+          "provider_family": {
+            "title": "Provider Family",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "registered": {
+            "title": "Registered",
+            "type": "boolean"
+          },
+          "safe_reexecution": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Safe Reexecution"
+          },
+          "supports_cancel": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supports Cancel"
+          },
+          "supports_readback": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supports Readback"
+          },
+          "supports_status": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supports Status"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          }
+        },
+        "required": [
+          "adapter_id",
+          "provider_family",
+          "connector_ids",
+          "capabilities",
+          "registered",
+          "reason",
+          "command_prefixes",
+          "capability_states"
+        ],
+        "title": "AdapterRow",
+        "type": "object"
+      },
       "ApprovalRequest": {
         "additionalProperties": false,
         "properties": {
@@ -1179,6 +1519,38 @@
           "reason"
         ],
         "title": "CancelRequest",
+        "type": "object"
+      },
+      "CapabilityState": {
+        "additionalProperties": false,
+        "properties": {
+          "adapter_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Adapter Ids",
+            "type": "array"
+          },
+          "classification": {
+            "title": "Classification",
+            "type": "string"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "known": {
+            "title": "Known",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "known",
+          "enabled",
+          "classification",
+          "adapter_ids"
+        ],
+        "title": "CapabilityState",
         "type": "object"
       },
       "Change": {
@@ -5329,6 +5701,46 @@
           "final_state"
         ],
         "title": "ReconciliationScanResponse",
+        "type": "object"
+      },
+      "RegistrationEvidence": {
+        "additionalProperties": false,
+        "properties": {
+          "activation_authorized": {
+            "title": "Activation Authorized",
+            "type": "boolean"
+          },
+          "adapters": {
+            "items": {
+              "$ref": "#/components/schemas/AdapterRegistrationRow"
+            },
+            "title": "Adapters",
+            "type": "array"
+          },
+          "manifest_version": {
+            "title": "Manifest Version",
+            "type": "string"
+          },
+          "refused": {
+            "title": "Refused",
+            "type": "boolean"
+          },
+          "violations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Violations",
+            "type": "array"
+          }
+        },
+        "required": [
+          "manifest_version",
+          "activation_authorized",
+          "refused",
+          "violations",
+          "adapters"
+        ],
+        "title": "RegistrationEvidence",
         "type": "object"
       },
       "ReplayRequest": {
@@ -16783,6 +17195,152 @@
         "summary": "Get Activity",
         "tags": [
           "activity"
+        ]
+      }
+    },
+    "/platform/v1/adapters": {
+      "get": {
+        "operationId": "list_adapters_platform_v1_adapters_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdapterReadback"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "description": "Invalid canonical request"
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "403": {
+            "description": "Scope or tenant denied"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Version, state, or idempotency conflict"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Required durable dependency unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List Adapters",
+        "tags": [
+          "platform-command-kernel"
+        ]
+      }
+    },
+    "/platform/v1/adapters/{adapter_id}": {
+      "get": {
+        "operationId": "get_adapter_platform_v1_adapters__adapter_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "adapter_id",
+            "required": true,
+            "schema": {
+              "maxLength": 100,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "title": "Adapter Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdapterDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "correlation_id": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "object"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "retryable": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "correlation_id",
+                        "retryable",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Invalid canonical request"
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "403": {
+            "description": "Scope or tenant denied"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Version, state, or idempotency conflict"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Required durable dependency unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get Adapter",
+        "tags": [
+          "platform-command-kernel"
         ]
       }
     },
