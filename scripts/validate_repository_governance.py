@@ -26,12 +26,12 @@ INDEPENDENT_REVIEWER_ID = 77101516
 TRUSTED_PULL_REQUEST_TARGET_WORKFLOWS = {
     "production-orchestrator-contract.yml": frozenset(
         {
-            "5e968a824d9738ac8237dfd677bae1091aaecfe73f3f98d0c6c63f07a503968f",
+            "b639ed5e5022b70939315c681fb7725531ba5cd8442934eb497ce5aeeb36f98a",
         }
     ),
     "trusted-production-orchestrator-gate.yml": frozenset(
         {
-            "24b766af40ad1deb6c47fe1f667ed93b29e556abdacce88d6c3daf527f4f902e",
+            "3860a5f3759b83432ac3b3aca99d90730104ec339a9135c62c9d35ebb752b7af",
         }
     ),
 }

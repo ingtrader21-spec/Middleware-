@@ -17,7 +17,7 @@ concurrency:
 jobs:
   validate:
     name: orchestrator-contract
-    runs-on: [self-hosted, Linux, X64, middleware-ci]
+    runs-on: ${{ (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON('["self-hosted","Linux","X64","middleware-ci"]') || 'ubuntu-24.04' }}
     timeout-minutes: 10
     env:
       EXPECTED_SHA: ${{ (github.event_name == 'pull_request_target' || github.event_name == 'pull_request') && github.event.pull_request.head.sha || github.sha }}
