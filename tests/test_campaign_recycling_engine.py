@@ -10,8 +10,6 @@ from app.core.campaign_recycling import (
     LeadSnapshot,
     PolicyProfile,
     Suppression,
-    canonical_digest,
-    delivery_event_payload_hash,
     next_action_document,
 )
 from scripts.validate_campaign_recycling_contracts import load_artifacts, validator_for
