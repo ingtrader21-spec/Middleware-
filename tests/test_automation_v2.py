@@ -179,6 +179,9 @@ async def test_all_thirteen_v2_routes_are_mounted(test_settings) -> None:
         "POST /v2/automation/dead-letters/{dead_letter_id}/replay",
         "POST /v2/automation/jobs/reconcile",
         "GET /v2/automation/capabilities/{capability}",
+        "GET /v2/automation/executions/{job_id}",
+        "GET /v2/automation/executions/{job_id}/result",
+        "POST /v2/automation/executions/{job_id}/cancel",
     }
 
 
