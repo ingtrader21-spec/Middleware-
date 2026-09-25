@@ -1,11 +1,17 @@
 #!/usr/bin/env bash
 # Local Linux re-execution of every PR-triggered workflow of ingtrader21-spec/Infustruction-repo
 # on exact head 60eff4c3ea848a202561412610728000de299f29, mirroring the workflow env.
+#
+# Inputs: PAS179_ROOT (default ~/pas179) holds infra/ (a clean Infustruction-repo clone at HEAD),
+# venv/ and gitleaks; POLICY_PR_JSON is the GitHub API JSON of PR #126
+# (gh api repos/ingtrader21-spec/Infustruction-repo/pulls/126).
 set -Eeuo pipefail
-cd ~/pas179/infra
+SP=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+W=${PAS179_ROOT:-$HOME/pas179}
+POLICY_PR_JSON=$(realpath "${POLICY_PR_JSON:?PR #126 API JSON is required}")
+cd "$W/infra"
 HEAD=60eff4c3ea848a202561412610728000de299f29
 BASE=9d32d421c8272ef33b7a442ac81617bea6d16897
-SP=/mnt/c/Users/agent/AppData/Local/Temp/claude/c--Users-agent-Documents-GitHub-Middleware-/e00a5012-e026-4a9d-9dc3-e96f0eb1a009/scratchpad/wsl
 test "$(git rev-parse HEAD)" = "$HEAD"
 test -z "$(git status --porcelain)"
 export GITHUB_REPOSITORY=ingtrader21-spec/Infustruction-repo
@@ -15,21 +21,24 @@ export GITHUB_REF=refs/pull/126/merge
 export GITHUB_SHA=$HEAD
 export EXPECTED_SHA=$HEAD
 export COMPARISON_SHA=$BASE
-export RUNNER_TEMP=$HOME/pas179/runner-temp
+export RUNNER_TEMP=$W/runner-temp
 rm -rf "$RUNNER_TEMP"; mkdir -p "$RUNNER_TEMP"
 export GITHUB_ENV=$RUNNER_TEMP/github.env; : > "$GITHUB_ENV"
 export GITHUB_OUTPUT=$RUNNER_TEMP/github.output; : > "$GITHUB_OUTPUT"
-if [ ! -x ~/pas179/venv/bin/python ]; then
-  python3 -m venv ~/pas179/venv
-  ~/pas179/venv/bin/pip install -q --disable-pip-version-check PyYAML==6.0.3 pytest==8.4.2
+if [ ! -x "$W"/venv/bin/python ]; then
+  python3 -m venv "$W"/venv
+  "$W"/venv/bin/pip install -q --disable-pip-version-check PyYAML==6.0.3 pytest==8.4.2
 fi
-PY=~/pas179/venv/bin/python
+PY="$W"/venv/bin/python
 $PY --version
 declare -A RESULT
 run_check() { # name, command...
-  local name=$1; shift
+  # errexit is suspended for a function called as an `if` condition, so the check runs in a
+  # plain subshell with errexit re-armed: any failing command fails the check, not only the last.
+  local name=$1 rc; shift
   echo; echo "################ $name"
-  if "$@"; then RESULT[$name]=PASS; else RESULT[$name]="FAIL($?)"; fi
+  set +e; ( set -Eeuo pipefail; "$@" ); rc=$?; set -e
+  if [ "$rc" -eq 0 ]; then RESULT[$name]=PASS; else RESULT[$name]="FAIL($rc)"; fi
 }
 
 # 1 Validate upstream signing identity
@@ -74,12 +83,12 @@ sam() {
   local GITLEAKS_VERSION=8.30.1
   local GITLEAKS_SHA256=551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
   local archive="${RUNNER_TEMP}/gitleaks.tar.gz"
-  if [ ! -x ~/pas179/gitleaks ]; then
+  if [ ! -x "$W"/gitleaks ]; then
     curl --fail --silent --show-error --location "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" --output "${archive}"
     echo "${GITLEAKS_SHA256}  ${archive}" | sha256sum --check -
-    tar -xzf "${archive}" -C ~/pas179 gitleaks
+    tar -xzf "${archive}" -C "$W" gitleaks
   fi
-  cp ~/pas179/gitleaks "${RUNNER_TEMP}/gitleaks"
+  cp "$W"/gitleaks "${RUNNER_TEMP}/gitleaks"
   mkdir -p "${RUNNER_TEMP}/tracked-source"
   git archive HEAD | tar -x -C "${RUNNER_TEMP}/tracked-source"
   (cd "${RUNNER_TEMP}/tracked-source" && "${RUNNER_TEMP}/gitleaks" dir --config .gitleaks.toml --no-banner --redact --exit-code 1 . 2>&1 | tail -4)
@@ -120,11 +129,10 @@ run_check "repository-name-authority" rna
 rpr() {
   git worktree remove --force "$RUNNER_TEMP/policy" 2>/dev/null || true
   git worktree add -q --detach "$RUNNER_TEMP/policy" "$BASE"
-  cp "$SP/policy-pr.json" "$RUNNER_TEMP/policy-pr.json"
+  cp "$POLICY_PR_JSON" "$RUNNER_TEMP/policy-pr.json"
   ( cd "$RUNNER_TEMP" && GITHUB_SHA=$BASE PR_NUMBER=126 BASE_SHA=$BASE python3 -I policy/scripts/validate_release_policy_review.py --base-root policy --base-sha "$BASE" --pr-number 126 --pr "$RUNNER_TEMP/policy-pr.json" --prepare )
 }
-echo; echo "################ independent-release-policy-review (main's validator, real PR #126 JSON)"
-if rpr; then RESULT[independent-release-policy-review]=PASS; else RESULT[independent-release-policy-review]="FAIL($?)"; fi
+run_check "independent-release-policy-review" rpr
 
 echo; echo "=================== SUMMARY on $HEAD"
 for k in "${!RESULT[@]}"; do printf "%-45s %s\n" "$k" "${RESULT[$k]}"; done | sort
