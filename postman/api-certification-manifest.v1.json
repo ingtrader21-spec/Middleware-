@@ -25,7 +25,7 @@
   },
   "postman": {
     "path": "postman/generated/Middleware-OpenAPI.postman_collection.json",
-    "sha256": "ef217d9e698128dc19fdc557b187102435f44f160fdb751f62739fce217c2e94",
+    "sha256": "ffd62028bf25862c793415c656c2d1c0c3b1413935ebab19899ce31504debeb7",
     "generator": "scripts/generate_postman.py"
   },
   "private_exposure": {

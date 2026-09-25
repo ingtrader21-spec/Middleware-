@@ -79,3 +79,38 @@ def test_api_postman_certification_manifest_matches_committed_authority() -> Non
         "production_effects": 0,
         "production_go": "NO",
     }
+
+
+def _walk_postman_items(items):
+    for item in items:
+        if "request" in item:
+            yield item
+        yield from _walk_postman_items(item.get("item", []))
+
+
+def test_generated_postman_is_safe_by_default_and_assertive() -> None:
+    collection, _ = build_postman()
+    variables = {row["key"]: row.get("value") for row in collection["variable"]}
+    assert variables["allow_mutating_requests"] == "false"
+
+    requests = list(_walk_postman_items(collection["item"]))
+    assert requests
+    for item in requests:
+        method = item["request"]["method"]
+        events = item.get("event", [])
+        assert any(event.get("listen") == "test" for event in events), item["name"]
+        if method not in {"GET", "HEAD", "OPTIONS"}:
+            prerequest = [event for event in events if event.get("listen") == "prerequest"]
+            assert prerequest, item["name"]
+            source = "\n".join(prerequest[0]["script"]["exec"])
+            assert "allow_mutating_requests" in source
+            assert "skipRequest" in source
+
+
+def test_db_public_exposure_checks_distinguish_local_from_edge() -> None:
+    collection = json.loads((ROOT / "postman/collections/Middleware-V3-Database-Certification.postman_collection.json").read_text(encoding="utf-8"))
+    folder = next(row for row in collection["item"] if row["name"].startswith("05 "))
+    for item in folder["item"]:
+        source = "\n".join(item["event"][0]["script"]["exec"])
+        assert "localProfile" in source
+        assert "[401,403,404]" in source

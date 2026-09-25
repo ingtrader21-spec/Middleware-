@@ -117,12 +117,41 @@ def _request(doc: dict[str, Any], path: str, method: str, op: dict[str, Any]) ->
                 "value": "application/json",
                 "type": "text",
             })
-    return {
+    item = {
         "name": op.get("summary")
         or op.get("operationId")
         or f"{method.upper()} {path}",
         "request": request,
     }
+    events = []
+    if method.lower() not in {"get", "head", "options"}:
+        events.append({
+            "listen": "prerequest",
+            "script": {
+                "type": "text/javascript",
+                "exec": [
+                    "if (pm.collectionVariables.get('allow_mutating_requests') !== 'true') {",
+                    "  pm.execution.skipRequest();",
+                    "}",
+                ],
+            },
+        })
+    exact_200 = path in {
+        "/health", "/health/live", "/health/ready", "/healthz", "/readyz"
+    }
+    test_exec = [
+        "pm.test('response received', () => pm.expect(pm.response).to.exist);",
+    ]
+    if exact_200:
+        test_exec.append("pm.test('health endpoint 200', () => pm.response.to.have.status(200));")
+    else:
+        test_exec.append("pm.test('no server error', () => pm.expect(pm.response.code).to.be.below(500));")
+    events.append({
+        "listen": "test",
+        "script": {"type": "text/javascript", "exec": test_exec},
+    })
+    item["event"] = events
+    return item
 
 
 def build() -> tuple[dict[str, Any], str]:
@@ -158,6 +187,7 @@ def build() -> tuple[dict[str, Any], str]:
             {"key": "bearer_token", "value": ""},
             {"key": "db_read_token", "value": ""},
             {"key": "db_verify_token", "value": ""},
+            {"key": "allow_mutating_requests", "value": "false"},
         ],
         "item": [
             {"name": tag, "item": groups[tag]}
