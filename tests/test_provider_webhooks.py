@@ -8,7 +8,12 @@ import pytest
 from fastapi import HTTPException, Response
 
 from app.api.v1 import provider_webhooks
-from app.db.models import IntegrationDelivery, OdooResultDelivery, OutboxEvent
+from app.db.models import (
+    AuditEvent,
+    IntegrationDelivery,
+    OdooResultDelivery,
+    OutboxEvent,
+)
 
 
 VICIDIAL = {
@@ -285,4 +290,167 @@ async def test_changed_payload_for_existing_event_is_rejected(monkeypatch):
             session,
         )
     assert raised.value.status_code == 409
+    assert session.rollbacks == 1
+
+
+# PAS-65 fail-closed coverage: every rejection below happens before any
+# durable write, so the fake session must stay untouched.
+
+TELNEXA = {
+    "message_id": "sms-pas65-001",
+    "from": "+15555550199",
+    "body": "Hello",
+    "received_at": "2026-09-24T06:00:00Z",
+}
+
+
+class RawRequest(Request):
+    def __init__(self, raw: bytes):
+        self.raw = raw
+        self.headers = {"content-type": "application/json"}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("handler", "secret_name", "payload"),
+    [
+        ("vicidial_call_result", "vicidial_webhook_secret", VICIDIAL),
+        ("telnexa_inbound_sms", "telnexa_webhook_secret", TELNEXA),
+    ],
+)
+async def test_unconfigured_secret_fails_closed(monkeypatch, handler, secret_name, payload):
+    request = Request(payload)
+    session = Session()
+    monkeypatch.setattr(provider_webhooks.settings, secret_name, "")
+    with pytest.raises(HTTPException) as raised:
+        await getattr(provider_webhooks, handler)(
+            request, Response(), signature(request, ""), timestamp(), session
+        )
+    assert raised.value.status_code == 503
+    assert session.added == [] and session.commits == 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("supplied", [None, "", "sha256=", "abc", "g" * 64])
+async def test_missing_or_malformed_signature_is_rejected(monkeypatch, supplied):
+    session = Session()
+    monkeypatch.setattr(provider_webhooks.settings, "vicidial_webhook_secret", "v" * 32)
+    with pytest.raises(HTTPException) as raised:
+        await provider_webhooks.vicidial_call_result(
+            Request(VICIDIAL), Response(), supplied, timestamp(), session
+        )
+    assert raised.value.status_code == 403
+    assert session.added == []
+
+
+@pytest.mark.asyncio
+async def test_signature_for_another_provider_secret_is_rejected(monkeypatch):
+    request = Request(TELNEXA)
+    session = Session()
+    monkeypatch.setattr(provider_webhooks.settings, "telnexa_webhook_secret", "t" * 32)
+    monkeypatch.setattr(provider_webhooks.settings, "vicidial_webhook_secret", "v" * 32)
+    with pytest.raises(HTTPException) as raised:
+        await provider_webhooks.telnexa_inbound_sms(
+            request, Response(), signature(request, "v" * 32), timestamp(), session
+        )
+    assert raised.value.status_code == 403
+    assert session.added == []
+
+
+@pytest.mark.asyncio
+async def test_non_integer_timestamp_is_rejected(monkeypatch):
+    request = Request(VICIDIAL)
+    monkeypatch.setattr(provider_webhooks.settings, "vicidial_webhook_secret", "v" * 32)
+    with pytest.raises(HTTPException) as raised:
+        await provider_webhooks.vicidial_call_result(
+            request,
+            Response(),
+            signature(request, "v" * 32, "not-a-number"),
+            "not-a-number",
+            Session(),
+        )
+    assert raised.value.status_code == 403
+    assert raised.value.detail == "webhook timestamp is invalid"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "raw",
+    [
+        b"{not json",
+        json.dumps({**VICIDIAL, "tenant_id": "other"}).encode(),
+        json.dumps({**VICIDIAL, "phone_number": "5555550199"}).encode(),
+        json.dumps({k: v for k, v in VICIDIAL.items() if k != "call_id"}).encode(),
+    ],
+    ids=["malformed", "unknown-field", "non-e164", "missing-id"],
+)
+async def test_signed_but_invalid_payload_is_rejected(monkeypatch, raw):
+    request = RawRequest(raw)
+    session = Session()
+    monkeypatch.setattr(provider_webhooks.settings, "vicidial_webhook_secret", "v" * 32)
+    with pytest.raises(HTTPException) as raised:
+        await provider_webhooks.vicidial_call_result(
+            request, Response(), signature(request, "v" * 32), timestamp(), session
+        )
+    assert raised.value.status_code == 400
+    assert session.added == []
+
+
+@pytest.mark.asyncio
+async def test_unsupported_disposition_is_rejected_before_persistence(monkeypatch):
+    request = Request({**VICIDIAL, "disposition": "MYSTERY"})
+    session = Session()
+    monkeypatch.setattr(provider_webhooks.settings, "vicidial_webhook_secret", "v" * 32)
+    with pytest.raises(HTTPException) as raised:
+        await provider_webhooks.vicidial_call_result(
+            request, Response(), signature(request, "v" * 32), timestamp(), session
+        )
+    assert raised.value.status_code == 400
+    assert session.added == []
+
+
+@pytest.mark.asyncio
+async def test_disposition_is_normalized_case_insensitively(monkeypatch):
+    request = Request({**VICIDIAL, "disposition": "callbk"})
+    session = Session()
+    monkeypatch.setattr(provider_webhooks.settings, "vicidial_webhook_secret", "v" * 32)
+    await provider_webhooks.vicidial_call_result(
+        request, Response(), signature(request, "v" * 32), timestamp(), session
+    )
+    outbox = next(item for item in session.added if isinstance(item, OutboxEvent))
+    assert outbox.payload["data"]["disposition"] == "callback_requested"
+    assert outbox.payload["event_id"] == "vicidial:stage2-test-001"
+
+
+@pytest.mark.asyncio
+async def test_accepted_event_is_audited_in_the_same_transaction(monkeypatch):
+    request = Request(TELNEXA)
+    session = Session()
+    monkeypatch.setattr(provider_webhooks.settings, "telnexa_webhook_secret", "t" * 32)
+    await provider_webhooks.telnexa_inbound_sms(
+        request, Response(), signature(request, "t" * 32), timestamp(), session
+    )
+    audit = next(item for item in session.added if isinstance(item, AuditEvent))
+    assert audit.action == "telnexa.webhook.accepted"
+    assert audit.subject == "telnexa:sms-pas65-001"
+    # The audit row carries no message body or phone number.
+    assert audit.redacted_payload == {"event_type": "sms_received"}
+    assert session.commits == 1
+
+
+class FailingCommitSession(Session):
+    async def commit(self):
+        raise RuntimeError("database unavailable")
+
+
+@pytest.mark.asyncio
+async def test_persistence_failure_fails_closed_with_rollback(monkeypatch):
+    request = Request(VICIDIAL)
+    session = FailingCommitSession()
+    monkeypatch.setattr(provider_webhooks.settings, "vicidial_webhook_secret", "v" * 32)
+    with pytest.raises(HTTPException) as raised:
+        await provider_webhooks.vicidial_call_result(
+            request, Response(), signature(request, "v" * 32), timestamp(), session
+        )
+    assert raised.value.status_code == 503
     assert session.rollbacks == 1
