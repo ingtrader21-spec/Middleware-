@@ -11329,6 +11329,105 @@
     {
       "item": [
         {
+          "name": "Decision Readback",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "internal",
+                "v1",
+                "production",
+                "decision"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/internal/v1/production/decision"
+            }
+          }
+        },
+        {
+          "name": "Evaluate Decision",
+          "request": {
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"evidence\": {},\n  \"release\": \"\",\n  \"requested_capabilities\": []\n}"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "type": "text",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "internal",
+                "v1",
+                "production",
+                "decision",
+                "evaluate"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/internal/v1/production/decision/evaluate"
+            }
+          }
+        },
+        {
+          "name": "Decision Policy",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "internal",
+                "v1",
+                "production",
+                "decision",
+                "policy"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/internal/v1/production/decision/policy"
+            }
+          }
+        }
+      ],
+      "name": "internal-production-decision"
+    },
+    {
+      "item": [
+        {
           "name": "Receive Klyrow Event",
           "request": {
             "body": {

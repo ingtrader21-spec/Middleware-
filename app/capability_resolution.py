@@ -28,6 +28,10 @@ _UMBRELLA_BY_IMPLEMENTATION = {
     "N8N_PRODUCTION_WORKFLOWS_ENABLED": "N8N_EXTERNAL_PROVIDER_WRITES",
 }
 
+# Read-only public views for policy consumers (the production decision engine).
+UMBRELLA_CONTROLS = _UMBRELLA_CONTROLS
+UMBRELLA_BY_IMPLEMENTATION = dict(_UMBRELLA_BY_IMPLEMENTATION)
+
 
 def effective_capability_enabled(
     capabilities: Mapping[str, Any],

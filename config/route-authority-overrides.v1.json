@@ -1,1 +1,1 @@
-{"schema": "codestra.middleware.route-authority-overrides.v1", "routes": {}}
+{"schema": "codestra.middleware.route-authority-overrides.v1", "routes": {"POST /internal/v1/production/decision/evaluate": {"classification": "READ_ONLY", "scope": "platform.production.decision.evaluate", "justification": "computes a non-authoritative GO/NO_GO decision over the request body; no durable mutation, no capability or provider effect"}}}

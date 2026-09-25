@@ -603,6 +603,24 @@ operations:
   canonical_operation_id: status_internal_v1_database_status_get
   implementation_file: registered FastAPI runtime
   runtime_state: IMPLEMENTED
+- domain: production
+  method: GET
+  path: /internal/v1/production/decision
+  canonical_operation_id: decision_readback_internal_v1_production_decision_get
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: production
+  method: POST
+  path: /internal/v1/production/decision/evaluate
+  canonical_operation_id: evaluate_decision_internal_v1_production_decision_evaluate_post
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: production
+  method: GET
+  path: /internal/v1/production/decision/policy
+  canonical_operation_id: decision_policy_internal_v1_production_decision_policy_get
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
 - domain: metrics
   method: GET
   path: /metrics
