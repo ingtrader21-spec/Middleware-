@@ -17,6 +17,8 @@ from app.core.campaign_recycling import (
     CampaignRecyclingIdempotencyConflict,
     CampaignRecyclingLifecycleConflict,
     CampaignRecyclingNotFound,
+    ChannelHealth,
+    LeadSnapshot,
     PolicyProfile,
     delivery_event_payload_hash,
 )
@@ -42,7 +44,7 @@ OPERATION_PATHS = {
     'lead_journey_read': ('get', JOURNEY),
     'lead_next_action_read': ('get', f'/platform/v1/leads/{LEAD}/next-action'),
     'campaign_eligible_leads_read': (
-        'get', '/platform/v1/campaigns/klyrow:cmp-a/eligible-leads?campaign_version=1'),
+        'get', '/platform/v1/campaigns/klyrow:test-syn-mcr/eligible-leads?campaign_version=1'),
     'delivery_event_ingest': ('post', EVENTS),
     'suppression_record': ('post', SUPPRESSIONS),
 }
@@ -62,9 +64,28 @@ class FakeStore:
     constructed: list = []
     delivery_result: object = None
     suppression_result: object = None
+    snapshot_result: object = None
 
     def __init__(self, pool):
         FakeStore.constructed.append(pool)
+
+    async def load_snapshot(self, **kwargs):
+        FakeStore.calls.append(('snapshot', kwargs))
+        if isinstance(FakeStore.snapshot_result, BaseException):
+            raise FakeStore.snapshot_result
+        if FakeStore.snapshot_result is not None:
+            return FakeStore.snapshot_result
+        return LeadSnapshot(
+            tenant_id=kwargs['tenant_id'],
+            lead_id=kwargs['lead_id'],
+            lifecycle_state='ELIGIBLE',
+            lifecycle_version=1,
+            channel_health={
+                'email': ChannelHealth(
+                    state='valid', occurred_at=NOW, address_ref='addrref:test-syn'
+                )
+            },
+        )
 
     async def apply_delivery_event(self, event, *, policy, address_ref=None):
         FakeStore.calls.append(('delivery', event, policy, address_ref))
@@ -106,6 +127,7 @@ def client(monkeypatch, claims, runtime):
     FakeStore.suppression_result = {
         'suppression_id': '00000000-0000-4000-8000-000000000001', 'duplicate': False,
         'scope': 'channel', 'effective_at': NOW.isoformat()}
+    FakeStore.snapshot_result = None
     app = FastAPI()
     app.include_router(api.router)
     app.state.runtime = runtime
@@ -316,15 +338,16 @@ def test_plan_strict_schema(client):
 
 @pytest.mark.parametrize('operation_id', [
     'lead_next_action_read', 'campaign_eligible_leads_read'])
-def test_reads_fail_closed_while_policy_is_unconfigured(client, operation_id):
+def test_reads_fail_closed_while_policy_is_unconfigured(client, monkeypatch, operation_id):
+    monkeypatch.setattr(api, '_policy_for_tenant', lambda tenant: PolicyProfile.load('production'))
     assert_error(call(client, operation_id), 503, 'policy_not_configured')
 
 
 @pytest.mark.parametrize('operation_id', [
     'lead_next_action_read', 'campaign_eligible_leads_read'])
 def test_reads_fail_closed_without_certified_campaign_authority(client, monkeypatch, operation_id):
-    monkeypatch.setattr(api, 'PolicyProfile', SimpleNamespace(
-        load=lambda profile: PolicyProfile.load('test')))
+    monkeypatch.setattr(api, '_policy_for_tenant', lambda tenant: PolicyProfile.load('test'))
+    monkeypatch.setattr(api, 'candidate_authority_for_tenant', lambda tenant: None)
     error = assert_error(call(client, operation_id), 503, 'dependency_unavailable')
     assert error['retryable'] is True
     assert FakeStore.constructed == []
@@ -649,3 +672,173 @@ def test_raw_vicidial_campaign_ids_are_rejected(client):
     response = client.get('/platform/v1/campaigns/VICI01/eligible-leads?campaign_version=1',
                           headers=HEADERS)
     assert_error(response, 400, 'invalid_request')
+
+
+# --- synthetic C6/C7 candidate authority and read/plan runtime ------------------
+
+
+def test_synthetic_next_action_is_real_dry_run_and_redacts_candidates(client):
+    response = client.get(
+        f'/platform/v1/leads/{LEAD}/next-action',
+        headers=HEADERS,
+    )
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body['schema_version'] == '1.0'
+    assert body['tenant_id'] == TENANT
+    assert body['lead_id'] == LEAD
+    assert body['mode'] == 'read'
+    assert body['dry_run'] is True
+    assert body['provider_effects'] == 'none'
+    assert body['eligible'] is True
+    assert body['selected']['campaign_id'] == 'klyrow:test-syn-mcr'
+    assert body['selected']['campaign_version'] == 1
+    assert body['selected']['channel'] == 'email'
+    assert body['selected']['exposure_idempotency_key'].startswith('mcr1:')
+    assert body['candidates_redacted'] is True
+    assert body['candidates'] == []
+    assert any(call[0] == 'snapshot' for call in FakeStore.calls)
+
+
+def test_synthetic_next_action_discloses_candidates_only_with_extra_scope(
+    client, claims
+):
+    claims['scope'] += ' campaign.engine.candidates.read'
+    response = client.get(
+        f'/platform/v1/leads/{LEAD}/next-action',
+        headers=HEADERS,
+    )
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body['candidates_redacted'] is False
+    assert len(body['candidates']) == 1
+    assert body['candidates'][0]['campaign_id'] == 'klyrow:test-syn-mcr'
+
+
+def test_synthetic_plan_returns_deterministic_zero_effect_decision(client):
+    payload = {
+        'schema_version': '1.0',
+        'lead_ids': [LEAD],
+        'campaign_scope': {
+            'campaign_id': 'klyrow:test-syn-mcr',
+            'campaign_version': 1,
+        },
+        'channels': ['email'],
+        'policy_version': 'mcr-policy-1.0.0',
+    }
+    first = client.post(
+        '/platform/v1/campaign-engine/plan',
+        headers={**HEADERS, 'Content-Type': 'application/json'},
+        json=payload,
+    )
+    second = client.post(
+        '/platform/v1/campaign-engine/plan',
+        headers={**HEADERS, 'Content-Type': 'application/json'},
+        json=payload,
+    )
+    assert first.status_code == 200, first.text
+    assert second.status_code == 200, second.text
+    a, b = first.json(), second.json()
+    assert a['dry_run'] is True and a['provider_effects'] == 'none'
+    assert a['policy_version'] == 'mcr-policy-1.0.0'
+    assert len(a['decisions']) == 1
+    assert a['decisions'][0]['eligible'] is True
+    assert a['plan_hash'] == b['plan_hash']
+    assert a['plan_id'] == b['plan_id']
+    assert a['decisions'][0]['decision_hash'] == b['decisions'][0]['decision_hash']
+
+
+def test_synthetic_plan_raw_campaign_id_is_rejected_at_contract_boundary(client):
+    payload = {
+        'schema_version': '1.0',
+        'lead_ids': [LEAD],
+        'campaign_scope': {'campaign_id': 'TEST_SYN', 'campaign_version': 1},
+    }
+    response = client.post(
+        '/platform/v1/campaign-engine/plan',
+        headers={**HEADERS, 'Content-Type': 'application/json'},
+        json=payload,
+    )
+    assert_error(response, 422, 'contract_violation')
+    assert not any(call[0] == 'snapshot' for call in FakeStore.calls)
+
+
+def test_synthetic_eligible_leads_is_bounded_and_cursor_is_query_bound(client):
+    path = (
+        '/platform/v1/campaigns/klyrow:test-syn-mcr/eligible-leads'
+        '?campaign_version=1&limit=1'
+    )
+    first = client.get(path, headers=HEADERS)
+    assert first.status_code == 200, first.text
+    body = first.json()
+    assert body['dry_run'] is True and body['provider_effects'] == 'none'
+    assert len(body['items']) == 1
+    assert body['items'][0]['lead_id'] == '100-L-00000001'
+    assert body['next_cursor']
+
+    second = client.get(
+        path + '&cursor=' + body['next_cursor'],
+        headers=HEADERS,
+    )
+    assert second.status_code == 200, second.text
+    assert second.json()['items'][0]['lead_id'] == '100-L-00000002'
+    assert second.json()['next_cursor'] is None
+
+    wrong_query = client.get(
+        (
+            '/platform/v1/campaigns/klyrow:test-syn-mcr/eligible-leads'
+            '?campaign_version=1&limit=2&cursor=' + body['next_cursor']
+        ),
+        headers=HEADERS,
+    )
+    assert_error(wrong_query, 400, 'invalid_cursor')
+
+
+def test_synthetic_eligible_leads_version_mismatch_is_not_found(client):
+    response = client.get(
+        '/platform/v1/campaigns/klyrow:test-syn-mcr/eligible-leads?campaign_version=2',
+        headers=HEADERS,
+    )
+    assert_error(response, 404, 'campaign_not_found')
+
+
+def test_non_synthetic_tenant_remains_fail_closed(client, monkeypatch):
+    monkeypatch.setattr(
+        api,
+        'validate_token',
+        lambda token: {
+            'aud': 'middleware-api',
+            'tenant_id': 'PROD_TENANT',
+            'azp': 'klyrow-gateway',
+            'scope': 'campaign.engine.read campaign.engine.plan',
+        },
+    )
+    headers = {
+        'Authorization': 'Bearer test',
+        'X-Tenant-ID': 'PROD_TENANT',
+        'X-Correlation-ID': 'corr-prod',
+    }
+    response = client.get(
+        '/platform/v1/leads/100-L-00000001/next-action',
+        headers=headers,
+    )
+    assert_error(response, 503, 'policy_not_configured')
+
+
+def test_execute_stays_hard_denied_after_synthetic_read_activation(client):
+    payload = {
+        'schema_version': '1.0',
+        'plan_id': '00000000-0000-4000-8000-000000000010',
+        'plan_hash': 'a' * 64,
+    }
+    response = client.post(
+        '/platform/v1/campaign-engine/execute',
+        headers={
+            **HEADERS,
+            'Content-Type': 'application/json',
+            'Idempotency-Key': 'execute-key-1',
+        },
+        json=payload,
+    )
+    assert_error(response, 403, 'production_not_authorized')
+    assert not any(call[0] == 'delivery' for call in FakeStore.calls)

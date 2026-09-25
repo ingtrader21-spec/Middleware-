@@ -27,7 +27,8 @@
       "config/route-authority-report.v1.json",
       "contracts/platform/middleware-openapi.generated.json",
       "deploy/public-api-route-contract.json",
-      "deploy/public-api-route-contract.sha256"
+      "deploy/public-api-route-contract.sha256",
+      "app/core/campaign_recycling_candidates.py"
     ],
     "routes": [
       {

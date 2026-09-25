@@ -1744,7 +1744,7 @@ class PostgresCampaignRecyclingStore:
                 lead_id,
             )
             if current is None:
-                raise CampaignRecyclingConflict("lead lifecycle state does not exist")
+                raise CampaignRecyclingNotFound("lead lifecycle state does not exist")
 
             health_rows = []
             for channel, address_ref in address_refs.items():

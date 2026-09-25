@@ -10,7 +10,8 @@ import hmac
 import json
 import logging
 import time
-from uuid import uuid4
+from datetime import UTC, datetime, timedelta
+from uuid import NAMESPACE_URL, uuid4, uuid5
 
 import asyncpg
 from fastapi import APIRouter, Request
@@ -21,8 +22,14 @@ from pydantic import ValidationError
 from app.core.campaign_recycling import (
     HEALTH_EVENT_STATE, CampaignRecyclingConflict, CampaignRecyclingError,
     CampaignRecyclingIdempotencyConflict,
-    CampaignRecyclingLifecycleConflict, CampaignRecyclingNotFound, PolicyProfile,
-    PostgresCampaignRecyclingStore, delivery_event_payload_hash,
+    CampaignRecyclingEngine, CampaignRecyclingLifecycleConflict,
+    CampaignRecyclingNotFound, PolicyProfile, PostgresCampaignRecyclingStore,
+    canonical_digest, delivery_event_payload_hash, next_action_document,
+)
+from app.core.campaign_recycling_candidates import (
+    CandidateAuthorityNotFound, CandidateCursorError,
+    candidate_authority_for_tenant, decode_candidate_cursor,
+    encode_candidate_cursor,
 )
 from app.core.campaign_recycling_contract import (
     API, DeliveryEvent, ExecuteRequest, PlanRequest, SuppressionRequest,
@@ -152,6 +159,223 @@ def _authenticate(request: Request, operation: dict, tenant: str) -> dict:
     return claims
 
 
+def _policy_for_tenant(tenant_id: str) -> PolicyProfile:
+    # Only the frozen synthetic tenant may use the configured test profile.
+    return PolicyProfile.load('test' if tenant_id == 'TEST_SYN_TENANT' else 'production')
+
+
+def _has_scope(claims: dict, scope: str) -> bool:
+    value = claims.get('scope', '')
+    return isinstance(value, str) and scope in value.split()
+
+
+async def _evaluate_lead(
+    request: Request,
+    *,
+    tenant_id: str,
+    lead_id: str,
+    policy: PolicyProfile,
+    mode: str,
+    campaign_id: str | None = None,
+    campaign_version: int | None = None,
+    channels: list[str] | tuple[str, ...] | None = None,
+):
+    authority = candidate_authority_for_tenant(tenant_id)
+    if authority is None:
+        fail(503, 'dependency_unavailable')
+    candidates, address_refs = authority.candidates_for_lead(
+        tenant_id=tenant_id,
+        lead_id=lead_id,
+        campaign_id=campaign_id,
+        campaign_version=campaign_version,
+        channels=channels,
+    )
+    store = _store(request)
+    try:
+        snapshot = await store.load_snapshot(
+            tenant_id=tenant_id,
+            lead_id=lead_id,
+            address_refs=address_refs,
+            policy=policy,
+        )
+    except CampaignRecyclingNotFound:
+        raise
+    except CampaignRecyclingConflict:
+        fail(503, 'dependency_unavailable')
+    decision = CampaignRecyclingEngine(policy).evaluate(
+        snapshot,
+        candidates,
+        mode=mode,
+        now=datetime.now(UTC),
+    )
+    return snapshot, decision
+
+
+async def _plan(request: Request, params: dict, claims: dict, body: dict, policy: PolicyProfile):
+    scope = body.get('campaign_scope') or {}
+    campaign_id = scope.get('campaign_id')
+    campaign_version = scope.get('campaign_version')
+    channels = body.get('channels')
+    generated_at = datetime.now(UTC)
+    decisions = []
+    for lead_id in body['lead_ids']:
+        try:
+            snapshot, decision = await _evaluate_lead(
+                request,
+                tenant_id=params['X-Tenant-ID'],
+                lead_id=lead_id,
+                policy=policy,
+                mode='plan',
+                campaign_id=campaign_id,
+                campaign_version=campaign_version,
+                channels=channels,
+            )
+        except CampaignRecyclingNotFound:
+            # Plan has no 404 contract. Missing durable lead state is a dependency
+            # failure, never an invented NO_CANDIDATE success.
+            fail(503, 'dependency_unavailable')
+        decisions.append(
+            next_action_document(
+                decision,
+                snapshot,
+                mode='plan',
+                evaluated_at=generated_at,
+                correlation_id=params['X-Correlation-ID'],
+                candidates_redacted=False,
+            )
+        )
+    plan_hash = canonical_digest({
+        'tenant_id': params['X-Tenant-ID'],
+        'policy_version': policy.policy_version,
+        'campaign_scope': scope or None,
+        'channels': channels or None,
+        'decision_hashes': [item['decision_hash'] for item in decisions],
+    })
+    return 200, {
+        'schema_version': '1.0',
+        'plan_id': str(uuid5(NAMESPACE_URL, f'mcr:plan:{plan_hash}')),
+        'plan_hash': plan_hash,
+        'policy_version': policy.policy_version,
+        'dry_run': True,
+        'provider_effects': 'none',
+        'generated_at': generated_at.isoformat(),
+        'expires_at': (generated_at + timedelta(minutes=5)).isoformat(),
+        'decisions': decisions,
+    }
+
+
+async def _next_action(request: Request, params: dict, claims: dict, policy: PolicyProfile):
+    channels = [params['channel']] if 'channel' in params else None
+    try:
+        snapshot, decision = await _evaluate_lead(
+            request,
+            tenant_id=params['X-Tenant-ID'],
+            lead_id=params['lead_id'],
+            policy=policy,
+            mode='read',
+            channels=channels,
+        )
+    except CampaignRecyclingNotFound:
+        fail(404, 'lead_not_found')
+    return 200, next_action_document(
+        decision,
+        snapshot,
+        mode='read',
+        evaluated_at=datetime.now(UTC),
+        correlation_id=params['X-Correlation-ID'],
+        candidates_redacted=not _has_scope(claims, 'campaign.engine.candidates.read'),
+    )
+
+
+async def _eligible_leads(request: Request, params: dict, policy: PolicyProfile):
+    tenant_id = params['X-Tenant-ID']
+    authority = candidate_authority_for_tenant(tenant_id)
+    if authority is None:
+        fail(503, 'dependency_unavailable')
+    try:
+        members = authority.campaign_members(
+            tenant_id=tenant_id,
+            campaign_id=params['campaign_id'],
+            campaign_version=params['campaign_version'],
+            channel=params.get('channel'),
+        )
+    except CandidateAuthorityNotFound:
+        fail(404, 'campaign_not_found')
+    limit = params.get('limit', 100)
+    runtime = getattr(request.app.state, 'runtime', None)
+    config = getattr(runtime, 'settings', None)
+    key = getattr(config, 'mcr_cursor_signing_key', '') if config is not None else ''
+    try:
+        offset = decode_candidate_cursor(
+            key,
+            params['cursor'],
+            tenant_id=tenant_id,
+            campaign_id=params['campaign_id'],
+            campaign_version=params['campaign_version'],
+            channel=params.get('channel'),
+            limit=limit,
+        ) if 'cursor' in params else 0
+    except CandidateCursorError:
+        fail(400, 'invalid_cursor')
+    page = members[offset:offset + limit]
+    items = []
+    for membership in page:
+        try:
+            snapshot, decision = await _evaluate_lead(
+                request,
+                tenant_id=tenant_id,
+                lead_id=membership.lead_id,
+                policy=policy,
+                mode='read',
+                campaign_id=params['campaign_id'],
+                campaign_version=params['campaign_version'],
+                channels=[params['channel']] if 'channel' in params else None,
+            )
+        except CampaignRecyclingNotFound:
+            fail(503, 'dependency_unavailable')
+        if not decision.eligible or decision.selected is None:
+            continue
+        document = next_action_document(
+            decision,
+            snapshot,
+            mode='read',
+            evaluated_at=datetime.now(UTC),
+            correlation_id=params['X-Correlation-ID'],
+            candidates_redacted=True,
+        )
+        items.append({
+            'lead_id': membership.lead_id,
+            'channel': decision.selected.channel,
+            'decision_id': document['decision_id'],
+            'touch_index': decision.selected.touch_index,
+            'exposure_idempotency_key': document['selected']['exposure_idempotency_key'],
+        })
+    next_cursor = None
+    if offset + len(page) < len(members):
+        try:
+            next_cursor = encode_candidate_cursor(
+                key,
+                tenant_id=tenant_id,
+                campaign_id=params['campaign_id'],
+                campaign_version=params['campaign_version'],
+                channel=params.get('channel'),
+                limit=limit,
+                offset=offset + len(page),
+            )
+        except CandidateCursorError:
+            fail(503, 'dependency_unavailable')
+    return 200, {
+        'schema_version': '1.0',
+        'campaign_id': params['campaign_id'],
+        'campaign_version': params['campaign_version'],
+        'policy_version': policy.policy_version,
+        'dry_run': True,
+        'provider_effects': 'none',
+        'items': items,
+        'next_cursor': next_cursor,
+    }
+
+
 def _verify_signature(request: Request, raw: bytes, params: dict, claims: dict):
     runtime = getattr(request.app.state, 'runtime', None)
     config = getattr(runtime, 'settings', None)
@@ -194,23 +418,36 @@ def _json(raw: bytes):
 
 async def dispatch(request: Request, operation: dict, params: dict, claims: dict, body: dict | None):
     operation_id = operation['operationId']
-    policy = PolicyProfile.load('production')
     if operation_id == 'campaign_engine_status':
+        policy = PolicyProfile.load('production')
         return 200, {'schema_version': '1.0', 'runtime_status': 'contract_only',
             'engine_enabled': False, 'execute_enabled': False, 'production_authorized': False,
             'policy_version': policy.policy_version, 'policy_configured': policy.configured,
             'capabilities': dict.fromkeys(('EMAIL_DELIVERY','SMS_DELIVERY','WHATSAPP_DELIVERY','PRODUCTION_DIALING'), False)}
+
+    policy = (
+        _policy_for_tenant(params['X-Tenant-ID'])
+        if operation_id in {
+            'campaign_engine_plan', 'lead_next_action_read',
+            'campaign_eligible_leads_read'
+        }
+        else PolicyProfile.load('production')
+    )
     if operation_id == 'campaign_engine_execute':
-        # Even unrelated provider capability flags cannot activate this boundary.
+        # C8 remains fail-closed until a separately approved production gate.
         fail(403, 'production_not_authorized')
-    if operation_id in {'campaign_engine_plan', 'lead_next_action_read', 'campaign_eligible_leads_read'}:
-        if body and body.get('policy_version') not in (None, policy.policy_version):
-            fail(409, 'policy_version_mismatch')
-        if not policy.configured:
-            fail(503, 'policy_not_configured')
-        # There is no certified tenant-bound campaign/version/audience readback
-        # in RuntimeContainer. Do not infer candidates from the VICIdial registry.
-        fail(503, 'dependency_unavailable')
+    if body and body.get('policy_version') not in (None, policy.policy_version):
+        fail(409, 'policy_version_mismatch')
+    if operation_id in {
+        'campaign_engine_plan', 'lead_next_action_read', 'campaign_eligible_leads_read'
+    } and not policy.configured:
+        fail(503, 'policy_not_configured')
+    if operation_id == 'campaign_engine_plan':
+        return await _plan(request, params, claims, body, policy)
+    if operation_id == 'lead_next_action_read':
+        return await _next_action(request, params, claims, policy)
+    if operation_id == 'campaign_eligible_leads_read':
+        return await _eligible_leads(request, params, policy)
     if operation_id == 'lead_journey_read':
         from app.core.campaign_recycling_readback import journey
         return 200, await journey(request, params)

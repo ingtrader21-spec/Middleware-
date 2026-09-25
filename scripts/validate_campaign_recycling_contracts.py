@@ -149,6 +149,7 @@ REVIEWED_RUNTIME_FILES = frozenset(
         "app/api/v1/campaign_recycling.py",
         "app/core/campaign_recycling_contract.py",
         "app/core/campaign_recycling_readback.py",
+        "app/core/campaign_recycling_candidates.py",
         "app/router_registry.py",
         "config/route-authority-overrides.v1.json",
         "config/route-authority-report.v1.json",

@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "gate": "MCR-C6-candidate-authority",
-  "status": "blocked_pending_dependencies",
+  "status": "synthetic_certified_production_blocked",
   "production_authorized": false,
   "provider_effects_enabled": false,
   "rules": {
@@ -66,5 +66,13 @@
     "sender identity readback is authoritative",
     "stale/conflicting evidence fails closed",
     "no provider effect is introduced by candidate reads"
-  ]
+  ],
+  "synthetic_scope": {
+    "tenant_id": "TEST_SYN_TENANT",
+    "authority": "app/core/campaign_recycling_candidates.py",
+    "campaign_id": "klyrow:test-syn-mcr",
+    "campaign_version": 1,
+    "provider_effects": "none",
+    "purpose": "contract and staging-safe decision/read validation only"
+  }
 }
