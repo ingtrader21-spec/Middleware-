@@ -72,7 +72,7 @@ jobs:
           npm run typecheck
           npm test
           npm run build
-          npx playwright install --with-deps chromium firefox webkit
+          npx playwright install chromium firefox webkit
           npm run test:browser
           docker build --build-arg VCS_REF=${GITHUB_SHA} --tag codestra-agent-desktop:${GITHUB_SHA} .
       - name: Validate WebSocket Gateway
@@ -109,8 +109,9 @@ jobs:
       - name: Validate release workflow syntax and component ownership
         run: |
           set -euo pipefail
-          python3 -m pip install --disable-pip-version-check PyYAML==6.0.3
-          python3 - <<'PY'
+          python3 -m venv "${RUNNER_TEMP}/release-security-venv"
+          "${RUNNER_TEMP}/release-security-venv/bin/python" -m pip install --disable-pip-version-check PyYAML==6.0.3
+          "${RUNNER_TEMP}/release-security-venv/bin/python" - <<'PY'
           import pathlib, yaml
           for path in pathlib.Path('.github/workflows').glob('release-component-*.yml'):
               yaml.safe_load(path.read_text())

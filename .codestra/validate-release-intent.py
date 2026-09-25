@@ -171,7 +171,7 @@ EXPECTED_CHECK_WORKFLOW_SHA256 = {
     },
     "ingtrader21-spec/Middleware-": {
         ".github/workflows/production-orchestrator-contract.yml": ORCHESTRATOR_CONTRACT_WORKFLOW_SHA256,
-        ".github/workflows/middleware-ci.yml": "8cec813feb267b63f4f27807606237dbe518f2fb94379062e447a6636fea2f16",
+        ".github/workflows/middleware-ci.yml": "2d1140c32ea0abea273afed2c135932c35b3701d24c5d7a75f6571edfd7a9812",
     },
     "appolon1908-hue/codestra": {
         ".github/workflows/production-orchestrator-contract.yml": ORCHESTRATOR_CONTRACT_WORKFLOW_SHA256,
@@ -221,7 +221,7 @@ KEYCLOAK_PRODUCTION_VALIDATOR_SHA256 = (
     "83d2fce102104543b871530f11115f20"
 )
 MIDDLEWARE_PRODUCTION_VALIDATOR_SHA256 = (
-    "15c35ad11c65b7605d44812e08d45493e31afdea678876b3a44a16d27c1c1a21"
+    "59694b2926a2dd3e2d73026eb3be9f3f3931c23ddb7039baac9409cf03106ae0"
 )
 BACKEND_PRODUCTION_VALIDATOR_SHA256 = (
     "6006bbc7850ce7666de926b6cad2585b"
@@ -270,8 +270,8 @@ EXPECTED_CHECK_WORKFLOW_EXECUTABLE_SHA256 = {
         },
         ".github/workflows/middleware-ci.yml": {
             "Dockerfile.runtime": (
-                "0ef6f547f538c625d5041d46848b58ebe"
-            "255d1aa66dabb2bb564f6300d99c84a"
+                "045d634cc6469915ddf7fdca714e4f52f"
+            "9c1513abfeba69d8d4c6a1651a9c604"
             ),
             "scripts/integration_ci.sh": (
                 "8d9327fd9ad51d6ba7243d051336f623"
@@ -381,8 +381,8 @@ EXPECTED_REQUIRED_CHECK_SOURCE_CLOSURE_SHA256 = {
         "fcdd0d5c3832479b10deda8c6a6afca6"
     ),
     "ingtrader21-spec/Middleware-": (
-        "4907846d91ac574ec3d30893cac03cbf38"
-        "e6f1d53759be8965e7bbdc91049d0c"
+        "fee56d51cf979441ea4af1625678f5b080"
+        "ae8d28abe5c7b2e7d7f6199584b333"
     ),
     "appolon1908-hue/codestra": (
         "4e3ea69c3ec2a4bd6e4b50395672f44d"
