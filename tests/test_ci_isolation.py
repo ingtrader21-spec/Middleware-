@@ -71,3 +71,35 @@ def test_manifest_gate_runs_after_locked_dependencies_and_before_pytest():
     assert install < validate < tests
     assert "scripts/project_ci.sh" in bootstrap
     assert "python3 scripts/validate_codestra_manifest.py" not in bootstrap
+
+
+def test_middleware_ci_keeps_pr_code_off_persistent_self_hosted_runners():
+    import yaml
+
+    workflow = yaml.safe_load(
+        (ROOT / ".github/workflows/middleware-ci.yml").read_text()
+    )
+    jobs = workflow["jobs"]
+    assert jobs["source-head-validation"]["runs-on"] == "ubuntu-24.04"
+    assert jobs["merge-result-validation"]["runs-on"] == "ubuntu-24.04"
+    assert jobs["main-validation"]["runs-on"] == [
+        "self-hosted",
+        "Linux",
+        "X64",
+        "middleware-ci",
+    ]
+    for name in (
+        "docker-runtime-build",
+        "docker-test-build",
+        "connector-runtime-build",
+        "container-security",
+        "runtime-integration",
+        "nats-jetstream-integration",
+        "temporal-workflow-integration",
+        "synthetic-acceptance-e2e",
+        "required-validation",
+    ):
+        runs_on = jobs[name]["runs-on"]
+        assert "github.event_name == 'pull_request'" in runs_on
+        assert "ubuntu-24.04" in runs_on
+        assert "middleware-ci" in runs_on
