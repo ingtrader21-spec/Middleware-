@@ -384,11 +384,26 @@ def test_operation_collection_is_tenant_scoped_filterable_and_redacted(stack: St
         assert first_response.status_code == second_response.status_code == 202
 
         auth = {"Authorization": f"Bearer {token()}"}
-        listed = client.get("/platform/v1/operations?limit=10", headers=auth)
+        third_response, third = submit(client)
+        assert third_response.status_code == 202
+
+        listed = client.get("/platform/v1/operations?limit=2", headers=auth)
         assert listed.status_code == 200, listed.text
-        items = listed.json()["items"]
-        ids = {item["operation_id"] for item in items}
-        assert {first["command_id"], second["command_id"]} <= ids
+        first_page = listed.json()
+        items = first_page["items"]
+        assert len(items) == 2
+        assert first_page["next_cursor"]
+        next_page = client.get(
+            "/platform/v1/operations",
+            params={"limit": 2, "cursor": first_page["next_cursor"]},
+            headers=auth,
+        )
+        assert next_page.status_code == 200, next_page.text
+        all_ids = {item["operation_id"] for item in items + next_page.json()["items"]}
+        assert {first["command_id"], second["command_id"], third["command_id"]} <= all_ids
+        assert {item["operation_id"] for item in items}.isdisjoint(
+            {item["operation_id"] for item in next_page.json()["items"]}
+        )
         rendered = listed.text.lower()
         for forbidden in ("payload", "password", "client_secret", "private_key", "bearer "):
             assert forbidden not in rendered
@@ -410,10 +425,11 @@ def test_operation_collection_is_tenant_scoped_filterable_and_redacted(stack: St
             headers={"Authorization": f"Bearer {token(tenants=('tenant-b',))}"},
         )
         assert foreign.status_code == 200
-        assert foreign.json() == {"items": []}
+        assert foreign.json() == {"items": [], "next_cursor": None}
 
         assert client.get("/platform/v1/operations?limit=0", headers=auth).status_code == 400
         assert client.get("/platform/v1/operations?state=NOT_A_STATE", headers=auth).status_code == 400
+        assert client.get("/platform/v1/operations?cursor=not-valid", headers=auth).status_code == 400
 
 
 def test_operation_attempts_are_safe_ordered_and_tenant_scoped(stack: Stack) -> None:

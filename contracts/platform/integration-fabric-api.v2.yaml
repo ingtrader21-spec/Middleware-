@@ -904,6 +904,14 @@ paths:
           - type: string
           - type: 'null'
           title: Command Type
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Cursor
       responses:
         '200':
           description: Successful Response
@@ -19346,6 +19354,11 @@ components:
             $ref: '#/components/schemas/OperationStatus'
           type: array
           title: Items
+        next_cursor:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Next Cursor
       additionalProperties: false
       type: object
       required:

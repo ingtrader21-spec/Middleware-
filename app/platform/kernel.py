@@ -331,12 +331,14 @@ class CommandKernel:
         tenant_id: str,
         *,
         limit: int = 100,
+        position: tuple[datetime, UUID] | None = None,
         state: str | None = None,
         command_type: str | None = None,
     ) -> list[CommandOperation]:
         return await self.commands.list_operations(
             tenant_id,
             limit=limit,
+            position=position,
             state=state,
             command_type=command_type,
         )

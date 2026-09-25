@@ -15,6 +15,8 @@ Scopes: ``platform.command`` (submit, cancel), ``platform.command.read``
 
 from __future__ import annotations
 
+import base64
+import binascii
 import re
 from datetime import datetime
 from typing import Any, Literal
@@ -119,6 +121,7 @@ class OperationList(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     items: list[OperationStatus]
+    next_cursor: str | None = None
 
 
 class AttemptStatus(BaseModel):
@@ -279,6 +282,23 @@ def _attempt_status(attempt: OperationAttempt) -> AttemptStatus:
     )
 
 
+def _encode_operation_cursor(operation: CommandOperation) -> str:
+    raw = f"{operation.created_at.isoformat()}|{operation.command_id}".encode("utf-8")
+    return base64.urlsafe_b64encode(raw).decode("ascii").rstrip("=")
+
+
+def _decode_operation_cursor(cursor: str | None) -> tuple[datetime, UUID] | None:
+    if cursor is None:
+        return None
+    try:
+        padded = cursor + "=" * (-len(cursor) % 4)
+        decoded = base64.urlsafe_b64decode(padded.encode("ascii")).decode("utf-8")
+        created_at, command_id = decoded.rsplit("|", 1)
+        return datetime.fromisoformat(created_at), UUID(command_id)
+    except (ValueError, UnicodeDecodeError, binascii.Error) as exc:
+        raise RequestValidationError("invalid operation cursor") from exc
+
+
 def _operation_state_filter(value: str | None) -> str | None:
     if value is None:
         return None
@@ -416,6 +436,7 @@ async def list_operations(
     limit: int = 100,
     state: str | None = None,
     command_type: str | None = None,
+    cursor: str | None = None,
 ) -> OperationList:
     principal = await authenticate(request, required_scope=SCOPE_COMMAND_READ)
     _runtime_container, platform = _runtime(request)
@@ -424,15 +445,24 @@ async def list_operations(
         raise RequestValidationError("limit must be between 1 and 100")
     if command_type is not None:
         command_type = command_type.strip()
-        if not command_type or len(command_type) > 160:
+        if not command_type or len(command_type) > 180:
             raise RequestValidationError("command_type filter is invalid")
     operations = await platform.kernel.operations(
         tenant_id,
-        limit=limit,
+        limit=limit + 1,
+        position=_decode_operation_cursor(cursor),
         state=_operation_state_filter(state),
         command_type=command_type,
     )
-    return OperationList(items=[_status(operation) for operation in operations])
+    page = operations[:limit]
+    return OperationList(
+        items=[_status(operation) for operation in page],
+        next_cursor=(
+            _encode_operation_cursor(page[-1])
+            if len(operations) > limit and page
+            else None
+        ),
+    )
 
 
 # ----------------------------------------------------------------------

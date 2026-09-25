@@ -12724,6 +12724,11 @@
                   "disabled": true,
                   "key": "command_type",
                   "value": "{{command_type}}"
+                },
+                {
+                  "disabled": true,
+                  "key": "cursor",
+                  "value": "{{cursor}}"
                 }
               ],
               "raw": "{{base_url}}/platform/v1/operations"

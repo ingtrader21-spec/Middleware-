@@ -14,10 +14,14 @@ GENERATOR = ROOT / "scripts" / "generate_route_authority_report.py"
 ALLOWED = {"READ_ONLY", "KERNEL_WRAPPER", "INTERNAL_EVENT_INGRESS", "DURABLE_OUTBOX_INTENT", "APPROVED_DURABLE_OUTBOX_EXCEPTION", "DIRECT_INTERNAL_SERVICE", "DENIED_LEGACY"}
 KERNEL_ROUTES = {
     ("POST", "/platform/v1/commands"): "KERNEL_WRAPPER",
+    ("GET", "/platform/v1/operations"): "READ_ONLY",
     ("GET", "/platform/v1/operations/{operation_id}"): "READ_ONLY",
+    ("GET", "/platform/v1/operations/{operation_id}/attempts"): "READ_ONLY",
     ("GET", "/platform/v1/operations/{operation_id}/timeline"): "READ_ONLY",
     ("POST", "/platform/v1/operations/{operation_id}/cancel"): "KERNEL_WRAPPER",
     ("POST", "/platform/v1/operations/{operation_id}/replay"): "KERNEL_WRAPPER",
+    ("POST", "/platform/v1/reconciliation/{operation_id}/readback"): "KERNEL_WRAPPER",
+    ("POST", "/platform/v1/reconciliation/{operation_id}/resolve"): "KERNEL_WRAPPER",
     ("GET", "/platform/v1/kernel/describe"): "READ_ONLY",
 }
 
