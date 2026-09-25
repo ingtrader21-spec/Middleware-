@@ -6,7 +6,7 @@ worker concern; the API never writes directly to telephony systems.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Literal
 from uuid import UUID, uuid4
 
@@ -618,3 +618,121 @@ async def get_reconciliation_run(
         "classification": row.classification,
         "correlation_id": row.correlation_id,
     }
+
+# Bounded operator readback and fail-closed replay/reconciliation controls.
+_ACTIVE_STALE_STATES = {"AUTHORIZED", "OPERATION_REGISTERED", "DISPATCHING", "APPLYING", "APPLIED", "READBACK_PENDING", "READBACK_MISMATCH"}
+_REPLAYABLE_STATES = {"FAILED_RETRYABLE", "READBACK_MISMATCH", "RECONCILIATION_REQUIRED"}
+
+@router.get("/commands/{command_public_id}/history")
+@router.get("/telephony/commands/{command_public_id}/history")
+async def get_command_history(command_public_id: str, limit: int = 100, session: AsyncSession = Depends(get_session)):
+    limit = max(1, min(limit, 200))
+    command = await session.scalar(select(TelephonyCommandJournal).where(TelephonyCommandJournal.command_public_id == command_public_id))
+    if not command:
+        raise HTTPException(404, "command not found")
+    operation = await session.scalar(select(TelephonyOperationJournal).where(TelephonyOperationJournal.command_id == command.command_id))
+    transitions = []
+    if operation:
+        rows = (await session.scalars(select(TelephonyOperationTransition).where(TelephonyOperationTransition.command_id == command.command_id).order_by(TelephonyOperationTransition.sequence.asc()).limit(limit))).all()
+        transitions = [{"sequence": r.sequence, "from_state": r.from_state, "to_state": r.to_state, "occurred_at": r.occurred_at} for r in rows]
+    results = (await session.scalars(select(TelephonyTerminalResult).where(TelephonyTerminalResult.command_id == command.command_id).order_by(TelephonyTerminalResult.created_at.asc()).limit(limit))).all()
+    return {"command": _command_view(command), "operation": None if not operation else {"operation_public_id": operation.operation_public_id, "state": operation.state}, "transitions": transitions, "results": [_result_view(r) for r in results], "limit": limit}
+
+@router.get("/commands/{command_public_id}/result")
+@router.get("/telephony/commands/{command_public_id}/result")
+async def get_command_result(command_public_id: str, session: AsyncSession = Depends(get_session)):
+    command = await session.scalar(select(TelephonyCommandJournal).where(TelephonyCommandJournal.command_public_id == command_public_id))
+    if not command:
+        raise HTTPException(404, "command not found")
+    result = await session.scalar(select(TelephonyTerminalResult).where(TelephonyTerminalResult.command_id == command.command_id).order_by(TelephonyTerminalResult.created_at.desc()).limit(1))
+    if not result:
+        raise HTTPException(404, "command result not found")
+    return _result_view(result)
+
+@router.get("/telephony/reconciliation/candidates")
+async def reconciliation_candidates(stale_after_seconds: int = 300, limit: int = 100, session: AsyncSession = Depends(get_session)):
+    stale_after_seconds = max(30, min(stale_after_seconds, 86400))
+    limit = max(1, min(limit, 200))
+    cutoff = datetime.now(UTC) - timedelta(seconds=stale_after_seconds)
+    rows = (await session.scalars(select(TelephonyCommandJournal).where(TelephonyCommandJournal.state.in_(_ACTIVE_STALE_STATES), TelephonyCommandJournal.updated_at <= cutoff).order_by(TelephonyCommandJournal.updated_at.asc()).limit(limit))).all()
+    candidates = []
+    for command in rows:
+        operation = await session.scalar(select(TelephonyOperationJournal).where(TelephonyOperationJournal.command_id == command.command_id))
+        result = await session.scalar(select(TelephonyTerminalResult).where(TelephonyTerminalResult.command_id == command.command_id).order_by(TelephonyTerminalResult.created_at.desc()).limit(1))
+        inconsistent = bool(operation and (operation.state == "READBACK_MISMATCH" or operation.readback_matches is False or (result and result.reconciliation_status != "IN_SYNC")))
+        candidates.append({"command_public_id": command.command_public_id, "state": command.state, "updated_at": command.updated_at, "stale": True, "inconsistent": inconsistent, "operation_public_id": operation.operation_public_id if operation else None, "repair_intent": "RECONCILE_READBACK" if inconsistent else "INSPECT_STALE_COMMAND"})
+    return {"candidates": candidates, "count": len(candidates), "limit": limit}
+
+class RepairIntentRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    reason: str = Field(min_length=8, max_length=500)
+    expected_state: str = Field(min_length=1, max_length=32)
+    operator_id: str = Field(min_length=1, max_length=144)
+    classification: Literal["RECONCILE_READBACK", "INSPECT_STALE_COMMAND"]
+
+
+@router.post("/telephony/commands/{command_public_id}/repair-intents", status_code=202)
+async def create_repair_intent(command_public_id: str, body: RepairIntentRequest, session: AsyncSession = Depends(get_session)):
+    command = await session.scalar(select(TelephonyCommandJournal).where(TelephonyCommandJournal.command_public_id == command_public_id).with_for_update())
+    if not command:
+        raise HTTPException(404, "command not found")
+    if command.state != body.expected_state:
+        raise HTTPException(409, "command state changed")
+    if command.state not in _ACTIVE_STALE_STATES and command.state not in _REPLAYABLE_STATES:
+        raise HTTPException(409, "command state does not permit repair")
+    if command.lease_owner:
+        raise HTTPException(409, "command has an active lease")
+    operation = await session.scalar(select(TelephonyOperationJournal).where(TelephonyOperationJournal.command_id == command.command_id))
+    if body.classification == "RECONCILE_READBACK" and not operation:
+        raise HTTPException(409, "readback repair requires a registered operation")
+    existing = await session.scalar(select(TelephonyReconciliationRun).where(TelephonyReconciliationRun.command_id == command.command_id, TelephonyReconciliationRun.status.in_(("REQUESTED", "RUNNING"))).order_by(TelephonyReconciliationRun.created_at.desc()).limit(1))
+    if existing:
+        raise HTTPException(409, "command already has an active repair/replay intent")
+    run = TelephonyReconciliationRun(run_public_id=f"RPR-{uuid4().hex}", command_id=command.command_id, environment=command.environment, aggregate_type=command.aggregate_type, aggregate_public_id=command.aggregate_public_id, target_system=operation.target_system if operation else str(command.payload_json.get("target_system", "VICIDIAL")), status="REQUESTED", classification=body.classification, correlation_id=command.correlation_id, evidence_json={"intent": "REPAIR", "operator_id": body.operator_id, "reason": body.reason, "expected_state": body.expected_state, "operation_public_id": operation.operation_public_id if operation else None, "dispatch_enabled": False})
+    session.add(run)
+    await session.commit()
+    return {"repair_public_id": run.run_public_id, "command_public_id": command.command_public_id, "status": run.status, "classification": run.classification, "dispatch_enabled": False}
+
+
+@router.get("/telephony/commands/{command_public_id}/repair-intents")
+async def get_repair_history(command_public_id: str, limit: int = 50, session: AsyncSession = Depends(get_session)):
+    limit = max(1, min(limit, 200))
+    command = await session.scalar(select(TelephonyCommandJournal).where(TelephonyCommandJournal.command_public_id == command_public_id))
+    if not command:
+        raise HTTPException(404, "command not found")
+    rows = (await session.scalars(select(TelephonyReconciliationRun).where(TelephonyReconciliationRun.command_id == command.command_id, TelephonyReconciliationRun.classification.in_(("RECONCILE_READBACK", "INSPECT_STALE_COMMAND"))).order_by(TelephonyReconciliationRun.created_at.desc()).limit(limit))).all()
+    return {"repairs": [{"repair_public_id": r.run_public_id, "status": r.status, "classification": r.classification, "created_at": r.created_at, "completed_at": r.completed_at, "evidence": r.evidence_json} for r in rows], "limit": limit}
+
+class ReplayRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    reason: str = Field(min_length=8, max_length=500)
+    expected_state: str = Field(min_length=1, max_length=32)
+    operator_id: str = Field(min_length=1, max_length=144)
+
+@router.post("/telephony/commands/{command_public_id}/replay", status_code=202)
+async def request_command_replay(command_public_id: str, body: ReplayRequest, session: AsyncSession = Depends(get_session)):
+    command = await session.scalar(select(TelephonyCommandJournal).where(TelephonyCommandJournal.command_public_id == command_public_id).with_for_update())
+    if not command:
+        raise HTTPException(404, "command not found")
+    if command.state != body.expected_state:
+        raise HTTPException(409, "command state changed")
+    if command.state not in _REPLAYABLE_STATES:
+        raise HTTPException(409, "command state is not safely replayable")
+    if command.lease_owner:
+        raise HTTPException(409, "command has an active lease")
+    existing = await session.scalar(select(TelephonyReconciliationRun).where(TelephonyReconciliationRun.command_id == command.command_id, TelephonyReconciliationRun.status.in_(("REQUESTED", "RUNNING"))).order_by(TelephonyReconciliationRun.created_at.desc()).limit(1))
+    if existing:
+        raise HTTPException(409, "command already has an active repair/replay intent")
+    run = TelephonyReconciliationRun(run_public_id=f"RPL-{uuid4().hex}", command_id=command.command_id, environment=command.environment, aggregate_type=command.aggregate_type, aggregate_public_id=command.aggregate_public_id, target_system=str(command.payload_json.get("target_system", "VICIDIAL")), status="REQUESTED", classification="SAFE_REPLAY_REQUEST", correlation_id=command.correlation_id, evidence_json={"intent": "REPLAY", "operator_id": body.operator_id, "reason": body.reason, "expected_state": body.expected_state, "dispatch_enabled": False})
+    session.add(run)
+    await session.commit()
+    return {"replay_public_id": run.run_public_id, "command_public_id": command.command_public_id, "status": run.status, "dispatch_enabled": False}
+
+@router.get("/telephony/commands/{command_public_id}/replays")
+async def get_replay_history(command_public_id: str, limit: int = 50, session: AsyncSession = Depends(get_session)):
+    limit = max(1, min(limit, 200))
+    command = await session.scalar(select(TelephonyCommandJournal).where(TelephonyCommandJournal.command_public_id == command_public_id))
+    if not command:
+        raise HTTPException(404, "command not found")
+    rows = (await session.scalars(select(TelephonyReconciliationRun).where(TelephonyReconciliationRun.command_id == command.command_id, TelephonyReconciliationRun.classification == "SAFE_REPLAY_REQUEST").order_by(TelephonyReconciliationRun.created_at.desc()).limit(limit))).all()
+    return {"replays": [{"replay_public_id": r.run_public_id, "status": r.status, "created_at": r.created_at, "completed_at": r.completed_at, "evidence": r.evidence_json} for r in rows], "limit": limit}
