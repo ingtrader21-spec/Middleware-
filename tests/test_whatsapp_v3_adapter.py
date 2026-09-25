@@ -39,6 +39,7 @@ def command() -> CommandEnvelope:
             "capability": "WHATSAPP_DELIVERY",
             "payload": {
                 "recipient": "15550000000",
+                "campaign_id": "cmp-1",
                 "instance_id": "test-instance",
                 "message": {"type": "text", "text": "hello"},
                 "business_context": {"campaign_id": "cmp-1"},
@@ -81,8 +82,12 @@ async def test_execute_propagates_v3_identifiers_and_normalizes_provider_id() ->
         assert request.headers["authorization"] == "Bearer test-service-token"
         assert request.headers["idempotency-key"] == cmd.idempotency_key
         assert request.headers["x-correlation-id"] == cmd.correlation_id
+        assert request.headers["x-tenant-id"] == cmd.tenant_id
+        assert request.headers["x-command-id"] == str(cmd.command_id)
         payload = __import__("json").loads(request.content)
         assert payload["command_id"] == str(cmd.command_id)
+        assert payload["tenant_id"] == cmd.tenant_id
+        assert payload["campaign_id"] == "cmp-1"
         assert payload["correlation_id"] == cmd.correlation_id
         assert payload["idempotency_key"] == cmd.idempotency_key
         assert payload["provider"] == "evolution"
@@ -115,6 +120,8 @@ async def test_readback_requires_delivered_or_read_for_match() -> None:
 
     def delivered(request: httpx.Request) -> httpx.Response:
         assert request.url.path.endswith("/wamid.123")
+        assert request.headers["x-tenant-id"] == cmd.tenant_id
+        assert request.headers["x-command-id"] == str(cmd.command_id)
         return httpx.Response(200, json={"provider_message_id": "wamid.123", "provider": "evolution", "state": "DELIVERED"})
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(delivered)) as client:
@@ -197,3 +204,34 @@ def test_provider_adapter_is_registered_only_when_configured() -> None:
     )
     assert "evolution-whatsapp" not in {adapter.adapter_id for adapter in unconfigured}
 
+
+
+@pytest.mark.asyncio
+async def test_execute_rejects_missing_campaign_scope_before_provider_call() -> None:
+    cmd = command()
+    payload = dict(cmd.payload)
+    payload.pop("campaign_id")
+    cmd = cmd.model_copy(update={"payload": payload})
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(lambda request: pytest.fail("provider must not be called"))) as client:
+        adapter = WhatsAppProviderAdapter(settings())
+        result = await adapter.execute(cmd, context(cmd, client))
+
+    assert result.outcome is Outcome.REJECTED
+    assert result.safe_error_code == "campaign_id_required"
+
+
+@pytest.mark.asyncio
+async def test_readback_url_encodes_provider_message_id() -> None:
+    cmd = command()
+    provider_id = "wamid/with/slash"
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.raw_path.endswith(b"/wamid%2Fwith%2Fslash")
+        return httpx.Response(200, json={"provider_message_id": provider_id, "provider": "evolution", "state": "READ"})
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        adapter = WhatsAppProviderAdapter(settings())
+        result = await adapter.readback(operation(cmd, provider_id), context(cmd, client))
+
+    assert result.status is ReadbackStatus.MATCHED
