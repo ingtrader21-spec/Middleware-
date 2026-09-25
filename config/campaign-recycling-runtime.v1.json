@@ -14,6 +14,7 @@
     "deploy/observability-alerts/production.env.example",
     "deploy/production/compose.canary.yaml",
     "deploy/production/server/codestra-middleware-deploy",
-    "deploy/production/server-command-contract.v1.json"
+    "deploy/production/server-command-contract.v1.json",
+    "app/mcr_observability.py"
   ]
 }

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import time
 from functools import lru_cache
 import json
 from dataclasses import dataclass
@@ -18,6 +19,8 @@ from app.commands import (
     CommandOperation,
     CommandService,
 )
+
+from app.mcr_observability import MCR_TELEMETRY, MCRObservability, delivery_readback
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -382,10 +385,43 @@ class PolicyProfile:
 
 
 class CampaignRecyclingEngine:
-    def __init__(self, policy: PolicyProfile) -> None:
+    def __init__(
+        self, policy: PolicyProfile, *, telemetry: MCRObservability = MCR_TELEMETRY
+    ) -> None:
         self.policy = policy
+        self.telemetry = telemetry
 
     def evaluate(
+        self,
+        snapshot: LeadSnapshot,
+        candidates: Sequence[Candidate],
+        *,
+        mode: Literal["plan", "read", "execute"] = "plan",
+        now: datetime | None = None,
+        kill_switch_open: bool = False,
+        evidence_stale_or_conflicting: bool = False,
+    ) -> NextActionDecision:
+        if mode not in {"plan", "read", "execute"}:
+            raise CampaignRecyclingPolicyError("invalid decision mode")
+        started = time.perf_counter()
+        decision = self._evaluate(
+            snapshot,
+            candidates,
+            mode=mode,
+            now=now,
+            kill_switch_open=kill_switch_open,
+            evidence_stale_or_conflicting=evidence_stale_or_conflicting,
+        )
+        for item in decision.candidates or (None,):
+            self.telemetry.decision(
+                mode=mode,
+                channel=item.channel if item else "none",
+                reasons=item.reason_codes if item else decision.reason_codes,
+                duration=time.perf_counter() - started,
+            )
+        return decision
+
+    def _evaluate(
         self,
         snapshot: LeadSnapshot,
         candidates: Sequence[Candidate],
@@ -740,6 +776,7 @@ class CampaignRecyclingEngine:
 @dataclass
 class PostgresCampaignRecyclingStore:
     pool: asyncpg.Pool
+    telemetry: MCRObservability = MCR_TELEMETRY
 
     async def transition_lifecycle(
         self,
@@ -943,10 +980,100 @@ class PostgresCampaignRecyclingStore:
         policy: PolicyProfile,
         address_ref: str | None = None,
     ) -> dict[str, Any]:
+        started = time.perf_counter()
+        channel = event.get("channel", "unknown")
+        try:
+            result = await self._apply_delivery_event(
+                event, policy=policy, address_ref=address_ref
+            )
+        except CampaignRecyclingConflict:
+            self.telemetry.delivery(
+                channel=channel,
+                outcome="rejected",
+                duration=time.perf_counter() - started,
+            )
+            raise
+        except Exception:
+            self.telemetry.delivery(
+                channel=channel,
+                outcome="failed",
+                duration=time.perf_counter() - started,
+            )
+            raise
+        # _apply returns after transaction exit: rolled-back work is not success.
+        outcome = (
+            "duplicate"
+            if result["duplicate"]
+            else "partial"
+            if result["projection_state"] == "partial"
+            else "replayed"
+            if result.get("replayed")
+            else "applied"
+        )
+        lag = None
+        try:
+            lag = (
+                datetime.now(UTC) - _coerce_event_datetime(event["received_at"])
+            ).total_seconds()
+        except (KeyError, ValueError, TypeError):
+            pass
+        self.telemetry.delivery(
+            channel=channel,
+            outcome=outcome,
+            lag_seconds=lag,
+            duration=time.perf_counter() - started,
+            replayed=bool(result.get("replayed")),
+            event_type=event.get("event_type", "unknown"),
+        )
+        return result
+
+    async def delivery_readback(
+        self, *, tenant_id: str, authorized_tenant_id: str
+    ) -> dict[str, Any]:
+        if (
+            not tenant_id
+            or not authorized_tenant_id
+            or tenant_id != authorized_tenant_id
+        ):
+            self.telemetry.readback(outcome="denied")
+            raise CampaignRecyclingConflict("delivery readback scope denied")
+        try:
+            async with self.pool.acquire() as conn:
+                row = await conn.fetchrow(
+                    """SELECT count(*) FILTER (WHERE projection_state='pending') AS pending,
+                              count(*) FILTER (WHERE projection_state='partial') AS partial,
+                              GREATEST(0, EXTRACT(EPOCH FROM (now() - min(received_at)
+                                FILTER (WHERE projection_state <> 'applied')))) AS oldest_seconds,
+                              now() AS sampled_at
+                       FROM mcr_delivery_events WHERE tenant_id=$1""",
+                    tenant_id,
+                )
+            if row is None:
+                raise CampaignRecyclingConflict("delivery readback evidence unavailable")
+            result = delivery_readback(
+                pending=row["pending"],
+                partial=row["partial"],
+                oldest_seconds=float(row["oldest_seconds"] or 0),
+                dead_letter=None,
+                sampled_at=row["sampled_at"],
+            )
+        except Exception:
+            self.telemetry.readback(outcome="unavailable")
+            raise
+        self.telemetry.readback(outcome="ready" if result["ready"] else "blocked")
+        return result
+
+    async def _apply_delivery_event(
+        self,
+        event: Mapping[str, Any],
+        *,
+        policy: PolicyProfile,
+        address_ref: str | None = None,
+    ) -> dict[str, Any]:
         errors = sorted(_delivery_validator().iter_errors(dict(event)), key=str)
         if errors:
             raise CampaignRecyclingConflict(
-                f"invalid normalized delivery event: {errors[0].message}"
+                "invalid normalized delivery event"
             )
         event_type = str(event["event_type"])
         source = str(event["source"])
@@ -1448,6 +1575,7 @@ class PostgresCampaignRecyclingStore:
                 return {
                     "event_id": event_id,
                     "duplicate": False,
+                    "replayed": inserted is None,
                     "projection_state": projection_state,
                     "projection_note": projection_note,
                 }

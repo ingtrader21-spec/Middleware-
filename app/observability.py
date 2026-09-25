@@ -13,6 +13,7 @@ from prometheus_client.exposition import CONTENT_TYPE_LATEST
 
 from app.core.config import Settings
 from .intake_observability import IntakeMetrics, collect_intake_backlog
+from .mcr_observability import MCR_TELEMETRY
 
 
 SERVICE = "middleware-api"
@@ -88,6 +89,7 @@ class MiddlewareObservability:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
         self.registry = CollectorRegistry(auto_describe=True)
+        self.registry.register(MCR_TELEMETRY.registry)
         labels = ("service", "component", "environment")
         self._base = (SERVICE, COMPONENT, settings.app_env)
         self.requests = Counter(

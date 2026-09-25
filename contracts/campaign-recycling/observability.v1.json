@@ -1,0 +1,156 @@
+{
+  "schema_version": "1.0",
+  "mission": "MCR-L",
+  "public_metrics": false,
+  "provider_effects_enabled": false,
+  "metric_labels": [
+    "mode",
+    "channel",
+    "reason",
+    "family",
+    "outcome",
+    "operation",
+    "event_type"
+  ],
+  "tenant_strategy": "aggregate-only; no tenant identifiers or hashes in telemetry",
+  "metrics_path": "/metrics",
+  "metrics_auth": "monitoring-readonly:metrics.read; private network only",
+  "registry": "app.mcr_observability.MCR_TELEMETRY.registry",
+  "readback_schema": "contracts/campaign-recycling/delivery-readback.v1.schema.json",
+  "openapi": "contracts/campaign-recycling/observability.openapi.json",
+  "alerts": "monitoring/mcr-alerts.yaml",
+  "runbook": "docs/operations/mcr-observability.md",
+  "service_catalog": {
+    "service_id": "middleware-api",
+    "component": "campaign-recycling",
+    "owner": "integration-operations",
+    "monitoring_state": "pending",
+    "metrics_profile": "prometheus",
+    "logs_profile": "alloy",
+    "traces_profile": "not-applicable",
+    "trace_note": "Local completed span records in structured logs; no OTLP exporter configured or certified.",
+    "public_origin": null,
+    "registration_enabled": false
+  },
+  "slos": {
+    "projection_lag_seconds": 300,
+    "readback_freshness_seconds": 60,
+    "projection_within_budget_ratio": 0.99,
+    "window": "30d",
+    "dead_letter_budget": 0,
+    "unknown_evidence_is_healthy": false
+  },
+  "dead_letter": {
+    "durable_authority": null,
+    "readback_when_unavailable": null,
+    "evidence_available_metric": "codestra_mcr_dead_letter_evidence_available",
+    "activation_blocked": true
+  },
+  "replay": {
+    "same_identity_same_hash": "duplicate if applied; retry pending or partial",
+    "changed_hash": "reject without replacing evidence",
+    "partial_retry_outcome": "partial until all projections apply",
+    "provider_effects": false
+  },
+  "connector_catalog": [
+    {
+      "connector_id": "klyrow",
+      "channels": [
+        "email"
+      ],
+      "authority": "klyrow_delivery_event_inbox",
+      "monitoring_state": "pending",
+      "registration_enabled": false,
+      "provider_effects_enabled": false
+    },
+    {
+      "connector_id": "telnexa",
+      "channels": [
+        "sms"
+      ],
+      "authority": "telnexa_delivery_event_inbox",
+      "monitoring_state": "pending",
+      "registration_enabled": false,
+      "provider_effects_enabled": false
+    },
+    {
+      "connector_id": "evolution",
+      "channels": [
+        "whatsapp"
+      ],
+      "authority": "blocked_pending_dependency",
+      "monitoring_state": "pending",
+      "registration_enabled": false,
+      "provider_effects_enabled": false
+    },
+    {
+      "connector_id": "vicidial",
+      "channels": [
+        "voice"
+      ],
+      "authority": "contract_only",
+      "monitoring_state": "pending",
+      "registration_enabled": false,
+      "provider_effects_enabled": false
+    },
+    {
+      "connector_id": "odoo",
+      "channels": [],
+      "authority": "conversion_authority",
+      "monitoring_state": "pending",
+      "registration_enabled": false,
+      "provider_effects_enabled": false
+    },
+    {
+      "connector_id": "middleware",
+      "channels": [],
+      "authority": "normalized_delivery_ledger",
+      "monitoring_state": "pending",
+      "registration_enabled": false,
+      "provider_effects_enabled": false
+    }
+  ],
+  "delivery_health": {
+    "metric": "codestra_mcr_delivery_health_total",
+    "unit": "completed normalized event projections",
+    "counted_outcomes": [
+      "applied",
+      "replayed"
+    ],
+    "excluded_outcomes": [
+      "partial",
+      "duplicate",
+      "rejected",
+      "failed"
+    ],
+    "denominator_note": "Event counts are not unique messages or a provider delivery rate; one message can generate multiple event types."
+  },
+  "reconciliation": {
+    "authority": "mcr_delivery_events",
+    "signals": [
+      "pending",
+      "partial",
+      "oldest_seconds",
+      "sampled_at",
+      "dead_letter",
+      "reasons"
+    ],
+    "readback_metric": "codestra_mcr_readback_total",
+    "readback_outcomes": [
+      "ready",
+      "blocked",
+      "unavailable",
+      "denied",
+      "unknown"
+    ],
+    "poller_enabled": false,
+    "missing_polling_is_healthy": false
+  },
+  "staging_evidence": "reports/mcr-l-staging-evidence.json",
+  "rollback_observability": {
+    "runbook": "docs/operations/mcr-observability.md",
+    "preserve_delivery_ledger": true,
+    "missing_metrics_is_healthy": false,
+    "production_mutation_authorized": false
+  }
+}
