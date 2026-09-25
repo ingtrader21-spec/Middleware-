@@ -303,8 +303,8 @@
       "staging_auth_matrix": false
     },
     "codestra-connect": {
-      "command_scope": "connect.middleware.command.write",
-      "status_scope": "connect.middleware.status.read",
+      "command_scope": "platform.command",
+      "status_scope": "platform.command.read",
       "allowed_command_prefixes": [
         "connect.crm.",
         "connect.social.",

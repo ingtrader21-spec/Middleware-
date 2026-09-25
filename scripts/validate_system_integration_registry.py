@@ -147,6 +147,7 @@ PROVIDER_CELLS = {
 EXPECTED_REPOSITORY_IDENTITIES = {
     "middleware": (1347559071, "ingtrader21-spec/Middleware-"),
     "caddy": (1350228103, "appolon1908-hue/Caddy"),
+    "codestra-connect": (1386450856, "ingtrader21-spec/Codestra-Connect"),
     "kong": (1347790742, "appolon1908-hue/Kong"),
     "keycloak": (1347523366, "appolon1908-hue/Keycloak"),
     "n8n": (1347560645, "appolon1908-hue/N8N"),
@@ -198,6 +199,14 @@ EXPECTED_SYSTEM_SECURITY_PROFILES = {
         "edge-compatibility",
         "compatibility",
         None,
+    ),
+    "codestra-connect": (
+        "connect-product-routing-source",
+        "active",
+        "communications",
+        "provider-adapter",
+        "target-and-event-source",
+        "connect-router",
     ),
     "kong": (
         "api-gateway-policy-routes-plugins",
@@ -503,6 +512,7 @@ EXPECTED_MIDDLEWARE_OWNED = (
 EXPECTED_CANONICAL_ADAPTER_OWNERS = {
     "ai-provider": "appolon1908-hue/Codestra-AI",
     "beyvra-nonfinancial": "appolon1908-hue/beyvra-backend",
+    "connect-router": "ingtrader21-spec/Codestra-Connect",
     "klyrow-alert-email": "appolon1908-hue/klyrow.com",
     "klyrow-email": "appolon1908-hue/klyrow.com",
     "kyqra-crawler": "appolon1908-hue/kyqra-crawler",
@@ -534,6 +544,19 @@ EXPECTED_CANONICAL_ADAPTER_PROFILES = {
             "broker.",
             "provider.",
         ),
+    ),
+    "connect-router": (
+        "core-communications",
+        "ingtrader21-spec/Codestra-Connect",
+        (
+            "connect.crm.",
+            "connect.social.",
+            "connect.notification.",
+            "connect.provisioning.",
+            "connect.webhook.",
+            "connect.audit.",
+        ),
+        (),
     ),
     "klyrow-alert-email": (
         "core-communications",
@@ -587,6 +610,12 @@ EXPECTED_ADAPTER_BOUND_SYSTEMS = {
         "product-adapter-nonfinancial",
         "caller-and-target",
     ),
+    "codestra-connect": (
+        "connect-router",
+        "communications",
+        "provider-adapter",
+        "target-and-event-source",
+    ),
     "klyrow-email": (
         "klyrow-email",
         "communications",
@@ -637,6 +666,12 @@ EXPECTED_CANONICAL_ADAPTER_OWNER_SECURITY = {
         "financial-isolated",
         "product-adapter-nonfinancial",
         "caller-and-target",
+    ),
+    "codestra-connect": (
+        "active",
+        "communications",
+        "provider-adapter",
+        "target-and-event-source",
     ),
     "klyrow-email": (
         "active",

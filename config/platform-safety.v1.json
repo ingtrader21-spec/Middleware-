@@ -16,7 +16,8 @@
     "provisioning-service": false,
     "telnexa-sms": false,
     "test-syn": false,
-    "vicidial-restricted": false
+    "vicidial-restricted": false,
+    "connect-router": false
   },
   "synthetic_tenants": [
     "TEST_SYN"
@@ -210,6 +211,42 @@
       ],
       "campaign_scoped": false,
       "synthetic_tenant_required": true
+    },
+    "AUDIT_EXPORT": {
+      "classification": "external_effect",
+      "effect_flags": [],
+      "umbrella_controls": [
+        "EXTERNAL_DELIVERY_ENABLED"
+      ],
+      "environments": [
+        "staging",
+        "production"
+      ],
+      "campaign_scoped": false
+    },
+    "NOTIFICATION_DELIVERY": {
+      "classification": "external_effect",
+      "effect_flags": [],
+      "umbrella_controls": [
+        "EXTERNAL_DELIVERY_ENABLED"
+      ],
+      "environments": [
+        "staging",
+        "production"
+      ],
+      "campaign_scoped": false
+    },
+    "WEBHOOK_DELIVERY": {
+      "classification": "external_effect",
+      "effect_flags": [],
+      "umbrella_controls": [
+        "EXTERNAL_DELIVERY_ENABLED"
+      ],
+      "environments": [
+        "staging",
+        "production"
+      ],
+      "campaign_scoped": false
     }
   },
   "limits": {

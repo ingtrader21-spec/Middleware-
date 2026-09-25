@@ -281,6 +281,7 @@ class ConnectorSdkStandardsTests(unittest.TestCase):
             {
                 "ai-provider",
                 "beyvra-nonfinancial",
+                "connect-router",
                 "klyrow-alert-email",
                 "klyrow-email",
                 "kyqra-crawler",

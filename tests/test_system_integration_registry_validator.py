@@ -68,7 +68,7 @@ def test_current_registry_passes_and_derives_counts(
     adapter_registry = validator.load_object(validator.ADAPTER_PATH)
     assert summary["systems"] == len(registry["systems"])
     assert summary["aliases"] == len(aliases["mappings"])
-    assert summary["adapters"] == len(adapter_registry["adapters"]) == 11
+    assert summary["adapters"] == len(adapter_registry["adapters"]) == 12
     assert summary["cells"] == len({item["cell"] for item in registry["systems"]})
 
 
