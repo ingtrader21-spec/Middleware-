@@ -1,0 +1,143 @@
+{
+  "schema_version": "1.0",
+  "mission": "MCR-F",
+  "runtime_status": "contract_only",
+  "authority": "contracts/campaign-recycling/authority.v1.json",
+  "lifecycle": "contracts/campaign-recycling/lifecycle.v1.schema.json",
+  "ledger": "contracts/automation/n8n-control-plane.v2.json",
+  "operation_policy": "contracts/automation/operation-policy.v2.json",
+  "release_safety": {
+    "workflows_active": false,
+    "external_effects_enabled": false,
+    "runtime_deployment_authorized": false,
+    "production_promotion_authorized": false
+  },
+  "binding_fields": [
+    "tenant_id",
+    "correlation_id",
+    "acceptance_id",
+    "command_id",
+    "lead_id",
+    "campaign_id",
+    "campaign_version",
+    "workflow_key",
+    "workflow_version"
+  ],
+  "preconditions": {
+    "acceptance_status": "ACCEPTED",
+    "durable_acceptance_required": true,
+    "trusted_record_source": "middleware_ledger",
+    "lifecycle_states": [
+      "ELIGIBLE",
+      "ACTIVE_CYCLE",
+      "ENGAGED",
+      "REACTIVATION"
+    ],
+    "current_policy_required": true,
+    "suppression_blocks": true,
+    "lifecycle_version_must_match": true
+  },
+  "authorization": {
+    "issuer": "https://auth.codestra.co/realms/codestra",
+    "audience": "middleware-api",
+    "maximum_token_lifetime_seconds": 300,
+    "tenant_claim_required": true,
+    "verified_jwt_required": true,
+    "environment_claim_must_match": true,
+    "operations": {
+      "trigger": {
+        "client": "middleware-api",
+        "scope": "workflow.trigger"
+      },
+      "result": {
+        "client": "n8n-automation",
+        "scope": "workflow.result.publish"
+      },
+      "readback": {
+        "client": "middleware-api",
+        "scope": "workflow.status.read"
+      },
+      "replay": {
+        "client": "middleware-api",
+        "scope": "automation.replay.request"
+      }
+    }
+  },
+  "idempotency": {
+    "namespace": [
+      "tenant_id",
+      "operation",
+      "idempotency_key"
+    ],
+    "fingerprint": "SHA-256 of canonical complete request, including identity, correlation, causation and lifecycle version",
+    "reservation": "atomic unique insert and job/outbox/result/audit write in one Middleware transaction",
+    "exact_duplicate": "return original durable response without another outbox entry",
+    "conflict_http_status": 409,
+    "retention": "retain tombstone for acceptance lifetime; never reuse expired keys",
+    "concurrent_duplicate": "one reservation winner; other caller reads committed response",
+    "lookup_order": "authenticate and bind tenant before duplicate lookup; exact duplicate precedes mutable lifecycle/lease checks"
+  },
+  "result": {
+    "requires_live_lease": true,
+    "binding": [
+      "execution_id",
+      "lease_id",
+      "attempt"
+    ],
+    "allowed_job_states": [
+      "CLAIMED",
+      "RUNNING"
+    ],
+    "terminal_immutable": true,
+    "actions_allowed": false,
+    "status_does_not_prove_provider_delivery": true
+  },
+  "retry": {
+    "owner": "middleware",
+    "automatic_n8n_retry": false,
+    "retryable": [
+      "TRANSIENT_BEFORE_EFFECT"
+    ],
+    "unknown_outcome": "WAIT_FOR_RECONCILIATION_NO_RETRY",
+    "max_attempts": 3,
+    "backoff_seconds": [
+      30,
+      120
+    ],
+    "exhausted": "DEAD_LETTER",
+    "permanent": "DEAD_LETTER",
+    "replay_requires": [
+      "dead_letter",
+      "known_outcome",
+      "reconciled",
+      "operator_approval",
+      "current_acceptance",
+      "current_policy",
+      "not_suppressed",
+      "remaining_budget"
+    ],
+    "replay": "new idempotency key and new execution linked to original dead letter; original immutable; cumulative attempt budget never reset"
+  },
+  "readback": {
+    "source": "middleware_durable_ledger",
+    "cross_tenant_http_status": 404,
+    "missing_http_status": 404,
+    "contains_provider_credentials": false,
+    "contains_raw_payload": false,
+    "identity_immutable": true
+  },
+  "no_bypass": {
+    "provider_calls": false,
+    "direct_database_writes": false,
+    "eligibility_override": false,
+    "suppression_override": false,
+    "sender_identity_selection": false,
+    "effects_path": "canonical Middleware commands with capability and operation policy rechecked"
+  },
+  "evidence": {
+    "local": "offline_staging_profile_conformance",
+    "protected_staging": "PENDING_NOT_RUN",
+    "runtime_enforcement": "NOT_IMPLEMENTED_BY_MCR_F",
+    "production": "NO_GO"
+  }
+}
