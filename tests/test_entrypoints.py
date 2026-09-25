@@ -34,20 +34,30 @@ def test_api_surfaces_are_narrow_and_cover_existing_routes():
     assert "/api/v1/events/vicidial" in event_paths
     assert "/api/v2/telephony/canary" in event_paths
     assert "/api/v1/automation/events" in integration_paths
-    assert "/api/v1/commands" in integration_paths
-    assert "/api/v1/commands/{command_public_id}" in integration_paths
-    assert "/api/v1/telephony/commands" in integration_paths
-    assert "/api/v1/telephony/commands/{command_public_id}/cancel" in integration_paths
-    assert "/api/v1/telephony/operations" in integration_paths
-    assert "/api/v1/telephony/operations/{operation_public_id}" in integration_paths
-    assert (
-        "/api/v1/telephony/operations/{operation_public_id}/transitions"
-        in integration_paths
-    )
-    assert "/api/v1/telephony/results" in integration_paths
-    assert "/api/v1/telephony/results/{result_public_id}" in integration_paths
-    assert "/api/v1/telephony/reconciliation/runs" in integration_paths
-    assert "/api/v1/telephony/reconciliation/runs/{run_public_id}" in integration_paths
+    # AUTH-01: tenantless legacy telephony journal routes are retired from the
+    # deployed integration API. The canonical tenant-bound command kernel is
+    # the only command authority exposed by this profile.
+    for retired in (
+        "/api/v1/commands",
+        "/api/v1/commands/{command_public_id}",
+        "/api/v1/telephony/commands",
+        "/api/v1/telephony/commands/{command_public_id}",
+        "/api/v1/telephony/commands/{command_public_id}/cancel",
+        "/api/v1/telephony/operations",
+        "/api/v1/telephony/operations/{operation_public_id}",
+        "/api/v1/telephony/operations/{operation_public_id}/transitions",
+        "/api/v1/telephony/results",
+        "/api/v1/telephony/results/{result_public_id}",
+        "/api/v1/telephony/reconciliation/runs",
+        "/api/v1/telephony/reconciliation/runs/{run_public_id}",
+    ):
+        assert retired not in integration_paths
+
+    assert "/platform/v1/commands" in integration_paths
+    assert "/platform/v1/operations/{operation_id}" in integration_paths
+    assert "/platform/v1/operations/{operation_id}/timeline" in integration_paths
+    assert "/platform/v1/operations/{operation_id}/cancel" in integration_paths
+    assert "/platform/v1/operations/{operation_id}/replay" in integration_paths
     assert "/api/v1/lead-automation/results" in integration_paths
     assert "/api/v1/lead-automation/events/{automation_event_id}" in integration_paths
     assert "/api/v1/integrations/n8n/results" in integration_paths
