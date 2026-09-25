@@ -11,6 +11,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 LAUNCHER = ROOT / ".codestra/run-trusted-production-orchestrator.py"
 ORCHESTRATOR = ROOT / ".codestra/validate-production-orchestrator-contract.py"
+RELEASE_VALIDATOR = ROOT / ".codestra/validate-release-intent.py"
 GOVERNANCE_VALIDATOR = ROOT / "scripts/validate_repository_governance.py"
 GATE = ROOT / ".github/workflows/trusted-production-orchestrator-gate.yml"
 PRODUCTION_WORKFLOW = ROOT / ".github/workflows/production-orchestrator-contract.yml"
@@ -203,10 +204,17 @@ def test_repaired_candidate_requires_independent_protected_trust_transition(monk
     # this does not change the production launcher's approval table. Once
     # protected main lists this generation, verify it under its own
     # steady-state policy; until then only the successor policy can apply.
+    expected_release_fingerprint = (
+        "d94351f6d39b406bb7fc3a5b9736e72ff987ef374e264c9844099a7551ce4192"
+    )
+    candidate_namespace = runpy.run_path(str(ORCHESTRATOR), run_name="candidate_orchestrator")
+    assert candidate_namespace["release_validator_security_fingerprint"](
+        RELEASE_VALIDATOR.read_text(encoding="utf-8")
+    ) == expected_release_fingerprint
     steady_state = launcher.APPROVED_VALIDATOR_TRANSITIONS.get(repaired, {}).get(repaired)
     policy = steady_state or (
         "security-fingerprint",
-        launcher.SUCCESSOR_RELEASE_SECURITY_FINGERPRINT,
+        expected_release_fingerprint,
     )
     monkeypatch.setattr(launcher, "APPROVED_VALIDATOR_TRANSITIONS", {repaired: {repaired: policy}})
     assert launcher.validate_candidate(ROOT) == ORCHESTRATOR
