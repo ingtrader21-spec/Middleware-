@@ -113,7 +113,7 @@ readback_pending→UNKNOWN, completed→COMPLETED, failed→FAILED,
 reconciliation_required→RECONCILIATION_REQUIRED, dead_lettered→DEAD_LETTERED,
 cancelled→CANCELLED` (unchanged `API_OPERATION_STATES`).
 
-## 5. The six kernel routes (integration profile, Kong upstream `middleware-integration-api:8095`)
+## 5. The eight kernel routes (integration profile, Kong upstream `middleware-integration-api:8095`)
 
 The submit body is provider-blind: `target` (connector id) and `capability` may be omitted; the command registry binds both to the command family and a supplied value must agree with it.
 
@@ -125,6 +125,10 @@ The submit body is provider-blind: `target` (connector id) and `capability` may 
 | `POST /platform/v1/operations/{id}/cancel` | `platform.command` | `expected_version` + `reason`; semantics of `mutate_operation` |
 | `POST /platform/v1/operations/{id}/replay` | `platform.command.replay` + role `platform-operator` | `mode=REPROCESS` (no new effect) or `REEXECUTE` (new idempotency key, fresh policy + safety, adapter must support it) |
 | `GET /platform/v1/kernel/describe` | `platform.command.read` | versions, digests, registries, effect defaults; no secrets |
+| `GET /platform/v1/adapters` | `platform.command.read` | adapter registration readback: registered/`not_configured`/`registration_refused` per adapter, every capability's state and owner, `provider_effects_enabled`, readiness (probes only adapters owning an enabled capability); `Cache-Control: no-store` |
+| `GET /platform/v1/adapters/{adapter_id}` | `platform.command.read` | one adapter's registration row and capability states; unknown id → 404 `adapter_not_found` |
+
+Production registration (PAS-53): only the adapters of `config/production-adapters.v1.json` whose configuration validates register, and only while `activation_authorized` is `false` and every capability they serve is known, carries an `external_effect` gate and is `false` (`app/platform/production.py`). Any violation — an enabled or unknown capability, an unlisted adapter, an adapter advertising other capabilities than the manifest — registers no adapter at all and fails readiness. A capability the capability registry does not list is denied explicitly: `capability_unknown` (403) at submit, a `capability_unknown` Safety Gate reason, and a registry refusal for adapters or policies naming it.
 
 `GET /metrics` stays private (`monitoring-readonly`, `metrics.read`).
 
