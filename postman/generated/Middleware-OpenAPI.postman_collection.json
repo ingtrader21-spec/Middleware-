@@ -3555,6 +3555,220 @@
     {
       "item": [
         {
+          "name": "Execute a previously planned set of decisions",
+          "request": {
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"lead_ids\": [],\n  \"plan_hash\": \"\",\n  \"plan_id\": \"\",\n  \"schema_version\": \"\"\n}"
+            },
+            "header": [
+              {
+                "key": "X-Tenant-ID",
+                "type": "text",
+                "value": "{{x_tenant_id}}"
+              },
+              {
+                "key": "X-Correlation-ID",
+                "type": "text",
+                "value": "{{x_correlation_id}}"
+              },
+              {
+                "key": "X-Causation-ID",
+                "type": "text",
+                "value": "{{x_causation_id}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "type": "text",
+                "value": "{{idempotency_key}}"
+              },
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "type": "text",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "campaign-engine",
+                "execute"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/campaign-engine/execute"
+            }
+          }
+        },
+        {
+          "name": "Dry-run next-action planning for one or more leads",
+          "request": {
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"campaign_scope\": \"\",\n  \"channels\": [],\n  \"lead_ids\": [],\n  \"policy_version\": \"\",\n  \"schema_version\": \"\"\n}"
+            },
+            "header": [
+              {
+                "key": "X-Tenant-ID",
+                "type": "text",
+                "value": "{{x_tenant_id}}"
+              },
+              {
+                "key": "X-Correlation-ID",
+                "type": "text",
+                "value": "{{x_correlation_id}}"
+              },
+              {
+                "key": "X-Causation-ID",
+                "type": "text",
+                "value": "{{x_causation_id}}"
+              },
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "type": "text",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "campaign-engine",
+                "plan"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/campaign-engine/plan"
+            }
+          }
+        },
+        {
+          "name": "Non-secret engine and policy status",
+          "request": {
+            "header": [
+              {
+                "key": "X-Tenant-ID",
+                "type": "text",
+                "value": "{{x_tenant_id}}"
+              },
+              {
+                "key": "X-Correlation-ID",
+                "type": "text",
+                "value": "{{x_correlation_id}}"
+              },
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "campaign-engine",
+                "status"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/campaign-engine/status"
+            }
+          }
+        },
+        {
+          "name": "Leads currently eligible for a campaign version (read model, dry run)",
+          "request": {
+            "header": [
+              {
+                "key": "X-Tenant-ID",
+                "type": "text",
+                "value": "{{x_tenant_id}}"
+              },
+              {
+                "key": "X-Correlation-ID",
+                "type": "text",
+                "value": "{{x_correlation_id}}"
+              },
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "campaigns",
+                "{campaign_id}",
+                "eligible-leads"
+              ],
+              "query": [
+                {
+                  "disabled": false,
+                  "key": "campaign_version",
+                  "value": "{{campaign_version}}"
+                },
+                {
+                  "disabled": true,
+                  "key": "channel",
+                  "value": "{{channel}}"
+                },
+                {
+                  "disabled": true,
+                  "key": "cursor",
+                  "value": "{{cursor}}"
+                },
+                {
+                  "disabled": true,
+                  "key": "limit",
+                  "value": "{{limit}}"
+                }
+              ],
+              "raw": "{{base_url}}/platform/v1/campaigns/{campaign_id}/eligible-leads"
+            }
+          }
+        }
+      ],
+      "name": "campaign-engine"
+    },
+    {
+      "item": [
+        {
           "name": "List Campaigns",
           "request": {
             "header": [
@@ -4911,6 +5125,85 @@
         }
       ],
       "name": "contacts"
+    },
+    {
+      "item": [
+        {
+          "name": "Ingest one normalized delivery or engagement event",
+          "request": {
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"automated_suspected\": false,\n  \"bounce_class\": \"\",\n  \"campaign_id\": \"\",\n  \"campaign_version\": \"\",\n  \"causation_id\": \"\",\n  \"channel\": \"\",\n  \"correlation_id\": \"\",\n  \"event_id\": \"\",\n  \"event_type\": \"\",\n  \"exposure_idempotency_key\": \"\",\n  \"lead_id\": \"\",\n  \"message_id\": \"\",\n  \"occurred_at\": \"\",\n  \"origin\": \"\",\n  \"payload_hash\": \"\",\n  \"provider\": \"\",\n  \"provider_message_id\": \"\",\n  \"received_at\": \"\",\n  \"schema_version\": \"\",\n  \"source\": \"\",\n  \"tenant_id\": \"\"\n}"
+            },
+            "header": [
+              {
+                "key": "X-Tenant-ID",
+                "type": "text",
+                "value": "{{x_tenant_id}}"
+              },
+              {
+                "key": "X-Correlation-ID",
+                "type": "text",
+                "value": "{{x_correlation_id}}"
+              },
+              {
+                "key": "X-Causation-ID",
+                "type": "text",
+                "value": "{{x_causation_id}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "type": "text",
+                "value": "{{idempotency_key}}"
+              },
+              {
+                "key": "X-Codestra-Event-ID",
+                "type": "text",
+                "value": "{{x_codestra_event_id}}"
+              },
+              {
+                "key": "X-Codestra-Timestamp",
+                "type": "text",
+                "value": "{{x_codestra_timestamp}}"
+              },
+              {
+                "key": "X-Codestra-Signature",
+                "type": "text",
+                "value": "{{x_codestra_signature}}"
+              },
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "type": "text",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "delivery-events"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/delivery-events"
+            }
+          }
+        }
+      ],
+      "name": "delivery-events"
     },
     {
       "item": [
@@ -11629,6 +11922,102 @@
     {
       "item": [
         {
+          "name": "Lifecycle, channel health, and exposure history for one lead",
+          "request": {
+            "header": [
+              {
+                "key": "X-Tenant-ID",
+                "type": "text",
+                "value": "{{x_tenant_id}}"
+              },
+              {
+                "key": "X-Correlation-ID",
+                "type": "text",
+                "value": "{{x_correlation_id}}"
+              },
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "leads",
+                "{lead_id}",
+                "journey"
+              ],
+              "query": [
+                {
+                  "disabled": true,
+                  "key": "cursor",
+                  "value": "{{cursor}}"
+                },
+                {
+                  "disabled": true,
+                  "key": "limit",
+                  "value": "{{limit}}"
+                }
+              ],
+              "raw": "{{base_url}}/platform/v1/leads/{lead_id}/journey"
+            }
+          }
+        },
+        {
+          "name": "Current next-action decision for one lead (read mode, dry run)",
+          "request": {
+            "header": [
+              {
+                "key": "X-Tenant-ID",
+                "type": "text",
+                "value": "{{x_tenant_id}}"
+              },
+              {
+                "key": "X-Correlation-ID",
+                "type": "text",
+                "value": "{{x_correlation_id}}"
+              },
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "leads",
+                "{lead_id}",
+                "next-action"
+              ],
+              "query": [
+                {
+                  "disabled": true,
+                  "key": "channel",
+                  "value": "{{channel}}"
+                }
+              ],
+              "raw": "{{base_url}}/platform/v1/leads/{lead_id}/next-action"
+            }
+          }
+        }
+      ],
+      "name": "leads"
+    },
+    {
+      "item": [
+        {
           "name": "Odoo Event",
           "request": {
             "header": [
@@ -13087,6 +13476,70 @@
         }
       ],
       "name": "session-context"
+    },
+    {
+      "item": [
+        {
+          "name": "Record an additive, scoped suppression",
+          "request": {
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"campaign_id\": \"\",\n  \"channel\": \"\",\n  \"evidence\": {\n    \"event_id\": \"\",\n    \"event_source\": \"\",\n    \"evidence_hash\": \"\",\n    \"evidence_ref\": \"\",\n    \"kind\": \"\",\n    \"provider\": \"\",\n    \"provider_message_id\": \"\"\n  },\n  \"lead_id\": \"\",\n  \"occurred_at\": \"\",\n  \"reason\": \"\",\n  \"requested_by\": \"\",\n  \"schema_version\": \"\",\n  \"scope\": \"\",\n  \"source\": \"\"\n}"
+            },
+            "header": [
+              {
+                "key": "X-Tenant-ID",
+                "type": "text",
+                "value": "{{x_tenant_id}}"
+              },
+              {
+                "key": "X-Correlation-ID",
+                "type": "text",
+                "value": "{{x_correlation_id}}"
+              },
+              {
+                "key": "X-Causation-ID",
+                "type": "text",
+                "value": "{{x_causation_id}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "type": "text",
+                "value": "{{idempotency_key}}"
+              },
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "type": "text",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "suppressions"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/suppressions"
+            }
+          }
+        }
+      ],
+      "name": "suppressions"
     },
     {
       "item": [
