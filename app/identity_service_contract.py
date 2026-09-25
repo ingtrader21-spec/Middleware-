@@ -35,6 +35,14 @@ def validate_service_command(
     family = command_type.split(".", 1)[0]
     if family not in SERVICE_COMMANDS and target not in SERVICE_COMMANDS:
         return
+    from app.identity_missions import MISSION_COMMANDS, validate_schema
+
+    mission = MISSION_COMMANDS.get(command_type)
+    if mission is not None:
+        if target != family or capability != mission[0]:
+            raise ValueError("service command target or capability mismatch")
+        validate_schema(mission[1], payload)
+        return
     expected = SERVICE_COMMANDS.get(target)
     if expected is None:
         raise ValueError("service command target mismatch")

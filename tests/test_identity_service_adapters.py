@@ -317,6 +317,10 @@ async def test_readback_absence_is_not_completion(status, expected):
 @pytest.mark.parametrize("sid", SERVICE_COMMANDS)
 @pytest.mark.asyncio
 async def test_kernel_outbox_idempotency_and_worker_readback(sid, test_settings):
+    await assert_kernel_delivery(command(sid), test_settings)
+
+
+async def assert_kernel_delivery(cmd, test_settings, result=None):
     from app.commands import CommandConflict, CommandService, MemoryCommandStore
     from app.control_plane_auth import ControlPlaneCaller
     from app.platform.memory import MemoryExecutionBus
@@ -324,7 +328,7 @@ async def test_kernel_outbox_idempotency_and_worker_readback(sid, test_settings)
     from app.platform.runtime import build_platform_runtime
     from app.platform.safety import SafetyGate
 
-    cmd = command(sid)
+    sid = cmd.target
     base = CommandPolicyRegistry.load()
     policies = CommandPolicyRegistry(
         policies=base.policies, capabilities={**base.capabilities, cmd.capability: True}
@@ -346,7 +350,16 @@ async def test_kernel_outbox_idempotency_and_worker_readback(sid, test_settings)
         client_id="middleware-api",
         tenants=(cmd.tenant_id,),
         roles=(),
-        scopes=("platform.command",),
+        scopes=(
+            "platform.command",
+            "face-id.access.evaluate",
+            "face-id.presence.write",
+            "face-id.watchlist.write",
+            "face-id.enrollment.review",
+            "camera-gateway.ptz.control",
+            "camera-gateway.events.write",
+            "camera-gateway.maintenance.write",
+        ),
         caller=ControlPlaneCaller(
             client_id="middleware-api",
             command_scope="platform.command",
@@ -371,6 +384,7 @@ async def test_kernel_outbox_idempotency_and_worker_readback(sid, test_settings)
                 "operation_id": "op-1",
                 "state": "completed",
                 "payload_sha256": payload_digest(cmd.payload),
+                **({"result": result} if result is not None else {}),
             },
         )
 

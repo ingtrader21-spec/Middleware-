@@ -619,6 +619,470 @@
                             }
                           }
                         }
+                      },
+                      {
+                        "type": "object",
+                        "required": [
+                          "command_type",
+                          "payload"
+                        ],
+                        "properties": {
+                          "command_type": {
+                            "const": "face-id.access.evaluate.v1"
+                          },
+                          "target": {
+                            "const": "face-id"
+                          },
+                          "capability": {
+                            "const": "FACE_ID_ACCESS_EVALUATE"
+                          },
+                          "payload": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "subject_ref",
+                              "zone_ref",
+                              "occurred_at"
+                            ],
+                            "properties": {
+                              "subject_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              },
+                              "zone_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              },
+                              "occurred_at": {
+                                "type": "string",
+                                "format": "date-time",
+                                "maxLength": 40
+                              },
+                              "visitor_pass_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "required": [
+                          "command_type",
+                          "payload"
+                        ],
+                        "properties": {
+                          "command_type": {
+                            "const": "face-id.presence.enter.v1"
+                          },
+                          "target": {
+                            "const": "face-id"
+                          },
+                          "capability": {
+                            "const": "FACE_ID_PRESENCE_EVENT"
+                          },
+                          "payload": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "event_ref",
+                              "camera_ref",
+                              "zone_ref",
+                              "subject_ref"
+                            ],
+                            "properties": {
+                              "event_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              },
+                              "camera_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              },
+                              "zone_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              },
+                              "subject_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "required": [
+                          "command_type",
+                          "payload"
+                        ],
+                        "properties": {
+                          "command_type": {
+                            "const": "face-id.presence.exit.v1"
+                          },
+                          "target": {
+                            "const": "face-id"
+                          },
+                          "capability": {
+                            "const": "FACE_ID_PRESENCE_EVENT"
+                          },
+                          "payload": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "event_ref",
+                              "camera_ref",
+                              "zone_ref",
+                              "subject_ref"
+                            ],
+                            "properties": {
+                              "event_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              },
+                              "camera_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              },
+                              "zone_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              },
+                              "subject_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "required": [
+                          "command_type",
+                          "payload"
+                        ],
+                        "properties": {
+                          "command_type": {
+                            "const": "camera-gateway.ptz.move.v1"
+                          },
+                          "target": {
+                            "const": "camera-gateway"
+                          },
+                          "capability": {
+                            "const": "CAMERA_PTZ"
+                          },
+                          "payload": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "camera_ref",
+                              "pan",
+                              "tilt",
+                              "zoom",
+                              "duration_ms"
+                            ],
+                            "properties": {
+                              "camera_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              },
+                              "pan": {
+                                "type": "number",
+                                "minimum": -1,
+                                "maximum": 1
+                              },
+                              "tilt": {
+                                "type": "number",
+                                "minimum": -1,
+                                "maximum": 1
+                              },
+                              "zoom": {
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 1
+                              },
+                              "duration_ms": {
+                                "type": "integer",
+                                "minimum": 100,
+                                "maximum": 2000
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "required": [
+                          "command_type",
+                          "payload"
+                        ],
+                        "properties": {
+                          "command_type": {
+                            "const": "camera-gateway.ptz.stop.v1"
+                          },
+                          "target": {
+                            "const": "camera-gateway"
+                          },
+                          "capability": {
+                            "const": "CAMERA_PTZ"
+                          },
+                          "payload": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "camera_ref"
+                            ],
+                            "properties": {
+                              "camera_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "required": [
+                          "command_type",
+                          "payload"
+                        ],
+                        "properties": {
+                          "command_type": {
+                            "const": "face-id.watchlist.membership.update.v1"
+                          },
+                          "target": {
+                            "const": "face-id"
+                          },
+                          "capability": {
+                            "const": "FACE_ID_WATCHLIST_REFERENCE"
+                          },
+                          "payload": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "watchlist_ref",
+                              "subject_ref",
+                              "action",
+                              "decision_ref"
+                            ],
+                            "properties": {
+                              "watchlist_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              },
+                              "subject_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              },
+                              "action": {
+                                "enum": [
+                                  "add",
+                                  "remove"
+                                ]
+                              },
+                              "decision_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "required": [
+                          "command_type",
+                          "payload"
+                        ],
+                        "properties": {
+                          "command_type": {
+                            "const": "face-id.enrollment.quality.review.v1"
+                          },
+                          "target": {
+                            "const": "face-id"
+                          },
+                          "capability": {
+                            "const": "FACE_ID_ENROLLMENT_REVIEW"
+                          },
+                          "payload": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "session_ref",
+                              "quality_evidence_ref",
+                              "decision"
+                            ],
+                            "properties": {
+                              "session_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              },
+                              "quality_evidence_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              },
+                              "decision": {
+                                "enum": [
+                                  "accept",
+                                  "reject",
+                                  "needs_review"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "required": [
+                          "command_type",
+                          "payload"
+                        ],
+                        "properties": {
+                          "command_type": {
+                            "const": "face-id.duplicate.review.resolve.v1"
+                          },
+                          "target": {
+                            "const": "face-id"
+                          },
+                          "capability": {
+                            "const": "FACE_ID_ENROLLMENT_REVIEW"
+                          },
+                          "payload": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "review_ref",
+                              "candidate_subject_ref",
+                              "evidence_ref",
+                              "resolution"
+                            ],
+                            "properties": {
+                              "review_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              },
+                              "candidate_subject_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              },
+                              "evidence_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              },
+                              "resolution": {
+                                "enum": [
+                                  "distinct",
+                                  "same_subject_candidate",
+                                  "needs_review"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "required": [
+                          "command_type",
+                          "payload"
+                        ],
+                        "properties": {
+                          "command_type": {
+                            "const": "camera-gateway.event.normalize.v1"
+                          },
+                          "target": {
+                            "const": "camera-gateway"
+                          },
+                          "capability": {
+                            "const": "CAMERA_EVENT_NORMALIZATION"
+                          },
+                          "payload": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "event_ref",
+                              "camera_ref",
+                              "event_kind",
+                              "observed_at",
+                              "source_version",
+                              "heuristic"
+                            ],
+                            "properties": {
+                              "event_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              },
+                              "camera_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              },
+                              "event_kind": {
+                                "enum": [
+                                  "motion",
+                                  "scene_change",
+                                  "tamper",
+                                  "health"
+                                ]
+                              },
+                              "observed_at": {
+                                "type": "string",
+                                "format": "date-time",
+                                "maxLength": 40
+                              },
+                              "source_version": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              },
+                              "heuristic": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "required": [
+                          "command_type",
+                          "payload"
+                        ],
+                        "properties": {
+                          "command_type": {
+                            "const": "camera-gateway.maintenance.update.v1"
+                          },
+                          "target": {
+                            "const": "camera-gateway"
+                          },
+                          "capability": {
+                            "const": "CAMERA_MAINTENANCE_METADATA"
+                          },
+                          "payload": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "camera_ref",
+                              "enabled"
+                            ],
+                            "properties": {
+                              "camera_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              },
+                              "enabled": {
+                                "type": "boolean"
+                              },
+                              "reason_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              }
+                            }
+                          }
+                        }
                       }
                     ]
                   }
@@ -751,7 +1215,12 @@
                         "face-id.verify.v1",
                         "face-liveness.verify.v1",
                         "camera-gateway.capture.v1",
-                        "postgresql.backup.v1"
+                        "postgresql.backup.v1",
+                        "face-id.access.evaluate.v1",
+                        "face-id.presence.enter.v1",
+                        "face-id.presence.exit.v1",
+                        "camera-gateway.ptz.move.v1",
+                        "camera-gateway.ptz.stop.v1"
                       ]
                     },
                     "idempotency_key": {
@@ -769,7 +1238,215 @@
                         "failed"
                       ]
                     }
-                  }
+                  },
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "command_type": {
+                            "const": "face-id.access.evaluate.v1"
+                          },
+                          "state": {
+                            "const": "completed"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "result"
+                        ],
+                        "properties": {
+                          "result": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "decision_ref",
+                              "decision",
+                              "evaluated_at",
+                              "door_effect"
+                            ],
+                            "properties": {
+                              "decision_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              },
+                              "decision": {
+                                "enum": [
+                                  "allow",
+                                  "deny",
+                                  "indeterminate"
+                                ]
+                              },
+                              "policy_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              },
+                              "evaluated_at": {
+                                "type": "string",
+                                "format": "date-time",
+                                "maxLength": 40
+                              },
+                              "door_effect": {
+                                "const": false
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "command_type": {
+                            "const": "face-id.presence.enter.v1"
+                          },
+                          "state": {
+                            "const": "completed"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "result"
+                        ],
+                        "properties": {
+                          "result": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "event_ref"
+                            ],
+                            "properties": {
+                              "event_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "command_type": {
+                            "const": "face-id.presence.exit.v1"
+                          },
+                          "state": {
+                            "const": "completed"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "result"
+                        ],
+                        "properties": {
+                          "result": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "event_ref"
+                            ],
+                            "properties": {
+                              "event_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "command_type": {
+                            "const": "camera-gateway.ptz.move.v1"
+                          },
+                          "state": {
+                            "const": "completed"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "result"
+                        ],
+                        "properties": {
+                          "result": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "camera_ref",
+                              "motion_state",
+                              "stop_reason"
+                            ],
+                            "properties": {
+                              "camera_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              },
+                              "motion_state": {
+                                "const": "stopped"
+                              },
+                              "stop_reason": {
+                                "enum": [
+                                  "explicit_stop",
+                                  "duration_elapsed",
+                                  "failsafe"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "command_type": {
+                            "const": "camera-gateway.ptz.stop.v1"
+                          },
+                          "state": {
+                            "const": "completed"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "result"
+                        ],
+                        "properties": {
+                          "result": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "camera_ref",
+                              "motion_state",
+                              "stop_reason"
+                            ],
+                            "properties": {
+                              "camera_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              },
+                              "motion_state": {
+                                "const": "stopped"
+                              },
+                              "stop_reason": {
+                                "enum": [
+                                  "explicit_stop",
+                                  "duration_elapsed",
+                                  "failsafe"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -779,6 +1456,2416 @@
           }
         },
         "x-required-scope": "connector.<service>.read"
+      }
+    },
+    "/internal/v1/observability/backup-catalog/{database_ref}": {
+      "get": {
+        "operationId": "postgresql_backup_catalog",
+        "description": "Proposed private read-only evidence projection. Unknown is not ready. No restore or SQL.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "database_ref",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tenant-bound evidence references only",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "tenant_id",
+                    "database_ref",
+                    "observed_at",
+                    "status",
+                    "evidence_refs",
+                    "checks"
+                  ],
+                  "properties": {
+                    "tenant_id": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                    },
+                    "database_ref": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                    },
+                    "observed_at": {
+                      "type": "string",
+                      "format": "date-time",
+                      "maxLength": 40
+                    },
+                    "status": {
+                      "enum": [
+                        "ready",
+                        "not_ready",
+                        "unknown"
+                      ]
+                    },
+                    "evidence_refs": {
+                      "type": "array",
+                      "maxItems": 100,
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      }
+                    },
+                    "checks": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "catalog_available",
+                        "encrypted",
+                        "offsite_verified"
+                      ],
+                      "properties": {
+                        "catalog_available": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        },
+                        "encrypted": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        },
+                        "offsite_verified": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "status": {
+                            "const": "ready"
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "checks": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "catalog_available",
+                              "encrypted",
+                              "offsite_verified"
+                            ],
+                            "properties": {
+                              "catalog_available": {
+                                "const": true
+                              },
+                              "encrypted": {
+                                "const": true
+                              },
+                              "offsite_verified": {
+                                "const": true
+                              }
+                            }
+                          },
+                          "evidence_refs": {
+                            "minItems": 1
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workload scope or tenant forbidden"
+          },
+          "404": {
+            "description": "Evidence not found"
+          },
+          "503": {
+            "description": "Evidence unavailable"
+          }
+        },
+        "x-required-scope": "connector.postgresql.read",
+        "x-service-id": "postgresql"
+      }
+    },
+    "/internal/v1/observability/restore-rehearsal/{database_ref}": {
+      "get": {
+        "operationId": "postgresql_restore_rehearsal",
+        "description": "Proposed private read-only evidence projection. Unknown is not ready. No restore or SQL.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "database_ref",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tenant-bound evidence references only",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "tenant_id",
+                    "database_ref",
+                    "observed_at",
+                    "status",
+                    "evidence_refs",
+                    "checks"
+                  ],
+                  "properties": {
+                    "tenant_id": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                    },
+                    "database_ref": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                    },
+                    "observed_at": {
+                      "type": "string",
+                      "format": "date-time",
+                      "maxLength": 40
+                    },
+                    "status": {
+                      "enum": [
+                        "ready",
+                        "not_ready",
+                        "unknown"
+                      ]
+                    },
+                    "evidence_refs": {
+                      "type": "array",
+                      "maxItems": 100,
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      }
+                    },
+                    "checks": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "isolated_target",
+                        "restore_verified",
+                        "application_verified"
+                      ],
+                      "properties": {
+                        "isolated_target": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        },
+                        "restore_verified": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        },
+                        "application_verified": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "status": {
+                            "const": "ready"
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "checks": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "isolated_target",
+                              "restore_verified",
+                              "application_verified"
+                            ],
+                            "properties": {
+                              "isolated_target": {
+                                "const": true
+                              },
+                              "restore_verified": {
+                                "const": true
+                              },
+                              "application_verified": {
+                                "const": true
+                              }
+                            }
+                          },
+                          "evidence_refs": {
+                            "minItems": 1
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workload scope or tenant forbidden"
+          },
+          "404": {
+            "description": "Evidence not found"
+          },
+          "503": {
+            "description": "Evidence unavailable"
+          }
+        },
+        "x-required-scope": "connector.postgresql.read",
+        "x-service-id": "postgresql"
+      }
+    },
+    "/internal/v1/observability/tls-security/{database_ref}": {
+      "get": {
+        "operationId": "postgresql_tls_security",
+        "description": "Proposed private read-only evidence projection. Unknown is not ready. No restore or SQL.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "database_ref",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tenant-bound evidence references only",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "tenant_id",
+                    "database_ref",
+                    "observed_at",
+                    "status",
+                    "evidence_refs",
+                    "checks"
+                  ],
+                  "properties": {
+                    "tenant_id": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                    },
+                    "database_ref": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                    },
+                    "observed_at": {
+                      "type": "string",
+                      "format": "date-time",
+                      "maxLength": 40
+                    },
+                    "status": {
+                      "enum": [
+                        "ready",
+                        "not_ready",
+                        "unknown"
+                      ]
+                    },
+                    "evidence_refs": {
+                      "type": "array",
+                      "maxItems": 100,
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      }
+                    },
+                    "checks": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "tls_required",
+                        "certificate_valid",
+                        "least_privilege_verified"
+                      ],
+                      "properties": {
+                        "tls_required": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        },
+                        "certificate_valid": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        },
+                        "least_privilege_verified": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "status": {
+                            "const": "ready"
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "checks": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "tls_required",
+                              "certificate_valid",
+                              "least_privilege_verified"
+                            ],
+                            "properties": {
+                              "tls_required": {
+                                "const": true
+                              },
+                              "certificate_valid": {
+                                "const": true
+                              },
+                              "least_privilege_verified": {
+                                "const": true
+                              }
+                            }
+                          },
+                          "evidence_refs": {
+                            "minItems": 1
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workload scope or tenant forbidden"
+          },
+          "404": {
+            "description": "Evidence not found"
+          },
+          "503": {
+            "description": "Evidence unavailable"
+          }
+        },
+        "x-required-scope": "connector.postgresql.read",
+        "x-service-id": "postgresql"
+      }
+    },
+    "/internal/v1/observability/replication-recovery/{database_ref}": {
+      "get": {
+        "operationId": "postgresql_replication_recovery",
+        "description": "Proposed private read-only evidence projection. Unknown is not ready. No restore or SQL.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "database_ref",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tenant-bound evidence references only",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "tenant_id",
+                    "database_ref",
+                    "observed_at",
+                    "status",
+                    "evidence_refs",
+                    "checks"
+                  ],
+                  "properties": {
+                    "tenant_id": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                    },
+                    "database_ref": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                    },
+                    "observed_at": {
+                      "type": "string",
+                      "format": "date-time",
+                      "maxLength": 40
+                    },
+                    "status": {
+                      "enum": [
+                        "ready",
+                        "not_ready",
+                        "unknown"
+                      ]
+                    },
+                    "evidence_refs": {
+                      "type": "array",
+                      "maxItems": 100,
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      }
+                    },
+                    "checks": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "replication_healthy",
+                        "recovery_tested",
+                        "rpo_met",
+                        "rto_met"
+                      ],
+                      "properties": {
+                        "replication_healthy": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        },
+                        "recovery_tested": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        },
+                        "rpo_met": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        },
+                        "rto_met": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "status": {
+                            "const": "ready"
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "checks": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "replication_healthy",
+                              "recovery_tested",
+                              "rpo_met",
+                              "rto_met"
+                            ],
+                            "properties": {
+                              "replication_healthy": {
+                                "const": true
+                              },
+                              "recovery_tested": {
+                                "const": true
+                              },
+                              "rpo_met": {
+                                "const": true
+                              },
+                              "rto_met": {
+                                "const": true
+                              }
+                            }
+                          },
+                          "evidence_refs": {
+                            "minItems": 1
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workload scope or tenant forbidden"
+          },
+          "404": {
+            "description": "Evidence not found"
+          },
+          "503": {
+            "description": "Evidence unavailable"
+          }
+        },
+        "x-required-scope": "connector.postgresql.read",
+        "x-service-id": "postgresql"
+      }
+    },
+    "/internal/v1/observability/pitr-readiness/{database_ref}": {
+      "get": {
+        "operationId": "postgresql_pitr_readiness",
+        "description": "Private read-only PostgreSQL recovery evidence projection. No SQL or restore command.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "database_ref",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tenant-bound evidence references only",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "tenant_id",
+                    "database_ref",
+                    "observed_at",
+                    "status",
+                    "evidence_refs",
+                    "checks"
+                  ],
+                  "properties": {
+                    "tenant_id": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                    },
+                    "database_ref": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                    },
+                    "observed_at": {
+                      "type": "string",
+                      "format": "date-time",
+                      "maxLength": 40
+                    },
+                    "status": {
+                      "enum": [
+                        "ready",
+                        "not_ready",
+                        "unknown"
+                      ]
+                    },
+                    "evidence_refs": {
+                      "type": "array",
+                      "maxItems": 100,
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      }
+                    },
+                    "checks": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "wal_archiving",
+                        "base_backup_recent",
+                        "recovery_target_supported"
+                      ],
+                      "properties": {
+                        "wal_archiving": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        },
+                        "base_backup_recent": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        },
+                        "recovery_target_supported": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "status": {
+                            "const": "ready"
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "checks": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "wal_archiving",
+                              "base_backup_recent",
+                              "recovery_target_supported"
+                            ],
+                            "properties": {
+                              "wal_archiving": {
+                                "const": true
+                              },
+                              "base_backup_recent": {
+                                "const": true
+                              },
+                              "recovery_target_supported": {
+                                "const": true
+                              }
+                            }
+                          },
+                          "evidence_refs": {
+                            "minItems": 1
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workload scope or tenant forbidden"
+          },
+          "404": {
+            "description": "Evidence not found"
+          },
+          "503": {
+            "description": "Evidence unavailable"
+          }
+        },
+        "x-required-scope": "connector.postgresql.read",
+        "x-service-id": "postgresql"
+      }
+    },
+    "/internal/v1/observability/capacity-status/{database_ref}": {
+      "get": {
+        "operationId": "postgresql_capacity_status",
+        "description": "Private read-only PostgreSQL recovery evidence projection. No SQL or restore command.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "database_ref",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tenant-bound evidence references only",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "tenant_id",
+                    "database_ref",
+                    "observed_at",
+                    "status",
+                    "evidence_refs",
+                    "checks"
+                  ],
+                  "properties": {
+                    "tenant_id": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                    },
+                    "database_ref": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                    },
+                    "observed_at": {
+                      "type": "string",
+                      "format": "date-time",
+                      "maxLength": 40
+                    },
+                    "status": {
+                      "enum": [
+                        "ready",
+                        "not_ready",
+                        "unknown"
+                      ]
+                    },
+                    "evidence_refs": {
+                      "type": "array",
+                      "maxItems": 100,
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      }
+                    },
+                    "checks": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "storage_within_threshold",
+                        "growth_sample_recent",
+                        "disk_free_known"
+                      ],
+                      "properties": {
+                        "storage_within_threshold": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        },
+                        "growth_sample_recent": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        },
+                        "disk_free_known": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "status": {
+                            "const": "ready"
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "checks": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "storage_within_threshold",
+                              "growth_sample_recent",
+                              "disk_free_known"
+                            ],
+                            "properties": {
+                              "storage_within_threshold": {
+                                "const": true
+                              },
+                              "growth_sample_recent": {
+                                "const": true
+                              },
+                              "disk_free_known": {
+                                "const": true
+                              }
+                            }
+                          },
+                          "evidence_refs": {
+                            "minItems": 1
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workload scope or tenant forbidden"
+          },
+          "404": {
+            "description": "Evidence not found"
+          },
+          "503": {
+            "description": "Evidence unavailable"
+          }
+        },
+        "x-required-scope": "connector.postgresql.read",
+        "x-service-id": "postgresql"
+      }
+    },
+    "/internal/v1/observability/maintenance-health/{database_ref}": {
+      "get": {
+        "operationId": "postgresql_maintenance_health",
+        "description": "Private read-only PostgreSQL recovery evidence projection. No SQL or restore command.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "database_ref",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tenant-bound evidence references only",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "tenant_id",
+                    "database_ref",
+                    "observed_at",
+                    "status",
+                    "evidence_refs",
+                    "checks"
+                  ],
+                  "properties": {
+                    "tenant_id": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                    },
+                    "database_ref": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                    },
+                    "observed_at": {
+                      "type": "string",
+                      "format": "date-time",
+                      "maxLength": 40
+                    },
+                    "status": {
+                      "enum": [
+                        "ready",
+                        "not_ready",
+                        "unknown"
+                      ]
+                    },
+                    "evidence_refs": {
+                      "type": "array",
+                      "maxItems": 100,
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      }
+                    },
+                    "checks": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "autovacuum_healthy",
+                        "analyze_recent",
+                        "checkpoint_healthy"
+                      ],
+                      "properties": {
+                        "autovacuum_healthy": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        },
+                        "analyze_recent": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        },
+                        "checkpoint_healthy": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "status": {
+                            "const": "ready"
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "checks": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "autovacuum_healthy",
+                              "analyze_recent",
+                              "checkpoint_healthy"
+                            ],
+                            "properties": {
+                              "autovacuum_healthy": {
+                                "const": true
+                              },
+                              "analyze_recent": {
+                                "const": true
+                              },
+                              "checkpoint_healthy": {
+                                "const": true
+                              }
+                            }
+                          },
+                          "evidence_refs": {
+                            "minItems": 1
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workload scope or tenant forbidden"
+          },
+          "404": {
+            "description": "Evidence not found"
+          },
+          "503": {
+            "description": "Evidence unavailable"
+          }
+        },
+        "x-required-scope": "connector.postgresql.read",
+        "x-service-id": "postgresql"
+      }
+    },
+    "/internal/v1/observability/failover-rehearsal/{database_ref}": {
+      "get": {
+        "operationId": "postgresql_failover_rehearsal",
+        "description": "Private read-only PostgreSQL recovery evidence projection. No SQL or restore command.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "database_ref",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tenant-bound evidence references only",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "tenant_id",
+                    "database_ref",
+                    "observed_at",
+                    "status",
+                    "evidence_refs",
+                    "checks"
+                  ],
+                  "properties": {
+                    "tenant_id": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                    },
+                    "database_ref": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                    },
+                    "observed_at": {
+                      "type": "string",
+                      "format": "date-time",
+                      "maxLength": 40
+                    },
+                    "status": {
+                      "enum": [
+                        "ready",
+                        "not_ready",
+                        "unknown"
+                      ]
+                    },
+                    "evidence_refs": {
+                      "type": "array",
+                      "maxItems": 100,
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      }
+                    },
+                    "checks": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "rehearsal_completed",
+                        "integrity_verified",
+                        "rto_recorded"
+                      ],
+                      "properties": {
+                        "rehearsal_completed": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        },
+                        "integrity_verified": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        },
+                        "rto_recorded": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "status": {
+                            "const": "ready"
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "checks": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "rehearsal_completed",
+                              "integrity_verified",
+                              "rto_recorded"
+                            ],
+                            "properties": {
+                              "rehearsal_completed": {
+                                "const": true
+                              },
+                              "integrity_verified": {
+                                "const": true
+                              },
+                              "rto_recorded": {
+                                "const": true
+                              }
+                            }
+                          },
+                          "evidence_refs": {
+                            "minItems": 1
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workload scope or tenant forbidden"
+          },
+          "404": {
+            "description": "Evidence not found"
+          },
+          "503": {
+            "description": "Evidence unavailable"
+          }
+        },
+        "x-required-scope": "connector.postgresql.read",
+        "x-service-id": "postgresql"
+      }
+    },
+    "/v1/contract-version": {
+      "get": {
+        "operationId": "service_readback_camera_contract_version",
+        "description": "Fixed private read-only service evidence projection. Caller-supplied URLs are forbidden.",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tenant-bound sanitized service evidence",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "service",
+                    "service_version",
+                    "api_version",
+                    "contract_revision",
+                    "capability_sha256",
+                    "middleware_authority"
+                  ],
+                  "properties": {
+                    "service": {
+                      "const": "camera-gateway"
+                    },
+                    "service_version": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+                    },
+                    "api_version": {
+                      "const": "v1"
+                    },
+                    "contract_revision": {
+                      "const": "camera-gateway.missions-11-22.v1"
+                    },
+                    "capability_sha256": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "middleware_authority": {
+                      "const": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workload scope or tenant forbidden"
+          },
+          "404": {
+            "description": "Evidence not found"
+          },
+          "503": {
+            "description": "Evidence unavailable"
+          }
+        },
+        "x-required-scope": "connector.camera-gateway.read",
+        "x-service-id": "camera-gateway",
+        "x-caller-supplied-url": false
+      }
+    },
+    "/v1/cameras/{camera_ref}/configuration-snapshot": {
+      "get": {
+        "operationId": "service_readback_camera_configuration_snapshot",
+        "description": "Fixed private read-only service evidence projection. Caller-supplied URLs are forbidden.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "camera_ref",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tenant-bound sanitized service evidence",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "camera_id",
+                    "observed_at",
+                    "config_sha256",
+                    "enabled",
+                    "vendor",
+                    "rtsp_transport",
+                    "onvif_enabled",
+                    "credential_ref_present",
+                    "labels_count"
+                  ],
+                  "properties": {
+                    "camera_id": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                    },
+                    "observed_at": {
+                      "type": "string",
+                      "format": "date-time",
+                      "maxLength": 40
+                    },
+                    "config_sha256": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "vendor": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+                    },
+                    "rtsp_transport": {
+                      "enum": [
+                        "tcp",
+                        "udp"
+                      ]
+                    },
+                    "onvif_enabled": {
+                      "type": "boolean"
+                    },
+                    "credential_ref_present": {
+                      "type": "boolean"
+                    },
+                    "labels_count": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 32
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workload scope or tenant forbidden"
+          },
+          "404": {
+            "description": "Evidence not found"
+          },
+          "503": {
+            "description": "Evidence unavailable"
+          }
+        },
+        "x-required-scope": "connector.camera-gateway.read",
+        "x-service-id": "camera-gateway",
+        "x-caller-supplied-url": false
+      }
+    },
+    "/v1/cameras/{camera_ref}/connectivity-evidence": {
+      "get": {
+        "operationId": "service_readback_camera_connectivity_evidence",
+        "description": "Fixed private read-only service evidence projection. Caller-supplied URLs are forbidden.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "camera_ref",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tenant-bound sanitized service evidence",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "camera_id",
+                    "observed_at",
+                    "status",
+                    "last_success_at",
+                    "last_error_code",
+                    "recent_event_count"
+                  ],
+                  "properties": {
+                    "camera_id": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                    },
+                    "observed_at": {
+                      "type": "string",
+                      "format": "date-time",
+                      "maxLength": 40
+                    },
+                    "status": {
+                      "enum": [
+                        "unknown",
+                        "online",
+                        "offline",
+                        "auth_failed",
+                        "error"
+                      ]
+                    },
+                    "last_success_at": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time",
+                      "maxLength": 40
+                    },
+                    "last_error_code": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "maxLength": 128
+                    },
+                    "recent_event_count": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 200
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workload scope or tenant forbidden"
+          },
+          "404": {
+            "description": "Evidence not found"
+          },
+          "503": {
+            "description": "Evidence unavailable"
+          }
+        },
+        "x-required-scope": "connector.camera-gateway.read",
+        "x-service-id": "camera-gateway",
+        "x-caller-supplied-url": false
+      }
+    },
+    "/v1/cameras/{camera_ref}/stream-quality": {
+      "get": {
+        "operationId": "service_readback_camera_stream_quality",
+        "description": "Fixed private read-only service evidence projection. Caller-supplied URLs are forbidden.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "camera_ref",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tenant-bound sanitized service evidence",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "camera_id",
+                    "observed_at",
+                    "status",
+                    "codec",
+                    "width",
+                    "height",
+                    "fps",
+                    "last_frame_at",
+                    "stale"
+                  ],
+                  "properties": {
+                    "camera_id": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                    },
+                    "observed_at": {
+                      "type": "string",
+                      "format": "date-time",
+                      "maxLength": 40
+                    },
+                    "status": {
+                      "enum": [
+                        "known",
+                        "unknown"
+                      ]
+                    },
+                    "codec": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "maxLength": 64
+                    },
+                    "width": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "minimum": 1
+                    },
+                    "height": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "minimum": 1
+                    },
+                    "fps": {
+                      "type": [
+                        "number",
+                        "null"
+                      ],
+                      "minimum": 0
+                    },
+                    "last_frame_at": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time",
+                      "maxLength": 40
+                    },
+                    "stale": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workload scope or tenant forbidden"
+          },
+          "404": {
+            "description": "Evidence not found"
+          },
+          "503": {
+            "description": "Evidence unavailable"
+          }
+        },
+        "x-required-scope": "connector.camera-gateway.read",
+        "x-service-id": "camera-gateway",
+        "x-caller-supplied-url": false
+      }
+    },
+    "/v1/cameras/{camera_ref}/maintenance": {
+      "get": {
+        "operationId": "service_readback_camera_maintenance_state",
+        "description": "Fixed private read-only service evidence projection. Caller-supplied URLs are forbidden.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "camera_ref",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tenant-bound sanitized service evidence",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "camera_id",
+                    "enabled",
+                    "reason_ref",
+                    "changed_at"
+                  ],
+                  "properties": {
+                    "camera_id": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                    },
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "reason_ref": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                    },
+                    "changed_at": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time",
+                      "maxLength": 40
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workload scope or tenant forbidden"
+          },
+          "404": {
+            "description": "Evidence not found"
+          },
+          "503": {
+            "description": "Evidence unavailable"
+          }
+        },
+        "x-required-scope": "connector.camera-gateway.read",
+        "x-service-id": "camera-gateway",
+        "x-caller-supplied-url": false
+      }
+    },
+    "/v1/camera-inventory/search": {
+      "get": {
+        "operationId": "service_readback_camera_inventory_search",
+        "description": "Fixed private read-only service evidence projection. Caller-supplied URLs are forbidden.",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tenant-bound sanitized service evidence",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "items",
+                    "total"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "maxItems": 200,
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      }
+                    },
+                    "total": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 200
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workload scope or tenant forbidden"
+          },
+          "404": {
+            "description": "Evidence not found"
+          },
+          "503": {
+            "description": "Evidence unavailable"
+          }
+        },
+        "x-required-scope": "connector.camera-gateway.read",
+        "x-service-id": "camera-gateway",
+        "x-caller-supplied-url": false
+      }
+    },
+    "/v1/cameras/{camera_ref}/compatibility": {
+      "get": {
+        "operationId": "service_readback_camera_compatibility",
+        "description": "Fixed private read-only service evidence projection. Caller-supplied URLs are forbidden.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "camera_ref",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tenant-bound sanitized service evidence",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "camera_id",
+                    "compatible",
+                    "checks",
+                    "warnings"
+                  ],
+                  "properties": {
+                    "camera_id": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                    },
+                    "compatible": {
+                      "type": "boolean"
+                    },
+                    "checks": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "boolean"
+                      },
+                      "maxProperties": 32
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "maxItems": 32,
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workload scope or tenant forbidden"
+          },
+          "404": {
+            "description": "Evidence not found"
+          },
+          "503": {
+            "description": "Evidence unavailable"
+          }
+        },
+        "x-required-scope": "connector.camera-gateway.read",
+        "x-service-id": "camera-gateway",
+        "x-caller-supplied-url": false
+      }
+    },
+    "/v1/cameras/{camera_ref}/events/page": {
+      "get": {
+        "operationId": "service_readback_camera_event_page",
+        "description": "Fixed private read-only service evidence projection. Caller-supplied URLs are forbidden.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "camera_ref",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tenant-bound sanitized service evidence",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "items",
+                    "next_offset",
+                    "limit",
+                    "offset"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "maxItems": 200,
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "camera_id",
+                          "observed_at",
+                          "kind",
+                          "source",
+                          "source_version",
+                          "heuristic",
+                          "confidence_kind",
+                          "signal"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "camera_id": {
+                            "type": "string",
+                            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                          },
+                          "observed_at": {
+                            "type": "string",
+                            "format": "date-time",
+                            "maxLength": 40
+                          },
+                          "kind": {
+                            "enum": [
+                              "motion",
+                              "scene_change",
+                              "tamper",
+                              "health"
+                            ]
+                          },
+                          "source": {
+                            "enum": [
+                              "gateway_health",
+                              "frame_delta",
+                              "camera_native"
+                            ]
+                          },
+                          "source_version": {
+                            "type": "string",
+                            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+                          },
+                          "heuristic": {
+                            "type": "boolean"
+                          },
+                          "confidence_kind": {
+                            "enum": [
+                              "heuristic",
+                              "observed"
+                            ]
+                          },
+                          "score": {
+                            "type": [
+                              "number",
+                              "null"
+                            ],
+                            "minimum": 0,
+                            "maximum": 1
+                          },
+                          "signal": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 128
+                          }
+                        }
+                      }
+                    },
+                    "next_offset": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "minimum": 0
+                    },
+                    "limit": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 200
+                    },
+                    "offset": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workload scope or tenant forbidden"
+          },
+          "404": {
+            "description": "Evidence not found"
+          },
+          "503": {
+            "description": "Evidence unavailable"
+          }
+        },
+        "x-required-scope": "connector.camera-gateway.read",
+        "x-service-id": "camera-gateway",
+        "x-caller-supplied-url": false
+      }
+    },
+    "/v1/cameras/{camera_ref}/health/slo": {
+      "get": {
+        "operationId": "service_readback_camera_health_slo",
+        "description": "Fixed private read-only service evidence projection. Caller-supplied URLs are forbidden.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "camera_ref",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tenant-bound sanitized service evidence",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "camera_id",
+                    "observed_at",
+                    "health_fresh",
+                    "frame_fresh",
+                    "last_success_at",
+                    "last_frame_at",
+                    "status"
+                  ],
+                  "properties": {
+                    "camera_id": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                    },
+                    "observed_at": {
+                      "type": "string",
+                      "format": "date-time",
+                      "maxLength": 40
+                    },
+                    "health_fresh": {
+                      "type": "boolean"
+                    },
+                    "frame_fresh": {
+                      "type": "boolean"
+                    },
+                    "last_success_at": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time",
+                      "maxLength": 40
+                    },
+                    "last_frame_at": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time",
+                      "maxLength": 40
+                    },
+                    "status": {
+                      "enum": [
+                        "healthy",
+                        "degraded",
+                        "unknown"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workload scope or tenant forbidden"
+          },
+          "404": {
+            "description": "Evidence not found"
+          },
+          "503": {
+            "description": "Evidence unavailable"
+          }
+        },
+        "x-required-scope": "connector.camera-gateway.read",
+        "x-service-id": "camera-gateway",
+        "x-caller-supplied-url": false
+      }
+    },
+    "/v1/cameras/{camera_ref}/credentials/reference-health": {
+      "get": {
+        "operationId": "service_readback_camera_secret_reference_health",
+        "description": "Fixed private read-only service evidence projection. Caller-supplied URLs are forbidden.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "camera_ref",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tenant-bound sanitized service evidence",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "camera_id",
+                    "configured",
+                    "scheme",
+                    "fingerprint",
+                    "reference_valid",
+                    "last_successful_auth"
+                  ],
+                  "properties": {
+                    "camera_id": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                    },
+                    "configured": {
+                      "type": "boolean"
+                    },
+                    "scheme": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "enum": [
+                        "openbao",
+                        null
+                      ]
+                    },
+                    "fingerprint": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "pattern": "^[0-9a-f]{16}$"
+                    },
+                    "reference_valid": {
+                      "type": "boolean"
+                    },
+                    "last_successful_auth": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time",
+                      "maxLength": 40
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workload scope or tenant forbidden"
+          },
+          "404": {
+            "description": "Evidence not found"
+          },
+          "503": {
+            "description": "Evidence unavailable"
+          }
+        },
+        "x-required-scope": "connector.camera-gateway.read",
+        "x-service-id": "camera-gateway",
+        "x-caller-supplied-url": false
+      }
+    },
+    "/v1/cameras/{camera_ref}/retention-policy": {
+      "get": {
+        "operationId": "service_readback_camera_retention_policy",
+        "description": "Fixed private read-only service evidence projection. Caller-supplied URLs are forbidden.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "camera_ref",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tenant-bound sanitized service evidence",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "camera_id",
+                    "clip_retention_s",
+                    "rolling_buffer_retention_s",
+                    "health_event_limit",
+                    "normalized_event_limit",
+                    "raw_frames_persisted"
+                  ],
+                  "properties": {
+                    "camera_id": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                    },
+                    "clip_retention_s": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "rolling_buffer_retention_s": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "health_event_limit": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "normalized_event_limit": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "raw_frames_persisted": {
+                      "const": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workload scope or tenant forbidden"
+          },
+          "404": {
+            "description": "Evidence not found"
+          },
+          "503": {
+            "description": "Evidence unavailable"
+          }
+        },
+        "x-required-scope": "connector.camera-gateway.read",
+        "x-service-id": "camera-gateway",
+        "x-caller-supplied-url": false
+      }
+    },
+    "/v1/cameras/{camera_ref}/diagnostics": {
+      "get": {
+        "operationId": "service_readback_camera_diagnostics",
+        "description": "Fixed private read-only service evidence projection. Caller-supplied URLs are forbidden.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "camera_ref",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tenant-bound sanitized service evidence",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "camera_id",
+                    "observed_at",
+                    "health_status",
+                    "inventory_stale",
+                    "credentials_configured",
+                    "rolling_buffer_enabled",
+                    "maintenance_enabled",
+                    "clock_drift_ms",
+                    "secrets_exposed"
+                  ],
+                  "properties": {
+                    "camera_id": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                    },
+                    "observed_at": {
+                      "type": "string",
+                      "format": "date-time",
+                      "maxLength": 40
+                    },
+                    "health_status": {
+                      "enum": [
+                        "unknown",
+                        "online",
+                        "offline",
+                        "auth_failed",
+                        "error"
+                      ]
+                    },
+                    "inventory_stale": {
+                      "type": "boolean"
+                    },
+                    "credentials_configured": {
+                      "type": "boolean"
+                    },
+                    "rolling_buffer_enabled": {
+                      "type": "boolean"
+                    },
+                    "maintenance_enabled": {
+                      "type": "boolean"
+                    },
+                    "clock_drift_ms": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "secrets_exposed": {
+                      "const": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workload scope or tenant forbidden"
+          },
+          "404": {
+            "description": "Evidence not found"
+          },
+          "503": {
+            "description": "Evidence unavailable"
+          }
+        },
+        "x-required-scope": "connector.camera-gateway.read",
+        "x-service-id": "camera-gateway",
+        "x-caller-supplied-url": false
       }
     }
   },
@@ -946,6 +4033,470 @@
                     }
                   }
                 }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "command_type",
+                  "payload"
+                ],
+                "properties": {
+                  "command_type": {
+                    "const": "face-id.access.evaluate.v1"
+                  },
+                  "target": {
+                    "const": "face-id"
+                  },
+                  "capability": {
+                    "const": "FACE_ID_ACCESS_EVALUATE"
+                  },
+                  "payload": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "subject_ref",
+                      "zone_ref",
+                      "occurred_at"
+                    ],
+                    "properties": {
+                      "subject_ref": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      },
+                      "zone_ref": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      },
+                      "occurred_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "maxLength": 40
+                      },
+                      "visitor_pass_ref": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "command_type",
+                  "payload"
+                ],
+                "properties": {
+                  "command_type": {
+                    "const": "face-id.presence.enter.v1"
+                  },
+                  "target": {
+                    "const": "face-id"
+                  },
+                  "capability": {
+                    "const": "FACE_ID_PRESENCE_EVENT"
+                  },
+                  "payload": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "event_ref",
+                      "camera_ref",
+                      "zone_ref",
+                      "subject_ref"
+                    ],
+                    "properties": {
+                      "event_ref": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      },
+                      "camera_ref": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      },
+                      "zone_ref": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      },
+                      "subject_ref": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "command_type",
+                  "payload"
+                ],
+                "properties": {
+                  "command_type": {
+                    "const": "face-id.presence.exit.v1"
+                  },
+                  "target": {
+                    "const": "face-id"
+                  },
+                  "capability": {
+                    "const": "FACE_ID_PRESENCE_EVENT"
+                  },
+                  "payload": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "event_ref",
+                      "camera_ref",
+                      "zone_ref",
+                      "subject_ref"
+                    ],
+                    "properties": {
+                      "event_ref": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      },
+                      "camera_ref": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      },
+                      "zone_ref": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      },
+                      "subject_ref": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "command_type",
+                  "payload"
+                ],
+                "properties": {
+                  "command_type": {
+                    "const": "camera-gateway.ptz.move.v1"
+                  },
+                  "target": {
+                    "const": "camera-gateway"
+                  },
+                  "capability": {
+                    "const": "CAMERA_PTZ"
+                  },
+                  "payload": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "camera_ref",
+                      "pan",
+                      "tilt",
+                      "zoom",
+                      "duration_ms"
+                    ],
+                    "properties": {
+                      "camera_ref": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      },
+                      "pan": {
+                        "type": "number",
+                        "minimum": -1,
+                        "maximum": 1
+                      },
+                      "tilt": {
+                        "type": "number",
+                        "minimum": -1,
+                        "maximum": 1
+                      },
+                      "zoom": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1
+                      },
+                      "duration_ms": {
+                        "type": "integer",
+                        "minimum": 100,
+                        "maximum": 2000
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "command_type",
+                  "payload"
+                ],
+                "properties": {
+                  "command_type": {
+                    "const": "camera-gateway.ptz.stop.v1"
+                  },
+                  "target": {
+                    "const": "camera-gateway"
+                  },
+                  "capability": {
+                    "const": "CAMERA_PTZ"
+                  },
+                  "payload": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "camera_ref"
+                    ],
+                    "properties": {
+                      "camera_ref": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "command_type",
+                  "payload"
+                ],
+                "properties": {
+                  "command_type": {
+                    "const": "face-id.watchlist.membership.update.v1"
+                  },
+                  "target": {
+                    "const": "face-id"
+                  },
+                  "capability": {
+                    "const": "FACE_ID_WATCHLIST_REFERENCE"
+                  },
+                  "payload": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "watchlist_ref",
+                      "subject_ref",
+                      "action",
+                      "decision_ref"
+                    ],
+                    "properties": {
+                      "watchlist_ref": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      },
+                      "subject_ref": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      },
+                      "action": {
+                        "enum": [
+                          "add",
+                          "remove"
+                        ]
+                      },
+                      "decision_ref": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "command_type",
+                  "payload"
+                ],
+                "properties": {
+                  "command_type": {
+                    "const": "face-id.enrollment.quality.review.v1"
+                  },
+                  "target": {
+                    "const": "face-id"
+                  },
+                  "capability": {
+                    "const": "FACE_ID_ENROLLMENT_REVIEW"
+                  },
+                  "payload": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "session_ref",
+                      "quality_evidence_ref",
+                      "decision"
+                    ],
+                    "properties": {
+                      "session_ref": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      },
+                      "quality_evidence_ref": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      },
+                      "decision": {
+                        "enum": [
+                          "accept",
+                          "reject",
+                          "needs_review"
+                        ]
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "command_type",
+                  "payload"
+                ],
+                "properties": {
+                  "command_type": {
+                    "const": "face-id.duplicate.review.resolve.v1"
+                  },
+                  "target": {
+                    "const": "face-id"
+                  },
+                  "capability": {
+                    "const": "FACE_ID_ENROLLMENT_REVIEW"
+                  },
+                  "payload": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "review_ref",
+                      "candidate_subject_ref",
+                      "evidence_ref",
+                      "resolution"
+                    ],
+                    "properties": {
+                      "review_ref": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      },
+                      "candidate_subject_ref": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      },
+                      "evidence_ref": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      },
+                      "resolution": {
+                        "enum": [
+                          "distinct",
+                          "same_subject_candidate",
+                          "needs_review"
+                        ]
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "command_type",
+                  "payload"
+                ],
+                "properties": {
+                  "command_type": {
+                    "const": "camera-gateway.event.normalize.v1"
+                  },
+                  "target": {
+                    "const": "camera-gateway"
+                  },
+                  "capability": {
+                    "const": "CAMERA_EVENT_NORMALIZATION"
+                  },
+                  "payload": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "event_ref",
+                      "camera_ref",
+                      "event_kind",
+                      "observed_at",
+                      "source_version",
+                      "heuristic"
+                    ],
+                    "properties": {
+                      "event_ref": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      },
+                      "camera_ref": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      },
+                      "event_kind": {
+                        "enum": [
+                          "motion",
+                          "scene_change",
+                          "tamper",
+                          "health"
+                        ]
+                      },
+                      "observed_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "maxLength": 40
+                      },
+                      "source_version": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      },
+                      "heuristic": {
+                        "type": "boolean"
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "command_type",
+                  "payload"
+                ],
+                "properties": {
+                  "command_type": {
+                    "const": "camera-gateway.maintenance.update.v1"
+                  },
+                  "target": {
+                    "const": "camera-gateway"
+                  },
+                  "capability": {
+                    "const": "CAMERA_MAINTENANCE_METADATA"
+                  },
+                  "payload": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "camera_ref",
+                      "enabled"
+                    ],
+                    "properties": {
+                      "camera_ref": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      },
+                      "enabled": {
+                        "type": "boolean"
+                      },
+                      "reason_ref": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      }
+                    }
+                  }
+                }
               }
             ]
           }
@@ -995,6 +4546,410 @@
         "read_scope": "connector.postgresql.read",
         "command_scope": "connector.postgresql.command"
       }
+    }
+  },
+  "x-mission-results": {
+    "face-id.access.evaluate.v1": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decision_ref",
+        "decision",
+        "evaluated_at",
+        "door_effect"
+      ],
+      "properties": {
+        "decision_ref": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+        },
+        "decision": {
+          "enum": [
+            "allow",
+            "deny",
+            "indeterminate"
+          ]
+        },
+        "policy_ref": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+        },
+        "evaluated_at": {
+          "type": "string",
+          "format": "date-time",
+          "maxLength": 40
+        },
+        "door_effect": {
+          "const": false
+        }
+      }
+    },
+    "face-id.presence.enter.v1": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_ref"
+      ],
+      "properties": {
+        "event_ref": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+        }
+      }
+    },
+    "face-id.presence.exit.v1": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_ref"
+      ],
+      "properties": {
+        "event_ref": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+        }
+      }
+    },
+    "camera-gateway.ptz.move.v1": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "camera_ref",
+        "motion_state",
+        "stop_reason"
+      ],
+      "properties": {
+        "camera_ref": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+        },
+        "motion_state": {
+          "const": "stopped"
+        },
+        "stop_reason": {
+          "enum": [
+            "explicit_stop",
+            "duration_elapsed",
+            "failsafe"
+          ]
+        }
+      }
+    },
+    "camera-gateway.ptz.stop.v1": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "camera_ref",
+        "motion_state",
+        "stop_reason"
+      ],
+      "properties": {
+        "camera_ref": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+        },
+        "motion_state": {
+          "const": "stopped"
+        },
+        "stop_reason": {
+          "enum": [
+            "explicit_stop",
+            "duration_elapsed",
+            "failsafe"
+          ]
+        }
+      }
+    },
+    "face-id.watchlist.membership.update.v1": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "watchlist_ref",
+        "subject_ref",
+        "membership_ref",
+        "state",
+        "audit_ref"
+      ],
+      "properties": {
+        "watchlist_ref": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+        },
+        "subject_ref": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+        },
+        "membership_ref": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+        },
+        "state": {
+          "enum": [
+            "present",
+            "absent"
+          ]
+        },
+        "audit_ref": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+        }
+      }
+    },
+    "face-id.enrollment.quality.review.v1": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "session_ref",
+        "review_ref",
+        "decision",
+        "audit_ref",
+        "identity_asserted"
+      ],
+      "properties": {
+        "session_ref": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+        },
+        "review_ref": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+        },
+        "decision": {
+          "enum": [
+            "accept",
+            "reject",
+            "needs_review"
+          ]
+        },
+        "audit_ref": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+        },
+        "identity_asserted": {
+          "const": false
+        }
+      }
+    },
+    "face-id.duplicate.review.resolve.v1": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "review_ref",
+        "resolution_ref",
+        "resolution",
+        "audit_ref",
+        "auto_merged",
+        "identity_asserted"
+      ],
+      "properties": {
+        "review_ref": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+        },
+        "resolution_ref": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+        },
+        "resolution": {
+          "enum": [
+            "distinct",
+            "same_subject_candidate",
+            "needs_review"
+          ]
+        },
+        "audit_ref": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+        },
+        "auto_merged": {
+          "const": false
+        },
+        "identity_asserted": {
+          "const": false
+        }
+      }
+    },
+    "camera-gateway.event.normalize.v1": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_ref",
+        "camera_ref",
+        "normalized_event_ref",
+        "stored_raw_frame"
+      ],
+      "properties": {
+        "event_ref": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+        },
+        "camera_ref": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+        },
+        "normalized_event_ref": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+        },
+        "stored_raw_frame": {
+          "const": false
+        }
+      }
+    },
+    "camera-gateway.maintenance.update.v1": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "camera_ref",
+        "enabled",
+        "changed_at"
+      ],
+      "properties": {
+        "camera_ref": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "reason_ref": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "changed_at": {
+          "type": "string",
+          "format": "date-time",
+          "maxLength": 40
+        }
+      }
+    }
+  },
+  "x-activation": "Disabled; private protocol proposed, not implemented by pinned service revisions",
+  "x-presence-deduplication": "Atomic tenant_id + event_ref uniqueness across enter/exit; exact repeat returns original, conflicting direction or references returns 409 before effects",
+  "x-ptz-failsafe": {
+    "maximum_duration_ms": 2000,
+    "receiver_watchdog_required": true,
+    "stop_on": [
+      "deadline",
+      "connection_loss",
+      "worker_loss",
+      "lease_expiry",
+      "kill_switch"
+    ],
+    "completed_requires": "confirmed stopped readback",
+    "stop_command": "camera-gateway.ptz.stop.v1",
+    "cancel_is_stop": false,
+    "retry_after_ambiguous_move": false
+  },
+  "x-presence-idempotency-key": "presence:<event_ref>; unique within tenant across enter/exit",
+  "x-private-paths": [
+    "/internal/*",
+    "/v1/internal/*",
+    "/metrics"
+  ],
+  "x-service-readbacks": {
+    "camera-contract-version": {
+      "service_id": "camera-gateway",
+      "method": "GET",
+      "path": "/v1/contract-version",
+      "scope": "connector.camera-gateway.read",
+      "resource_param": null,
+      "state": "IMPLEMENTED_READ_ONLY"
+    },
+    "camera-configuration-snapshot": {
+      "service_id": "camera-gateway",
+      "method": "GET",
+      "path": "/v1/cameras/{camera_ref}/configuration-snapshot",
+      "scope": "connector.camera-gateway.read",
+      "resource_param": "camera_ref",
+      "state": "IMPLEMENTED_READ_ONLY"
+    },
+    "camera-connectivity-evidence": {
+      "service_id": "camera-gateway",
+      "method": "GET",
+      "path": "/v1/cameras/{camera_ref}/connectivity-evidence",
+      "scope": "connector.camera-gateway.read",
+      "resource_param": "camera_ref",
+      "state": "IMPLEMENTED_READ_ONLY"
+    },
+    "camera-stream-quality": {
+      "service_id": "camera-gateway",
+      "method": "GET",
+      "path": "/v1/cameras/{camera_ref}/stream-quality",
+      "scope": "connector.camera-gateway.read",
+      "resource_param": "camera_ref",
+      "state": "IMPLEMENTED_READ_ONLY"
+    },
+    "camera-maintenance-state": {
+      "service_id": "camera-gateway",
+      "method": "GET",
+      "path": "/v1/cameras/{camera_ref}/maintenance",
+      "scope": "connector.camera-gateway.read",
+      "resource_param": "camera_ref",
+      "state": "IMPLEMENTED_READ_ONLY"
+    },
+    "camera-inventory-search": {
+      "service_id": "camera-gateway",
+      "method": "GET",
+      "path": "/v1/camera-inventory/search",
+      "scope": "connector.camera-gateway.read",
+      "resource_param": null,
+      "state": "IMPLEMENTED_READ_ONLY"
+    },
+    "camera-compatibility": {
+      "service_id": "camera-gateway",
+      "method": "GET",
+      "path": "/v1/cameras/{camera_ref}/compatibility",
+      "scope": "connector.camera-gateway.read",
+      "resource_param": "camera_ref",
+      "state": "IMPLEMENTED_READ_ONLY"
+    },
+    "camera-event-page": {
+      "service_id": "camera-gateway",
+      "method": "GET",
+      "path": "/v1/cameras/{camera_ref}/events/page",
+      "scope": "connector.camera-gateway.read",
+      "resource_param": "camera_ref",
+      "state": "IMPLEMENTED_READ_ONLY"
+    },
+    "camera-health-slo": {
+      "service_id": "camera-gateway",
+      "method": "GET",
+      "path": "/v1/cameras/{camera_ref}/health/slo",
+      "scope": "connector.camera-gateway.read",
+      "resource_param": "camera_ref",
+      "state": "IMPLEMENTED_READ_ONLY"
+    },
+    "camera-secret-reference-health": {
+      "service_id": "camera-gateway",
+      "method": "GET",
+      "path": "/v1/cameras/{camera_ref}/credentials/reference-health",
+      "scope": "connector.camera-gateway.read",
+      "resource_param": "camera_ref",
+      "state": "IMPLEMENTED_READ_ONLY"
+    },
+    "camera-retention-policy": {
+      "service_id": "camera-gateway",
+      "method": "GET",
+      "path": "/v1/cameras/{camera_ref}/retention-policy",
+      "scope": "connector.camera-gateway.read",
+      "resource_param": "camera_ref",
+      "state": "IMPLEMENTED_READ_ONLY"
+    },
+    "camera-diagnostics": {
+      "service_id": "camera-gateway",
+      "method": "GET",
+      "path": "/v1/cameras/{camera_ref}/diagnostics",
+      "scope": "connector.camera-gateway.read",
+      "resource_param": "camera_ref",
+      "state": "IMPLEMENTED_READ_ONLY"
     }
   }
 }

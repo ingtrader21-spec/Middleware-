@@ -14,7 +14,19 @@ from urllib.parse import quote, urlsplit
 import httpx
 
 from app.commands import CommandEnvelope, CommandOperation
-from app.identity_service_contract import REFERENCE, SERVICE_COMMANDS
+from app.identity_service_contract import (
+    REFERENCE,
+    SERVICE_COMMANDS,
+    validate_service_command,
+)
+from app.identity_missions import (
+    MISSION_COMMANDS,
+    MISSION_RESULTS,
+    READBACKS,
+    SERVICE_READBACKS,
+    validate_schema,
+    validate_event_idempotency,
+)
 from app.platform.adapter import (
     AdapterConfigurationError,
     AdapterContext,
@@ -57,7 +69,18 @@ class IdentityServiceAdapter(BaseAdapter):
             raise AdapterConfigurationError("unknown service")
         self.adapter_id = self.provider_family = service_id
         self.connector_ids = (service_id,)
-        self.served_capabilities = (SERVICE_COMMANDS[service_id][0],)
+        self.served_capabilities = tuple(
+            dict.fromkeys(
+                [
+                    SERVICE_COMMANDS[service_id][0],
+                    *(
+                        value[0]
+                        for name, value in MISSION_COMMANDS.items()
+                        if name.split(".", 1)[0] == service_id
+                    ),
+                ]
+            )
+        )
         self.origin = origin
         self.token_supplier = token_supplier
         self.validate_config()
@@ -123,18 +146,24 @@ class IdentityServiceAdapter(BaseAdapter):
     async def execute(
         self, command: CommandEnvelope, context: AdapterContext
     ) -> AdapterResult:
-        capability, command_type, fields = SERVICE_COMMANDS[self.adapter_id]
+        try:
+            validate_service_command(
+                command.command_type,
+                command.target,
+                command.capability,
+                command.payload,
+            )
+            validate_event_idempotency(
+                command.command_type, command.payload, command.idempotency_key
+            )
+            valid = True
+        except ValueError:
+            valid = False
         if (
-            command.target != self.adapter_id
-            or command.command_type != command_type
-            or command.capability != capability
+            not valid
+            or command.target != self.adapter_id
             or context.tenant_id != command.tenant_id
             or context.command_id != str(command.command_id)
-            or set(command.payload) != fields
-            or any(
-                not isinstance(v, str) or not REFERENCE.fullmatch(v)
-                for v in command.payload.values()
-            )
         ):
             return AdapterResult(
                 Outcome.REJECTED,
@@ -246,6 +275,27 @@ class IdentityServiceAdapter(BaseAdapter):
                 return ReadbackResult(
                     ReadbackStatus.MISMATCH, safe_error_code="operation_mismatch"
                 )
+            result = {}
+            if (
+                raw.get("state") == "completed"
+                and operation.command_type in MISSION_RESULTS
+            ):
+                result = raw.get("result")
+                validate_schema(MISSION_RESULTS[operation.command_type], result)
+                for field in (
+                    "event_ref",
+                    "camera_ref",
+                    "watchlist_ref",
+                    "subject_ref",
+                    "session_ref",
+                    "review_ref",
+                ):
+                    if (
+                        field in result
+                        and field in context.payload
+                        and result[field] != context.payload[field]
+                    ):
+                        return ReadbackResult(ReadbackStatus.MISMATCH)
             status = {
                 "completed": ReadbackStatus.MATCHED,
                 "failed": ReadbackStatus.MISMATCH,
@@ -253,11 +303,94 @@ class IdentityServiceAdapter(BaseAdapter):
             return ReadbackResult(
                 status,
                 provider_operation_id=reference,
-                evidence={"payload_sha256": expected["payload_sha256"]},
+                evidence={"payload_sha256": expected["payload_sha256"], **result},
             )
         except Exception:
             return ReadbackResult(
                 ReadbackStatus.UNAVAILABLE, safe_error_code="readback_unavailable"
+            )
+
+    async def read_observability(
+        self, name: str, database_ref: str, context: AdapterContext
+    ) -> ReadbackResult:
+        """Fixed GET-only projections; never a caller-supplied URL or SQL query."""
+        contract = READBACKS.get(name)
+        if (
+            self.adapter_id != "postgresql"
+            or contract is None
+            or not REFERENCE.fullmatch(database_ref)
+            or not REFERENCE.fullmatch(context.tenant_id)
+        ):
+            return ReadbackResult(ReadbackStatus.MISMATCH)
+        try:
+            response = await self._request(
+                context, "GET", contract["path"] + "/" + database_ref
+            )
+            if response.status_code != 200:
+                return ReadbackResult(ReadbackStatus.UNAVAILABLE)
+            raw = response.json()
+            validate_schema(contract["schema"], raw)
+            if (
+                raw["tenant_id"] != context.tenant_id
+                or raw["database_ref"] != database_ref
+            ):
+                return ReadbackResult(ReadbackStatus.MISMATCH)
+            return ReadbackResult(ReadbackStatus.MATCHED, evidence=raw)
+        except Exception:
+            return ReadbackResult(ReadbackStatus.UNAVAILABLE)
+
+    async def read_service_evidence(
+        self,
+        name: str,
+        resource_ref: str | None,
+        context: AdapterContext,
+    ) -> ReadbackResult:
+        """Read one fixed, tenant-bound service evidence contract.
+
+        Paths come only from SERVICE_READBACKS. Callers can supply an opaque
+        resource reference where the contract explicitly declares one; they
+        can never supply a URL, path, query string, secret, or arbitrary
+        service identifier.
+        """
+        contract = SERVICE_READBACKS.get(name)
+        if (
+            contract is None
+            or self.adapter_id != contract["service_id"]
+            or not REFERENCE.fullmatch(context.tenant_id)
+        ):
+            return ReadbackResult(ReadbackStatus.MISMATCH)
+        resource_param = contract["resource_param"]
+        path = contract["path"]
+        if resource_param is None:
+            if resource_ref is not None:
+                return ReadbackResult(ReadbackStatus.MISMATCH)
+        else:
+            if resource_ref is None or not REFERENCE.fullmatch(resource_ref):
+                return ReadbackResult(ReadbackStatus.MISMATCH)
+            token = "{" + resource_param + "}"
+            if token not in path:
+                return ReadbackResult(ReadbackStatus.MISMATCH)
+            path = path.replace(token, quote(resource_ref, safe=""))
+        try:
+            response = await self._request(context, "GET", path)
+            if response.status_code == 404:
+                return ReadbackResult(ReadbackStatus.NOT_FOUND)
+            if response.status_code != 200:
+                return ReadbackResult(ReadbackStatus.UNAVAILABLE)
+            raw = response.json()
+            validate_schema(contract["schema"], raw)
+            if resource_ref is not None:
+                if "camera_id" in raw and raw["camera_id"] != resource_ref:
+                    return ReadbackResult(ReadbackStatus.MISMATCH)
+                if name == "camera-event-page" and any(
+                    item.get("camera_id") != resource_ref for item in raw["items"]
+                ):
+                    return ReadbackResult(ReadbackStatus.MISMATCH)
+            return ReadbackResult(ReadbackStatus.MATCHED, evidence=raw)
+        except Exception:
+            return ReadbackResult(
+                ReadbackStatus.UNAVAILABLE,
+                safe_error_code="service_evidence_unavailable",
             )
 
     async def status(
