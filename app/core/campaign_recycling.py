@@ -10,8 +10,15 @@ from typing import Any, Literal, Mapping, Sequence
 ROOT = Path(__file__).resolve().parents[2]
 
 LifecycleState = Literal[
-    "NEW", "VALIDATED", "ELIGIBLE", "ACTIVE_CYCLE", "ENGAGED",
-    "COOLING", "REACTIVATION", "CONVERTED", "SUPPRESSED",
+    "NEW",
+    "VALIDATED",
+    "ELIGIBLE",
+    "ACTIVE_CYCLE",
+    "ENGAGED",
+    "COOLING",
+    "REACTIVATION",
+    "CONVERTED",
+    "SUPPRESSED",
 ]
 Channel = Literal["email", "sms", "whatsapp", "voice"]
 
@@ -64,6 +71,7 @@ TEMPORAL_REASONS = frozenset(
         "CAMPAIGN_COOLDOWN_ACTIVE",
     }
 )
+
 
 class CampaignRecyclingError(RuntimeError):
     pass
@@ -176,6 +184,7 @@ class PolicyProfile:
     configured: bool
     production_authorized: bool
     channel_execution: Mapping[str, Mapping[str, Any]]
+    max_candidates_disclosed: int
 
     @classmethod
     def load(cls, profile: str, *, root: Path = ROOT) -> "PolicyProfile":
@@ -189,12 +198,22 @@ class PolicyProfile:
             raise CampaignRecyclingPolicyError(f"unknown policy profile {profile}")
         values = profiles[profile]["values"]
         configured = all(value is not None for value in _leaf_values(values))
+        max_candidates_disclosed = raw["decision"]["max_candidates_disclosed"]
+        if (
+            not isinstance(max_candidates_disclosed, int)
+            or isinstance(max_candidates_disclosed, bool)
+            or max_candidates_disclosed < 1
+        ):
+            raise CampaignRecyclingPolicyError(
+                "decision.max_candidates_disclosed must be a positive integer"
+            )
         return cls(
             policy_version=raw["policy_version"],
             values=values,
             configured=configured,
             production_authorized=raw["production"]["authorized"] is True,
             channel_execution=raw["channel_execution"],
+            max_candidates_disclosed=max_candidates_disclosed,
         )
 
 
@@ -213,6 +232,10 @@ class CampaignRecyclingEngine:
         evidence_stale_or_conflicting: bool = False,
     ) -> NextActionDecision:
         now = _utc(now or datetime.now(UTC))
+        if len(candidates) > self.policy.max_candidates_disclosed:
+            raise CampaignRecyclingPolicyError(
+                "candidate set exceeds decision.max_candidates_disclosed"
+            )
         ordered = sorted(
             candidates,
             key=lambda item: (
@@ -373,7 +396,11 @@ class CampaignRecyclingEngine:
         if health is None or health.state == "unknown":
             reasons.append("CHANNEL_HEALTH_UNKNOWN")
         elif health.state in {
-            "hard_bounce", "complained", "unsubscribed", "suppressed", "invalid"
+            "hard_bounce",
+            "complained",
+            "unsubscribed",
+            "suppressed",
+            "invalid",
         }:
             reasons.append("CHANNEL_HEALTH_BLOCKED")
         elif health.state == "possible" and not self._value(
@@ -452,9 +479,7 @@ class CampaignRecyclingEngine:
             for exposure in snapshot.exposures
             if exposure.campaign_id == candidate.campaign_id
         ]
-        max_campaign_lifetime = int(
-            exposure_cfg.get("max_lifetime_per_campaign") or 0
-        )
+        max_campaign_lifetime = int(exposure_cfg.get("max_lifetime_per_campaign") or 0)
         if max_campaign_lifetime and len(same_campaign) >= max_campaign_lifetime:
             reasons.append("LIFETIME_EXPOSURE_CAP_REACHED")
 
@@ -552,7 +577,6 @@ class CampaignRecyclingEngine:
             policy_version=self.policy.policy_version,
             decision_hash=digest,
         )
-
 
 
 def _leaf_values(value: Any) -> list[Any]:

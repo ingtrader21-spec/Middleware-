@@ -2,8 +2,11 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
+import pytest
+
 from app.core.campaign_recycling import (
     CampaignRecyclingEngine,
+    CampaignRecyclingPolicyError,
     Candidate,
     ChannelHealth,
     Exposure,
@@ -176,9 +179,7 @@ def test_duplicate_touch_is_rejected() -> None:
         status="reserved",
         reserved_at=NOW - timedelta(days=3),
     )
-    result = engine().evaluate(
-        snapshot(exposures=(existing,)), [candidate()], now=NOW
-    )
+    result = engine().evaluate(snapshot(exposures=(existing,)), [candidate()], now=NOW)
     assert result.eligible is False
     assert "DUPLICATE_TOUCH" in result.reason_codes
 
@@ -356,9 +357,7 @@ def test_reactivation_requires_distinct_campaign_version() -> None:
     reactivating = snapshot(
         lifecycle_state="REACTIVATION", reactivation_cycles=1, exposures=(prior,)
     )
-    same_version = engine().evaluate(
-        reactivating, [candidate(touch_index=2)], now=NOW
-    )
+    same_version = engine().evaluate(reactivating, [candidate(touch_index=2)], now=NOW)
     assert same_version.eligible is False
     assert same_version.reason_codes == ("CAMPAIGN_VERSION_EXHAUSTED",)
     assert same_version.next_eligible_at is None
@@ -376,3 +375,19 @@ def test_reactivation_requires_distinct_campaign_version() -> None:
         now=NOW,
     )
     assert active.eligible is True
+
+
+def test_policy_loads_candidate_disclosure_limit() -> None:
+    assert PolicyProfile.load("test").max_candidates_disclosed == 200
+
+
+def test_candidate_set_above_disclosure_limit_fails_closed() -> None:
+    candidates = [
+        candidate(campaign_id=f"klyrow:cmp-{index:03d}", priority=index)
+        for index in range(201)
+    ]
+    with pytest.raises(
+        CampaignRecyclingPolicyError,
+        match="candidate set exceeds decision.max_candidates_disclosed",
+    ):
+        engine().evaluate(snapshot(), candidates, now=NOW)
