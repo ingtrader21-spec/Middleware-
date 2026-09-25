@@ -1,0 +1,191 @@
+{
+  "info": {
+    "name": "Middleware Section 5 Provider Certification \u2014 Local",
+    "_postman_id": "section5-provider-certification-local",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Safe local certification for Section 5 provider convergence. Uses TEST_SYN only; no real provider effects."
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:18095"
+    },
+    {
+      "key": "bearer_token",
+      "value": ""
+    },
+    {
+      "key": "command_id",
+      "value": ""
+    },
+    {
+      "key": "correlation_id",
+      "value": ""
+    },
+    {
+      "key": "idempotency_key",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/healthz"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('health 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('middleware api', function () { pm.expect(pm.response.json().service).to.eql('middleware-integration-api'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Connector Catalog",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearer_token}}"
+          }
+        ],
+        "url": "{{base_url}}/platform/v1/connectors"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('catalog 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('test-syn present', function () { const j=pm.response.json(); pm.expect(j.connectors.some(x => x.adapter_id === 'test-syn')).to.be.true; });",
+              "pm.test('evolution-whatsapp present', function () { const j=pm.response.json(); pm.expect(j.connectors.some(x => x.adapter_id === 'evolution-whatsapp')).to.be.true; });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "WhatsApp Connector Disabled",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearer_token}}"
+          }
+        ],
+        "url": "{{base_url}}/platform/v1/connectors/evolution-whatsapp"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('whatsapp connector 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('whatsapp capability disabled', function () { const j=pm.response.json(); pm.expect(j.capability_states.WHATSAPP_DELIVERY).to.eql(false); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Submit TEST_SYN Command",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "const id=pm.variables.replaceIn('{{$guid}}');",
+              "pm.collectionVariables.set('command_id', id);",
+              "pm.collectionVariables.set('correlation_id', 'cert-'+id);",
+              "pm.collectionVariables.set('idempotency_key', 'cert-'+id);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('accepted 202', function () { pm.response.to.have.status(202); });",
+              "pm.test('no duplicate', function () { pm.expect(pm.response.json().duplicate).to.eql(false); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearer_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-Correlation-ID",
+            "value": "{{correlation_id}}"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{idempotency_key}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"command_id\": \"{{command_id}}\",\n  \"command_type\": \"test.syn.execute.v1\",\n  \"command_version\": \"1.0\",\n  \"target\": \"test-syn\",\n  \"tenant_id\": \"TEST_SYN\",\n  \"requested_by\": \"user-1\",\n  \"correlation_id\": \"{{correlation_id}}\",\n  \"idempotency_key\": \"{{idempotency_key}}\",\n  \"capability\": \"TEST_SYN_EXECUTE\",\n  \"payload\": {\n    \"probe\": true,\n    \"certification\": \"section5-postman\"\n  }\n}"
+        },
+        "url": "{{base_url}}/platform/v1/commands"
+      }
+    },
+    {
+      "name": "Get TEST_SYN Operation",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearer_token}}"
+          }
+        ],
+        "url": "{{base_url}}/platform/v1/operations/{{command_id}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('operation 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('tenant bound', function () { pm.expect(pm.response.json().tenant_id).to.eql('TEST_SYN'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Protected Catalog Rejects Missing Token",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/platform/v1/connectors"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('missing token rejected', function () { pm.expect([401,403]).to.include(pm.response.code); });"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
