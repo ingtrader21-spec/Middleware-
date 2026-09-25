@@ -31,8 +31,13 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.api_inputs import optional_header, required_header
+<<<<<<< HEAD
 from app.commands import API_OPERATION_STATES, CommandCapabilityDisabled, CommandEnvelope, CommandNotFound, CommandOperation, OperationEvent, redact_metadata
 from app.platform.kernel import SCOPE_COMMAND, SCOPE_COMMAND_READ, SCOPE_COMMAND_REPLAY, AdapterNotFound, CapabilityUnknown
+=======
+from app.commands import API_OPERATION_STATES, CommandCapabilityDisabled, CommandCapabilityUnknown, CommandEnvelope, CommandNotFound, CommandOperation, OperationEvent, redact_metadata
+from app.platform.kernel import SCOPE_COMMAND, SCOPE_COMMAND_READ, SCOPE_COMMAND_REPLAY
+>>>>>>> dfa6d0ed (feat(provider-adapters): complete section 5 convergence)
 from app.platform.principal import KernelPrincipal, authenticate
 from app.platform.resilience import ReplayMode
 from app.security import AuthorizationError, RequestValidationError
@@ -436,6 +441,8 @@ async def submit_command(body: KernelCommandRequest, request: Request) -> JSONRe
         raise CommandCapabilityDisabled("command type does not have exactly one owning policy")
     if body.target is not None and body.target != policy.target:
         raise CommandCapabilityDisabled("command target does not own the command type")
+    if body.capability is not None and body.capability not in runtime.commands.policies.capabilities:
+        raise CommandCapabilityUnknown("command capability is not registered")
     if body.capability is not None and body.capability != policy.capability:
         raise CommandCapabilityDisabled("command capability does not match the owning policy")
     command = body.envelope(target=policy.target, capability=policy.capability)
@@ -583,24 +590,52 @@ async def replay_operation(operation_id: UUID, body: ReplayRequest, request: Req
 # ----------------------------------------------------------------------
 # Connector catalog / read-only health surface
 # ----------------------------------------------------------------------
+@router.get("/adapters", include_in_schema=False)
 @router.get("/connectors")
 async def list_connectors(request: Request) -> JSONResponse:
     await authenticate(request, required_scope=SCOPE_COMMAND_READ)
     _, platform = _runtime(request)
     evidence = await platform.adapter_readback()
-    return JSONResponse(status_code=200, content={"connectors": evidence["adapters"], "environment": evidence["environment"]})
+    if request.url.path.endswith("/adapters"):
+        # Historical read-only posture envelope retained for operators.
+        return JSONResponse(status_code=200, content=evidence)
+    return JSONResponse(
+        status_code=200,
+        content={"connectors": evidence["adapters"], "environment": evidence["environment"]},
+    )
 
 
+@router.get("/adapters/{connector_id}", include_in_schema=False)
 @router.get("/connectors/{connector_id}")
 async def get_connector(connector_id: str, request: Request) -> JSONResponse:
     await authenticate(request, required_scope=SCOPE_COMMAND_READ)
+    if re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", connector_id) is None:
+        raise RequestValidationError("connector_id is malformed")
     _, platform = _runtime(request)
     evidence = await platform.adapter_readback()
     for row in evidence["adapters"]:
         connector_ids = row.get("connector_ids") or ()
         if connector_id == row.get("adapter_id") or connector_id in connector_ids:
+            if "/adapters/" in request.url.path:
+                names = tuple(row.get("capabilities") or ())
+                return JSONResponse(
+                    status_code=200,
+                    content={
+                        "adapter": row,
+                        "capabilities": {
+                            name: evidence["capabilities"][name]
+                            for name in names
+                            if name in evidence["capabilities"]
+                        },
+                        "provider_effects_enabled": evidence["provider_effects_enabled"],
+                    },
+                )
             return JSONResponse(status_code=200, content=row)
-    return JSONResponse(status_code=404, content={"error": {"code": "CONNECTOR_NOT_FOUND"}, "message": "connector is not registered"})
+    code = "adapter_not_found" if "/adapters/" in request.url.path else "CONNECTOR_NOT_FOUND"
+    return JSONResponse(
+        status_code=404,
+        content={"error": {"code": code}, "message": "connector is not registered"},
+    )
 
 
 @router.get("/connectors/{connector_id}/capabilities")
@@ -643,7 +678,7 @@ class ConnectorReadbackRequest(BaseModel):
 async def connector_readback(connector_id: str, body: ConnectorReadbackRequest, request: Request) -> JSONResponse:
     principal = await authenticate(request, required_scope=SCOPE_COMMAND_READ)
     runtime, platform = _runtime(request)
-    tenant_id = principal.tenant_id
+    tenant_id = _tenant_for_read(request, principal)
     operation = await runtime.commands.get(tenant_id, body.operation_id)
     ownership = platform.registry.ownership(operation.command_type)
     if ownership is None or (connector_id not in {ownership.adapter_id, ownership.target}):
@@ -652,7 +687,7 @@ async def connector_readback(connector_id: str, body: ConnectorReadbackRequest, 
         return JSONResponse(status_code=409, content={"error": {"code": "PROVIDER_REFERENCE_MISMATCH"}, "message": "provider reference does not match durable operation"})
     adapter = platform.registry.adapter(ownership.adapter_id)
     from app.platform.adapter import AdapterContext
-    context = AdapterContext(tenant_id=tenant_id, command_id=str(operation.command_id), correlation_id=operation.correlation_id, attempt=await runtime.commands.latest_attempt(tenant_id, operation.command_id), timeout_seconds=platform.dispatch.settings.adapter_timeout_seconds, environment=platform.settings.app_env, deployment_sha=platform.settings.source_sha, http=platform.dispatch.http, payload=(await runtime.commands.load_envelope(tenant_id, operation.command_id)).payload)
+    context = AdapterContext(tenant_id=tenant_id, command_id=str(operation.command_id), correlation_id=operation.correlation_id, attempt=await runtime.commands.latest_attempt(tenant_id, operation.command_id), timeout_seconds=platform.dispatch.bus.default_timeout_seconds, environment=platform.settings.app_env, deployment_sha=platform.settings.source_sha, http=platform.dispatch.http, payload=(await runtime.commands.load_envelope(tenant_id, operation.command_id)).payload)
     result = await adapter.readback(operation, context)
     return JSONResponse(status_code=200, content={"connector_id": connector_id, "command_id": str(operation.command_id), "provider_reference": result.provider_operation_id or operation.provider_operation_id, "provider_state": result.status.value, "local_state": operation.state, "correlation_id": operation.correlation_id, "evidence": redact_metadata(dict(result.evidence))})
 
@@ -661,14 +696,14 @@ async def connector_readback(connector_id: str, body: ConnectorReadbackRequest, 
 async def connector_reconcile(connector_id: str, body: ConnectorReadbackRequest, request: Request) -> JSONResponse:
     principal = await authenticate(request, required_scope=SCOPE_COMMAND_READ)
     runtime, platform = _runtime(request)
-    tenant_id = principal.tenant_id
+    tenant_id = _tenant_for_read(request, principal)
     operation = await runtime.commands.get(tenant_id, body.operation_id)
     ownership = platform.registry.ownership(operation.command_type)
     if ownership is None or connector_id not in {ownership.adapter_id, ownership.target}:
         return JSONResponse(status_code=409, content={"error": {"code": "PROVIDER_REFERENCE_MISMATCH"}, "message": "connector does not own operation"})
     adapter = platform.registry.adapter(ownership.adapter_id)
     from app.platform.adapter import AdapterContext, ReadbackStatus
-    context = AdapterContext(tenant_id=tenant_id, command_id=str(operation.command_id), correlation_id=operation.correlation_id, attempt=await runtime.commands.latest_attempt(tenant_id, operation.command_id), timeout_seconds=platform.dispatch.settings.adapter_timeout_seconds, environment=platform.settings.app_env, deployment_sha=platform.settings.source_sha, http=platform.dispatch.http, payload=(await runtime.commands.load_envelope(tenant_id, operation.command_id)).payload)
+    context = AdapterContext(tenant_id=tenant_id, command_id=str(operation.command_id), correlation_id=operation.correlation_id, attempt=await runtime.commands.latest_attempt(tenant_id, operation.command_id), timeout_seconds=platform.dispatch.bus.default_timeout_seconds, environment=platform.settings.app_env, deployment_sha=platform.settings.source_sha, http=platform.dispatch.http, payload=(await runtime.commands.load_envelope(tenant_id, operation.command_id)).payload)
     result = await adapter.reconcile(operation, context)
     consistency = "CONSISTENT" if result.status is ReadbackStatus.MATCHED else "REFERENCE_MISMATCH" if result.status is ReadbackStatus.MISMATCH else "REMOTE_UNKNOWN" if result.status in {ReadbackStatus.UNAVAILABLE, ReadbackStatus.UNSUPPORTED} else "REPAIR_REQUIRED"
     return JSONResponse(status_code=200, content={"connector_id": connector_id, "command_id": str(operation.command_id), "provider_reference": result.provider_operation_id or operation.provider_operation_id, "local_state": operation.state, "provider_state": result.status.value, "consistency": consistency, "repair_action": "none" if consistency == "CONSISTENT" else "reconcile", "retry_recommendation": redact_metadata(dict(result.evidence)).get("retry_hint"), "correlation_id": operation.correlation_id})

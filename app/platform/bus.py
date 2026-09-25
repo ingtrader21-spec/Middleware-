@@ -58,7 +58,14 @@ from app.platform.adapter import (
     ReadbackResult,
     ReadbackStatus,
 )
+from app.platform.connector_bridge import (
+    KernelAdapterConnector,
+    connector_result_to_adapter,
+    connector_result_to_readback,
+    execution_context,
+)
 from app.platform.metrics import KernelMetrics
+from middleware.connector_runtime.execution import ConnectorRegistry as Section2ConnectorRegistry
 from app.platform.registry import AdapterRegistry, Ownership
 from app.platform.resilience import Bulkhead, BulkheadFull, CircuitBreaker, CircuitOpen
 from app.platform.safety import SafetyContext, SafetyGate, SafetySubject
@@ -250,6 +257,11 @@ class AdapterDispatch:
         )
         if not decision.allow:
             self.metrics.safety_denials.labels(reason=decision.reason_code).inc()
+            self.metrics.effect_denied.labels(
+                connector=adapter.adapter_id,
+                provider=adapter.capabilities().provider_family,
+                reason=decision.reason_code,
+            ).inc()
             if decision.reason_code == "adapter_not_ready":
                 # Readiness is transient; back off without opening an attempt.
                 raise KnownSafeRetryError("adapter not ready")
@@ -272,13 +284,32 @@ class AdapterDispatch:
 
         self.metrics.adapter_requests.labels(adapter=adapter.adapter_id, operation="execute").inc()
         self.metrics.provider_effect_attempts.labels(adapter=adapter.adapter_id).inc()
+        provider_family = adapter.capabilities().provider_family
         started = time.perf_counter()
         result: AdapterResult
         try:
-            result = await self.bulkhead(adapter.adapter_id).run(
-                lambda: asyncio.wait_for(adapter.execute(envelope, context), timeout=timeout)
+            section2 = Section2ConnectorRegistry()
+            connector = KernelAdapterConnector(adapter, (ownership.prefix,))
+            section2.register(connector)
+            effect_class = connector.descriptor.capabilities[0].effect
+            runtime_context = execution_context(
+                command=envelope,
+                adapter_context=context,
+                effect_class=effect_class,
+                effects_allowed=True,
             )
-            result = adapter.normalize_result(result)
+            connector_result = await self.bulkhead(adapter.adapter_id).run(
+                lambda: asyncio.wait_for(
+                    section2.execute(
+                        envelope.target,
+                        envelope.command_type,
+                        {"_command": envelope},
+                        runtime_context,
+                    ),
+                    timeout=timeout,
+                )
+            )
+            result = adapter.normalize_result(connector_result_to_adapter(connector_result))
         except BulkheadFull as exc:
             self.metrics.bulkhead_rejections.labels(adapter=adapter.adapter_id).inc()
             # Nothing was sent: close the attempt as failed and retry safely.
@@ -301,6 +332,33 @@ class AdapterDispatch:
         finally:
             self.metrics.adapter_latency.labels(adapter=adapter.adapter_id, operation="execute").observe(time.perf_counter() - started)
 
+        result_label = result.outcome.value.lower()
+        self.metrics.provider_requests.labels(
+            connector=adapter.adapter_id,
+            provider=provider_family,
+            operation="execute",
+            result=result_label,
+        ).inc()
+        if result.safe_error_code:
+            normalized_error = str(result.safe_error_code).upper()[:64]
+            self.metrics.provider_failures.labels(
+                connector=adapter.adapter_id,
+                provider=provider_family,
+                operation="execute",
+                error=normalized_error,
+            ).inc()
+            if "TIMEOUT" in normalized_error:
+                self.metrics.provider_timeouts.labels(
+                    connector=adapter.adapter_id, provider=provider_family, operation="execute"
+                ).inc()
+            if "RATE_LIMIT" in normalized_error:
+                self.metrics.provider_rate_limits.labels(
+                    connector=adapter.adapter_id, provider=provider_family, operation="execute"
+                ).inc()
+        if result.outcome is Outcome.UNKNOWN:
+            self.metrics.provider_unknown_states.labels(
+                connector=adapter.adapter_id, provider=provider_family, operation="execute"
+            ).inc()
         return await self._finalize(operation, envelope, adapter, ownership, family, attempt, context, result)
 
     # ------------------------------------------------------------------
@@ -396,15 +454,53 @@ class AdapterDispatch:
                         safe_error_code=status.safe_error_code or "provider_operation_failed",
                     )
                 else:
-                    readback = await asyncio.wait_for(adapter.readback(operation, context), timeout=context.timeout_seconds)
+                    section2 = Section2ConnectorRegistry()
+                    connector = KernelAdapterConnector(adapter, (ownership.prefix,))
+                    section2.register(connector)
+                    runtime_context = execution_context(
+                        command=await self.commands.load_envelope(tenant_id, command_id),
+                        adapter_context=context,
+                        effect_class=connector.descriptor.capabilities[0].effect,
+                        effects_allowed=False,
+                        operation=operation,
+                    )
+                    runtime_result = await asyncio.wait_for(
+                        connector.readback(operation.provider_operation_id or "", runtime_context),
+                        timeout=context.timeout_seconds,
+                    )
+                    readback = connector_result_to_readback(runtime_result)
             else:
-                readback = await asyncio.wait_for(adapter.readback(operation, context), timeout=context.timeout_seconds)
+                section2 = Section2ConnectorRegistry()
+                connector = KernelAdapterConnector(adapter, (ownership.prefix,))
+                section2.register(connector)
+                runtime_context = execution_context(
+                    command=await self.commands.load_envelope(tenant_id, command_id),
+                    adapter_context=context,
+                    effect_class=connector.descriptor.capabilities[0].effect,
+                    effects_allowed=False,
+                    operation=operation,
+                )
+                runtime_result = await asyncio.wait_for(
+                    connector.readback(operation.provider_operation_id or "", runtime_context),
+                    timeout=context.timeout_seconds,
+                )
+                readback = connector_result_to_readback(runtime_result)
         except Exception as exc:  # noqa: BLE001
             readback = ReadbackResult(ReadbackStatus.UNAVAILABLE, safe_error_code=type(exc).__name__)
         finally:
             self.metrics.adapter_latency.labels(adapter=adapter.adapter_id, operation="readback").observe(time.perf_counter() - started)
 
         evidence = {"schema_version": "1.0", "status": readback.status.value.lower(), "provider_operation_id": readback.provider_operation_id or operation.provider_operation_id, **redact_metadata(dict(readback.evidence))}
+        provider_family = adapter.capabilities().provider_family
+        self.metrics.provider_readbacks.labels(
+            connector=adapter.adapter_id,
+            provider=provider_family,
+            result=readback.status.value.lower(),
+        ).inc()
+        if readback.status in {ReadbackStatus.UNKNOWN, ReadbackStatus.UNAVAILABLE, ReadbackStatus.PENDING, ReadbackStatus.ACCEPTED, ReadbackStatus.RUNNING, ReadbackStatus.PARTIAL}:
+            self.metrics.provider_unknown_states.labels(
+                connector=adapter.adapter_id, provider=provider_family, operation="readback"
+            ).inc()
         if readback.status is ReadbackStatus.MATCHED:
             await self.commands.transition(
                 tenant_id, command_id, new_state="completed", actor_id=self.worker_id, reason="provider read-back matched",

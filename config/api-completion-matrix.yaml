@@ -622,18 +622,6 @@ operations:
   implementation_file: registered FastAPI runtime
   runtime_state: IMPLEMENTED
 - domain: platform
-  method: GET
-  path: /platform/v1/adapters
-  canonical_operation_id: list_adapters_platform_v1_adapters_get
-  implementation_file: registered FastAPI runtime
-  runtime_state: IMPLEMENTED
-- domain: platform
-  method: GET
-  path: /platform/v1/adapters/{adapter_id}
-  canonical_operation_id: get_adapter_platform_v1_adapters__adapter_id__get
-  implementation_file: registered FastAPI runtime
-  runtime_state: IMPLEMENTED
-- domain: platform
   method: POST
   path: /platform/v1/agent-provisioning/requests
   canonical_operation_id: create_provisioning_request_platform_v1_agent_provisioning_requests_post
@@ -727,6 +715,42 @@ operations:
   method: POST
   path: /platform/v1/commands
   canonical_operation_id: submit_command_platform_v1_commands_post
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: platform
+  method: GET
+  path: /platform/v1/connectors
+  canonical_operation_id: list_connectors_platform_v1_connectors_get
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: platform
+  method: GET
+  path: /platform/v1/connectors/{connector_id}
+  canonical_operation_id: get_connector_platform_v1_connectors__connector_id__get
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: platform
+  method: GET
+  path: /platform/v1/connectors/{connector_id}/capabilities
+  canonical_operation_id: connector_capabilities_platform_v1_connectors__connector_id__capabilities_get
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: platform
+  method: GET
+  path: /platform/v1/connectors/{connector_id}/health
+  canonical_operation_id: connector_health_platform_v1_connectors__connector_id__health_get
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: platform
+  method: POST
+  path: /platform/v1/connectors/{connector_id}/readback
+  canonical_operation_id: connector_readback_platform_v1_connectors__connector_id__readback_post
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: platform
+  method: POST
+  path: /platform/v1/connectors/{connector_id}/reconcile
+  canonical_operation_id: connector_reconcile_platform_v1_connectors__connector_id__reconcile_post
   implementation_file: registered FastAPI runtime
   runtime_state: IMPLEMENTED
 - domain: platform

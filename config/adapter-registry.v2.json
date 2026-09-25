@@ -35,41 +35,6 @@
       ]
     },
     {
-      "id": "camera-gateway",
-      "cell": "core-communications",
-      "repository": "ingtrader21-spec/Codestra-Camera-Gateway",
-      "command_prefixes": [
-        "camera-gateway.capture.",
-        "camera-gateway.ptz.",
-        "camera-gateway.event.",
-        "camera-gateway.maintenance."
-      ],
-      "direct_n8n": false
-    },
-    {
-      "id": "face-id",
-      "cell": "core-communications",
-      "repository": "ingtrader21-spec/FACE-ID",
-      "command_prefixes": [
-        "face-id.verify.",
-        "face-id.access.",
-        "face-id.presence.",
-        "face-id.watchlist.",
-        "face-id.enrollment.",
-        "face-id.duplicate."
-      ],
-      "direct_n8n": false
-    },
-    {
-      "id": "face-liveness",
-      "cell": "core-communications",
-      "repository": "ingtrader21-spec/Codestra-Face-Liveness",
-      "command_prefixes": [
-        "face-liveness."
-      ],
-      "direct_n8n": false
-    },
-    {
       "id": "klyrow-alert-email",
       "cell": "core-communications",
       "repository": "appolon1908-hue/klyrow.com",
@@ -115,15 +80,6 @@
       "direct_n8n": false
     },
     {
-      "id": "postgresql",
-      "cell": "core-communications",
-      "repository": "ingtrader21-spec/Codestra-PostgreSQL",
-      "command_prefixes": [
-        "postgresql."
-      ],
-      "direct_n8n": false
-    },
-    {
       "id": "postly-social",
       "cell": "core-communications",
       "repository": "appolon1908-hue/social.codestra.co",
@@ -157,6 +113,50 @@
       "command_prefixes": [
         "telephony.",
         "telephony-internal."
+      ],
+      "direct_n8n": false
+    },
+    {
+      "id": "camera-gateway",
+      "cell": "core-communications",
+      "repository": "ingtrader21-spec/Codestra-Camera-Gateway",
+      "command_prefixes": [
+        "camera-gateway.capture.",
+        "camera-gateway.ptz.",
+        "camera-gateway.event.",
+        "camera-gateway.maintenance."
+      ],
+      "direct_n8n": false
+    },
+    {
+      "id": "face-id",
+      "cell": "core-communications",
+      "repository": "ingtrader21-spec/FACE-ID",
+      "command_prefixes": [
+        "face-id.verify.",
+        "face-id.access.",
+        "face-id.presence.",
+        "face-id.watchlist.",
+        "face-id.enrollment.",
+        "face-id.duplicate."
+      ],
+      "direct_n8n": false
+    },
+    {
+      "id": "face-liveness",
+      "cell": "core-communications",
+      "repository": "ingtrader21-spec/Codestra-Face-Liveness",
+      "command_prefixes": [
+        "face-liveness."
+      ],
+      "direct_n8n": false
+    },
+    {
+      "id": "postgresql",
+      "cell": "core-communications",
+      "repository": "ingtrader21-spec/Codestra-PostgreSQL",
+      "command_prefixes": [
+        "postgresql."
       ],
       "direct_n8n": false
     },

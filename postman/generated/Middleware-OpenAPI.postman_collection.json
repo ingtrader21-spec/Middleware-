@@ -12425,57 +12425,6 @@
     {
       "item": [
         {
-          "name": "List Adapters",
-          "request": {
-            "header": [
-              {
-                "key": "Authorization",
-                "type": "text",
-                "value": "Bearer {{bearer_token}}"
-              }
-            ],
-            "method": "GET",
-            "url": {
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "platform",
-                "v1",
-                "adapters"
-              ],
-              "query": [],
-              "raw": "{{base_url}}/platform/v1/adapters"
-            }
-          }
-        },
-        {
-          "name": "Get Adapter",
-          "request": {
-            "header": [
-              {
-                "key": "Authorization",
-                "type": "text",
-                "value": "Bearer {{bearer_token}}"
-              }
-            ],
-            "method": "GET",
-            "url": {
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "platform",
-                "v1",
-                "adapters",
-                "{adapter_id}"
-              ],
-              "query": [],
-              "raw": "{{base_url}}/platform/v1/adapters/{adapter_id}"
-            }
-          }
-        },
-        {
           "name": "Submit Command",
           "request": {
             "body": {
@@ -12511,6 +12460,193 @@
               ],
               "query": [],
               "raw": "{{base_url}}/platform/v1/commands"
+            }
+          }
+        },
+        {
+          "name": "List Connectors",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "connectors"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/connectors"
+            }
+          }
+        },
+        {
+          "name": "Get Connector",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "connectors",
+                "{connector_id}"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/connectors/{connector_id}"
+            }
+          }
+        },
+        {
+          "name": "Connector Capabilities",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "connectors",
+                "{connector_id}",
+                "capabilities"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/connectors/{connector_id}/capabilities"
+            }
+          }
+        },
+        {
+          "name": "Connector Health",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "connectors",
+                "{connector_id}",
+                "health"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/connectors/{connector_id}/health"
+            }
+          }
+        },
+        {
+          "name": "Connector Readback",
+          "request": {
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"operation_id\": \"\",\n  \"provider_reference\": \"\"\n}"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "type": "text",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "connectors",
+                "{connector_id}",
+                "readback"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/connectors/{connector_id}/readback"
+            }
+          }
+        },
+        {
+          "name": "Connector Reconcile",
+          "request": {
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"operation_id\": \"\",\n  \"provider_reference\": \"\"\n}"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "type": "text",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "connectors",
+                "{connector_id}",
+                "reconcile"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/connectors/{connector_id}/reconcile"
             }
           }
         },

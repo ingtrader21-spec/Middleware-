@@ -295,6 +295,7 @@ class ConnectorSdkStandardsTests(unittest.TestCase):
                 "provisioning-service",
                 "telnexa-sms",
                 "vicidial-restricted",
+                "evolution-whatsapp",
             },
         )
         self.assertEqual(
@@ -655,7 +656,7 @@ class ConnectorSdkStandardsTests(unittest.TestCase):
         )
         self.assertEqual(
             len(artifacts["kong-routes.v1.json"]["routes"]),
-            8,
+            9,
         )
 
 

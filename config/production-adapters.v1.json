@@ -1,45 +1,80 @@
 {
-  "schema_version": "1.0",
-  "manifest_version": "2026-09-25.1",
-  "environment": "production",
-  "description": "The only adapter set the production command kernel may register. Registration never activates an effect: every capability an adapter serves must be known to config/capabilities.v2.json, carry an external_effect gate in config/platform-safety.v1.json and be false. activation_authorized is false and may only be changed by a separate activation mission that meets every activation_requirements entry of the capability registry. Any violation registers no adapter at all (fail closed) and fails readiness.",
   "activation_authorized": false,
   "adapters": [
     {
-      "adapter_id": "odoo-19",
-      "provider_family": "odoo",
-      "connector_ids": ["odoo-19"],
-      "capabilities": ["ODOO_WRITE"]
+      "adapter_id": "evolution-whatsapp",
+      "capabilities": [
+        "WHATSAPP_DELIVERY"
+      ],
+      "connector_ids": [
+        "evolution-whatsapp"
+      ],
+      "provider_family": "whatsapp"
     },
     {
       "adapter_id": "klyrow-email",
-      "provider_family": "email",
-      "connector_ids": ["klyrow-email"],
-      "capabilities": ["EMAIL_DELIVERY"]
-    },
-    {
-      "adapter_id": "telnexa-sms",
-      "provider_family": "sms",
-      "connector_ids": ["telnexa-sms"],
-      "capabilities": ["SMS_DELIVERY"]
-    },
-    {
-      "adapter_id": "vicidial-restricted",
-      "provider_family": "telephony",
-      "connector_ids": ["vicidial-restricted"],
-      "capabilities": ["INTERNAL_TELEPHONY_CALLS", "PRODUCTION_DIALING"]
-    },
-    {
-      "adapter_id": "postly-social",
-      "provider_family": "social",
-      "connector_ids": ["postly-social"],
-      "capabilities": ["SOCIAL_PUBLISH"]
+      "capabilities": [
+        "EMAIL_DELIVERY"
+      ],
+      "connector_ids": [
+        "klyrow-email"
+      ],
+      "provider_family": "email"
     },
     {
       "adapter_id": "n8n-automation",
-      "provider_family": "n8n",
-      "connector_ids": ["n8n-automation"],
-      "capabilities": ["N8N_WORKFLOW_DISPATCH"]
+      "capabilities": [
+        "N8N_WORKFLOW_DISPATCH"
+      ],
+      "connector_ids": [
+        "n8n-automation"
+      ],
+      "provider_family": "n8n"
+    },
+    {
+      "adapter_id": "odoo-19",
+      "capabilities": [
+        "ODOO_WRITE"
+      ],
+      "connector_ids": [
+        "odoo-19"
+      ],
+      "provider_family": "odoo"
+    },
+    {
+      "adapter_id": "postly-social",
+      "capabilities": [
+        "SOCIAL_PUBLISH"
+      ],
+      "connector_ids": [
+        "postly-social"
+      ],
+      "provider_family": "social"
+    },
+    {
+      "adapter_id": "telnexa-sms",
+      "capabilities": [
+        "SMS_DELIVERY"
+      ],
+      "connector_ids": [
+        "telnexa-sms"
+      ],
+      "provider_family": "sms"
+    },
+    {
+      "adapter_id": "vicidial-restricted",
+      "capabilities": [
+        "INTERNAL_TELEPHONY_CALLS",
+        "PRODUCTION_DIALING"
+      ],
+      "connector_ids": [
+        "vicidial-restricted"
+      ],
+      "provider_family": "telephony"
     }
-  ]
+  ],
+  "description": "The only adapter set the production command kernel may register. Registration never activates an effect: every capability an adapter serves must be known to config/capabilities.v2.json, carry an external_effect gate in config/platform-safety.v1.json and be false. activation_authorized is false and may only be changed by a separate activation mission that meets every activation_requirements entry of the capability registry. Any violation registers no adapter at all (fail closed) and fails readiness.",
+  "environment": "production",
+  "manifest_version": "2026-09-25.1",
+  "schema_version": "1.0"
 }

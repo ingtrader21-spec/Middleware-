@@ -209,10 +209,13 @@
       "refresh_tokens": false,
       "scopes": [
         "whatsapp.send",
-        "whatsapp.status.read"
+        "whatsapp.status.read",
+        "whatsapp.message.read",
+        "whatsapp.message.send"
       ],
       "secret_references": [
-        "CONNECTOR_EVOLUTION_WHATSAPP_CLIENT_SECRET"
+        "CONNECTOR_EVOLUTION_WHATSAPP_CLIENT_SECRET",
+        "CONNECTOR_EVOLUTION_WHATSAPP_MTLS_CERT"
       ],
       "state": "declared-not-created"
     },

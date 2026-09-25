@@ -24,44 +24,6 @@
       "active": false,
       "cell": "core-communications",
       "command_path": "n8n -> Middleware -> trusted adapter",
-      "connector_id": "camera-gateway",
-      "direct_n8n_access": false,
-      "workflow_families": [
-        "camera-gateway.capture",
-        "camera-gateway.event",
-        "camera-gateway.maintenance",
-        "camera-gateway.ptz"
-      ]
-    },
-    {
-      "active": false,
-      "cell": "core-communications",
-      "command_path": "n8n -> Middleware -> trusted adapter",
-      "connector_id": "face-id",
-      "direct_n8n_access": false,
-      "workflow_families": [
-        "face-id.access",
-        "face-id.duplicate",
-        "face-id.enrollment",
-        "face-id.presence",
-        "face-id.verify",
-        "face-id.watchlist"
-      ]
-    },
-    {
-      "active": false,
-      "cell": "core-communications",
-      "command_path": "n8n -> Middleware -> trusted adapter",
-      "connector_id": "face-liveness",
-      "direct_n8n_access": false,
-      "workflow_families": [
-        "face-liveness.verify"
-      ]
-    },
-    {
-      "active": false,
-      "cell": "core-communications",
-      "command_path": "n8n -> Middleware -> trusted adapter",
       "connector_id": "klyrow-alert-email",
       "direct_n8n_access": false,
       "workflow_families": [
@@ -114,16 +76,6 @@
       "active": false,
       "cell": "core-communications",
       "command_path": "n8n -> Middleware -> trusted adapter",
-      "connector_id": "postgresql",
-      "direct_n8n_access": false,
-      "workflow_families": [
-        "postgresql.backup"
-      ]
-    },
-    {
-      "active": false,
-      "cell": "core-communications",
-      "command_path": "n8n -> Middleware -> trusted adapter",
       "connector_id": "postly-social",
       "direct_n8n_access": false,
       "workflow_families": [
@@ -164,10 +116,59 @@
       "active": false,
       "cell": "core-communications",
       "command_path": "n8n -> Middleware -> trusted adapter",
+      "connector_id": "camera-gateway",
+      "direct_n8n_access": false,
+      "workflow_families": [
+        "camera-gateway.capture",
+        "camera-gateway.event",
+        "camera-gateway.maintenance",
+        "camera-gateway.ptz"
+      ]
+    },
+    {
+      "active": false,
+      "cell": "core-communications",
+      "command_path": "n8n -> Middleware -> trusted adapter",
+      "connector_id": "face-id",
+      "direct_n8n_access": false,
+      "workflow_families": [
+        "face-id.access",
+        "face-id.duplicate",
+        "face-id.enrollment",
+        "face-id.presence",
+        "face-id.verify",
+        "face-id.watchlist"
+      ]
+    },
+    {
+      "active": false,
+      "cell": "core-communications",
+      "command_path": "n8n -> Middleware -> trusted adapter",
+      "connector_id": "face-liveness",
+      "direct_n8n_access": false,
+      "workflow_families": [
+        "face-liveness.verify"
+      ]
+    },
+    {
+      "active": false,
+      "cell": "core-communications",
+      "command_path": "n8n -> Middleware -> trusted adapter",
+      "connector_id": "postgresql",
+      "direct_n8n_access": false,
+      "workflow_families": [
+        "postgresql.backup"
+      ]
+    },
+    {
+      "active": false,
+      "cell": "core-communications",
+      "command_path": "n8n -> Middleware -> trusted adapter",
       "connector_id": "evolution-whatsapp",
       "direct_n8n_access": false,
       "workflow_families": [
-        "messaging.whatsapp"
+        "messaging.whatsapp",
+        "messaging.evolution-whatsapp"
       ]
     }
   ],

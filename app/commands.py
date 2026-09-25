@@ -92,6 +92,11 @@ class CommandCapabilityDisabled(CommandError):
     code = "capability_disabled"
 
 
+class CommandCapabilityUnknown(CommandError):
+    status_code = 403
+    code = "capability_unknown"
+
+
 class CommandConflict(CommandError):
     status_code = 409
     code = "command_conflict"
