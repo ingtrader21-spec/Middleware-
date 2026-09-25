@@ -1,15 +1,120 @@
 from __future__ import annotations
 
+import json
+import time
+from unittest.mock import Mock
+
+import jwt
 import pytest
+from cryptography.hazmat.primitives.asymmetric import rsa
 
 from app.core.config import ConfigurationError, Settings, WEBHOOK_PRODUCERS
 from app.security import (
     AuthorizationError,
+    KeycloakJwtVerifier,
     RequestValidationError,
     _parse_timestamp,
     authorize_tenant,
     validate_claims,
 )
+
+
+
+
+def _machine_token(private_key, settings, *, kid: str, jti: str) -> str:
+    now = int(time.time())
+    return jwt.encode(
+        {
+            "iss": settings.issuer,
+            "aud": settings.audience,
+            "sub": "auth02-subject",
+            "azp": "middleware-api",
+            "jti": jti,
+            "iat": now,
+            "exp": now + 120,
+            "scope": "platform.command",
+        },
+        private_key,
+        algorithm="RS256",
+        headers={"kid": kid},
+    )
+
+
+def _public_jwk(private_key, *, kid: str) -> dict:
+    value = json.loads(
+        jwt.algorithms.RSAAlgorithm.to_jwk(private_key.public_key())
+    )
+    value.update(kid=kid, use="sig", alg="RS256")
+    return value
+
+
+def test_machine_verifier_rejects_key_removed_after_jwks_refresh(
+    monkeypatch: pytest.MonkeyPatch, test_settings: Settings
+) -> None:
+    private = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    kid = "auth02-removed-key"
+    verifier = KeycloakJwtVerifier(test_settings)
+    fetch = Mock(return_value={"keys": [_public_jwk(private, kid=kid)]})
+    monkeypatch.setattr(verifier._jwks, "fetch_data", fetch)
+
+    first = _machine_token(private, test_settings, kid=kid, jti="auth02-first")
+    assert verifier._verify_sync(
+        first,
+        expected_client_id="middleware-api",
+        required_scope="platform.command",
+    )["jti"] == "auth02-first"
+
+    # Simulate the bounded JWKS-set cache expiring/refreshing. Once authority
+    # no longer advertises the kid, the old key object must not survive in a
+    # separate unbounded per-key cache.
+    verifier._jwks.jwk_set_cache.put(None)
+    fetch.return_value = {"keys": []}
+    fresh = _machine_token(private, test_settings, kid=kid, jti="auth02-revoked")
+
+    with pytest.raises((jwt.PyJWKClientError, jwt.PyJWKSetError)):
+        verifier._verify_sync(
+            fresh,
+            expected_client_id="middleware-api",
+            required_scope="platform.command",
+        )
+    assert fetch.call_count >= 2
+
+
+def test_machine_verifier_accepts_same_kid_replacement_after_refresh(
+    monkeypatch: pytest.MonkeyPatch, test_settings: Settings
+) -> None:
+    old_private = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    new_private = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    kid = "auth02-rotated-key"
+    verifier = KeycloakJwtVerifier(test_settings)
+    fetch = Mock(return_value={"keys": [_public_jwk(old_private, kid=kid)]})
+    monkeypatch.setattr(verifier._jwks, "fetch_data", fetch)
+
+    old = _machine_token(old_private, test_settings, kid=kid, jti="auth02-old")
+    assert verifier._verify_sync(
+        old,
+        expected_client_id="middleware-api",
+        required_scope="platform.command",
+    )["jti"] == "auth02-old"
+
+    verifier._jwks.jwk_set_cache.put(None)
+    fetch.return_value = {"keys": [_public_jwk(new_private, kid=kid)]}
+    rotated = _machine_token(new_private, test_settings, kid=kid, jti="auth02-new")
+    assert verifier._verify_sync(
+        rotated,
+        expected_client_id="middleware-api",
+        required_scope="platform.command",
+    )["jti"] == "auth02-new"
+
+
+def test_machine_verifier_has_no_unbounded_signing_key_cache(
+    test_settings: Settings,
+) -> None:
+    verifier = KeycloakJwtVerifier(test_settings)
+    # PyJWT only replaces get_signing_key with functools.lru_cache when
+    # cache_keys=True. The bounded JWKS set cache remains enabled separately.
+    assert not hasattr(verifier._jwks.get_signing_key, "cache_info")
+    assert verifier._jwks.jwk_set_cache is not None
 
 
 def test_exact_scope_and_azp_are_required() -> None:
