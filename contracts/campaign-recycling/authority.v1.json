@@ -1,0 +1,551 @@
+{
+  "schema_version": "1.0",
+  "contract": "campaign-recycling",
+  "mission": "MCR-A",
+  "runtime_status": "contract_only",
+  "architecture_document": "docs/architecture/MASTER_LEAD_LIFECYCLE_CAMPAIGN_RECYCLING_V1.md",
+  "production": {
+    "authorized": false,
+    "lock_decision": "NO_GO",
+    "live_effects_enabled": false,
+    "provider_calls_enabled": false,
+    "runtime_handlers_implemented": false,
+    "migrations_added": false,
+    "routes_registered": false
+  },
+  "artifacts": {
+    "lifecycle": "contracts/campaign-recycling/lifecycle.v1.schema.json",
+    "channel_health": "contracts/campaign-recycling/channel-health.v1.schema.json",
+    "exposure_ledger": "contracts/campaign-recycling/exposure-ledger.v1.schema.json",
+    "next_action": "contracts/campaign-recycling/next-action.v1.schema.json",
+    "delivery_event": "contracts/campaign-recycling/delivery-event.v1.schema.json",
+    "api": "contracts/campaign-recycling/campaign-engine.openapi.yaml",
+    "policy": "config/campaign-recycling-policy.v1.json",
+    "validator": "scripts/validate_campaign_recycling_contracts.py"
+  },
+  "reused_foundations": [
+    {
+      "path": "docs/operations/campaign-registry/lead-eligibility.md",
+      "provides": "calling-specific lead identity and dialing eligibility; remains the only dialing authority"
+    },
+    {
+      "path": "app/core/campaign_identity.py",
+      "provides": "immutable campaign-scoped lead IDs (LeadId pattern)"
+    },
+    {
+      "path": "app/core/lead_automation.py",
+      "provides": "lead automation state machine, canonical_hash, idempotency conflict semantics"
+    },
+    {
+      "path": "app/communications.py",
+      "provides": "canonical email/SMS transport, MessageStatus, CHANNEL_COMMAND, generic send-time suppression"
+    },
+    {
+      "path": "app/email_production_control.py",
+      "provides": "email production authorization, approved domains and sender identities, kill switch, quotas"
+    },
+    {
+      "path": "migrations/versions/0056_klyrow_delivery_event_inbox.py",
+      "provides": "durable Klyrow delivery event inbox and dedupe"
+    },
+    {
+      "path": "migrations/versions/0066_reconcile_odoo_campaign_scope.py",
+      "provides": "Odoo campaign control/readback authority and TEST_SYN write binding"
+    },
+    {
+      "path": "app/core/campaign_design_contract.py",
+      "provides": "Odoo campaign design wire contract"
+    },
+    {
+      "path": "contracts/platform/command-envelope.v1.schema.json",
+      "provides": "canonical command envelope for execute-emitted commands"
+    },
+    {
+      "path": "contracts/platform/event-envelope.v1.schema.json",
+      "provides": "canonical event envelope carrying normalized delivery events"
+    },
+    {
+      "path": "contracts/http-conventions.md",
+      "provides": "auth headers, idempotency, error envelope, signed webhook and replay rules"
+    },
+    {
+      "path": "config/capabilities.v2.json",
+      "provides": "default-deny capability flags gating every channel command"
+    },
+    {
+      "path": "config/system-ownership.v2.json",
+      "provides": "platform-wide system ownership this matrix specializes"
+    }
+  ],
+  "systems": {
+    "leads": {
+      "role": "Lead identity, lifecycle state, channel state, and the journey read model.",
+      "owns": [
+        "lead_identity",
+        "lifecycle_state",
+        "channel_health",
+        "suppression_records",
+        "journey_read_model"
+      ],
+      "forbidden": [
+        "policy_decisioning",
+        "provider_dispatch",
+        "campaign_content",
+        "crm_opportunity_state"
+      ],
+      "registration": "unregistered"
+    },
+    "middleware": {
+      "role": "Policy decisioning, command/idempotency, exposure ledger, normalization, and reconciliation.",
+      "owns": [
+        "policy_decisioning",
+        "next_action_decisions",
+        "exposure_ledger",
+        "command_idempotency",
+        "outbox",
+        "delivery_event_normalization",
+        "reconciliation",
+        "send_time_suppression_gate"
+      ],
+      "forbidden": [
+        "lead_identity_authority",
+        "campaign_content_authority",
+        "sender_identity_creation",
+        "crm_truth",
+        "direct_provider_calls_from_decisions"
+      ],
+      "registration": "config/system-ownership.v2.json#middleware"
+    },
+    "klyrow": {
+      "role": "Email campaigns, campaign versions, templates, sender identities, and email delivery events.",
+      "owns": [
+        "email_campaign_definitions",
+        "campaign_versions",
+        "templates",
+        "sender_identities",
+        "email_delivery_events"
+      ],
+      "forbidden": [
+        "cross_platform_authorization",
+        "lead_lifecycle_authority",
+        "policy_decisioning"
+      ],
+      "registration": "config/system-ownership.v2.json#klyrow"
+    },
+    "odoo": {
+      "role": "CRM, opportunities, human sales, and CRM campaign control/readback.",
+      "owns": [
+        "crm",
+        "opportunities",
+        "human_sales",
+        "conversion_facts",
+        "crm_campaign_control"
+      ],
+      "forbidden": [
+        "automated_outreach_decisions",
+        "provider_credentials",
+        "gateway_policy"
+      ],
+      "registration": "config/system-ownership.v2.json#odoo"
+    },
+    "n8n": {
+      "role": "Post-acceptance automation only, after Middleware has accepted and recorded a decision or event.",
+      "owns": [
+        "post_acceptance_automation"
+      ],
+      "forbidden": [
+        "policy_decisioning",
+        "eligibility_override",
+        "suppression_override",
+        "direct_provider_write",
+        "direct_database_write",
+        "sender_identity_selection"
+      ],
+      "registration": "config/system-ownership.v2.json#n8n"
+    },
+    "thunderbird": {
+      "role": "Human mail client only.",
+      "owns": [
+        "human_mail_reading_and_replying"
+      ],
+      "forbidden": [
+        "automated_sending",
+        "campaign_touches",
+        "sender_identity_authority",
+        "suppression_authority",
+        "exposure_ledger_writes"
+      ],
+      "registration": "unregistered"
+    },
+    "keycloak": {
+      "role": "Human and machine identity; token issuance for the campaign engine scopes.",
+      "owns": [
+        "human_identity",
+        "machine_identity",
+        "token_issuance",
+        "scope_grants"
+      ],
+      "forbidden": [
+        "business_records",
+        "delivery_truth",
+        "policy_decisioning"
+      ],
+      "registration": "config/system-ownership.v2.json#keycloak"
+    },
+    "openbao": {
+      "role": "Secret storage; contracts carry secret references only, never secret values.",
+      "owns": [
+        "secret_values",
+        "secret_references"
+      ],
+      "forbidden": [
+        "business_records",
+        "policy_decisioning"
+      ],
+      "registration": "contracts/secrets/secret-reference.v1.schema.json"
+    },
+    "kong": {
+      "role": "API routing, traffic policy, and rate limits in front of Middleware.",
+      "owns": [
+        "api_routing",
+        "traffic_policy",
+        "rate_limits",
+        "upstream_health"
+      ],
+      "forbidden": [
+        "business_logic",
+        "workflow_state",
+        "provider_credentials",
+        "suppression_decisions"
+      ],
+      "registration": "config/system-ownership.v2.json#kong"
+    },
+    "caddy": {
+      "role": "Public TLS and host allowlisting only.",
+      "owns": [
+        "public_tls",
+        "host_allowlist",
+        "https_redirects"
+      ],
+      "forbidden": [
+        "tenant_authorization",
+        "business_routing"
+      ],
+      "registration": "config/system-ownership.v2.json#caddy"
+    },
+    "observability": {
+      "role": "Metrics, logs, and traces keyed by correlation_id; never a decision input.",
+      "owns": [
+        "metrics",
+        "logs",
+        "traces",
+        "alerts"
+      ],
+      "forbidden": [
+        "policy_decisioning",
+        "raw_addresses_in_telemetry",
+        "message_bodies_in_telemetry"
+      ],
+      "registration": "config/observability-alert-policy.v1.json"
+    },
+    "telnexa": {
+      "role": "SMS transport provider authority behind Middleware commands.",
+      "owns": [
+        "sms_senders",
+        "messages",
+        "jasmin_mappings",
+        "sms_delivery_state"
+      ],
+      "forbidden": [
+        "cross_platform_authorization",
+        "policy_decisioning",
+        "campaign_content_authority"
+      ],
+      "registration": "config/system-ownership.v2.json#telnexa"
+    },
+    "vicidial": {
+      "role": "Voice execution/call-state authority; MCR v1 may plan voice only when separate dialing eligibility passes, but cannot execute it.",
+      "owns": [
+        "telephony_execution",
+        "call_state",
+        "recordings"
+      ],
+      "forbidden": [
+        "crm_truth",
+        "public_admin_api",
+        "policy_decisioning",
+        "campaign_content_authority"
+      ],
+      "registration": "config/system-ownership.v2.json#vicidial"
+    },
+    "whatsapp": {
+      "role": "WhatsApp business/application authority: channel contacts, consent/suppression evidence, templates, WhatsApp campaigns/audience snapshots, conversations and operator workflow.",
+      "owns": [
+        "whatsapp_channel_contacts",
+        "whatsapp_consent",
+        "whatsapp_suppressions",
+        "whatsapp_templates",
+        "whatsapp_campaign_definitions",
+        "whatsapp_audience_snapshots",
+        "whatsapp_conversations",
+        "whatsapp_sender_identities"
+      ],
+      "forbidden": [
+        "provider_transport",
+        "command_durability",
+        "policy_decisioning",
+        "direct_provider_calls"
+      ],
+      "registration": "unregistered_project:Codestra WhatsApp"
+    },
+    "evolution": {
+      "role": "Thin WhatsApp provider adapter behind Middleware V3: provider/session lifecycle, request translation, provider IDs, webhook verification/normalization and provider health.",
+      "owns": [
+        "whatsapp_provider_sessions",
+        "whatsapp_provider_translation",
+        "whatsapp_provider_message_ids",
+        "whatsapp_webhook_verification",
+        "whatsapp_provider_health"
+      ],
+      "forbidden": [
+        "public_command_authority",
+        "command_durability",
+        "policy_decisioning",
+        "campaign_state",
+        "crm_truth"
+      ],
+      "registration": "unregistered_project:Codestra Evolution API"
+    }
+  },
+  "artifact_authority": {
+    "lifecycle": {
+      "system_of_record": "leads",
+      "writers": [
+        "leads",
+        "middleware"
+      ],
+      "readers": [
+        "middleware",
+        "odoo",
+        "observability"
+      ]
+    },
+    "channel_health": {
+      "system_of_record": "leads",
+      "writers": [
+        "leads",
+        "middleware"
+      ],
+      "readers": [
+        "middleware"
+      ]
+    },
+    "suppressions": {
+      "system_of_record": "leads",
+      "writers": [
+        "leads",
+        "middleware"
+      ],
+      "readers": [
+        "middleware"
+      ]
+    },
+    "exposure_ledger": {
+      "system_of_record": "middleware",
+      "writers": [
+        "middleware"
+      ],
+      "readers": [
+        "leads",
+        "observability"
+      ]
+    },
+    "next_action": {
+      "system_of_record": "middleware",
+      "writers": [
+        "middleware"
+      ],
+      "readers": [
+        "leads",
+        "odoo",
+        "n8n"
+      ]
+    },
+    "delivery_event": {
+      "system_of_record": "middleware",
+      "writers": [
+        "middleware"
+      ],
+      "readers": [
+        "leads",
+        "middleware",
+        "observability",
+        "whatsapp"
+      ]
+    },
+    "campaign_versions": {
+      "system_of_record": "klyrow",
+      "writers": [
+        "klyrow"
+      ],
+      "readers": [
+        "middleware"
+      ]
+    },
+    "sender_identities": {
+      "system_of_record": "klyrow",
+      "writers": [
+        "klyrow"
+      ],
+      "readers": [
+        "middleware"
+      ]
+    },
+    "conversions": {
+      "system_of_record": "odoo",
+      "writers": [
+        "odoo"
+      ],
+      "readers": [
+        "middleware",
+        "leads"
+      ]
+    },
+    "whatsapp_campaigns": {
+      "system_of_record": "whatsapp",
+      "writers": [
+        "whatsapp"
+      ],
+      "readers": [
+        "middleware"
+      ]
+    },
+    "sms_delivery_state": {
+      "system_of_record": "telnexa",
+      "writers": [
+        "telnexa"
+      ],
+      "readers": [
+        "middleware",
+        "observability"
+      ]
+    },
+    "voice_call_state": {
+      "system_of_record": "vicidial",
+      "writers": [
+        "vicidial"
+      ],
+      "readers": [
+        "middleware",
+        "odoo",
+        "observability"
+      ]
+    }
+  },
+  "sender_identity_rule": {
+    "identity_must_be": [
+      "legitimate",
+      "brand_or_campaign_owned",
+      "channel_verified",
+      "production_authorized_for_channel"
+    ],
+    "selection": "policy_governed",
+    "binding": "campaign_version",
+    "auditable": true,
+    "rotation_for_deliverability_evasion": false,
+    "forbidden_practices": [
+      "rotating sending domains to evade spam filtering, blocklists, reputation, or provider limits",
+      "rotating sender identities or address formats per touch to evade complaint or bounce controls",
+      "lookalike, throwaway, or unregistered sending domains",
+      "sending from an identity outside approvedSenders or approvedDomains"
+    ],
+    "enforcement": "A candidate whose channel-specific sender identity is not authorized is rejected with SENDER_IDENTITY_NOT_AUTHORIZED; the engine never substitutes another identity to recover deliverability.",
+    "channel_authority": {
+      "email": {
+        "campaign_business": "klyrow",
+        "sender_identity": "klyrow",
+        "transport": "klyrow"
+      },
+      "sms": {
+        "campaign_business": "klyrow",
+        "sender_identity": "telnexa",
+        "transport": "telnexa"
+      },
+      "whatsapp": {
+        "campaign_business": "whatsapp",
+        "sender_identity": "whatsapp",
+        "transport": "evolution"
+      },
+      "voice": {
+        "campaign_business": "odoo",
+        "sender_identity": "vicidial",
+        "transport": "vicidial",
+        "runtime_status": "not_supported_in_v1"
+      }
+    }
+  },
+  "known_authority_conflicts": [
+    {
+      "id": "campaign-ownership-split",
+      "detail": "RESOLVED by MCR-A channel authority: Klyrow owns email/SMS campaign business definitions and versions; Codestra WhatsApp owns WhatsApp campaign/template/audience business state; Odoo remains CRM/human-sales authority only.",
+      "resolution": "channel_authority"
+    },
+    {
+      "id": "campaign-id-namespace",
+      "detail": "RESOLVED by MCR-A canonical campaign_id namespace. Runtime inputs must use klyrow:<raw_id> or whatsapp:<raw_id>; raw Odoo/VICIdial/provider campaign IDs are rejected.",
+      "resolution": "channel-health.v1.schema.json#/$defs/CampaignId"
+    },
+    {
+      "id": "leads-thunderbird-registration",
+      "detail": "DEFERRED, not ambiguous: Leads and Thunderbird roles are frozen in this matrix; platform registry registration belongs to Milestone 30 security/integration and cannot change ownership semantics.",
+      "resolution_required_by": "30 — Platform Security & Observability"
+    },
+    {
+      "id": "whatsapp-runtime-dependency",
+      "detail": "WhatsApp is a desired channel but provider execution is fail-closed until Middleware PR #316 and the Evolution/WhatsApp runtime contracts are merged and certified. Milestone 10 may implement pure planning/state logic against the frozen contract without live provider effects.",
+      "resolution_required_by": "20 — Channel & CRM Integrations"
+    }
+  ],
+  "channel_authority": {
+    "email": {
+      "campaign_business": "klyrow",
+      "sender_identity": "klyrow",
+      "transport": "klyrow"
+    },
+    "sms": {
+      "campaign_business": "klyrow",
+      "sender_identity": "telnexa",
+      "transport": "telnexa"
+    },
+    "whatsapp": {
+      "campaign_business": "whatsapp",
+      "sender_identity": "whatsapp",
+      "transport": "evolution"
+    },
+    "voice": {
+      "campaign_business": "odoo",
+      "sender_identity": "vicidial",
+      "transport": "vicidial",
+      "runtime_status": "not_supported_in_v1"
+    }
+  },
+  "external_dependencies": [
+    {
+      "id": "middleware-whatsapp-v3",
+      "url": "https://github.com/ingtrader21-spec/Middleware-/pull/316",
+      "observed_head": "a59818e032bc63a4562785f5dfdfcc3b6c84c989",
+      "required_for": "whatsapp provider execution",
+      "gate": "merged exact-head green with WHATSAPP_DELIVERY default false"
+    },
+    {
+      "id": "codestra-whatsapp",
+      "url": "https://linear.app/passion-fruit/project/codestra-whatsapp-5da06b775b2d",
+      "required_for": "whatsapp business campaign/consent/template authority"
+    },
+    {
+      "id": "codestra-evolution-api",
+      "url": "https://linear.app/passion-fruit/project/codestra-evolution-api-aa6ab7cfd39c",
+      "required_for": "whatsapp provider/session/webhook authority"
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "schema_version": "1.0",
+  "mission": "MCR-E",
+  "runtime_status": "persistence_implemented_http_identity_pending",
+  "command_type": "crm.lifecycle.handoff",
+  "command_authority": "middleware",
+  "outbox_authority": "middleware",
+  "crm_authority": "odoo",
+  "lifecycle_authority": "leads",
+  "conversion_authority": "odoo",
+  "runtime_enabled": false,
+  "provider_calls_enabled": false,
+  "direct_database_writes_allowed": false,
+  "n8n_pre_acceptance_allowed": false,
+  "external_contact_allowed": false,
+  "idempotency_identity": [
+    "tenant_id",
+    "lead_id",
+    "campaign_id",
+    "campaign_version",
+    "lifecycle_version",
+    "policy_version",
+    "handoff"
+  ],
+  "readback_identity": [
+    "tenant_id",
+    "lead_id",
+    "campaign_id",
+    "campaign_version",
+    "lifecycle_version",
+    "policy_version",
+    "handoff",
+    "command_id",
+    "correlation_id",
+    "idempotency_key",
+    "payload_hash"
+  ],
+  "retry": {
+    "max_attempts": null,
+    "max_age_seconds": null,
+    "base_delay_seconds": null,
+    "max_delay_seconds": null,
+    "missing_policy": "policy_blocked",
+    "ambiguous_outcome": "reconciliation_required",
+    "automatic_retry_requires": "proven_not_applied",
+    "exhaustion": "dead_lettered"
+  },
+  "scopes": {
+    "submit": "crm.handoff.write",
+    "read": "crm.handoff.read",
+    "reconcile": "crm.handoff.reconcile"
+  },
+  "reuse": [
+    "contracts/platform/command-envelope.v1.schema.json",
+    "contracts/http-conventions.md",
+    "contracts/campaign-recycling/authority.v1.json",
+    "contracts/campaign-recycling/lifecycle.v1.schema.json",
+    "app/commands.py",
+    "app/worker.py",
+    "app/odoo_transport.py"
+  ],
+  "runtime_implementation": {
+    "store": "app/core/mcr_odoo_handoff.py",
+    "migration": "migrations/versions/0070_mcr_odoo_handoff.py",
+    "http_routes_registered": false,
+    "remaining_gate": "freeze Keycloak service-client assignment for crm.handoff.write/read/reconcile"
+  }
+}

@@ -1,0 +1,582 @@
+openapi: 3.1.0
+info:
+  title: MCR Odoo CRM handoff contract
+  version: 1.0.0
+  description: Contract only; routes are not implemented or registered. Fail closed
+    with no effects. See docs/architecture/MCR_ODOO_HANDOFF_V1.md and contracts/http-conventions.md.
+    202 means durable Middleware acceptance, never CRM completion.
+  x-codestra-implemented: false
+security:
+- codestraOAuth: []
+paths:
+  /platform/v1/crm/handoffs:
+    post:
+      operationId: mcr_odoo_handoff_submit
+      security:
+      - codestraOAuth:
+        - crm.handoff.write
+      x-codestra-implemented: false
+      x-codestra-effects: none
+      parameters:
+      - name: X-Tenant-ID
+        in: header
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 180
+          pattern: ^\S(?:.*\S)?$
+      - name: X-Correlation-ID
+        in: header
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 180
+          pattern: ^\S(?:.*\S)?$
+      - name: X-Causation-ID
+        in: header
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 180
+          pattern: ^\S(?:.*\S)?$
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 180
+          pattern: ^\S(?:.*\S)?$
+      description: Future durable command/outbox acceptance, atomically deduplicated
+        by tenant and natural key. Header/body identities must match. Currently disabled;
+        no 202 is emitted by this contract artifact.
+      responses:
+        '202':
+          description: Durably accepted, not completed (future runtime only)
+          headers:
+            X-Correlation-ID:
+              schema:
+                type: string
+                minLength: 1
+                maxLength: 180
+                pattern: ^\S(?:.*\S)?$
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Acceptance'
+        '400':
+          description: Metadata mismatch
+          headers:
+            X-Correlation-ID:
+              schema:
+                type: string
+                minLength: 1
+                maxLength: 180
+                pattern: ^\S(?:.*\S)?$
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Invalid authentication
+          headers:
+            X-Correlation-ID:
+              schema:
+                type: string
+                minLength: 1
+                maxLength: 180
+                pattern: ^\S(?:.*\S)?$
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Scope, tenant, or capability denied
+          headers:
+            X-Correlation-ID:
+              schema:
+                type: string
+                minLength: 1
+                maxLength: 180
+                pattern: ^\S(?:.*\S)?$
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Authorized resource not found
+          headers:
+            X-Correlation-ID:
+              schema:
+                type: string
+                minLength: 1
+                maxLength: 180
+                pattern: ^\S(?:.*\S)?$
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Idempotency conflict or stale version
+          headers:
+            X-Correlation-ID:
+              schema:
+                type: string
+                minLength: 1
+                maxLength: 180
+                pattern: ^\S(?:.*\S)?$
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Invalid contract
+          headers:
+            X-Correlation-ID:
+              schema:
+                type: string
+                minLength: 1
+                maxLength: 180
+                pattern: ^\S(?:.*\S)?$
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Rate limited; no implicit write retry
+          headers:
+            X-Correlation-ID:
+              schema:
+                type: string
+                minLength: 1
+                maxLength: 180
+                pattern: ^\S(?:.*\S)?$
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Contract only, policy missing, or dependency unverified
+          headers:
+            X-Correlation-ID:
+              schema:
+                type: string
+                minLength: 1
+                maxLength: 180
+                pattern: ^\S(?:.*\S)?$
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Command'
+  /platform/v1/crm/handoffs/{command_id}:
+    get:
+      operationId: mcr_odoo_handoff_read
+      security:
+      - codestraOAuth:
+        - crm.handoff.read
+      x-codestra-implemented: false
+      x-codestra-effects: none
+      parameters:
+      - name: X-Tenant-ID
+        in: header
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 180
+          pattern: ^\S(?:.*\S)?$
+      - name: X-Correlation-ID
+        in: header
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 180
+          pattern: ^\S(?:.*\S)?$
+      - name: X-Causation-ID
+        in: header
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 180
+          pattern: ^\S(?:.*\S)?$
+      - name: command_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      description: Tenant-authorized persisted read model; no provider request. Return
+        404 for unknown or other-tenant IDs without disclosing existence.
+      responses:
+        '200':
+          description: Authorized readback
+          headers:
+            X-Correlation-ID:
+              schema:
+                type: string
+                minLength: 1
+                maxLength: 180
+                pattern: ^\S(?:.*\S)?$
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Readback'
+        '400':
+          description: Metadata mismatch
+          headers:
+            X-Correlation-ID:
+              schema:
+                type: string
+                minLength: 1
+                maxLength: 180
+                pattern: ^\S(?:.*\S)?$
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Invalid authentication
+          headers:
+            X-Correlation-ID:
+              schema:
+                type: string
+                minLength: 1
+                maxLength: 180
+                pattern: ^\S(?:.*\S)?$
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Scope, tenant, or capability denied
+          headers:
+            X-Correlation-ID:
+              schema:
+                type: string
+                minLength: 1
+                maxLength: 180
+                pattern: ^\S(?:.*\S)?$
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Authorized resource not found
+          headers:
+            X-Correlation-ID:
+              schema:
+                type: string
+                minLength: 1
+                maxLength: 180
+                pattern: ^\S(?:.*\S)?$
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Idempotency conflict or stale version
+          headers:
+            X-Correlation-ID:
+              schema:
+                type: string
+                minLength: 1
+                maxLength: 180
+                pattern: ^\S(?:.*\S)?$
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Invalid contract
+          headers:
+            X-Correlation-ID:
+              schema:
+                type: string
+                minLength: 1
+                maxLength: 180
+                pattern: ^\S(?:.*\S)?$
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Rate limited; no implicit write retry
+          headers:
+            X-Correlation-ID:
+              schema:
+                type: string
+                minLength: 1
+                maxLength: 180
+                pattern: ^\S(?:.*\S)?$
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Contract only, policy missing, or dependency unverified
+          headers:
+            X-Correlation-ID:
+              schema:
+                type: string
+                minLength: 1
+                maxLength: 180
+                pattern: ^\S(?:.*\S)?$
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /platform/v1/crm/handoffs/{command_id}/reconcile:
+    post:
+      operationId: mcr_odoo_handoff_reconcile
+      security:
+      - codestraOAuth:
+        - crm.handoff.reconcile
+      x-codestra-implemented: false
+      x-codestra-effects: none
+      parameters:
+      - name: X-Tenant-ID
+        in: header
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 180
+          pattern: ^\S(?:.*\S)?$
+      - name: X-Correlation-ID
+        in: header
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 180
+          pattern: ^\S(?:.*\S)?$
+      - name: X-Causation-ID
+        in: header
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 180
+          pattern: ^\S(?:.*\S)?$
+      - name: command_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 180
+          pattern: ^\S(?:.*\S)?$
+      description: Future audited Middleware reconciliation command only. Does not
+        resend the handoff or create a new Odoo record. Idempotency-Key identifies
+        the reconciliation request. Currently disabled.
+      responses:
+        '200':
+          description: Authorized readback
+          headers:
+            X-Correlation-ID:
+              schema:
+                type: string
+                minLength: 1
+                maxLength: 180
+                pattern: ^\S(?:.*\S)?$
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Readback'
+        '400':
+          description: Metadata mismatch
+          headers:
+            X-Correlation-ID:
+              schema:
+                type: string
+                minLength: 1
+                maxLength: 180
+                pattern: ^\S(?:.*\S)?$
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Invalid authentication
+          headers:
+            X-Correlation-ID:
+              schema:
+                type: string
+                minLength: 1
+                maxLength: 180
+                pattern: ^\S(?:.*\S)?$
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Scope, tenant, or capability denied
+          headers:
+            X-Correlation-ID:
+              schema:
+                type: string
+                minLength: 1
+                maxLength: 180
+                pattern: ^\S(?:.*\S)?$
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Authorized resource not found
+          headers:
+            X-Correlation-ID:
+              schema:
+                type: string
+                minLength: 1
+                maxLength: 180
+                pattern: ^\S(?:.*\S)?$
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Idempotency conflict or stale version
+          headers:
+            X-Correlation-ID:
+              schema:
+                type: string
+                minLength: 1
+                maxLength: 180
+                pattern: ^\S(?:.*\S)?$
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Invalid contract
+          headers:
+            X-Correlation-ID:
+              schema:
+                type: string
+                minLength: 1
+                maxLength: 180
+                pattern: ^\S(?:.*\S)?$
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Rate limited; no implicit write retry
+          headers:
+            X-Correlation-ID:
+              schema:
+                type: string
+                minLength: 1
+                maxLength: 180
+                pattern: ^\S(?:.*\S)?$
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Contract only, policy missing, or dependency unverified
+          headers:
+            X-Correlation-ID:
+              schema:
+                type: string
+                minLength: 1
+                maxLength: 180
+                pattern: ^\S(?:.*\S)?$
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  securitySchemes:
+    codestraOAuth:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: https://auth.codestra.co/realms/codestra/protocol/openid-connect/token
+          scopes:
+            crm.handoff.write: submit
+            crm.handoff.read: read
+            crm.handoff.reconcile: reconcile
+  schemas:
+    Command:
+      $ref: odoo-handoff-command.v1.schema.json
+    Readback:
+      $ref: odoo-handoff-readback.v1.schema.json
+    Error:
+      type: object
+      additionalProperties: false
+      required:
+      - error
+      properties:
+        error:
+          type: object
+          additionalProperties: false
+          required:
+          - code
+          - message
+          - correlation_id
+          - retryable
+          - details
+          properties:
+            code:
+              type: string
+              minLength: 1
+              maxLength: 180
+              pattern: ^\S(?:.*\S)?$
+            message:
+              type: string
+              minLength: 1
+              maxLength: 500
+              pattern: ^\S(?:.*\S)?$
+            correlation_id:
+              type: string
+              minLength: 1
+              maxLength: 180
+              pattern: ^\S(?:.*\S)?$
+            retryable:
+              const: false
+            details:
+              type: object
+              maxProperties: 0
+    Acceptance:
+      type: object
+      additionalProperties: false
+      required:
+      - command_id
+      - correlation_id
+      - status
+      - duplicate
+      - crm_completed
+      properties:
+        command_id:
+          type: string
+          format: uuid
+        correlation_id:
+          type: string
+          minLength: 1
+          maxLength: 180
+          pattern: ^\S(?:.*\S)?$
+        status:
+          const: accepted
+        duplicate:
+          type: boolean
+        crm_completed:
+          const: false
