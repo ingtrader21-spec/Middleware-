@@ -317,7 +317,7 @@ jobs:
 
   runtime-integration:
     name: Disposable PostgreSQL Redis integration
-    runs-on: [self-hosted, Linux, X64, middleware-ci]
+    runs-on: [self-hosted, Linux, X64, middleware-db]
     timeout-minutes: 15
 
     services:
@@ -407,7 +407,7 @@ jobs:
 
   synthetic-acceptance-e2e:
     name: Synthetic no-effect acceptance E2E
-    runs-on: [self-hosted, Linux, X64, middleware-ci]
+    runs-on: [self-hosted, Linux, X64, middleware-db]
     timeout-minutes: 20
 
     services:

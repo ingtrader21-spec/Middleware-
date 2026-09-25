@@ -26,7 +26,7 @@ env:
 jobs:
   test:
     name: Test exact repository SHA
-    runs-on: [self-hosted, Linux, X64, middleware-ci]
+    runs-on: [self-hosted, Linux, X64, middleware-db]
     timeout-minutes: 30
     services:
       postgres:
