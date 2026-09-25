@@ -605,7 +605,6 @@ async def list_connectors(request: Request) -> JSONResponse:
     )
 
 
-@router.get("/adapters/{connector_id}", include_in_schema=False)
 @router.get("/connectors/{connector_id}")
 async def get_connector(connector_id: str, request: Request) -> JSONResponse:
     await authenticate(request, required_scope=SCOPE_COMMAND_READ)
@@ -635,6 +634,35 @@ async def get_connector(connector_id: str, request: Request) -> JSONResponse:
     return JSONResponse(
         status_code=404,
         content={"error": {"code": code}, "message": "connector is not registered"},
+    )
+
+
+@router.get("/adapters/{adapter_id}", include_in_schema=False)
+async def get_adapter(adapter_id: str, request: Request) -> JSONResponse:
+    await authenticate(request, required_scope=SCOPE_COMMAND_READ)
+    if re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", adapter_id) is None:
+        raise RequestValidationError("adapter_id is malformed")
+    _, platform = _runtime(request)
+    evidence = await platform.adapter_readback()
+    for row in evidence["adapters"]:
+        if adapter_id != row.get("adapter_id"):
+            continue
+        names = tuple(row.get("capabilities") or ())
+        return JSONResponse(
+            status_code=200,
+            content={
+                "adapter": row,
+                "capabilities": {
+                    name: evidence["capabilities"][name]
+                    for name in names
+                    if name in evidence["capabilities"]
+                },
+                "provider_effects_enabled": evidence["provider_effects_enabled"],
+            },
+        )
+    return JSONResponse(
+        status_code=404,
+        content={"error": {"code": "adapter_not_found"}, "message": "adapter is not registered"},
     )
 
 
