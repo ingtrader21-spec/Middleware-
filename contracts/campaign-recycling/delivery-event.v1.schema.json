@@ -581,6 +581,82 @@
           }
         }
       }
+    },
+    {
+      "if": {
+        "properties": {
+          "source": {
+            "const": "vicidial"
+          }
+        },
+        "required": [
+          "source"
+        ]
+      },
+      "then": {
+        "properties": {
+          "channel": {
+            "const": "voice"
+          },
+          "event_type": {
+            "enum": [
+              "accepted",
+              "queued",
+              "dispatched",
+              "delivered",
+              "deferred",
+              "reply"
+            ]
+          },
+          "origin": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "source": {
+            "const": "odoo"
+          }
+        },
+        "required": [
+          "source"
+        ]
+      },
+      "then": {
+        "properties": {
+          "event_type": {
+            "const": "conversion"
+          },
+          "origin": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "source": {
+            "const": "middleware"
+          }
+        },
+        "required": [
+          "source"
+        ]
+      },
+      "then": {
+        "properties": {
+          "event_type": {
+            "const": "conversion"
+          },
+          "origin": {
+            "type": "null"
+          }
+        }
+      }
     }
   ]
 }
