@@ -369,6 +369,7 @@ def _response_headers(
     *,
     correlation_id: str,
     command_id: UUID | None = None,
+    operation_correlation_id: str | None = None,
     location: str | None = None,
 ) -> dict[str, str]:
     headers = {
@@ -376,6 +377,8 @@ def _response_headers(
         "Cache-Control": "no-store",
         "X-Content-Type-Options": "nosniff",
     }
+    if operation_correlation_id is not None:
+        headers["X-Operation-Correlation-ID"] = operation_correlation_id
     if command_id is not None:
         headers["X-Command-ID"] = str(command_id)
     if location:
@@ -388,6 +391,7 @@ def _respond(
     *,
     correlation_id: str,
     command_id: UUID | None = None,
+    operation_correlation_id: str | None = None,
     location: str | None = None,
 ) -> JSONResponse:
     return JSONResponse(
@@ -396,6 +400,7 @@ def _respond(
         headers=_response_headers(
             correlation_id=correlation_id,
             command_id=command_id,
+            operation_correlation_id=operation_correlation_id,
             location=location,
         ),
     )
@@ -467,6 +472,7 @@ async def submit_command(body: KernelCommandRequest, request: Request) -> JSONRe
         accepted,
         correlation_id=operation.correlation_id,
         command_id=operation.command_id,
+        operation_correlation_id=operation.correlation_id,
         location=f"/platform/v1/operations/{operation.command_id}",
     )
 
@@ -482,8 +488,9 @@ async def get_operation(operation_id: UUID, request: Request) -> JSONResponse:
     return _respond(
         200,
         _status(operation),
-        correlation_id=operation.correlation_id,
+        correlation_id=_request_correlation(request),
         command_id=operation.command_id,
+        operation_correlation_id=operation.correlation_id,
     )
 
 # ----------------------------------------------------------------------
@@ -499,8 +506,9 @@ async def get_timeline(operation_id: UUID, request: Request) -> JSONResponse:
     return _respond(
         200,
         Timeline(operation_id=operation_id, items=_timeline(operation, events)),
-        correlation_id=operation.correlation_id,
+        correlation_id=_request_correlation(request),
         command_id=operation.command_id,
+        operation_correlation_id=operation.correlation_id,
     )
 
 # ----------------------------------------------------------------------
@@ -530,8 +538,9 @@ async def cancel_operation(operation_id: UUID, body: CancelRequest, request: Req
     return _respond(
         200,
         _status(operation),
-        correlation_id=operation.correlation_id,
+        correlation_id=correlation_id,
         command_id=operation.command_id,
+        operation_correlation_id=operation.correlation_id,
     )
 
 # ----------------------------------------------------------------------
@@ -563,8 +572,9 @@ async def replay_operation(operation_id: UUID, body: ReplayRequest, request: Req
     return _respond(
         202,
         _status(operation),
-        correlation_id=operation.correlation_id,
+        correlation_id=correlation_id,
         command_id=operation.command_id,
+        operation_correlation_id=operation.correlation_id,
         location=f"/platform/v1/operations/{operation.command_id}",
     )
 
