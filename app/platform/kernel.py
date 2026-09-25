@@ -242,6 +242,11 @@ class CommandKernel:
         trace: Mapping[str, str] | None = None,
         required_scope: str | None = None,
     ) -> SubmitResult:
+        from app.identity_missions import authorize_mission
+
+        if not authorize_mission(command.command_type, principal.scopes):
+            await self._deny("policy_deny", command, principal, reason_code="mission_scope_missing", decision_id=str(uuid4()), version="identity-missions.v1")
+            raise PolicyDenied("policy denied: mission_scope_missing")
         started = time.perf_counter()
         family = _family(command.command_type)
         self.metrics.commands_received.labels(command_family=family).inc()

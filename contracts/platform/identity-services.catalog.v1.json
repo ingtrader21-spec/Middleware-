@@ -75,5 +75,714 @@
       "slo_profile": "internal-service",
       "alert_profile": "internal-service"
     }
-  ]
+  ],
+  "readback_contracts": {
+    "backup-catalog": {
+      "service_id": "postgresql",
+      "method": "GET",
+      "path": "/internal/v1/observability/backup-catalog",
+      "scope": "connector.postgresql.read",
+      "state": "PROPOSED_NOT_IMPLEMENTED",
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tenant_id",
+          "database_ref",
+          "observed_at",
+          "status",
+          "evidence_refs",
+          "checks"
+        ],
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "database_ref": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "maxLength": 40
+          },
+          "status": {
+            "enum": [
+              "ready",
+              "not_ready",
+              "unknown"
+            ]
+          },
+          "evidence_refs": {
+            "type": "array",
+            "maxItems": 100,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          },
+          "checks": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "catalog_available",
+              "encrypted",
+              "offsite_verified"
+            ],
+            "properties": {
+              "catalog_available": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "encrypted": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "offsite_verified": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "status": {
+                  "const": "ready"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "checks": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "catalog_available",
+                    "encrypted",
+                    "offsite_verified"
+                  ],
+                  "properties": {
+                    "catalog_available": {
+                      "const": true
+                    },
+                    "encrypted": {
+                      "const": true
+                    },
+                    "offsite_verified": {
+                      "const": true
+                    }
+                  }
+                },
+                "evidence_refs": {
+                  "minItems": 1
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "restore-rehearsal": {
+      "service_id": "postgresql",
+      "method": "GET",
+      "path": "/internal/v1/observability/restore-rehearsal",
+      "scope": "connector.postgresql.read",
+      "state": "PROPOSED_NOT_IMPLEMENTED",
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tenant_id",
+          "database_ref",
+          "observed_at",
+          "status",
+          "evidence_refs",
+          "checks"
+        ],
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "database_ref": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "maxLength": 40
+          },
+          "status": {
+            "enum": [
+              "ready",
+              "not_ready",
+              "unknown"
+            ]
+          },
+          "evidence_refs": {
+            "type": "array",
+            "maxItems": 100,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          },
+          "checks": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "isolated_target",
+              "restore_verified",
+              "application_verified"
+            ],
+            "properties": {
+              "isolated_target": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "restore_verified": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "application_verified": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "status": {
+                  "const": "ready"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "checks": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "isolated_target",
+                    "restore_verified",
+                    "application_verified"
+                  ],
+                  "properties": {
+                    "isolated_target": {
+                      "const": true
+                    },
+                    "restore_verified": {
+                      "const": true
+                    },
+                    "application_verified": {
+                      "const": true
+                    }
+                  }
+                },
+                "evidence_refs": {
+                  "minItems": 1
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "tls-security": {
+      "service_id": "postgresql",
+      "method": "GET",
+      "path": "/internal/v1/observability/tls-security",
+      "scope": "connector.postgresql.read",
+      "state": "PROPOSED_NOT_IMPLEMENTED",
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tenant_id",
+          "database_ref",
+          "observed_at",
+          "status",
+          "evidence_refs",
+          "checks"
+        ],
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "database_ref": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "maxLength": 40
+          },
+          "status": {
+            "enum": [
+              "ready",
+              "not_ready",
+              "unknown"
+            ]
+          },
+          "evidence_refs": {
+            "type": "array",
+            "maxItems": 100,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          },
+          "checks": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "tls_required",
+              "certificate_valid",
+              "least_privilege_verified"
+            ],
+            "properties": {
+              "tls_required": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "certificate_valid": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "least_privilege_verified": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "status": {
+                  "const": "ready"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "checks": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "tls_required",
+                    "certificate_valid",
+                    "least_privilege_verified"
+                  ],
+                  "properties": {
+                    "tls_required": {
+                      "const": true
+                    },
+                    "certificate_valid": {
+                      "const": true
+                    },
+                    "least_privilege_verified": {
+                      "const": true
+                    }
+                  }
+                },
+                "evidence_refs": {
+                  "minItems": 1
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "replication-recovery": {
+      "service_id": "postgresql",
+      "method": "GET",
+      "path": "/internal/v1/observability/replication-recovery",
+      "scope": "connector.postgresql.read",
+      "state": "PROPOSED_NOT_IMPLEMENTED",
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tenant_id",
+          "database_ref",
+          "observed_at",
+          "status",
+          "evidence_refs",
+          "checks"
+        ],
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "database_ref": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "maxLength": 40
+          },
+          "status": {
+            "enum": [
+              "ready",
+              "not_ready",
+              "unknown"
+            ]
+          },
+          "evidence_refs": {
+            "type": "array",
+            "maxItems": 100,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          },
+          "checks": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "replication_healthy",
+              "recovery_tested",
+              "rpo_met",
+              "rto_met"
+            ],
+            "properties": {
+              "replication_healthy": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "recovery_tested": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "rpo_met": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "rto_met": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "status": {
+                  "const": "ready"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "checks": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "replication_healthy",
+                    "recovery_tested",
+                    "rpo_met",
+                    "rto_met"
+                  ],
+                  "properties": {
+                    "replication_healthy": {
+                      "const": true
+                    },
+                    "recovery_tested": {
+                      "const": true
+                    },
+                    "rpo_met": {
+                      "const": true
+                    },
+                    "rto_met": {
+                      "const": true
+                    }
+                  }
+                },
+                "evidence_refs": {
+                  "minItems": 1
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "source_reconciliation": {
+    "face-id": {
+      "repository": "ingtrader21-spec/FACE-ID",
+      "revision": "da213fdbdc301f6892bb276e9b715b4875d17d5a",
+      "branch": "mission/face-id-middleware-integration-20260924",
+      "readiness_path": "/health/ready",
+      "readiness_implemented": true,
+      "private_command_protocol_implemented": false,
+      "live_verified": false,
+      "implemented_routes": [
+        "/v1/zones",
+        "/v1/access-policies",
+        "/v1/visitor-passes",
+        "/v1/alert-rules",
+        "/v1/incidents",
+        "/v1/retention-policies",
+        "/v1/subjects/{subject_id}/labels",
+        "/v1/privacy/subjects/{subject_id}/export",
+        "/v1/privacy/subjects/{subject_id}",
+        "/v1/integrations/status"
+      ],
+      "missions_21_25": {
+        "21": {
+          "routes": {
+            "/v1/access/evaluate": [
+              "POST"
+            ]
+          },
+          "middleware_command": "face-id.access.evaluate.v1",
+          "field_mapping": {
+            "zone_ref": "zone_id",
+            "visitor_pass_ref": "visitor_pass_id",
+            "subject_ref": "subject_ref",
+            "occurred_at": "occurred_at"
+          },
+          "decision_only": true
+        },
+        "22": {
+          "routes": {
+            "/v1/presence/events": [
+              "POST"
+            ],
+            "/v1/presence/current": [
+              "GET"
+            ],
+            "/v1/presence/history": [
+              "GET"
+            ]
+          },
+          "middleware_commands": [
+            "face-id.presence.enter.v1",
+            "face-id.presence.exit.v1"
+          ],
+          "field_mapping": {
+            "camera_ref": "camera_id",
+            "zone_ref": "zone_id",
+            "subject_ref": "subject_ref",
+            "event_ref": "event_ref"
+          },
+          "direction_source": "command_type",
+          "idempotency_gap": "service event_ref deduplication is not tenant scoped"
+        },
+        "23": {
+          "routes": {
+            "/v1/unknown-clusters": [
+              "GET",
+              "POST"
+            ],
+            "/v1/unknown-clusters/{cluster_id}": [
+              "GET",
+              "PATCH"
+            ],
+            "/v1/unknown-clusters/{cluster_id}/events": [
+              "POST"
+            ],
+            "/v1/unknown-clusters/{cluster_id}/events/{event_id}": [
+              "DELETE"
+            ]
+          },
+          "middleware_activation": "NONE",
+          "identity_asserted": false
+        },
+        "24": {
+          "routes": {
+            "/v1/camera-zones": [
+              "GET",
+              "POST"
+            ],
+            "/v1/camera-zones/{mapping_id}": [
+              "PATCH",
+              "DELETE"
+            ]
+          },
+          "middleware_activation": "NONE",
+          "purpose": "metadata only; not PTZ"
+        },
+        "25": {
+          "routes": {
+            "/v1/review-queues": [
+              "GET",
+              "POST"
+            ],
+            "/v1/review-queues/{queue_id}": [
+              "GET",
+              "PATCH",
+              "DELETE"
+            ],
+            "/v1/review-queues/{queue_id}/items": [
+              "GET",
+              "POST"
+            ],
+            "/v1/review-queues/{queue_id}/items/{item_id}": [
+              "GET",
+              "PATCH"
+            ]
+          },
+          "middleware_activation": "NONE",
+          "assignee_ref": "opaque Keycloak reference; not authority"
+        }
+      },
+      "compatibility_gaps": [
+        "tenant-scoped authorization and data partitioning",
+        "workload JWT validation",
+        "canonical idempotent command envelope",
+        "command-id status/readback",
+        "normalized reference-only decision result"
+      ]
+    },
+    "face-liveness": {
+      "repository": "ingtrader21-spec/Codestra-Face-Liveness",
+      "revision": "e664aa4fe1153d59dd7a468b768e7bd0d10b92f8",
+      "branch": "mission/face-id-middleware-integration-20260924",
+      "readiness_path": "/health/ready",
+      "readiness_implemented": true,
+      "private_command_protocol_implemented": false,
+      "live_verified": false,
+      "compatibility_gaps": [
+        "tenant-bound workload authorization",
+        "private canonical command/readback protocol"
+      ]
+    },
+    "camera-gateway": {
+      "repository": "ingtrader21-spec/Codestra-Camera-Gateway",
+      "revision": "0dfa3c0c31c213a5d9518d0cbdc24eb11513455d",
+      "branch": "mission/face-id-middleware-integration-20260924",
+      "readiness_path": "/health/ready",
+      "readiness_implemented": true,
+      "private_command_protocol_implemented": false,
+      "live_verified": false,
+      "compatibility_gaps": [
+        "tenant-bound workload authorization",
+        "private canonical command/readback protocol",
+        "command_ref reservations do not provide canonical command-id readback",
+        "native completion acknowledges Stop, not verified physical stopped state",
+        "finally-block stop does not provide process-death or network-loss watchdog guarantee"
+      ],
+      "ptz_implemented": true,
+      "implemented_routes": {
+        "/v1/cameras/{camera_id}/ptz": [
+          "GET"
+        ],
+        "/v1/internal/cameras/{camera_id}/ptz/commands": [
+          "POST"
+        ]
+      },
+      "ptz_field_mapping": {
+        "camera_ref": "camera_id path parameter",
+        "command_id": "command_ref",
+        "move": "action=absolute",
+        "stop": "action=stop",
+        "duration_ms": "timeout_s=duration_ms/1000",
+        "pan": "pan [-1,1]",
+        "tilt": "tilt [-1,1]",
+        "zoom": "zoom [0,1]"
+      }
+    },
+    "postgresql": {
+      "repository": "ingtrader21-spec/Codestra-PostgreSQL",
+      "revision": "172b65f47820d5623e327bc35c3aa4a75098e624",
+      "branch": "mission/face-id-middleware-integration-20260924",
+      "readiness_path": "/health/ready",
+      "readiness_implemented": true,
+      "private_command_protocol_implemented": false,
+      "live_verified": false,
+      "implemented_routes": {
+        "/v1/postgresql/status": [
+          "GET"
+        ],
+        "/v1/capabilities": [
+          "GET"
+        ],
+        "/v1/backups": [
+          "GET"
+        ],
+        "/v1/backups/{backup_id}": [
+          "GET"
+        ],
+        "/v1/rehearsals": [
+          "GET"
+        ],
+        "/v1/rehearsals/{rehearsal_id}": [
+          "GET"
+        ],
+        "/v1/postgresql/connections": [
+          "GET"
+        ],
+        "/v1/postgresql/security": [
+          "GET"
+        ],
+        "/v1/postgresql/recovery": [
+          "GET"
+        ]
+      },
+      "compatibility_gaps": [
+        "tenant-bound workload authorization",
+        "private canonical command/readback protocol",
+        "native instance-wide metadata has no canonical tenant/database-ref binding; requires governed sanitized projection"
+      ],
+      "observability_projections_implemented": false,
+      "native_observability_implemented": true,
+      "native_projection_mapping": {
+        "backup-catalog": "/v1/backups",
+        "restore-rehearsal": "/v1/rehearsals",
+        "tls-security": "/v1/postgresql/security",
+        "replication-recovery": "/v1/postgresql/recovery"
+      }
+    }
+  }
 }

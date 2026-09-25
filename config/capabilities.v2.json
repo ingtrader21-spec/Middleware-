@@ -23,7 +23,10 @@
     "FACE_ID_VERIFY": false,
     "FACE_LIVENESS_VERIFY": false,
     "CAMERA_CAPTURE": false,
-    "POSTGRESQL_BACKUP": false
+    "POSTGRESQL_BACKUP": false,
+    "FACE_ID_ACCESS_EVALUATE": false,
+    "CAMERA_PTZ": false,
+    "FACE_ID_PRESENCE_EVENT": false
   },
   "activation_requirements": [
     "protected_merged_sha",

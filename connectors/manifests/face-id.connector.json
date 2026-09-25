@@ -28,8 +28,34 @@
   },
   "commands": [
     {
-      "prefix": "face-id.",
+      "prefix": "face-id.verify.",
       "required_capability": "FACE_ID_VERIFY",
+      "timeout_seconds": 30,
+      "readback_required": true,
+      "retry_policy": {
+        "maximum_attempts": 5,
+        "initial_backoff_seconds": 2,
+        "maximum_backoff_seconds": 120,
+        "jitter_ratio": 0.2,
+        "unknown_outcome_requires_readback": true
+      }
+    },
+    {
+      "prefix": "face-id.access.",
+      "required_capability": "FACE_ID_ACCESS_EVALUATE",
+      "timeout_seconds": 30,
+      "readback_required": true,
+      "retry_policy": {
+        "maximum_attempts": 5,
+        "initial_backoff_seconds": 2,
+        "maximum_backoff_seconds": 120,
+        "jitter_ratio": 0.2,
+        "unknown_outcome_requires_readback": true
+      }
+    },
+    {
+      "prefix": "face-id.presence.",
+      "required_capability": "FACE_ID_PRESENCE_EVENT",
       "timeout_seconds": 30,
       "readback_required": true,
       "retry_policy": {
@@ -58,12 +84,19 @@
     "stream_url"
   ],
   "workflow_families": [
-    "face-id.verify"
+    "face-id.verify",
+    "face-id.access",
+    "face-id.presence"
   ],
   "metadata": {
     "source_only": true,
     "runtime_activation_authorized": false,
     "owner": "face-id",
-    "internal_api_contract": "contracts/platform/identity-services-adapter.v1.openapi.json"
+    "internal_api_contract": "contracts/platform/identity-services-adapter.v1.openapi.json",
+    "operation_id_binding": "canonical Middleware command_id, not provider operation handle",
+    "source_revision": "da213fdbdc301f6892bb276e9b715b4875d17d5a",
+    "readiness_source_verified": true,
+    "live_endpoint_verified": false,
+    "service_catalog": "contracts/platform/identity-services.catalog.v1.json"
   }
 }

@@ -39,7 +39,8 @@
       "cell": "core-communications",
       "repository": "ingtrader21-spec/Codestra-Camera-Gateway",
       "command_prefixes": [
-        "camera-gateway."
+        "camera-gateway.capture.",
+        "camera-gateway.ptz."
       ],
       "direct_n8n": false
     },
@@ -48,7 +49,9 @@
       "cell": "core-communications",
       "repository": "ingtrader21-spec/FACE-ID",
       "command_prefixes": [
-        "face-id."
+        "face-id.verify.",
+        "face-id.access.",
+        "face-id.presence."
       ],
       "direct_n8n": false
     },

@@ -67,7 +67,7 @@ class ObservabilityAlertContractValidationTests(unittest.TestCase):
             validator.validate(self.contract_root)
 
     def test_current_contract_passes(self) -> None:
-        self.assertEqual(validator.validate(ROOT), (21, 22))
+        self.assertEqual(validator.validate(ROOT), (21, 25))
 
     def test_duplicate_json_key_fails_closed(self) -> None:
         path = self.contract_root / "config/observability-alert-policy.v1.json"

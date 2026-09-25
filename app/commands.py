@@ -140,6 +140,9 @@ class CommandEnvelope(BaseModel):
         from app.identity_service_contract import validate_service_command
 
         validate_service_command(self.command_type, self.target, self.capability, self.payload)
+        from app.identity_missions import validate_event_idempotency
+
+        validate_event_idempotency(self.command_type, self.payload, self.idempotency_key)
         validate_contract("command", self.model_dump(mode="json"))
         return self
 

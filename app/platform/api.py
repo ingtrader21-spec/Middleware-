@@ -72,12 +72,15 @@ class KernelCommandRequest(BaseModel):
         from app.identity_service_contract import SERVICE_COMMANDS, validate_service_command
 
         family = self.command_type.split(".", 1)[0]
-        binding = SERVICE_COMMANDS.get(family)
+        from app.identity_missions import MISSION_COMMANDS, validate_event_idempotency
+
+        binding = MISSION_COMMANDS.get(self.command_type) or SERVICE_COMMANDS.get(family)
         if binding is not None or self.target in SERVICE_COMMANDS:
             validate_service_command(
                 self.command_type, self.target or family,
                 self.capability or (binding[0] if binding else ""), self.payload,
             )
+        validate_event_idempotency(self.command_type, self.payload, self.idempotency_key)
         return self
 
     def envelope(self, *, target: str, capability: str) -> CommandEnvelope:

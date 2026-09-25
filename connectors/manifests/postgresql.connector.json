@@ -64,6 +64,10 @@
     "source_only": true,
     "runtime_activation_authorized": false,
     "owner": "postgresql",
-    "internal_api_contract": "contracts/platform/identity-services-adapter.v1.openapi.json"
+    "internal_api_contract": "contracts/platform/identity-services-adapter.v1.openapi.json",
+    "source_revision": "172b65f47820d5623e327bc35c3aa4a75098e624",
+    "readiness_source_verified": true,
+    "live_endpoint_verified": false,
+    "service_catalog": "contracts/platform/identity-services.catalog.v1.json"
   }
 }
