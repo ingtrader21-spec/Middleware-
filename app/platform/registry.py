@@ -67,6 +67,14 @@ class AdapterRegistry:
             raise AdapterRegistryError(f"duplicate adapter id {adapter.adapter_id!r}")
         if not advertised.connector_ids:
             raise AdapterRegistryError(f"adapter {adapter.adapter_id!r} owns no connector id")
+        # Resolve ownership before capability diagnostics.  An adapter that has
+        # no target in the command registry is unowned regardless of what it
+        # advertises, which keeps the registration failure deterministic.
+        matching_targets = [policy for policy in self.policies.policies if policy.target in advertised.connector_ids]
+        if not matching_targets:
+            raise AdapterRegistryError(
+                f"adapter {adapter.adapter_id!r} owns no command prefix of the command registry"
+            )
         unknown = sorted(name for name in advertised.capabilities if name not in self.policies.capabilities)
         if unknown:
             raise AdapterRegistryError(
