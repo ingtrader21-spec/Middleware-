@@ -36,6 +36,7 @@ def _claims(**overrides):
         "environment": "production",
         "scope": "email.send",
         "tenant_id": "tenant-review",
+        "jti": "email-token-review-1",
         "iat": now,
         "exp": now + 120,
     }
@@ -56,7 +57,7 @@ def test_email_validator_accepts_bounded_machine_token(monkeypatch):
     assert principal.tenant_id == "tenant-review"
 
 
-@pytest.mark.parametrize("missing", ["exp", "iat"])
+@pytest.mark.parametrize("missing", ["exp", "iat", "jti"])
 def test_email_validator_requires_machine_timestamps(monkeypatch, missing):
     private = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     claims = _claims()
@@ -105,4 +106,28 @@ def test_email_validator_rejects_non_string_scope(monkeypatch):
     with pytest.raises(AuthorizationError, match="invalid_scope"):
         _validator(monkeypatch, private).validate(
             _token(private, _claims(scope=["email.send"])), "email.send"
+        )
+
+
+@pytest.mark.parametrize("jti", [None, "", "   ", ["token-id"]])
+def test_email_validator_rejects_malformed_jti(monkeypatch, jti):
+    private = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    with pytest.raises(AuthorizationError, match="invalid_token_id|invalid_token"):
+        _validator(monkeypatch, private).validate(
+            _token(private, _claims(jti=jti)), "email.send"
+        )
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"iat": 10**1000, "exp": 10**1000 + 120},
+        {"iat": -(10**1000), "exp": -(10**1000) + 120},
+    ],
+)
+def test_email_validator_rejects_oversized_machine_timestamps(monkeypatch, overrides):
+    private = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    with pytest.raises(AuthorizationError, match="invalid_token_lifetime|invalid_token"):
+        _validator(monkeypatch, private).validate(
+            _token(private, _claims(**overrides)), "email.send"
         )
