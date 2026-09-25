@@ -88,6 +88,10 @@ EXPECTED_ROUTER_REGISTRY_MODULE = "router_registry"
 EXPECTED_REGISTRY_ROUTERS = {
     "internal_ai_jobs_router": ("api.internal.ai_jobs", "router"),
     "internal_database_router": ("api.internal.database", "router"),
+    "internal_release_certification_router": (
+        "api.internal.release_certification",
+        "router",
+    ),
     "klyrow_events_router": ("api.internal.klyrow_events", "router"),
     "klyrow_mail_router": ("api.internal.klyrow_mail", "router"),
     "telnexa_events_router": ("api.internal.telnexa_events", "router"),

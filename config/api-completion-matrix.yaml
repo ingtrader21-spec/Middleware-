@@ -603,6 +603,54 @@ operations:
   canonical_operation_id: status_internal_v1_database_status_get
   implementation_file: registered FastAPI runtime
   runtime_state: IMPLEMENTED
+- domain: release
+  method: GET
+  path: /internal/v1/release/backups/latest
+  canonical_operation_id: latest_backup_internal_v1_release_backups_latest_get
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: release
+  method: GET
+  path: /internal/v1/release/candidate
+  canonical_operation_id: release_candidate_internal_v1_release_candidate_get
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: release
+  method: GET
+  path: /internal/v1/release/certification
+  canonical_operation_id: certification_status_internal_v1_release_certification_get
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: release
+  method: POST
+  path: /internal/v1/release/certification/evaluate
+  canonical_operation_id: evaluate_bundle_internal_v1_release_certification_evaluate_post
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: release
+  method: GET
+  path: /internal/v1/release/lock
+  canonical_operation_id: release_lock_internal_v1_release_lock_get
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: release
+  method: GET
+  path: /internal/v1/release/restore-rehearsals/latest
+  canonical_operation_id: latest_restore_rehearsal_internal_v1_release_restore_rehearsals_latest_get
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: release
+  method: GET
+  path: /internal/v1/release/rollback/readiness
+  canonical_operation_id: rollback_readiness_internal_v1_release_rollback_readiness_get
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: release
+  method: GET
+  path: /internal/v1/release/seal
+  canonical_operation_id: release_seal_internal_v1_release_seal_get
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
 - domain: metrics
   method: GET
   path: /metrics

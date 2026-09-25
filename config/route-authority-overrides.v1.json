@@ -1,1 +1,1 @@
-{"schema": "codestra.middleware.route-authority-overrides.v1", "routes": {}}
+{"schema": "codestra.middleware.route-authority-overrides.v1", "routes": {"POST /internal/v1/release/certification/evaluate": {"classification": "READ_ONLY", "effectful": false, "scope": "platform.release.verify", "justification": "stateless certification evaluation of a submitted evidence bundle; persists nothing, deploys/signs/restores/rolls back nothing, no provider transport"}}}
