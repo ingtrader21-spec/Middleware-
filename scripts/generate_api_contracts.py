@@ -204,7 +204,7 @@ def build_documents() -> tuple[dict[str, Any], dict[str, Any]]:
                 continue
             if path in SPECIALIZED_INGRESS_PATHS:
                 operation["security"] = [{SPECIALIZED_INGRESS_SECURITY[path]: []}]
-            elif path not in PUBLIC_PATHS:
+            elif path not in PUBLIC_PATHS and not path.startswith("/platform/v1/leads/"):
                 operation["security"] = [{"bearerAuth": []}]
             if _governed_api_path(path):
                 parameters = operation.setdefault("parameters", [])

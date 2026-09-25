@@ -30,6 +30,7 @@ from enum import Enum
 from fastapi import Depends, FastAPI
 
 from app import appolon_routes
+from app.api.v1.leads_journey import install_leads_openapi, router as leads_journey_router
 from app.api_inputs import restrict_sms_identity
 from app.core.bootstrap import (
     SERVICE_CANONICAL_API,
@@ -139,11 +140,11 @@ def create_app(
     # deprecated n8n aliases are the same handlers under their legacy paths.
     # The kernel router verifies the Keycloak JWT as the first statement of
     # every handler, on every profile.
-    handler_authenticated: tuple = (platform_kernel_router,)
+    handler_authenticated: tuple = (platform_kernel_router, leads_journey_router)
     if profile in {AppProfile.CONTROL_PLANE, AppProfile.MONOLITH}:
-        handler_authenticated = (platform_kernel_router,) + APPOLON_ROUTERS
+        handler_authenticated = (platform_kernel_router, leads_journey_router) + APPOLON_ROUTERS
     if profile is AppProfile.MONOLITH:
-        handler_authenticated = (platform_kernel_router,) + APPOLON_ROUTERS + LEGACY_MONOLITH_ONLY_ROUTERS
+        handler_authenticated = (platform_kernel_router, leads_journey_router) + APPOLON_ROUTERS + LEGACY_MONOLITH_ONLY_ROUTERS
     install_request_guard(
         app,
         RequestGuard(
@@ -168,4 +169,5 @@ def create_app(
     appolon_routes.install_error_handlers(app)
     assert_unique_routes(app)
     appolon_routes.install_canonical_openapi(app)
+    install_leads_openapi(app)
     return app

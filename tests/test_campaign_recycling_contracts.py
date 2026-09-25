@@ -518,12 +518,11 @@ def test_lifecycle_and_health_enums_match_across_artifacts(
     assert channels == artifacts["policy"]["channels"] == mcr.DESIRED_CHANNELS
     assert set(mcr.communications_channels()) < set(channels)
     assert "whatsapp" in channels
-    journey = artifacts["openapi"]["components"]["schemas"]["JourneyResponse"][
-        "properties"
-    ]
+    assert artifacts["openapi"]["components"]["schemas"]["JourneyResponse"]["$ref"] == "./journey-response.v1.schema.json"
+    journey = json.loads((ROOT / "contracts/campaign-recycling/journey-response.v1.schema.json").read_text())["properties"]
     assert (
         journey["lifecycle_state"]["$ref"]
-        == "./lifecycle.v1.schema.json#/$defs/LifecycleState"
+        == "lifecycle.v1.schema.json#/$defs/LifecycleState"
     )
     broken = _fresh(artifacts)
     broken["channel_health"]["$defs"]["ChannelHealthState"]["enum"].append("bouncing")

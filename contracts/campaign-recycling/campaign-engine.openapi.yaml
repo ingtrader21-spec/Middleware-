@@ -126,7 +126,9 @@ paths:
         - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/LeadId'
         - $ref: '#/components/parameters/Cursor'
-        - $ref: '#/components/parameters/Limit'
+        - name: limit
+          in: query
+          schema: {type: integer, minimum: 1, maximum: 200, default: 100}
       responses:
         '200':
           description: Journey page
@@ -692,34 +694,7 @@ components:
               reason_codes:
                 $ref: './next-action.v1.schema.json#/$defs/ReasonCodes'
     JourneyResponse:
-      type: object
-      additionalProperties: false
-      required: [schema_version, lead_id, lifecycle_state, lifecycle_version, transitions, channel_health, exposures, next_cursor]
-      properties:
-        schema_version:
-          const: '1.0'
-        lead_id:
-          $ref: './lifecycle.v1.schema.json#/$defs/LeadId'
-        lifecycle_state:
-          $ref: './lifecycle.v1.schema.json#/$defs/LifecycleState'
-        lifecycle_version:
-          type: integer
-          minimum: 1
-        transitions:
-          type: array
-          items:
-            $ref: './lifecycle.v1.schema.json'
-        channel_health:
-          type: array
-          items:
-            $ref: './channel-health.v1.schema.json'
-        exposures:
-          type: array
-          items:
-            $ref: './exposure-ledger.v1.schema.json'
-        next_cursor:
-          type: [string, 'null']
-          maxLength: 500
+      $ref: './journey-response.v1.schema.json'
     EligibleLeadsPage:
       type: object
       additionalProperties: false

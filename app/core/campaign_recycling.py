@@ -1458,10 +1458,21 @@ class PostgresCampaignRecyclingStore:
         tenant_id: str,
         lead_id: str,
         limit: int = 100,
+        cursor: str | None = None,
     ) -> dict[str, Any]:
         if limit < 1 or limit > 200:
             raise CampaignRecyclingConflict("journey limit must be between 1 and 200")
-        async with self.pool.acquire() as conn:
+        from app.core.journey_cursor import decode_cursor, encode_cursor
+
+        try:
+            lifecycle_before, exposure_at, exposure_id, exposure_done = decode_cursor(
+                cursor, tenant_id, lead_id
+            )
+        except ValueError as exc:
+            raise CampaignRecyclingConflict("invalid journey cursor") from exc
+        async with self.pool.acquire() as conn, conn.transaction(
+            isolation="repeatable_read", readonly=True
+        ):
             current = await conn.fetchrow(
                 """
                 SELECT tenant_id, lead_id, state, version, updated_at
@@ -1478,12 +1489,14 @@ class PostgresCampaignRecyclingStore:
                        evidence_ref
                 FROM mcr_lead_lifecycle_events
                 WHERE tenant_id=$1 AND lead_id=$2
+                AND ($4::bigint IS NULL OR version < $4)
                 ORDER BY version DESC
                 LIMIT $3
                 """,
                 tenant_id,
                 lead_id,
-                limit,
+                limit + 1,
+                lifecycle_before,
             )
             health = await conn.fetch(
                 """
@@ -1518,22 +1531,30 @@ class PostgresCampaignRecyclingStore:
                        negative_outcome_at, updated_at, ledger_version
                 FROM mcr_exposures
                 WHERE tenant_id=$1 AND lead_id=$2
+                AND NOT $6::boolean
+                  AND ($4::timestamptz IS NULL OR reserved_at < $4
+                       OR (reserved_at = $4 AND exposure_id > $5::uuid))
                 ORDER BY reserved_at DESC, exposure_id
                 LIMIT $3
                 """,
                 tenant_id,
                 lead_id,
-                limit,
+                limit + 1,
+                exposure_at,
+                exposure_id,
+                exposure_done,
             )
+        next_cursor = encode_cursor(tenant_id, lead_id, lifecycle, exposures, limit)
         return {
             "tenant_id": tenant_id,
             "lead_id": lead_id,
             "current": dict(current) if current is not None else None,
-            "lifecycle": [dict(row) for row in reversed(lifecycle)],
+            "lifecycle": [dict(row) for row in reversed(lifecycle[:limit])],
             "channel_health": [dict(row) for row in health],
             "suppressions": [dict(row) for row in suppressions],
-            "exposures": [dict(row) for row in reversed(exposures)],
-            "truncated": len(lifecycle) == limit or len(exposures) == limit,
+            "exposures": [dict(row) for row in reversed(exposures[:limit])],
+            "truncated": next_cursor is not None,
+            "next_cursor": next_cursor,
         }
 
     async def load_snapshot(

@@ -32,6 +32,7 @@ SCHEMA_FILES = {
     "next_action": CONTRACT_DIR / "next-action.v1.schema.json",
     "delivery_event": CONTRACT_DIR / "delivery-event.v1.schema.json",
 }
+READ_SCHEMA_FILES = {"journey_response": CONTRACT_DIR / "journey-response.v1.schema.json"}
 OPENAPI_FILE = CONTRACT_DIR / "campaign-engine.openapi.yaml"
 AUTHORITY_FILE = CONTRACT_DIR / "authority.v1.json"
 POLICY_FILE = Path("config/campaign-recycling-policy.v1.json")
@@ -141,6 +142,8 @@ RUNTIME_MARKERS = (
     "campaign-recycling",
     "exposure_ledger",
 )
+# Reviewed implementation files; the marker cannot expand its own authority.
+ALLOWED_RUNTIME_FILES = frozenset(['app/core/campaign_recycling.py', 'migrations/versions/0068_campaign_recycling_core.py', 'migrations/versions/0069_campaign_recycling_delivery_events.py', 'app/core/config.py', 'deploy/observability-alerts/production.env.example', 'deploy/production/compose.canary.yaml', 'deploy/production/server/codestra-middleware-deploy', 'deploy/production/server-command-contract.v1.json', 'app/api/v1/leads_journey.py', 'app/core/journey_contract.py', 'app/core/journey_readback.py', 'contracts/platform/middleware-openapi.generated.json'])
 RUNTIME_SCAN_GLOBS = (
     "app/**/*.py",
     "migrations/**/*.py",
@@ -154,7 +157,7 @@ RUNTIME_SCAN_GLOBS = (
 def load_artifacts(root: Path = ROOT) -> dict[str, Any]:
     artifacts: dict[str, Any] = {
         key: json.loads((root / path).read_text(encoding="utf-8"))
-        for key, path in SCHEMA_FILES.items()
+        for key, path in (SCHEMA_FILES | READ_SCHEMA_FILES).items()
     }
     artifacts["openapi"] = yaml.safe_load(
         (root / OPENAPI_FILE).read_text(encoding="utf-8")
@@ -170,7 +173,7 @@ def load_artifacts(root: Path = ROOT) -> dict[str, Any]:
 def registry_for(artifacts: dict[str, Any]) -> Registry:
     return Registry().with_resources(
         (artifacts[key]["$id"], Resource.from_contents(artifacts[key]))
-        for key in SCHEMA_FILES
+        for key in SCHEMA_FILES | READ_SCHEMA_FILES
     )
 
 
@@ -325,7 +328,7 @@ def _pointer(document: Any, pointer: str) -> Any:
 
 
 def check_schemas(artifacts: dict[str, Any], errors: list[str]) -> None:
-    for key, path in SCHEMA_FILES.items():
+    for key, path in (SCHEMA_FILES | READ_SCHEMA_FILES).items():
         schema = artifacts[key]
         try:
             Draft202012Validator.check_schema(schema)
@@ -334,7 +337,8 @@ def check_schemas(artifacts: dict[str, Any], errors: list[str]) -> None:
         if schema.get("$id") != ID_BASE + path.name:
             errors.append(f"{path}: $id must be {ID_BASE + path.name}")
         if (
-            schema.get("x-codestra-contract", {}).get("runtime_status")
+            key in SCHEMA_FILES
+            and schema.get("x-codestra-contract", {}).get("runtime_status")
             != "contract_only"
         ):
             errors.append(f"{path}: runtime_status must be contract_only")
@@ -344,7 +348,7 @@ def check_schemas(artifacts: dict[str, Any], errors: list[str]) -> None:
                 artifacts[key]
                 if not target
                 else next(
-                    (artifacts[k] for k, p in SCHEMA_FILES.items() if p.name == target),
+                    (artifacts[k] for k, p in (SCHEMA_FILES | READ_SCHEMA_FILES).items() if p.name == target),
                     None,
                 )
             )
@@ -734,6 +738,8 @@ def check_delivery_event(
 
 
 def check_openapi(artifacts: dict[str, Any], errors: list[str], root: Path) -> None:
+    projection = json.loads((root / CONTRACT_DIR / "journey-response.v1.schema.json").read_text())
+    Draft202012Validator.check_schema(projection)
     api = artifacts["openapi"]
     if not str(api.get("openapi", "")).startswith("3.1"):
         errors.append("openapi: must be OpenAPI 3.1")
@@ -766,7 +772,7 @@ def check_openapi(artifacts: dict[str, Any], errors: list[str], root: Path) -> N
     for method, path in sorted(operations & EXPECTED_OPERATIONS):
         operation = api["paths"][path][method]
         names = {
-            params[p["$ref"].rsplit("/", 1)[1]]["name"]
+            (params[p["$ref"].rsplit("/", 1)[1]] if "$ref" in p else p)["name"]
             for p in operation.get("parameters", [])
         }
         required = {"X-Tenant-ID", "X-Correlation-ID"}
@@ -818,7 +824,7 @@ def check_openapi(artifacts: dict[str, Any], errors: list[str], root: Path) -> N
     for ref in _walk_refs(api):
         target = ref.partition("#")[0]
         if target and not any(
-            target == "./" + path.name for path in SCHEMA_FILES.values()
+            target == "./" + path.name for path in (SCHEMA_FILES | READ_SCHEMA_FILES).values()
         ):
             errors.append(
                 f"openapi: external $ref must target a campaign-recycling schema: {ref}"
@@ -1107,19 +1113,26 @@ def check_no_runtime_activation(
             if runtime.get("implementation_enabled") is not True:
                 errors.append("runtime: Milestone 10 implementation must be explicit")
             for flag in (
-                "routes_registered",
                 "production_authorized",
                 "provider_effects_enabled",
             ):
                 if runtime.get(flag) is not False:
                     errors.append(f"runtime: {flag} must remain false")
+            expected_reads = [
+                "GET /platform/v1/leads/{lead_id}/journey",
+                "GET /platform/v1/leads/{lead_id}/next-action",
+            ]
+            if runtime.get("routes_registered") is not True or runtime.get("read_routes") != expected_reads:
+                errors.append("runtime: only the two canonical MCR-B GET reads may be registered")
             allowed = runtime.get("allowed_runtime_files", [])
             if not isinstance(allowed, list) or not all(
                 isinstance(item, str) and item for item in allowed
             ):
                 errors.append("runtime: allowed_runtime_files must be a string list")
             else:
-                allowed_runtime_files = set(allowed)
+                if set(allowed) != ALLOWED_RUNTIME_FILES:
+                    errors.append("runtime: allowed_runtime_files differs from reviewed allowlist")
+                allowed_runtime_files = set(allowed) & ALLOWED_RUNTIME_FILES
     for pattern in RUNTIME_SCAN_GLOBS:
         for path in sorted(root.glob(pattern)):
             if not path.is_file():

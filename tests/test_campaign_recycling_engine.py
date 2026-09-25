@@ -448,7 +448,7 @@ class FakeConn:
         self.fetch_results = []
         self.executed = []
 
-    def transaction(self):
+    def transaction(self, **kwargs):
         return _Txn()
 
     async def fetchrow(self, sql, *args):
