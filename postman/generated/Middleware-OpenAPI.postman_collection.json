@@ -11629,6 +11629,106 @@
     {
       "item": [
         {
+          "name": "Submit Handoff",
+          "request": {
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"capability\": \"\",\n  \"command_id\": \"\",\n  \"command_type\": \"\",\n  \"command_version\": \"\",\n  \"correlation_id\": \"\",\n  \"idempotency_key\": \"\",\n  \"payload\": \"\",\n  \"requested_by\": \"\",\n  \"target\": \"\",\n  \"tenant_id\": \"\"\n}"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "type": "text",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "crm",
+                "handoffs"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/crm/handoffs"
+            }
+          }
+        },
+        {
+          "name": "Read Handoff",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "crm",
+                "handoffs",
+                "{command_id}"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/crm/handoffs/{command_id}"
+            }
+          }
+        },
+        {
+          "name": "Reconcile Handoff",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "POST",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "crm",
+                "handoffs",
+                "{command_id}",
+                "reconcile"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/crm/handoffs/{command_id}/reconcile"
+            }
+          }
+        }
+      ],
+      "name": "mcr-odoo-handoff"
+    },
+    {
+      "item": [
+        {
           "name": "Odoo Event",
           "request": {
             "header": [

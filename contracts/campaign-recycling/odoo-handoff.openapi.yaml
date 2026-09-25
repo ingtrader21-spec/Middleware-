@@ -2,10 +2,10 @@ openapi: 3.1.0
 info:
   title: MCR Odoo CRM handoff contract
   version: 1.0.0
-  description: Contract only; routes are not implemented or registered. Fail closed
-    with no effects. See docs/architecture/MCR_ODOO_HANDOFF_V1.md and contracts/http-conventions.md.
-    202 means durable Middleware acceptance, never CRM completion.
-  x-codestra-implemented: false
+  description: Durable Middleware MCR-to-Odoo handoff API. HTTP persistence/readback/reconciliation
+    routes are implemented with provider effects disabled. 202 means durable Middleware
+    acceptance, never CRM completion.
+  x-codestra-implemented: true
 security:
 - codestraOAuth: []
 paths:
@@ -15,8 +15,8 @@ paths:
       security:
       - codestraOAuth:
         - crm.handoff.write
-      x-codestra-implemented: false
-      x-codestra-effects: none
+      x-codestra-implemented: true
+      x-codestra-effects: durable_record_only
       parameters:
       - name: X-Tenant-ID
         in: header
@@ -50,9 +50,9 @@ paths:
           minLength: 1
           maxLength: 180
           pattern: ^\S(?:.*\S)?$
-      description: Future durable command/outbox acceptance, atomically deduplicated
-        by tenant and natural key. Header/body identities must match. Currently disabled;
-        no 202 is emitted by this contract artifact.
+      description: Durable command acceptance, atomically deduplicated by tenant and
+        natural key. Header/body identities must match. Currently disabled; no 202
+        is emitted by this contract artifact.
       responses:
         '202':
           description: Durably accepted, not completed (future runtime only)
@@ -183,7 +183,7 @@ paths:
       security:
       - codestraOAuth:
         - crm.handoff.read
-      x-codestra-implemented: false
+      x-codestra-implemented: true
       x-codestra-effects: none
       parameters:
       - name: X-Tenant-ID
@@ -342,8 +342,8 @@ paths:
       security:
       - codestraOAuth:
         - crm.handoff.reconcile
-      x-codestra-implemented: false
-      x-codestra-effects: none
+      x-codestra-implemented: true
+      x-codestra-effects: durable_record_only
       parameters:
       - name: X-Tenant-ID
         in: header
@@ -383,9 +383,9 @@ paths:
           minLength: 1
           maxLength: 180
           pattern: ^\S(?:.*\S)?$
-      description: Future audited Middleware reconciliation command only. Does not
-        resend the handoff or create a new Odoo record. Idempotency-Key identifies
-        the reconciliation request. Currently disabled.
+      description: Audited Middleware reconciliation intent only. Does not resend
+        the handoff or create a new Odoo record. Idempotency-Key identifies the reconciliation
+        request. Provider/Odoo effects remain disabled.
       responses:
         '200':
           description: Authorized readback

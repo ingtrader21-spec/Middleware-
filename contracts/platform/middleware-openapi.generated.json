@@ -2711,6 +2711,195 @@
         "title": "HTTPValidationError",
         "type": "object"
       },
+      "HandoffCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "capability": {
+            "const": "ODOO_WRITE",
+            "title": "Capability",
+            "type": "string"
+          },
+          "command_id": {
+            "format": "uuid",
+            "title": "Command Id",
+            "type": "string"
+          },
+          "command_type": {
+            "const": "crm.lifecycle.handoff",
+            "title": "Command Type",
+            "type": "string"
+          },
+          "command_version": {
+            "const": "1.0",
+            "title": "Command Version",
+            "type": "string"
+          },
+          "correlation_id": {
+            "maxLength": 180,
+            "minLength": 1,
+            "title": "Correlation Id",
+            "type": "string"
+          },
+          "idempotency_key": {
+            "pattern": "^mcrodoo1:[a-f0-9]{64}$",
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/HandoffPayload"
+          },
+          "requested_by": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Requested By",
+            "type": "string"
+          },
+          "target": {
+            "const": "odoo-19",
+            "title": "Target",
+            "type": "string"
+          },
+          "tenant_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Tenant Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command_id",
+          "command_type",
+          "command_version",
+          "target",
+          "tenant_id",
+          "requested_by",
+          "correlation_id",
+          "idempotency_key",
+          "capability",
+          "payload"
+        ],
+        "title": "HandoffCommand",
+        "type": "object"
+      },
+      "HandoffPayload": {
+        "additionalProperties": false,
+        "properties": {
+          "allow_external_contact": {
+            "const": false,
+            "title": "Allow External Contact",
+            "type": "boolean"
+          },
+          "campaign_id": {
+            "pattern": "^(klyrow|whatsapp):[A-Za-z0-9][A-Za-z0-9._-]{0,127}$",
+            "title": "Campaign Id",
+            "type": "string"
+          },
+          "campaign_version": {
+            "minimum": 1,
+            "title": "Campaign Version",
+            "type": "integer"
+          },
+          "dry_run": {
+            "const": true,
+            "title": "Dry Run",
+            "type": "boolean"
+          },
+          "evidence_hash": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Evidence Hash",
+            "type": "string"
+          },
+          "evidence_id": {
+            "maxLength": 180,
+            "pattern": "^\\S(?:.*\\S)?$",
+            "title": "Evidence Id",
+            "type": "string"
+          },
+          "evidence_source": {
+            "enum": [
+              "middleware",
+              "odoo"
+            ],
+            "title": "Evidence Source",
+            "type": "string"
+          },
+          "handoff": {
+            "enum": [
+              "accepted",
+              "engaged",
+              "conversion"
+            ],
+            "title": "Handoff",
+            "type": "string"
+          },
+          "lead_id": {
+            "maxLength": 180,
+            "pattern": "^\\S(?:.*\\S)?$",
+            "title": "Lead Id",
+            "type": "string"
+          },
+          "lifecycle_state": {
+            "enum": [
+              "ELIGIBLE",
+              "ACTIVE_CYCLE",
+              "ENGAGED",
+              "CONVERTED"
+            ],
+            "title": "Lifecycle State",
+            "type": "string"
+          },
+          "lifecycle_version": {
+            "minimum": 1,
+            "title": "Lifecycle Version",
+            "type": "integer"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "policy_version": {
+            "maxLength": 128,
+            "pattern": "^\\S(?:.*\\S)?$",
+            "title": "Policy Version",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "1.0",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "signal": {
+            "enum": [
+              "policy_accepted",
+              "click",
+              "reply",
+              "conversion"
+            ],
+            "title": "Signal",
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema_version",
+          "lead_id",
+          "campaign_id",
+          "campaign_version",
+          "lifecycle_version",
+          "policy_version",
+          "handoff",
+          "lifecycle_state",
+          "signal",
+          "evidence_source",
+          "evidence_id",
+          "evidence_hash",
+          "occurred_at",
+          "dry_run",
+          "allow_external_contact"
+        ],
+        "title": "HandoffPayload",
+        "type": "object"
+      },
       "Heartbeat": {
         "additionalProperties": false,
         "properties": {
@@ -18683,6 +18872,205 @@
         "summary": "Create Task",
         "tags": [
           "contacts"
+        ]
+      }
+    },
+    "/platform/v1/crm/handoffs": {
+      "post": {
+        "operationId": "submit_handoff_platform_v1_crm_handoffs_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HandoffCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "description": "Invalid canonical request"
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "403": {
+            "description": "Scope or tenant denied"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Version, state, or idempotency conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Required durable dependency unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Submit Handoff",
+        "tags": [
+          "mcr-odoo-handoff"
+        ]
+      }
+    },
+    "/platform/v1/crm/handoffs/{command_id}": {
+      "get": {
+        "operationId": "read_handoff_platform_v1_crm_handoffs__command_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "command_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Command Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "description": "Invalid canonical request"
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "403": {
+            "description": "Scope or tenant denied"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Version, state, or idempotency conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Required durable dependency unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Read Handoff",
+        "tags": [
+          "mcr-odoo-handoff"
+        ]
+      }
+    },
+    "/platform/v1/crm/handoffs/{command_id}/reconcile": {
+      "post": {
+        "operationId": "reconcile_handoff_platform_v1_crm_handoffs__command_id__reconcile_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "command_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Command Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "description": "Invalid canonical request"
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "403": {
+            "description": "Scope or tenant denied"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Version, state, or idempotency conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Required durable dependency unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Reconcile Handoff",
+        "tags": [
+          "mcr-odoo-handoff"
         ]
       }
     },

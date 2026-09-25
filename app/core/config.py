@@ -715,6 +715,9 @@ class Settings(BaseSettings):
     # interactive agent-UI clients in keycloak_authorized_parties; empty means
     # no caller is authorized (fail closed).
     odoo_campaign_reader_client_ids: str = ""
+    # MCR-E callers allowed to use the CRM handoff API. Empty is the secure
+    # default: routes remain mounted but reject before any durable acceptance.
+    mcr_odoo_handoff_client_ids: str = "middleware-worker"
     keycloak_userinfo_url: str = ""
     provisioning_service_url: str = ""
     provisioning_service_token_url: str = ""

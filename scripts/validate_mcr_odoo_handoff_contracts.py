@@ -160,10 +160,10 @@ def validate() -> list[str]:
         Draft202012Validator.check_schema(load(name))
     authority = load('odoo-handoff-authority.v1.json')
     for key, expected in {
-        'runtime_status': 'persistence_implemented_http_identity_pending', 'command_type': 'crm.lifecycle.handoff',
+        'runtime_status': 'http_implemented_identity_frozen_provider_blocked', 'command_type': 'crm.lifecycle.handoff',
         'command_authority': 'middleware', 'outbox_authority': 'middleware',
         'crm_authority': 'odoo', 'lifecycle_authority': 'leads', 'conversion_authority': 'odoo',
-        'runtime_enabled': False, 'provider_calls_enabled': False,
+        'runtime_enabled': True, 'provider_calls_enabled': False,
         'direct_database_writes_allowed': False, 'n8n_pre_acceptance_allowed': False,
         'external_contact_allowed': False,
         'idempotency_identity': list(NATURAL), 'readback_identity': list(READBACK),
@@ -180,8 +180,10 @@ def validate() -> list[str]:
     expected_runtime = {
         'store': 'app/core/mcr_odoo_handoff.py',
         'migration': 'migrations/versions/0070_mcr_odoo_handoff.py',
-        'http_routes_registered': False,
-        'remaining_gate': 'freeze Keycloak service-client assignment for crm.handoff.write/read/reconcile',
+        'http_routes_registered': True,
+        'remaining_gate': 'certify Odoo adapter/readback in staging before provider effects',
+        'http_module': 'app/api/v1/mcr_odoo_handoff.py',
+        'service_client': 'middleware-worker',
     }
     if runtime != expected_runtime:
         errors.append('runtime implementation marker mismatch')
@@ -229,8 +231,8 @@ def validate() -> list[str]:
         if not command_errors(changed):
             errors.append(f'unsafe payload accepted: {field}')
     api = yaml.safe_load((DIRECTORY / 'odoo-handoff.openapi.yaml').read_text())
-    if api['openapi'] != '3.1.0' or api['info'].get('x-codestra-implemented') is not False:
-        errors.append('OpenAPI must remain unimplemented 3.1.0')
+    if api['openapi'] != '3.1.0' or api['info'].get('x-codestra-implemented') is not True:
+        errors.append('OpenAPI must describe the implemented HTTP boundary')
     operations = {
         ('post', '/platform/v1/crm/handoffs'): 'crm.handoff.write',
         ('get', '/platform/v1/crm/handoffs/{command_id}'): 'crm.handoff.read',
@@ -243,7 +245,8 @@ def validate() -> list[str]:
         op = api['paths'].get(path, {}).get(method, {})
         if op.get('security') != [{'codestraOAuth': [scope]}]:
             errors.append(f'OpenAPI scope mismatch: {path}')
-        if op.get('x-codestra-implemented') is not False or op.get('x-codestra-effects') != 'none':
+        expected_effect = 'durable_record_only' if method == 'post' else 'none'
+        if op.get('x-codestra-implemented') is not True or op.get('x-codestra-effects') != expected_effect:
             errors.append(f'OpenAPI effect gate mismatch: {path}')
         headers = {p['name'] for p in op.get('parameters', []) if p.get('in') == 'header' and p.get('required') is True}
         required = {'X-Tenant-ID', 'X-Correlation-ID', 'X-Causation-ID'}
@@ -253,8 +256,12 @@ def validate() -> list[str]:
             errors.append(f'OpenAPI missing metadata: {path}')
         if not {'401', '403', '409', '422', '503'} <= op.get('responses', {}).keys():
             errors.append(f'OpenAPI missing failure responses: {path}')
-    # Persistence is implemented, but HTTP/provider activation is still forbidden.
-    allowed_command_source = Path('app/core/mcr_odoo_handoff.py')
+    # HTTP persistence is implemented, but provider/Odoo dispatch remains forbidden.
+    allowed_command_sources = {
+        Path('app/core/mcr_odoo_handoff.py'),
+        Path('app/api/v1/mcr_odoo_handoff.py'),
+    }
+    http_route_sources = []
     for directory in ('app', 'middleware'):
         root = ROOT / directory
         if not root.exists():
@@ -263,9 +270,15 @@ def validate() -> list[str]:
             source = path.read_text()
             rel = path.relative_to(ROOT)
             if '/platform/v1/crm/handoffs' in source:
-                errors.append(f'Odoo handoff HTTP route registered before identity freeze: {rel}')
-            if 'crm.lifecycle.handoff' in source and rel != allowed_command_source:
+                http_route_sources.append(rel)
+            if 'crm.lifecycle.handoff' in source and rel not in allowed_command_sources:
                 errors.append(f'Odoo handoff command authority duplicated in runtime: {rel}')
+            if rel in allowed_command_sources:
+                for forbidden in ('httpx', 'odoo_transport'):
+                    if forbidden in source:
+                        errors.append(f'Odoo handoff HTTP/store must not perform provider dispatch: {rel}:{forbidden}')
+    if http_route_sources != [Path('app/api/v1/mcr_odoo_handoff.py')]:
+        errors.append(f'Odoo handoff HTTP route source mismatch: {http_route_sources}')
     return errors
 
 
@@ -274,7 +287,7 @@ def main() -> int:
     if errors:
         print('\n'.join(errors))
         return 1
-    print('MCR-E handoff contracts valid; persistence implemented; HTTP/provider effects remain disabled')
+    print('MCR-E handoff contracts valid; HTTP persistence implemented; provider effects remain disabled')
     return 0
 
 

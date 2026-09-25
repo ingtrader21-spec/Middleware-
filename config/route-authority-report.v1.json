@@ -4,14 +4,14 @@
   "listener_port": 8095,
   "profile": "integration",
   "summary": {
-    "operations": 320,
+    "operations": 323,
     "by_classification": {
       "DENIED_LEGACY": 10,
       "DIRECT_INTERNAL_SERVICE": 3,
       "DURABLE_OUTBOX_INTENT": 5,
-      "INTERNAL_EVENT_INGRESS": 124,
+      "INTERNAL_EVENT_INGRESS": 126,
       "KERNEL_WRAPPER": 15,
-      "READ_ONLY": 163
+      "READ_ONLY": 164
     },
     "DIRECT_EFFECT_BYPASSES": 0,
     "direct_effect_bypasses": [],
@@ -2685,6 +2685,54 @@
       "adapter": null,
       "deprecation": "active",
       "justification": null,
+      "source": "derived"
+    },
+    {
+      "method": "POST",
+      "path": "/platform/v1/crm/handoffs",
+      "owner": "app.api.v1.mcr_odoo_handoff",
+      "handler": "submit_handoff",
+      "classification": "INTERNAL_EVENT_INGRESS",
+      "kernel_delegate": null,
+      "effectful": false,
+      "provider": null,
+      "scope": null,
+      "capability": null,
+      "adapter": null,
+      "deprecation": "active",
+      "justification": "mutates Middleware-owned durable state; no provider transport in the handler",
+      "source": "derived"
+    },
+    {
+      "method": "GET",
+      "path": "/platform/v1/crm/handoffs/{command_id}",
+      "owner": "app.api.v1.mcr_odoo_handoff",
+      "handler": "read_handoff",
+      "classification": "READ_ONLY",
+      "kernel_delegate": null,
+      "effectful": false,
+      "provider": null,
+      "scope": null,
+      "capability": null,
+      "adapter": null,
+      "deprecation": "active",
+      "justification": null,
+      "source": "derived"
+    },
+    {
+      "method": "POST",
+      "path": "/platform/v1/crm/handoffs/{command_id}/reconcile",
+      "owner": "app.api.v1.mcr_odoo_handoff",
+      "handler": "reconcile_handoff",
+      "classification": "INTERNAL_EVENT_INGRESS",
+      "kernel_delegate": null,
+      "effectful": false,
+      "provider": null,
+      "scope": null,
+      "capability": null,
+      "adapter": null,
+      "deprecation": "active",
+      "justification": "mutates Middleware-owned durable state; no provider transport in the handler",
       "source": "derived"
     },
     {

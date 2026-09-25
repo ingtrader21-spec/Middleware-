@@ -67,6 +67,7 @@ from app.api.v1.integrations import router as integrations_router
 from app.api.v1.lead_automation import router as lead_automation_router
 from app.api.v1.lead_reconciliation import router as lead_reconciliation_router
 from app.api.v1.mappings import router as mappings_router
+from app.api.v1.mcr_odoo_handoff import router as mcr_odoo_handoff_router
 from app.api.v1.n8n_runtime import router as n8n_runtime_router
 from app.api.v1.n8n_staging import router as n8n_staging_router
 from app.api.v1.n8n_target import router as n8n_target_router
@@ -149,6 +150,7 @@ CANONICAL_ROUTERS: tuple[APIRouter, ...] = (
     observability_sync_router,
     integrations_router,
     odoo_event_router,
+    mcr_odoo_handoff_router,
 )
 
 # Served by both deployed profiles (integration API and control-plane canary).
