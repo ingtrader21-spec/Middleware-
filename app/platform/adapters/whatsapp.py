@@ -9,6 +9,7 @@ provider readback.
 from __future__ import annotations
 
 from typing import Any, Mapping
+from urllib.parse import quote
 
 import httpx
 
@@ -204,9 +205,10 @@ class WhatsAppProviderAdapter(BaseAdapter):
             **context.outbound_headers(),
             "Authorization": f"Bearer {self.service_token}",
         }
+        provider_segment = quote(provider_id, safe="")
         try:
             response = await context.http.get(
-                f"{self.base_url}/internal/v1/whatsapp/transport/messages/{provider_id}",
+                f"{self.base_url}/internal/v1/whatsapp/transport/messages/{provider_segment}",
                 headers=headers,
                 timeout=context.timeout_seconds,
             )
@@ -228,6 +230,14 @@ class WhatsAppProviderAdapter(BaseAdapter):
                 ReadbackStatus.UNAVAILABLE,
                 provider_operation_id=provider_id,
                 safe_error_code="invalid_provider_json",
+            )
+
+        returned_provider_id = body.get("provider_message_id")
+        if returned_provider_id is not None and returned_provider_id != provider_id:
+            return ReadbackResult(
+                ReadbackStatus.MISMATCH,
+                provider_operation_id=provider_id,
+                safe_error_code="provider_message_id_mismatch",
             )
 
         state = str(body.get("state", "")).upper()
