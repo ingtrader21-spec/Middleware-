@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, Literal, Mapping, Sequence
+from uuid import NAMESPACE_URL, UUID, uuid5
 
 ROOT = Path(__file__).resolve().parents[2]
 
