@@ -213,6 +213,12 @@ operations:
   canonical_operation_id: receive_telnexa_event_api_v1_events_telnexa_post
   implementation_file: registered FastAPI runtime
   runtime_state: IMPLEMENTED
+- domain: events
+  method: POST
+  path: /api/v1/events/telnexa/verify
+  canonical_operation_id: verify_synthetic_telnexa_callback_api_v1_events_telnexa_verify_post
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
 - domain: inbox
   method: GET
   path: /api/v1/inbox

@@ -631,6 +631,15 @@ class Settings(BaseSettings):
     telnexa_event_hmac_secret_file: str = ""
     telnexa_event_signature_ttl_seconds: int = 300
     telnexa_event_request_max_bytes: int = 1_048_576
+    telnexa_event_trusted_proxy_cidrs: str = ""
+    telnexa_event_client_ca_file: str = ""
+    telnexa_event_client_uri_san: str = (
+        "spiffe://codestra.internal/provider/telnexa/callback"
+    )
+    telnexa_event_client_cert_sha256: str = ""
+    telnexa_event_synthetic_verify_enabled: bool = False
+    telnexa_event_reconcile_max_attempts: int = 12
+    telnexa_event_reconcile_batch_size: int = 100
     klyrow_event_ingress_enabled: bool = False
     klyrow_event_api_key: str = ""
     klyrow_event_api_key_file: str = ""
@@ -1212,6 +1221,11 @@ class Settings(BaseSettings):
                 raise ConfigurationError(
                     "TELNEXA_EVENT_HMAC_SECRET or TELNEXA_EVENT_HMAC_SECRET_FILE is required"
                 )
+        if self.telnexa_event_ingress_enabled or self.telnexa_event_synthetic_verify_enabled:
+            try:
+                self.validate_telnexa_callback_trust()
+            except ValueError as exc:
+                raise ConfigurationError(str(exc)) from exc
         if self.klyrow_event_ingress_enabled:
             if not (self.klyrow_event_api_key or self.klyrow_event_api_key_file):
                 raise ConfigurationError(
@@ -1581,6 +1595,35 @@ class Settings(BaseSettings):
                 "REDIS_URL does not match the locked runtime profile"
             )
 
+    def validate_telnexa_callback_trust(self) -> None:
+        """Telnexa callbacks require the private mTLS identity contract."""
+
+        from app.telnexa_callback_identity import (
+            parse_pinned_fingerprints,
+            parse_trusted_proxy_networks,
+            validate_client_uri_san,
+        )
+
+        if not self.telnexa_event_trusted_proxy_cidrs.strip():
+            raise ValueError(
+                "TELNEXA_EVENT_TRUSTED_PROXY_CIDRS is required for Telnexa callbacks"
+            )
+        parse_trusted_proxy_networks(self.telnexa_event_trusted_proxy_cidrs)
+        if not Path(self.telnexa_event_client_ca_file).is_absolute():
+            raise ValueError(
+                "TELNEXA_EVENT_CLIENT_CA_FILE must be an absolute mounted path"
+            )
+        validate_client_uri_san(self.telnexa_event_client_uri_san)
+        parse_pinned_fingerprints(self.telnexa_event_client_cert_sha256)
+        if not (self.telnexa_event_api_key or self.telnexa_event_api_key_file):
+            raise ValueError(
+                "TELNEXA_EVENT_API_KEY or TELNEXA_EVENT_API_KEY_FILE is required"
+            )
+        if not (self.telnexa_event_hmac_secret or self.telnexa_event_hmac_secret_file):
+            raise ValueError(
+                "TELNEXA_EVENT_HMAC_SECRET or TELNEXA_EVENT_HMAC_SECRET_FILE is required"
+            )
+
     def validate_safety(self) -> None:
         if self.telnexa_event_ingress_enabled:
             if not self.sms_delivery:
@@ -1601,6 +1644,8 @@ class Settings(BaseSettings):
                 raise ValueError(
                     "Telnexa event HMAC secret is required when ingress is enabled"
                 )
+        if self.telnexa_event_ingress_enabled or self.telnexa_event_synthetic_verify_enabled:
+            self.validate_telnexa_callback_trust()
         if self.klyrow_event_ingress_enabled:
             if not (
                 self.klyrow_event_api_key.strip()
@@ -2114,6 +2159,24 @@ class Settings(BaseSettings):
         if isinstance(value, bool) or value not in range(1_024, 10_485_761):
             raise ValueError(
                 "Telnexa event request size must be between 1024 and 10485760 bytes"
+            )
+        return value
+
+    @field_validator("telnexa_event_reconcile_max_attempts")
+    @classmethod
+    def validate_telnexa_reconcile_max_attempts(cls, value: int) -> int:
+        if isinstance(value, bool) or value not in range(1, 101):
+            raise ValueError(
+                "Telnexa reconciliation attempts must be between 1 and 100"
+            )
+        return value
+
+    @field_validator("telnexa_event_reconcile_batch_size")
+    @classmethod
+    def validate_telnexa_reconcile_batch_size(cls, value: int) -> int:
+        if isinstance(value, bool) or value not in range(1, 1001):
+            raise ValueError(
+                "Telnexa reconciliation batch size must be between 1 and 1000"
             )
         return value
 

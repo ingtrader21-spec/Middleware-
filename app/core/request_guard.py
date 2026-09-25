@@ -54,6 +54,7 @@ SIGNED_WEBHOOK_PATHS = frozenset(
         "/webhooks/sms/inbound/",
         "/api/v1/events/vicidial",
         "/api/v1/events/telnexa",
+        "/api/v1/events/telnexa/verify",
         "/api/v1/events/klyrow",
         "/api/v1/automation/events",
         "/api/v2/telephony/canary",
@@ -74,6 +75,7 @@ RATE_LIMITED_SIGNED_WRITES = frozenset(
     {
         "/api/v1/events/vicidial",
         "/api/v1/events/telnexa",
+        "/api/v1/events/telnexa/verify",
         "/api/v1/events/klyrow",
         "/api/v2/telephony/canary",
         "/api/v1/n8n/executions",

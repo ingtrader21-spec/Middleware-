@@ -9,7 +9,27 @@
   "transport": {
     "tls": "mTLS",
     "termination": "internal middleware edge",
-    "redirects_allowed": false
+    "redirects_allowed": false,
+    "client_identity": {
+      "forwarded_certificate_header": "X-Codestra-Client-Certificate-DER",
+      "forwarded_certificate_encoding": "base64 DER leaf",
+      "legacy_certificate_header_rejected": "X-Codestra-Client-Certificate",
+      "trusted_proxy_source": "TELNEXA_EVENT_TRUSTED_PROXY_CIDRS (private, at most /24)",
+      "client_ca_source": "TELNEXA_EVENT_CLIENT_CA_FILE (absolute, regular file, CA:TRUE)",
+      "issuer_verification": "leaf directly issued by the pinned client CA",
+      "uri_san": "TELNEXA_EVENT_CLIENT_URI_SAN (exact, default spiffe://codestra.internal/provider/telnexa/callback)",
+      "extended_key_usage": "clientAuth",
+      "key_usage": "digitalSignature",
+      "fingerprint_allow_list": "TELNEXA_EVENT_CLIENT_CERT_SHA256 (optional comma-separated sha256 hex)",
+      "evidence": "verified certificate sha256, serial, URI SAN and expiry recorded as metadata.callbackIdentity on the message and timeline event",
+      "failure_responses": {
+        "untrusted_telnexa_callback_peer": 403,
+        "telnexa_client_certificate_required": 401,
+        "invalid_telnexa_client_certificate": 401,
+        "untrusted_telnexa_client_certificate": 403,
+        "telnexa_callback_identity_unavailable": 503
+      }
+    }
   },
   "authentication": {
     "authorization": "Bearer <shared api key>",
@@ -24,6 +44,7 @@
   },
   "required_headers": [
     "Authorization",
+    "X-Codestra-Client-Certificate-DER",
     "X-Event-Id",
     "X-Timestamp",
     "X-Signature",
@@ -44,7 +65,10 @@
     "duplicate_response": 200,
     "new_event_response": 202,
     "retryable_persistence_response": 503,
-    "mismatched_replay_response": 409
+    "mismatched_replay_response": 409,
+    "dead_letter_response": "200/202 with status=dead_letter",
+    "synthetic_event_prefix_rejected": "synthetic-",
+    "synthetic_event_response": 422
   },
   "projection": {
     "source_of_message_id": "Middleware message_id returned by the original SMS submit",
@@ -55,7 +79,16 @@
     "analytics_table": "telnexa_delivery_analytics",
     "terminal_statuses_are_sticky": true,
     "missing_message_is_retryable": true,
-    "odoo_readback": "GET /v1/communications/messages/by-idempotency"
+    "odoo_readback": "GET /v1/communications/messages/by-idempotency",
+    "reconciliation": {
+      "in_request": "the next callback for a message re-projects earlier retry-state inbox events for that message in occurred_at order within the same transaction",
+      "sweep": "workers/reconcile_telnexa_callbacks.py runs one bounded FOR UPDATE SKIP LOCKED pass over retry-state inbox rows",
+      "max_attempts_source": "TELNEXA_EVENT_RECONCILE_MAX_ATTEMPTS (1-100, default 12)",
+      "batch_size_source": "TELNEXA_EVENT_RECONCILE_BATCH_SIZE (1-1000, default 100)",
+      "exhausted_state": "dead_letter",
+      "reconciled_metadata": "metadata.reconciledFromInbox=true",
+      "provider_effects": "none"
+    }
   },
   "activation_gates": {
     "default": false,
@@ -63,8 +96,22 @@
       "TELNEXA_EVENT_INGRESS_ENABLED=true",
       "SMS_DELIVERY=true",
       "TELNEXA_EVENT_API_KEY or TELNEXA_EVENT_API_KEY_FILE",
-      "TELNEXA_EVENT_HMAC_SECRET or TELNEXA_EVENT_HMAC_SECRET_FILE"
+      "TELNEXA_EVENT_HMAC_SECRET or TELNEXA_EVENT_HMAC_SECRET_FILE",
+      "TELNEXA_EVENT_TRUSTED_PROXY_CIDRS",
+      "TELNEXA_EVENT_CLIENT_CA_FILE"
     ],
     "provider_credentials_are_separate": true
+  },
+  "synthetic_verification": {
+    "method": "POST",
+    "path": "/api/v1/events/telnexa/verify",
+    "gate": "TELNEXA_EVENT_SYNTHETIC_VERIFY_ENABLED=true (default false)",
+    "requires_sms_delivery": false,
+    "trust_chain": "identical to /api/v1/events/telnexa (mTLS identity, API key, HMAC, freshness, header/body binding)",
+    "event_id_prefix_required": "synthetic-",
+    "database_dependency": false,
+    "effect": "none",
+    "success_response": 200,
+    "harness": "scripts/telnexa_callback_harness.py"
   }
 }
