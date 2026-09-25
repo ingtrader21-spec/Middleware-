@@ -6,26 +6,26 @@
   "runtime": "middleware-integration-api:8095",
   "openapi": {
     "path": "contracts/platform/middleware-openapi.generated.json",
-    "sha256": "bffe1b87b979dd636917cb1ad7a634c5f4e4be17828b8a19fc6bdd09c8fe4c31",
+    "sha256": "67c26e3599875ed79fb2c7a2c188a87c08039e377e3d6ab1e0f2290b34bda9f1",
     "routes": 342
   },
   "route_authority": {
     "path": "config/route-authority-report.v1.json",
-    "sha256": "6c176c14ac31b48c7a94cebcf6f998d636662a88d9f625fbf329451acc30fafd",
-    "operations": 331,
+    "sha256": "da9d066bae7e79c0e5a3532c37720f187c61f5aee64cbee061bbca2b0e8fb455",
+    "operations": 333,
     "direct_effect_bypasses": 0
   },
   "public_edge_contract": {
     "path": "deploy/public-api-route-contract.json",
-    "sha256": "0a5e7ee74804a9064665da7000be41dfa37547b5afdce9fb4de127dd8a06bfb0",
-    "routes": 128,
-    "shared_edge": 116,
+    "sha256": "b2aea31772c9b2f6561a46b2f1c9895d017ee666dad5864d358e2ea7170a9e05",
+    "routes": 130,
+    "shared_edge": 118,
     "private_only": 2,
     "denied": 10
   },
   "postman": {
     "path": "postman/generated/Middleware-OpenAPI.postman_collection.json",
-    "sha256": "498bbabf45e3798bd671534a88ec5bec7fa310b42573b6cc974cca3c0325c8cd",
+    "sha256": "c43187dc6c8cc09369e1f8b3976dc812009fe97445c4c8f34ce2520534b4497a",
     "generator": "scripts/generate_postman.py"
   },
   "private_exposure": {
