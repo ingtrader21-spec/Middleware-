@@ -292,6 +292,7 @@ async def test_transaction_commit_failure_never_records_applied():
 async def test_partial_replay_records_replay_even_when_still_partial():
     from tests.test_campaign_recycling_engine import FakeConn, FakePool, delivery_event
 
+    event = delivery_event()
     conn = FakeConn()
     conn.fetchrow_results = [
         None,
@@ -299,7 +300,7 @@ async def test_partial_replay_records_replay_even_when_still_partial():
             "id": 7,
             "source": "klyrow",
             "event_id": "evt-mcr-00000001",
-            "payload_hash": "e" * 64,
+            "payload_hash": event["payload_hash"],
             "origin_inbox": "klyrow_delivery_event_inbox",
             "origin_event_id": "raw-1",
             "projection_state": "partial",
@@ -309,7 +310,7 @@ async def test_partial_replay_records_replay_even_when_still_partial():
     telemetry = obs.MCRObservability()
     result = await PostgresCampaignRecyclingStore(
         FakePool(conn), telemetry=telemetry
-    ).apply_delivery_event(delivery_event(), policy=PolicyProfile.load("test"))
+    ).apply_delivery_event(event, policy=PolicyProfile.load("test"))
     assert result["projection_state"] == "partial"
     output = generate_latest(telemetry.registry).decode()
     assert 'codestra_mcr_replays_total{channel="email",outcome="partial"} 1.0' in output
