@@ -1,0 +1,39 @@
+{
+  "schema": "codestra.deployment-contract.v1",
+  "repository": "ingtrader21-spec/Middleware-",
+  "role": "integration-control-plane",
+  "standalone_required": true,
+  "canonical_integration": {
+    "public_edge": "Caddy",
+    "api_gateway": "Kong",
+    "middleware_runtime": "middleware-integration-api:8095",
+    "command_api": "/platform/v1",
+    "internal_and_metrics_public": false
+  },
+  "existing_assets": {
+    "dockerfile_detected": true,
+    "compose_detected": true,
+    "kubernetes_or_helm_detected": false,
+    "health_or_readiness_signal_detected": true
+  },
+  "health_readiness": {
+    "required": true,
+    "status": "detected-review-required"
+  },
+  "secrets": {
+    "mode": "references-only",
+    "authority": "OpenBao or governed secret files/environment references",
+    "committed_secrets_allowed": false
+  },
+  "production_effects": {
+    "default_enabled": false,
+    "activation_requires_certification": true
+  },
+  "promotion": ["development", "testing", "staging", "production"],
+  "rollback": {
+    "required": true,
+    "immutable_sha_or_image_required": true,
+    "readback_required": true
+  },
+  "status": "DESIGN_FOUNDATION"
+}
