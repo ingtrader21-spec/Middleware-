@@ -27,7 +27,11 @@ jobs:
   test:
     name: Test exact repository SHA
     runs-on: [self-hosted, Linux, X64, middleware-ci]
-    timeout-minutes: 30
+    # The exact-SHA gate compiles the hardened Python test image, then runs the
+    # full migration/database/rollback/readiness suite. On the governed runner
+    # the verified Docker build alone can take ~17 minutes, so 30 minutes can
+    # cancel a healthy database phase before rollback evidence is produced.
+    timeout-minutes: 60
     services:
       postgres:
         image: postgres@sha256:742f40ea20b9ff2ff31db5458d127452988a2164df9e17441e191f3b72252193
