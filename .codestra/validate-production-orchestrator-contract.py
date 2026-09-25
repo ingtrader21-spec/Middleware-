@@ -686,7 +686,7 @@ APPROVED_CONTROL_PLANE_WORKFLOW_SHA256: dict[str, dict[str, str]] = {
             "35ecd2dac4328dea5615d5939d39e5682"
             "5794cedf919d80abb92a4272ccf81ca"
         ),
-        ".github/workflows/required-ci.yml": "def996053ab7c7e6234f2d30f26909e6d5423233069b5d28a5a2e28401ada0c2",
+        ".github/workflows/required-ci.yml": "5a4971a1d4d025e551edde447a9d32b84ba5e5ccc463910eccfe3c2d5131ea1a",
         ".github/workflows/production-route-contract.yml": (
             "a12d81e9c8d3d1e14a68f4c9ef7f55e8"
             "487e09a83578e35bc3f2457bdb76bdb2"
@@ -9373,8 +9373,8 @@ APPROVED_NARROW_MUTATION_SHA256: dict[str, dict[str, str]] = {
         # The only external mutation is the required job posting its own exact
         # commit status through checks:write.
         ".github/workflows/required-ci.yml:test": (
-            "eb4400c3b0312616a9fc09c679d1281f"
-            "99cf5334592d9199ada00f81183eedb1"
+            "65dce904d60075fe51176be1783ad669"
+            "6936d6de95ed588ad97b055150b4b99b"
         ),
         # The single forward Middleware production publisher: builds, scans,
         # signs and verifies one immutable image from the exact protected-main
