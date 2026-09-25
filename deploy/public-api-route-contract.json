@@ -766,6 +766,78 @@
       "upstream": "middleware-integration-api:8095"
     },
     {
+      "operation_id": "list_adapters_platform_v1_adapters_get",
+      "method": "GET",
+      "path": "/platform/v1/adapters",
+      "classification": "shared_edge",
+      "calling_client": "platform-command-client",
+      "audience": "middleware-api",
+      "scope": "platform.command.read",
+      "auth": "service-or-user-jwt",
+      "request_schema": "none",
+      "response_schema": "#/components/schemas/AdapterReadback",
+      "idempotency": {
+        "required": false,
+        "carrier": "none",
+        "replay": "safe-read"
+      },
+      "correlation_fields": [
+        "X-Correlation-ID",
+        "body.correlation_id"
+      ],
+      "echo_fields": [
+        "X-Correlation-ID",
+        "body.correlation_id"
+      ],
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        429,
+        503
+      ],
+      "owner": "middleware",
+      "upstream": "middleware-integration-api:8095"
+    },
+    {
+      "operation_id": "get_adapter_platform_v1_adapters__adapter_id__get",
+      "method": "GET",
+      "path": "/platform/v1/adapters/{adapter_id}",
+      "classification": "shared_edge",
+      "calling_client": "platform-command-client",
+      "audience": "middleware-api",
+      "scope": "platform.command.read",
+      "auth": "service-or-user-jwt",
+      "request_schema": "none",
+      "response_schema": "#/components/schemas/AdapterDetail",
+      "idempotency": {
+        "required": false,
+        "carrier": "none",
+        "replay": "safe-read"
+      },
+      "correlation_fields": [
+        "X-Correlation-ID",
+        "body.correlation_id"
+      ],
+      "echo_fields": [
+        "X-Correlation-ID",
+        "body.correlation_id"
+      ],
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        429,
+        503
+      ],
+      "owner": "middleware",
+      "upstream": "middleware-integration-api:8095"
+    },
+    {
       "operation_id": "create_provisioning_request_platform_v1_agent_provisioning_requests_post",
       "method": "POST",
       "path": "/platform/v1/agent-provisioning/requests",

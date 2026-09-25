@@ -12425,6 +12425,57 @@
     {
       "item": [
         {
+          "name": "List Adapters",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "adapters"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/adapters"
+            }
+          }
+        },
+        {
+          "name": "Get Adapter",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "adapters",
+                "{adapter_id}"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/adapters/{adapter_id}"
+            }
+          }
+        },
+        {
           "name": "Submit Command",
           "request": {
             "body": {

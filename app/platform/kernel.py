@@ -78,6 +78,17 @@ class ReplayNotAllowed(CommandError):
     code = "replay_not_allowed"
 
 
+class CapabilityUnknown(CommandCapabilityDisabled):
+    """The capability is not listed in the capability registry."""
+
+    code = "capability_unknown"
+
+
+class AdapterNotFound(CommandError):
+    status_code = 404
+    code = "adapter_not_found"
+
+
 class CommandUnowned(CommandError):
     status_code = 403
     code = "command_unowned"
@@ -246,7 +257,11 @@ class CommandKernel:
         family = _family(command.command_type)
         self.metrics.commands_received.labels(command_family=family).inc()
 
-        # 9 — registry resolution: exactly one owning policy, matching target and capability.
+        # 9 — registry resolution: a known capability, exactly one owning policy,
+        # matching target and capability.
+        if command.capability not in self.commands.policies.capabilities:
+            self.metrics.policy_denials.labels(reason="capability_unknown").inc()
+            raise CapabilityUnknown("capability is not listed in the capability registry")
         policy = self.commands.policies.resolve(command.command_type)
         if policy is None or policy.target != command.target or policy.capability != command.capability:
             self.metrics.policy_denials.labels(reason="registry_mismatch").inc()
@@ -490,6 +505,8 @@ def _family(command_type: str) -> str:
 
 
 __all__ = [
+    "AdapterNotFound",
+    "CapabilityUnknown",
     "CommandKernel",
     "CommandUnowned",
     "DenialAudit",

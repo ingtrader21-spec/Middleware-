@@ -57,6 +57,8 @@ KERNEL_ROUTE_SCOPES = {
     ("POST", "/platform/v1/operations/{operation_id}/cancel"): "platform.command",
     ("POST", "/platform/v1/operations/{operation_id}/replay"): "platform.command.replay",
     ("GET", "/platform/v1/kernel/describe"): "platform.command.read",
+    ("GET", "/platform/v1/adapters"): "platform.command.read",
+    ("GET", "/platform/v1/adapters/{adapter_id}"): "platform.command.read",
 }
 # The registered workload callers (config/control-plane-callers.v1.json) that
 # hold the platform.command* scopes; Kong verifies issuer/audience/scope, the

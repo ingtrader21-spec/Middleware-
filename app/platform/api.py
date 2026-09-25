@@ -1,4 +1,4 @@
-"""The canonical V3 kernel surface: six routes under ``/platform/v1``.
+"""The canonical V3 kernel surface: eight routes under ``/platform/v1``.
 
 Served by every application profile through the router registry, so the
 deployed integration API (8095) exposes them behind Kong. Every handler
@@ -9,24 +9,30 @@ rendered by the registry's error envelope (``error.code`` / ``message`` /
 ``correlation_id`` / ``retryable`` / ``details``).
 
 Scopes: ``platform.command`` (submit, cancel), ``platform.command.read``
-(operation, timeline, describe), ``platform.command.replay`` + role
-``platform-operator`` (replay).
+(operation, timeline, describe, adapter readback), ``platform.command.replay``
++ role ``platform-operator`` (replay).
+
+``GET /platform/v1/adapters`` and ``GET /platform/v1/adapters/{adapter_id}``
+are read-only registration evidence: which adapters are registered (in
+production, only the manifest adapters of ``config/production-adapters.v1.json``),
+the state of every capability, and readiness. They never contact a provider
+while no capability is enabled.
 """
 
 from __future__ import annotations
 
 import re
 from datetime import datetime
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Path, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.api_inputs import optional_header, required_header
 from app.commands import API_OPERATION_STATES, CommandCapabilityDisabled, CommandEnvelope, CommandNotFound, CommandOperation, OperationEvent, redact_metadata
-from app.platform.kernel import SCOPE_COMMAND, SCOPE_COMMAND_READ, SCOPE_COMMAND_REPLAY
+from app.platform.kernel import SCOPE_COMMAND, SCOPE_COMMAND_READ, SCOPE_COMMAND_REPLAY, AdapterNotFound, CapabilityUnknown
 from app.platform.principal import KernelPrincipal, authenticate
 from app.platform.resilience import ReplayMode
 from app.security import AuthorizationError, RequestValidationError
@@ -37,6 +43,7 @@ router = APIRouter(prefix="/platform/v1", tags=["platform-command-kernel"])
 COMMAND_CONTRACT_VERSION = "command-envelope.v1"
 _SAFE_ERROR_CODE = re.compile(r"[^a-z0-9_.:-]+")
 TRACE_HEADERS = ("traceparent", "tracestate")
+ADAPTER_ID_PATTERN = r"^[a-z0-9]+(?:-[a-z0-9]+)*$"
 
 
 class KernelCommandRequest(BaseModel):
@@ -153,6 +160,83 @@ class ReplayRequest(BaseModel):
     expected_version: int = Field(ge=1)
     reason: str = Field(min_length=1, max_length=500, pattern=r"^[A-Za-z0-9][A-Za-z0-9_.: -]*$")
     new_idempotency_key: str | None = Field(default=None, min_length=8, max_length=180)
+
+
+class CapabilityState(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    known: bool
+    enabled: bool
+    classification: str
+    adapter_ids: list[str]
+
+
+class AdapterRegistrationRow(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    adapter_id: str
+    provider_family: str
+    connector_ids: list[str]
+    capabilities: list[str]
+    registered: bool
+    reason: str
+
+
+class AdapterRow(AdapterRegistrationRow):
+    command_prefixes: list[str]
+    capability_states: dict[str, bool]
+    version: str | None = None
+    supports_readback: bool | None = None
+    supports_cancel: bool | None = None
+    supports_status: bool | None = None
+    safe_reexecution: bool | None = None
+    external_effect: bool | None = None
+
+
+class RegistrationEvidence(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    manifest_version: str
+    activation_authorized: bool
+    refused: bool
+    violations: list[str]
+    adapters: list[AdapterRegistrationRow]
+
+
+class AdapterReadinessEvidence(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    adapter_registry: bool
+    platform_adapters: bool | None
+    probed_adapter_ids: list[str]
+
+
+class AdapterReadback(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    environment: str
+    source_sha: str
+    registration_mode: str
+    registration: RegistrationEvidence | None
+    registry_valid: bool
+    registry_error: str | None
+    adapters: list[AdapterRow]
+    capabilities: dict[str, CapabilityState]
+    unknown_capabilities: list[str]
+    effectful_capabilities_enabled: list[str]
+    provider_effects_enabled: bool
+    readiness: AdapterReadinessEvidence
+
+
+class AdapterDetail(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    environment: str
+    registration_mode: str
+    registry_valid: bool
+    provider_effects_enabled: bool
+    adapter: AdapterRow
+    capabilities: dict[str, CapabilityState]
 
 
 # ----------------------------------------------------------------------
@@ -293,6 +377,8 @@ def _trace(request: Request) -> dict[str, str]:
 async def submit_command(body: KernelCommandRequest, request: Request) -> JSONResponse:
     principal = await authenticate(request, required_scope=SCOPE_COMMAND)
     runtime, platform = _runtime(request)
+    if body.capability is not None and body.capability not in runtime.commands.policies.capabilities:
+        raise CapabilityUnknown("capability is not listed in the capability registry")
     # Provider-blind body: the registry binds the command family to its
     # connector and capability; a supplied value must agree with the registry.
     policy = runtime.commands.policies.resolve(body.command_type)
@@ -425,10 +511,46 @@ async def describe_kernel(request: Request) -> JSONResponse:
     return JSONResponse(status_code=200, content=description)
 
 
-def _public_contract_digest() -> str | None:
-    from pathlib import Path
+# ----------------------------------------------------------------------
+# GET /platform/v1/adapters
+# ----------------------------------------------------------------------
+_NO_STORE = {"Cache-Control": "no-store"}
 
-    path = Path(__file__).resolve().parents[2] / "deploy" / "public-api-route-contract.sha256"
+
+@router.get("/adapters", response_model=AdapterReadback)
+async def list_adapters(request: Request) -> JSONResponse:
+    await authenticate(request, required_scope=SCOPE_COMMAND_READ)
+    runtime, platform = _runtime(request)
+    readback = AdapterReadback.model_validate(await platform.adapter_readback())
+    return JSONResponse(status_code=200, content=readback.model_dump(mode="json"), headers=_NO_STORE)
+
+
+# ----------------------------------------------------------------------
+# GET /platform/v1/adapters/{adapter_id}
+# ----------------------------------------------------------------------
+@router.get("/adapters/{adapter_id}", response_model=AdapterDetail)
+async def get_adapter(adapter_id: Annotated[str, Path(pattern=ADAPTER_ID_PATTERN, max_length=100)], request: Request) -> JSONResponse:
+    await authenticate(request, required_scope=SCOPE_COMMAND_READ)
+    runtime, platform = _runtime(request)
+    readback = AdapterReadback.model_validate(await platform.adapter_readback())
+    row = next((item for item in readback.adapters if item.adapter_id == adapter_id), None)
+    if row is None:
+        raise AdapterNotFound("adapter is neither registered nor listed for this environment")
+    detail = AdapterDetail(
+        environment=readback.environment,
+        registration_mode=readback.registration_mode,
+        registry_valid=readback.registry_valid,
+        provider_effects_enabled=readback.provider_effects_enabled,
+        adapter=row,
+        capabilities={name: readback.capabilities[name] for name in row.capabilities if name in readback.capabilities},
+    )
+    return JSONResponse(status_code=200, content=detail.model_dump(mode="json"), headers=_NO_STORE)
+
+
+def _public_contract_digest() -> str | None:
+    from pathlib import Path as FilePath
+
+    path = FilePath(__file__).resolve().parents[2] / "deploy" / "public-api-route-contract.sha256"
     try:
         text = path.read_text(encoding="utf-8").strip()
     except OSError:
