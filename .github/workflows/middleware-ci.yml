@@ -328,7 +328,7 @@ jobs:
           POSTGRES_PASSWORD: middleware_ci_only
           POSTGRES_DB: middleware_test_runtime
         ports:
-          - 5432:5432
+          - 5432/tcp
         options: >-
           --health-cmd "pg_isready -U middleware -d middleware_test_runtime"
           --health-interval 5s
@@ -338,7 +338,7 @@ jobs:
       redis:
         image: redis@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf # 7-alpine
         ports:
-          - 6379:6379
+          - 6379/tcp
         options: >-
           --health-cmd "redis-cli ping"
           --health-interval 5s
@@ -361,8 +361,8 @@ jobs:
         env:
           RUNTIME_INTEGRATION_TESTS: "1"
           RUNTIME_INTEGRATION_ALLOW_DISPOSABLE: "YES"
-          DATABASE_URL: postgresql://middleware:middleware_ci_only@127.0.0.1:5432/middleware_test_runtime
-          REDIS_URL: redis://127.0.0.1:6379/15
+          DATABASE_URL: postgresql://middleware:middleware_ci_only@127.0.0.1:${{ job.services.postgres.ports[5432] }}/middleware_test_runtime
+          REDIS_URL: redis://127.0.0.1:${{ job.services.redis.ports[6379] }}/15
         run: bash scripts/integration_ci.sh
 
   nats-jetstream-integration:
@@ -418,7 +418,7 @@ jobs:
           POSTGRES_PASSWORD: middleware_ci_only
           POSTGRES_DB: middleware_test_synthetic
         ports:
-          - 5432:5432
+          - 5432/tcp
         options: >-
           --health-cmd "pg_isready -U middleware -d middleware_test_synthetic"
           --health-interval 5s
@@ -428,7 +428,7 @@ jobs:
       redis:
         image: redis@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf # 7-alpine
         ports:
-          - 6379:6379
+          - 6379/tcp
         options: >-
           --health-cmd "redis-cli ping"
           --health-interval 5s
@@ -451,8 +451,8 @@ jobs:
         env:
           RUNTIME_INTEGRATION_TESTS: "1"
           RUNTIME_INTEGRATION_ALLOW_DISPOSABLE: "YES"
-          DATABASE_URL: postgresql://middleware:middleware_ci_only@127.0.0.1:5432/middleware_test_synthetic
-          REDIS_URL: redis://127.0.0.1:6379/15
+          DATABASE_URL: postgresql://middleware:middleware_ci_only@127.0.0.1:${{ job.services.postgres.ports[5432] }}/middleware_test_synthetic
+          REDIS_URL: redis://127.0.0.1:${{ job.services.redis.ports[6379] }}/15
         run: bash scripts/synthetic_acceptance_ci.sh
 
   required-validation:
