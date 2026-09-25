@@ -76,7 +76,7 @@ jobs:
   main-validation:
     if: github.event_name == 'push'
     name: Validate middleware main push
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, Linux, X64, middleware-ci]
     timeout-minutes: 15
 
     steps:
@@ -104,7 +104,7 @@ jobs:
 
   docker-runtime-build:
     name: docker-runtime-build
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-24.04' || 'middleware-ci' }}
     timeout-minutes: 20
 
     steps:
@@ -162,7 +162,7 @@ jobs:
 
   docker-test-build:
     name: docker-test-build
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-24.04' || 'middleware-ci' }}
     timeout-minutes: 25
 
     steps:
@@ -206,7 +206,7 @@ jobs:
 
   connector-runtime-build:
     name: connector-runtime-build
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-24.04' || 'middleware-ci' }}
     timeout-minutes: 25
 
     steps:
@@ -239,7 +239,7 @@ jobs:
 
   container-security:
     name: container-security
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-24.04' || 'middleware-ci' }}
     timeout-minutes: 25
 
     steps:
@@ -317,7 +317,7 @@ jobs:
 
   runtime-integration:
     name: Disposable PostgreSQL Redis integration
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-24.04' || 'middleware-ci' }}
     timeout-minutes: 15
 
     services:
@@ -328,7 +328,7 @@ jobs:
           POSTGRES_PASSWORD: middleware_ci_only
           POSTGRES_DB: middleware_test_runtime
         ports:
-          - 5432:5432
+          - 5432/tcp
         options: >-
           --health-cmd "pg_isready -U middleware -d middleware_test_runtime"
           --health-interval 5s
@@ -338,7 +338,7 @@ jobs:
       redis:
         image: redis@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf # 7-alpine
         ports:
-          - 6379:6379
+          - 6379/tcp
         options: >-
           --health-cmd "redis-cli ping"
           --health-interval 5s
@@ -361,13 +361,13 @@ jobs:
         env:
           RUNTIME_INTEGRATION_TESTS: "1"
           RUNTIME_INTEGRATION_ALLOW_DISPOSABLE: "YES"
-          DATABASE_URL: postgresql://middleware:middleware_ci_only@127.0.0.1:5432/middleware_test_runtime
-          REDIS_URL: redis://127.0.0.1:6379/15
+          DATABASE_URL: postgresql://middleware:middleware_ci_only@127.0.0.1:${{ job.services.postgres.ports[5432] }}/middleware_test_runtime
+          REDIS_URL: redis://127.0.0.1:${{ job.services.redis.ports[6379] }}/15
         run: bash scripts/integration_ci.sh
 
   nats-jetstream-integration:
     name: Disposable NATS JetStream integration
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-24.04' || 'middleware-ci' }}
     timeout-minutes: 15
 
     steps:
@@ -387,7 +387,7 @@ jobs:
 
   temporal-workflow-integration:
     name: Temporal critical workflow integration
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-24.04' || 'middleware-ci' }}
     timeout-minutes: 15
 
     steps:
@@ -407,7 +407,7 @@ jobs:
 
   synthetic-acceptance-e2e:
     name: Synthetic no-effect acceptance E2E
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-24.04' || 'middleware-ci' }}
     timeout-minutes: 20
 
     services:
@@ -418,7 +418,7 @@ jobs:
           POSTGRES_PASSWORD: middleware_ci_only
           POSTGRES_DB: middleware_test_synthetic
         ports:
-          - 5432:5432
+          - 5432/tcp
         options: >-
           --health-cmd "pg_isready -U middleware -d middleware_test_synthetic"
           --health-interval 5s
@@ -428,7 +428,7 @@ jobs:
       redis:
         image: redis@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf # 7-alpine
         ports:
-          - 6379:6379
+          - 6379/tcp
         options: >-
           --health-cmd "redis-cli ping"
           --health-interval 5s
@@ -451,8 +451,8 @@ jobs:
         env:
           RUNTIME_INTEGRATION_TESTS: "1"
           RUNTIME_INTEGRATION_ALLOW_DISPOSABLE: "YES"
-          DATABASE_URL: postgresql://middleware:middleware_ci_only@127.0.0.1:5432/middleware_test_synthetic
-          REDIS_URL: redis://127.0.0.1:6379/15
+          DATABASE_URL: postgresql://middleware:middleware_ci_only@127.0.0.1:${{ job.services.postgres.ports[5432] }}/middleware_test_synthetic
+          REDIS_URL: redis://127.0.0.1:${{ job.services.redis.ports[6379] }}/15
         run: bash scripts/synthetic_acceptance_ci.sh
 
   required-validation:
@@ -470,7 +470,7 @@ jobs:
       - nats-jetstream-integration
       - temporal-workflow-integration
       - synthetic-acceptance-e2e
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-24.04' || 'middleware-ci' }}
     timeout-minutes: 5
     steps:
       - name: Require every event-applicable production gate
@@ -504,3 +504,61 @@ jobs:
             test "$MERGE_RESULT" = skipped
             test "$MAIN_RESULT" = success
           fi
+
+  mcr-certification-evidence:
+    name: mcr-certification-evidence
+    needs: [required-validation]
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-24.04' || 'middleware-ci' }}
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Check out exact evidence source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.12"
+
+      - name: Install locked test dependencies
+        run: python -m pip install --require-hashes -r requirements-test.txt
+
+      - name: Run exact MCR certification scenarios
+        env:
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -Eeuo pipefail
+          rm -rf mcr-certification
+          mkdir -p mcr-certification
+          pytest -q \
+            tests/test_campaign_recycling_contracts.py::test_endpoint_set_is_exact \
+            tests/test_platform_api.py::test_operation_read_is_tenant_scoped_and_redacted \
+            'tests/test_platform_security_matrix.py::test_identity_negative_matrix[tenant_mismatch-bearer_overrides11-403]' \
+            tests/test_campaign_recycling_engine.py::test_hash_is_stable_for_same_inputs \
+            tests/test_runtime_migration_certification.py::test_concurrent_runner_cannot_apply \
+            tests/test_runtime_migration_certification.py::test_successful_upgrade_return_cannot_replace_readback \
+            tests/test_runtime.py::test_runtime_safety_readback_proves_fail_closed_staging \
+            tests/test_mcr_release_dependencies.py::test_mcr_rollback_readback_is_integrated \
+            tests/test_observability.py::test_metrics_require_monitoring_identity_and_use_bounded_labels \
+            tests/test_mcr_release_dependencies.py::test_mcr_lead_journey_ui_states_are_integrated \
+            tests/test_mcr_release_dependencies.py::test_mcr_dependency_artifacts_are_integrated \
+            --junitxml=mcr-certification/results.xml
+          python scripts/build_mcr_certification_evidence.py \
+            --source-sha "$SOURCE_SHA" \
+            --results-xml mcr-certification/results.xml \
+            --output-dir mcr-certification/bundle
+
+      - name: Upload MCR certification evidence
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: mcr-m-certification-evidence
+          path: mcr-certification/bundle/
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 9
