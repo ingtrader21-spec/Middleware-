@@ -438,7 +438,33 @@ async def describe_kernel(request: Request) -> JSONResponse:
         contract_digest=_public_contract_digest(),
         command_contract_version=COMMAND_CONTRACT_VERSION,
     )
+    description["identity_services"] = _identity_service_contracts()
     return JSONResponse(status_code=200, content=description)
+
+
+def _identity_service_contracts() -> dict[str, Any]:
+    from app.identity_missions import SERVICE_READBACKS
+
+    items = []
+    for name, contract in sorted(SERVICE_READBACKS.items()):
+        items.append(
+            {
+                "name": name,
+                "service_id": contract["service_id"],
+                "method": contract["method"],
+                "path": contract["path"],
+                "scope": contract["scope"],
+                "state": contract["state"],
+                "resource_param": contract["resource_param"],
+            }
+        )
+    return {
+        "contract_version": "identity-service-readbacks.v1",
+        "authority": "Middleware V3",
+        "caller_supplied_urls": False,
+        "raw_biometrics": False,
+        "readbacks": items,
+    }
 
 
 def _public_contract_digest() -> str | None:

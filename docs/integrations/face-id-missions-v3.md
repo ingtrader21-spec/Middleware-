@@ -197,3 +197,31 @@ record is in [the verification report](../../reports/face-id-missions-v3-2026092
   GET-only evidence projections. No arbitrary SQL, restore, or failover command exists.
 
 All added capabilities remain disabled by default and production activation remains forbidden.
+
+## Missions 10-21 - camera operational readback and negotiation
+
+Middleware now advertises the fixed identity-service readback contract through the
+existing authenticated /platform/v1/kernel/describe API. It does not expose a
+generic proxy endpoint.
+
+The camera-gateway contract set is fixed to:
+
+- contract-version negotiation;
+- configuration snapshot;
+- connectivity evidence;
+- stream quality;
+- maintenance state readback plus one idempotent maintenance metadata command;
+- tenant-scoped inventory search;
+- compatibility status;
+- normalized event pagination;
+- health SLO status;
+- secret-reference health without secret values;
+- retention-policy readback;
+- sanitized diagnostics.
+
+Every service read is GET-only, tenant-bound by workload identity and X-Tenant-ID,
+and selected from SERVICE_READBACKS. Callers cannot supply URLs, paths, queries,
+SQL, filesystem locations, credentials, raw frames, embeddings, or biometric data.
+The one maintenance mutation remains a normal V3 command with
+CAMERA_MAINTENANCE_METADATA disabled by default, deterministic idempotency,
+durable readback, and no camera/device effect.

@@ -14,13 +14,15 @@
         "platform.command",
         "face-id.access.evaluate",
         "camera-gateway.ptz.control",
-        "face-id.watchlist.write"
+        "face-id.watchlist.write",
+        "camera-gateway.maintenance.write"
       ],
       "allowed_command_prefixes": [
         "face-id.verify.",
         "face-id.access.",
         "camera-gateway.ptz.",
-        "face-id.watchlist."
+        "face-id.watchlist.",
+        "camera-gateway.maintenance."
       ],
       "allowed_targets": [
         "face-id",

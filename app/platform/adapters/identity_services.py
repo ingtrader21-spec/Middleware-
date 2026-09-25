@@ -23,6 +23,7 @@ from app.identity_missions import (
     MISSION_COMMANDS,
     MISSION_RESULTS,
     READBACKS,
+    SERVICE_READBACKS,
     validate_schema,
     validate_event_idempotency,
 )
@@ -337,6 +338,60 @@ class IdentityServiceAdapter(BaseAdapter):
             return ReadbackResult(ReadbackStatus.MATCHED, evidence=raw)
         except Exception:
             return ReadbackResult(ReadbackStatus.UNAVAILABLE)
+
+    async def read_service_evidence(
+        self,
+        name: str,
+        resource_ref: str | None,
+        context: AdapterContext,
+    ) -> ReadbackResult:
+        """Read one fixed, tenant-bound service evidence contract.
+
+        Paths come only from SERVICE_READBACKS. Callers can supply an opaque
+        resource reference where the contract explicitly declares one; they
+        can never supply a URL, path, query string, secret, or arbitrary
+        service identifier.
+        """
+        contract = SERVICE_READBACKS.get(name)
+        if (
+            contract is None
+            or self.adapter_id != contract["service_id"]
+            or not REFERENCE.fullmatch(context.tenant_id)
+        ):
+            return ReadbackResult(ReadbackStatus.MISMATCH)
+        resource_param = contract["resource_param"]
+        path = contract["path"]
+        if resource_param is None:
+            if resource_ref is not None:
+                return ReadbackResult(ReadbackStatus.MISMATCH)
+        else:
+            if resource_ref is None or not REFERENCE.fullmatch(resource_ref):
+                return ReadbackResult(ReadbackStatus.MISMATCH)
+            token = "{" + resource_param + "}"
+            if token not in path:
+                return ReadbackResult(ReadbackStatus.MISMATCH)
+            path = path.replace(token, quote(resource_ref, safe=""))
+        try:
+            response = await self._request(context, "GET", path)
+            if response.status_code == 404:
+                return ReadbackResult(ReadbackStatus.NOT_FOUND)
+            if response.status_code != 200:
+                return ReadbackResult(ReadbackStatus.UNAVAILABLE)
+            raw = response.json()
+            validate_schema(contract["schema"], raw)
+            if resource_ref is not None:
+                if "camera_id" in raw and raw["camera_id"] != resource_ref:
+                    return ReadbackResult(ReadbackStatus.MISMATCH)
+                if name == "camera-event-page" and any(
+                    item.get("camera_id") != resource_ref for item in raw["items"]
+                ):
+                    return ReadbackResult(ReadbackStatus.MISMATCH)
+            return ReadbackResult(ReadbackStatus.MATCHED, evidence=raw)
+        except Exception:
+            return ReadbackResult(
+                ReadbackStatus.UNAVAILABLE,
+                safe_error_code="service_evidence_unavailable",
+            )
 
     async def status(
         self, operation: CommandOperation, context: AdapterContext

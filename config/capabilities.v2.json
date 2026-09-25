@@ -29,7 +29,8 @@
     "FACE_ID_PRESENCE_EVENT": false,
     "FACE_ID_WATCHLIST_REFERENCE": false,
     "FACE_ID_ENROLLMENT_REVIEW": false,
-    "CAMERA_EVENT_NORMALIZATION": false
+    "CAMERA_EVENT_NORMALIZATION": false,
+    "CAMERA_MAINTENANCE_METADATA": false
   },
   "activation_requirements": [
     "protected_merged_sha",

@@ -576,7 +576,12 @@ EXPECTED_CANONICAL_ADAPTER_PROFILES = {
     "camera-gateway": (
         "core-communications",
         "ingtrader21-spec/Codestra-Camera-Gateway",
-        ("camera-gateway.capture.", "camera-gateway.ptz.", "camera-gateway.event."),
+        (
+            "camera-gateway.capture.",
+            "camera-gateway.ptz.",
+            "camera-gateway.event.",
+            "camera-gateway.maintenance.",
+        ),
         (),
     ),
     "postgresql": (

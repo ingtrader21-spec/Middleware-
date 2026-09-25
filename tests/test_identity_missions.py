@@ -12,7 +12,12 @@ from pydantic import ValidationError
 
 from app.commands import CommandEnvelope, CommandPolicyRegistry
 from app.control_plane_auth import CONTROL_PLANE_CALLERS, authorize_command
-from app.identity_missions import MISSION_COMMANDS, READBACKS, authorize_mission
+from app.identity_missions import (
+    MISSION_COMMANDS,
+    READBACKS,
+    SERVICE_READBACKS,
+    authorize_mission,
+)
 from app.platform.adapters.identity_services import (
     IdentityServiceAdapter,
     payload_digest,
@@ -131,6 +136,19 @@ RESULTS.update(
 )
 
 
+PAYLOADS["camera-gateway.maintenance.update.v1"] = {
+    "camera_ref": "camera-1",
+    "enabled": True,
+    "reason_ref": "planned",
+}
+RESULTS["camera-gateway.maintenance.update.v1"] = {
+    "camera_ref": "camera-1",
+    "enabled": True,
+    "reason_ref": "planned",
+    "changed_at": "2026-09-25T12:00:00Z",
+}
+
+
 
 def mission(name):
     base = command(name.split(".")[0]).model_dump()
@@ -152,6 +170,14 @@ def mission(name):
         base["idempotency_key"] = "duplicate-review:" + PAYLOADS[name]["review_ref"]
     elif name == "camera-gateway.event.normalize.v1":
         base["idempotency_key"] = "camera-event:" + PAYLOADS[name]["event_ref"]
+    elif name == "camera-gateway.maintenance.update.v1":
+        payload = PAYLOADS[name]
+        base["idempotency_key"] = (
+            "camera-maintenance:"
+            + payload["camera_ref"]
+            + ":"
+            + ("enabled" if payload["enabled"] else "disabled")
+        )
     return CommandEnvelope.model_validate(
         {
             **base,
@@ -599,4 +625,236 @@ def test_camera_gateway_service_has_only_event_normalization_authority():
             caller,
             command_type="camera-gateway.ptz.move.v1",
             target="camera-gateway",
+        )
+
+def _service_readback_body(name: str, camera_ref: str = "camera-1") -> dict[str, Any]:
+    now = "2026-09-25T12:00:00Z"
+    bodies = {
+        "camera-contract-version": {
+            "service": "camera-gateway",
+            "service_version": "1.2.3",
+            "api_version": "v1",
+            "contract_revision": "camera-gateway.missions-11-22.v1",
+            "capability_sha256": "a" * 64,
+            "middleware_authority": True,
+        },
+        "camera-configuration-snapshot": {
+            "camera_id": camera_ref,
+            "observed_at": now,
+            "config_sha256": "b" * 64,
+            "enabled": True,
+            "vendor": "generic",
+            "rtsp_transport": "tcp",
+            "onvif_enabled": True,
+            "credential_ref_present": True,
+            "labels_count": 2,
+        },
+        "camera-connectivity-evidence": {
+            "camera_id": camera_ref,
+            "observed_at": now,
+            "status": "online",
+            "last_success_at": now,
+            "last_error_code": None,
+            "recent_event_count": 3,
+        },
+        "camera-stream-quality": {
+            "camera_id": camera_ref,
+            "observed_at": now,
+            "status": "known",
+            "codec": "h264",
+            "width": 1920,
+            "height": 1080,
+            "fps": 25.0,
+            "last_frame_at": now,
+            "stale": False,
+        },
+        "camera-maintenance-state": {
+            "camera_id": camera_ref,
+            "enabled": True,
+            "reason_ref": "planned",
+            "changed_at": now,
+        },
+        "camera-inventory-search": {
+            "items": [camera_ref],
+            "total": 1,
+        },
+        "camera-compatibility": {
+            "camera_id": camera_ref,
+            "compatible": True,
+            "checks": {
+                "host_valid": True,
+                "stream_resolvable": True,
+                "middleware_authority": True,
+            },
+            "warnings": [],
+        },
+        "camera-event-page": {
+            "items": [
+                {
+                    "id": 1,
+                    "camera_id": camera_ref,
+                    "observed_at": now,
+                    "kind": "motion",
+                    "source": "frame_delta",
+                    "source_version": "camera-gateway.v1",
+                    "heuristic": True,
+                    "confidence_kind": "heuristic",
+                    "score": None,
+                    "signal": "scene_change_heuristic",
+                }
+            ],
+            "next_offset": None,
+            "limit": 50,
+            "offset": 0,
+        },
+        "camera-health-slo": {
+            "camera_id": camera_ref,
+            "observed_at": now,
+            "health_fresh": True,
+            "frame_fresh": True,
+            "last_success_at": now,
+            "last_frame_at": now,
+            "status": "healthy",
+        },
+        "camera-secret-reference-health": {
+            "camera_id": camera_ref,
+            "configured": True,
+            "scheme": "openbao",
+            "fingerprint": "c" * 16,
+            "reference_valid": True,
+            "last_successful_auth": now,
+        },
+        "camera-retention-policy": {
+            "camera_id": camera_ref,
+            "clip_retention_s": 3600,
+            "rolling_buffer_retention_s": 300,
+            "health_event_limit": 200,
+            "normalized_event_limit": 500,
+            "raw_frames_persisted": False,
+        },
+        "camera-diagnostics": {
+            "camera_id": camera_ref,
+            "observed_at": now,
+            "health_status": "online",
+            "inventory_stale": False,
+            "credentials_configured": True,
+            "rolling_buffer_enabled": False,
+            "maintenance_enabled": False,
+            "clock_drift_ms": 12,
+            "secrets_exposed": False,
+        },
+    }
+    return bodies[name]
+
+
+@pytest.mark.parametrize("name", SERVICE_READBACKS)
+@pytest.mark.asyncio
+async def test_camera_service_readbacks_are_fixed_tenant_bound_and_sanitized(name):
+    contract = SERVICE_READBACKS[name]
+    resource = "camera-1" if contract["resource_param"] else None
+    cmd = command("camera-gateway")
+    calls = []
+
+    async def credential(audience, scope, tenant):
+        assert (audience, scope, tenant) == (
+            "camera-gateway",
+            "connector.camera-gateway.read",
+            cmd.tenant_id,
+        )
+        return "workload-jwt"
+
+    body = _service_readback_body(name)
+
+    def handler(req):
+        calls.append(req)
+        expected = contract["path"]
+        if resource is not None:
+            expected = expected.replace("{camera_ref}", resource)
+        assert req.method == "GET"
+        assert req.url.path == expected
+        assert req.headers["x-tenant-id"] == cmd.tenant_id
+        assert "authorization" in req.headers
+        return httpx.Response(200, json=body)
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        adapter = IdentityServiceAdapter(
+            "camera-gateway",
+            origin="https://service.internal.invalid",
+            token_supplier=credential,
+        )
+        ctx = context(cmd, client)
+        result = await adapter.read_service_evidence(name, resource, ctx)
+        assert result.status == ReadbackStatus.MATCHED
+        assert result.evidence == body
+
+        # Closed schemas reject secret/path/URL expansion.
+        body["secret"] = "forbidden"
+        result = await adapter.read_service_evidence(name, resource, ctx)
+        assert result.status == ReadbackStatus.UNAVAILABLE
+        body.pop("secret")
+
+        before = len(calls)
+        assert (
+            await adapter.read_service_evidence(name, "../camera", ctx)
+        ).status == ReadbackStatus.MISMATCH
+        assert len(calls) == before
+
+
+@pytest.mark.asyncio
+async def test_camera_readback_rejects_cross_camera_evidence():
+    name = "camera-diagnostics"
+    cmd = command("camera-gateway")
+
+    def handler(req):
+        return httpx.Response(200, json=_service_readback_body(name, "camera-2"))
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        adapter = IdentityServiceAdapter(
+            "camera-gateway",
+            origin="https://service.internal.invalid",
+            token_supplier=token,
+        )
+        result = await adapter.read_service_evidence(
+            name,
+            "camera-1",
+            context(cmd, client),
+        )
+        assert result.status == ReadbackStatus.MISMATCH
+
+
+def test_kernel_describe_advertises_fixed_identity_service_contracts(stack):  # noqa: F811
+    bearer = signed_token(
+        stack.settings,
+        azp="middleware-api",
+        tenant_ids=["tenant-1"],
+        scope="platform.command.read",
+    )
+    with TestClient(stack.app) as client:
+        response = client.get(
+            "/platform/v1/kernel/describe",
+            headers={"Authorization": "Bearer " + bearer},
+        )
+    assert response.status_code == 200
+    identity = response.json()["identity_services"]
+    assert identity["contract_version"] == "identity-service-readbacks.v1"
+    assert identity["caller_supplied_urls"] is False
+    assert identity["raw_biometrics"] is False
+    names = {item["name"] for item in identity["readbacks"]}
+    assert names == set(SERVICE_READBACKS)
+    assert all(item["method"] == "GET" for item in identity["readbacks"])
+
+
+def test_camera_maintenance_command_is_reference_only():
+    cmd = mission("camera-gateway.maintenance.update.v1")
+    assert cmd.payload == {
+        "camera_ref": "camera-1",
+        "enabled": True,
+        "reason_ref": "planned",
+    }
+    with pytest.raises(ValidationError):
+        KernelCommandRequest.model_validate(
+            {
+                **cmd.model_dump(exclude={"target", "capability"}),
+                "payload": {**cmd.payload, "camera_url": "rtsp://example.invalid/live"},
+            }
         )
