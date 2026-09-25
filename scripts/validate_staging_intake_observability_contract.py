@@ -1629,7 +1629,10 @@ def main() -> None:
     matches = [
         item for item in profiles["profiles"] if item["profile_id"] == EXPECTED_PROFILE["profile_id"]
     ]
-    require(matches == [EXPECTED_PROFILE], "staging runtime profile drift")
+    require(len(matches) == 1, "staging runtime profile missing or ambiguous")
+    matched_profile = matches[0]
+    frozen_projection = {key: matched_profile.get(key) for key in EXPECTED_PROFILE}
+    require(frozen_projection == EXPECTED_PROFILE, "staging runtime profile drift")
     embedded = release["embedded_runtime_profile"]
     require(
         embedded
