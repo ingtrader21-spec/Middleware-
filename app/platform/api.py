@@ -1,4 +1,4 @@
-"""The canonical V3 kernel surface: eight routes under ``/platform/v1``.
+"""The canonical V3 kernel surface: six routes under ``/platform/v1``.
 
 Served by every application profile through the router registry, so the
 deployed integration API (8095) exposes them behind Kong. Every handler
@@ -9,30 +9,24 @@ rendered by the registry's error envelope (``error.code`` / ``message`` /
 ``correlation_id`` / ``retryable`` / ``details``).
 
 Scopes: ``platform.command`` (submit, cancel), ``platform.command.read``
-(operation, timeline, describe, adapter readback), ``platform.command.replay``
-+ role ``platform-operator`` (replay).
-
-``GET /platform/v1/adapters`` and ``GET /platform/v1/adapters/{adapter_id}``
-are read-only registration evidence: which adapters are registered (in
-production, only the manifest adapters of ``config/production-adapters.v1.json``),
-the state of every capability, and readiness. They never contact a provider
-while no capability is enabled.
+(operation, timeline, describe), ``platform.command.replay`` + role
+``platform-operator`` (replay).
 """
 
 from __future__ import annotations
 
 import re
 from datetime import datetime
-from typing import Annotated, Any, Literal
-from uuid import UUID
+from typing import Any, Literal
+from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Path, Request
+from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.api_inputs import optional_header, required_header
 from app.commands import API_OPERATION_STATES, CommandCapabilityDisabled, CommandEnvelope, CommandNotFound, CommandOperation, OperationEvent, redact_metadata
-from app.platform.kernel import SCOPE_COMMAND, SCOPE_COMMAND_READ, SCOPE_COMMAND_REPLAY, AdapterNotFound, CapabilityUnknown
+from app.platform.kernel import SCOPE_COMMAND, SCOPE_COMMAND_READ, SCOPE_COMMAND_REPLAY
 from app.platform.principal import KernelPrincipal, authenticate
 from app.platform.resilience import ReplayMode
 from app.security import AuthorizationError, RequestValidationError
@@ -43,7 +37,6 @@ router = APIRouter(prefix="/platform/v1", tags=["platform-command-kernel"])
 COMMAND_CONTRACT_VERSION = "command-envelope.v1"
 _SAFE_ERROR_CODE = re.compile(r"[^a-z0-9_.:-]+")
 TRACE_HEADERS = ("traceparent", "tracestate")
-ADAPTER_ID_PATTERN = r"^[a-z0-9]+(?:-[a-z0-9]+)*$"
 
 
 class KernelCommandRequest(BaseModel):
@@ -162,83 +155,6 @@ class ReplayRequest(BaseModel):
     new_idempotency_key: str | None = Field(default=None, min_length=8, max_length=180)
 
 
-class CapabilityState(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    known: bool
-    enabled: bool
-    classification: str
-    adapter_ids: list[str]
-
-
-class AdapterRegistrationRow(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    adapter_id: str
-    provider_family: str
-    connector_ids: list[str]
-    capabilities: list[str]
-    registered: bool
-    reason: str
-
-
-class AdapterRow(AdapterRegistrationRow):
-    command_prefixes: list[str]
-    capability_states: dict[str, bool]
-    version: str | None = None
-    supports_readback: bool | None = None
-    supports_cancel: bool | None = None
-    supports_status: bool | None = None
-    safe_reexecution: bool | None = None
-    external_effect: bool | None = None
-
-
-class RegistrationEvidence(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    manifest_version: str
-    activation_authorized: bool
-    refused: bool
-    violations: list[str]
-    adapters: list[AdapterRegistrationRow]
-
-
-class AdapterReadinessEvidence(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    adapter_registry: bool
-    platform_adapters: bool | None
-    probed_adapter_ids: list[str]
-
-
-class AdapterReadback(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    environment: str
-    source_sha: str
-    registration_mode: str
-    registration: RegistrationEvidence | None
-    registry_valid: bool
-    registry_error: str | None
-    adapters: list[AdapterRow]
-    capabilities: dict[str, CapabilityState]
-    unknown_capabilities: list[str]
-    effectful_capabilities_enabled: list[str]
-    provider_effects_enabled: bool
-    readiness: AdapterReadinessEvidence
-
-
-class AdapterDetail(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    environment: str
-    registration_mode: str
-    registry_valid: bool
-    provider_effects_enabled: bool
-    adapter: AdapterRow
-    capabilities: dict[str, CapabilityState]
-
-
 # ----------------------------------------------------------------------
 # helpers
 # ----------------------------------------------------------------------
@@ -349,11 +265,45 @@ def _timeline(operation: CommandOperation, events: list[OperationEvent]) -> list
     return rows
 
 
-def _respond(status_code: int, model: BaseModel, *, correlation_id: str, location: str | None = None) -> JSONResponse:
-    headers = {"X-Correlation-ID": correlation_id}
+def _response_headers(
+    *,
+    correlation_id: str,
+    command_id: UUID | None = None,
+    location: str | None = None,
+) -> dict[str, str]:
+    headers = {
+        "X-Correlation-ID": correlation_id,
+        "Cache-Control": "no-store",
+        "X-Content-Type-Options": "nosniff",
+    }
+    if command_id is not None:
+        headers["X-Command-ID"] = str(command_id)
     if location:
         headers["Location"] = location
-    return JSONResponse(status_code=status_code, content=model.model_dump(mode="json"), headers=headers)
+    return headers
+
+
+def _respond(
+    status_code: int,
+    model: BaseModel,
+    *,
+    correlation_id: str,
+    command_id: UUID | None = None,
+    location: str | None = None,
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=status_code,
+        content=model.model_dump(mode="json"),
+        headers=_response_headers(
+            correlation_id=correlation_id,
+            command_id=command_id,
+            location=location,
+        ),
+    )
+
+
+def _request_correlation(request: Request) -> str:
+    return optional_header(request, "X-Correlation-ID", minimum=1, maximum=180) or f"request-{uuid4()}"
 
 
 def _trace(request: Request) -> dict[str, str]:
@@ -377,8 +327,6 @@ def _trace(request: Request) -> dict[str, str]:
 async def submit_command(body: KernelCommandRequest, request: Request) -> JSONResponse:
     principal = await authenticate(request, required_scope=SCOPE_COMMAND)
     runtime, platform = _runtime(request)
-    if body.capability is not None and body.capability not in runtime.commands.policies.capabilities:
-        raise CapabilityUnknown("capability is not listed in the capability registry")
     # Provider-blind body: the registry binds the command family to its
     # connector and capability; a supplied value must agree with the registry.
     policy = runtime.commands.policies.resolve(body.command_type)
@@ -395,6 +343,9 @@ async def submit_command(body: KernelCommandRequest, request: Request) -> JSONRe
     tenant_header = optional_header(request, "X-Tenant-ID", minimum=1, maximum=128)
     if tenant_header is not None and tenant_header != command.tenant_id:
         raise RequestValidationError("X-Tenant-ID does not match command tenant")
+    command_id_header = optional_header(request, "X-Command-ID", minimum=36, maximum=36)
+    if command_id_header is not None and command_id_header != str(command.command_id):
+        raise RequestValidationError("X-Command-ID does not match command_id")
     correlation_id = required_header(request, "X-Correlation-ID", minimum=1, maximum=180)
     if correlation_id != command.correlation_id:
         raise RequestValidationError("X-Correlation-ID does not match command correlation_id")
@@ -418,6 +369,7 @@ async def submit_command(body: KernelCommandRequest, request: Request) -> JSONRe
         200 if operation.duplicate else 202,
         accepted,
         correlation_id=operation.correlation_id,
+        command_id=operation.command_id,
         location=f"/platform/v1/operations/{operation.command_id}",
     )
 
@@ -431,7 +383,12 @@ async def get_operation(operation_id: UUID, request: Request) -> JSONResponse:
     runtime, platform = _runtime(request)
     tenant_id = _tenant_for_read(request, principal)
     operation = await platform.kernel.get(tenant_id, operation_id)
-    return _respond(200, _status(operation), correlation_id=operation.correlation_id)
+    return _respond(
+        200,
+        _status(operation),
+        correlation_id=operation.correlation_id,
+        command_id=operation.command_id,
+    )
 
 
 # ----------------------------------------------------------------------
@@ -444,7 +401,12 @@ async def get_timeline(operation_id: UUID, request: Request) -> JSONResponse:
     tenant_id = _tenant_for_read(request, principal)
     operation = await platform.kernel.get(tenant_id, operation_id)
     events = await platform.kernel.timeline(tenant_id, operation_id)
-    return _respond(200, Timeline(operation_id=operation_id, items=_timeline(operation, events)), correlation_id=operation.correlation_id)
+    return _respond(
+        200,
+        Timeline(operation_id=operation_id, items=_timeline(operation, events)),
+        correlation_id=operation.correlation_id,
+        command_id=operation.command_id,
+    )
 
 
 # ----------------------------------------------------------------------
@@ -455,7 +417,13 @@ async def cancel_operation(operation_id: UUID, body: CancelRequest, request: Req
     principal = await authenticate(request, required_scope=SCOPE_COMMAND)
     runtime, platform = _runtime(request)
     tenant_id = _tenant_for_read(request, principal)
-    required_header(request, "X-Correlation-ID", minimum=1, maximum=180)
+    current = await platform.kernel.get(tenant_id, operation_id)
+    command_id_header = optional_header(request, "X-Command-ID", minimum=36, maximum=36)
+    if command_id_header is not None and command_id_header != str(operation_id):
+        raise RequestValidationError("X-Command-ID does not match operation_id")
+    correlation_id = required_header(request, "X-Correlation-ID", minimum=1, maximum=180)
+    if correlation_id != current.correlation_id:
+        raise RequestValidationError("X-Correlation-ID does not match operation correlation_id")
     idempotency_key = required_header(request, "Idempotency-Key", minimum=8, maximum=180)
     operation = await platform.kernel.cancel(
         tenant_id,
@@ -465,7 +433,12 @@ async def cancel_operation(operation_id: UUID, body: CancelRequest, request: Req
         expected_version=body.expected_version,
         reason=body.reason,
     )
-    return _respond(200, _status(operation), correlation_id=operation.correlation_id)
+    return _respond(
+        200,
+        _status(operation),
+        correlation_id=operation.correlation_id,
+        command_id=operation.command_id,
+    )
 
 
 # ----------------------------------------------------------------------
@@ -476,7 +449,13 @@ async def replay_operation(operation_id: UUID, body: ReplayRequest, request: Req
     principal = await authenticate(request, required_scope=SCOPE_COMMAND_REPLAY)
     runtime, platform = _runtime(request)
     tenant_id = _tenant_for_read(request, principal)
-    required_header(request, "X-Correlation-ID", minimum=1, maximum=180)
+    current = await platform.kernel.get(tenant_id, operation_id)
+    command_id_header = optional_header(request, "X-Command-ID", minimum=36, maximum=36)
+    if command_id_header is not None and command_id_header != str(operation_id):
+        raise RequestValidationError("X-Command-ID does not match operation_id")
+    correlation_id = required_header(request, "X-Correlation-ID", minimum=1, maximum=180)
+    if correlation_id != current.correlation_id:
+        raise RequestValidationError("X-Correlation-ID does not match operation correlation_id")
     idempotency_key = required_header(request, "Idempotency-Key", minimum=8, maximum=180)
     operation = await platform.kernel.replay(
         tenant_id,
@@ -492,6 +471,7 @@ async def replay_operation(operation_id: UUID, body: ReplayRequest, request: Req
         202,
         _status(operation),
         correlation_id=operation.correlation_id,
+        command_id=operation.command_id,
         location=f"/platform/v1/operations/{operation.command_id}",
     )
 
@@ -508,49 +488,18 @@ async def describe_kernel(request: Request) -> JSONResponse:
         contract_digest=_public_contract_digest(),
         command_contract_version=COMMAND_CONTRACT_VERSION,
     )
-    return JSONResponse(status_code=200, content=description)
-
-
-# ----------------------------------------------------------------------
-# GET /platform/v1/adapters
-# ----------------------------------------------------------------------
-_NO_STORE = {"Cache-Control": "no-store"}
-
-
-@router.get("/adapters", response_model=AdapterReadback)
-async def list_adapters(request: Request) -> JSONResponse:
-    await authenticate(request, required_scope=SCOPE_COMMAND_READ)
-    runtime, platform = _runtime(request)
-    readback = AdapterReadback.model_validate(await platform.adapter_readback())
-    return JSONResponse(status_code=200, content=readback.model_dump(mode="json"), headers=_NO_STORE)
-
-
-# ----------------------------------------------------------------------
-# GET /platform/v1/adapters/{adapter_id}
-# ----------------------------------------------------------------------
-@router.get("/adapters/{adapter_id}", response_model=AdapterDetail)
-async def get_adapter(adapter_id: Annotated[str, Path(pattern=ADAPTER_ID_PATTERN, max_length=100)], request: Request) -> JSONResponse:
-    await authenticate(request, required_scope=SCOPE_COMMAND_READ)
-    runtime, platform = _runtime(request)
-    readback = AdapterReadback.model_validate(await platform.adapter_readback())
-    row = next((item for item in readback.adapters if item.adapter_id == adapter_id), None)
-    if row is None:
-        raise AdapterNotFound("adapter is neither registered nor listed for this environment")
-    detail = AdapterDetail(
-        environment=readback.environment,
-        registration_mode=readback.registration_mode,
-        registry_valid=readback.registry_valid,
-        provider_effects_enabled=readback.provider_effects_enabled,
-        adapter=row,
-        capabilities={name: readback.capabilities[name] for name in row.capabilities if name in readback.capabilities},
+    correlation_id = _request_correlation(request)
+    return JSONResponse(
+        status_code=200,
+        content=description,
+        headers=_response_headers(correlation_id=correlation_id),
     )
-    return JSONResponse(status_code=200, content=detail.model_dump(mode="json"), headers=_NO_STORE)
 
 
 def _public_contract_digest() -> str | None:
-    from pathlib import Path as FilePath
+    from pathlib import Path
 
-    path = FilePath(__file__).resolve().parents[2] / "deploy" / "public-api-route-contract.sha256"
+    path = Path(__file__).resolve().parents[2] / "deploy" / "public-api-route-contract.sha256"
     try:
         text = path.read_text(encoding="utf-8").strip()
     except OSError:
