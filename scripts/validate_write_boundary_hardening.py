@@ -311,11 +311,32 @@ def stream_contains_pattern(
         tail = buffer[-overlap:]
 
 
+def _odoo_bytes_line_is_negative_guard(line: bytes, previous: bytes) -> bool:
+    stripped = line.strip()
+    anchored = (
+        (stripped.startswith(b"'^(") and stripped.endswith(b")$'"))
+        or (stripped.startswith(b'"^(') and stripped.endswith(b')$"'))
+    )
+    if not anchored:
+        return False
+    return b"grep -Eq" in previous or b"grep -E" in previous
+
+
+def stream_contains_forbidden_odoo_reference(stream: BinaryIO) -> bool:
+    previous = b""
+    for line in stream:
+        if ODOO_CREDENTIAL_BYTES_RE.search(line):
+            if not _odoo_bytes_line_is_negative_guard(line, previous):
+                return True
+        previous = line
+    return False
+
+
 def validate_credentials(files: tuple[Path, ...], errors: list[str]) -> None:
     for path in files:
         try:
             with path.open("rb") as stream:
-                found = stream_contains_pattern(stream, ODOO_CREDENTIAL_BYTES_RE)
+                found = stream_contains_forbidden_odoo_reference(stream)
         except OSError as exc:
             errors.append(f"cannot inspect {path.relative_to(ROOT)}: {exc}")
             continue
@@ -471,8 +492,15 @@ def self_test(errors: list[str]) -> None:
         b"x" * (2 * 1024 * 1024 + 257)
         + b"\nODOO_DATABASE_URL=postgresql://example"
     )
-    if not stream_contains_pattern(large, ODOO_CREDENTIAL_BYTES_RE):
+    if not stream_contains_forbidden_odoo_reference(large):
         errors.append("large tracked-file credential scanner self-test failed")
+
+    deny_guard = io.BytesIO(
+        b"env | cut -d= -f1 | grep -Eq \\" + bytes([10])
+        + b"'^(AWS_SECRET_ACCESS_KEY|ODOO_DATABASE_PASSWORD)$'" + bytes([10])
+    )
+    if stream_contains_forbidden_odoo_reference(deny_guard):
+        errors.append("credential deny-pattern positive self-test failed")
 
     approved = (
         "={{ $env.MIDDLEWARE_BASE_URL }}"

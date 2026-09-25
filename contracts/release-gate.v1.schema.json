@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.codestra.co/platform/release-gate.v1.schema.json",
+  "title": "Codestra Middleware Release Gate Report v1",
+  "description": "Machine-readable output of scripts/release_gate.py. The gate never signs or publishes; effects are constant false.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "repository", "decision", "source", "schema_head", "image", "checks", "failed_checks", "pending_external", "effects"],
+  "$defs": {
+    "sha40": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "checkId": {"enum": ["source_binding", "alembic_single_head", "workflow_schema_binding", "sbom", "vulnerability_policy", "provenance_predicate", "cosign_inputs", "release_manifest"]}
+  },
+  "properties": {
+    "schema_version": {"const": "codestra.middleware.release-gate.v1"},
+    "repository": {"const": "ingtrader21-spec/Middleware-"},
+    "decision": {"enum": ["READY_FOR_SIGNING", "BLOCKED", "FAIL"]},
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["git_sha", "git_tree_id", "protected_main_sha"],
+      "properties": {
+        "git_sha": {"oneOf": [{"$ref": "#/$defs/sha40"}, {"type": "null"}]},
+        "git_tree_id": {"oneOf": [{"$ref": "#/$defs/sha40"}, {"type": "null"}]},
+        "protected_main_sha": {"type": ["string", "null"]}
+      }
+    },
+    "schema_head": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["expected", "observed"],
+      "properties": {
+        "expected": {"type": "string", "pattern": "^[0-9]{4}_[a-z0-9_]+$"},
+        "observed": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "image": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "digest"],
+      "properties": {
+        "repository": {"const": "ghcr.io/ingtrader21-spec/codestra-middleware"},
+        "digest": {"type": "string"}
+      }
+    },
+    "checks": {
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "status", "detail", "evidence"],
+        "properties": {
+          "id": {"$ref": "#/$defs/checkId"},
+          "status": {"enum": ["PASS", "FAIL", "PENDING_EXTERNAL"]},
+          "detail": {"type": "string", "minLength": 1},
+          "evidence": {"type": "object"}
+        }
+      }
+    },
+    "failed_checks": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/checkId"}},
+    "pending_external": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/checkId"}},
+    "effects": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["signing_performed", "image_pushed", "release_published", "production_go", "signing_authority"],
+      "properties": {
+        "signing_performed": {"const": false},
+        "image_pushed": {"const": false},
+        "release_published": {"const": false},
+        "production_go": {"const": "NO"},
+        "signing_authority": {"type": "string"}
+      }
+    }
+  }
+}
