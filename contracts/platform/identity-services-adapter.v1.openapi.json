@@ -843,6 +843,207 @@
                             }
                           }
                         }
+                      },
+                      {
+                        "type": "object",
+                        "required": [
+                          "command_type",
+                          "payload"
+                        ],
+                        "properties": {
+                          "command_type": {
+                            "const": "face-id.watchlist.membership.update.v1"
+                          },
+                          "target": {
+                            "const": "face-id"
+                          },
+                          "capability": {
+                            "const": "FACE_ID_WATCHLIST_REFERENCE"
+                          },
+                          "payload": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "watchlist_ref",
+                              "subject_ref",
+                              "action",
+                              "decision_ref"
+                            ],
+                            "properties": {
+                              "watchlist_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              },
+                              "subject_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              },
+                              "action": {
+                                "enum": [
+                                  "add",
+                                  "remove"
+                                ]
+                              },
+                              "decision_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "required": [
+                          "command_type",
+                          "payload"
+                        ],
+                        "properties": {
+                          "command_type": {
+                            "const": "face-id.enrollment.quality.review.v1"
+                          },
+                          "target": {
+                            "const": "face-id"
+                          },
+                          "capability": {
+                            "const": "FACE_ID_ENROLLMENT_REVIEW"
+                          },
+                          "payload": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "session_ref",
+                              "quality_evidence_ref",
+                              "decision"
+                            ],
+                            "properties": {
+                              "session_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              },
+                              "quality_evidence_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              },
+                              "decision": {
+                                "enum": [
+                                  "accept",
+                                  "reject",
+                                  "needs_review"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "required": [
+                          "command_type",
+                          "payload"
+                        ],
+                        "properties": {
+                          "command_type": {
+                            "const": "face-id.duplicate.review.resolve.v1"
+                          },
+                          "target": {
+                            "const": "face-id"
+                          },
+                          "capability": {
+                            "const": "FACE_ID_ENROLLMENT_REVIEW"
+                          },
+                          "payload": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "review_ref",
+                              "candidate_subject_ref",
+                              "evidence_ref",
+                              "resolution"
+                            ],
+                            "properties": {
+                              "review_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              },
+                              "candidate_subject_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              },
+                              "evidence_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              },
+                              "resolution": {
+                                "enum": [
+                                  "distinct",
+                                  "same_subject_candidate",
+                                  "needs_review"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "required": [
+                          "command_type",
+                          "payload"
+                        ],
+                        "properties": {
+                          "command_type": {
+                            "const": "camera-gateway.event.normalize.v1"
+                          },
+                          "target": {
+                            "const": "camera-gateway"
+                          },
+                          "capability": {
+                            "const": "CAMERA_EVENT_NORMALIZATION"
+                          },
+                          "payload": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "event_ref",
+                              "camera_ref",
+                              "event_kind",
+                              "observed_at",
+                              "source_version",
+                              "heuristic"
+                            ],
+                            "properties": {
+                              "event_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              },
+                              "camera_ref": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              },
+                              "event_kind": {
+                                "enum": [
+                                  "motion",
+                                  "scene_change",
+                                  "tamper",
+                                  "health"
+                                ]
+                              },
+                              "observed_at": {
+                                "type": "string",
+                                "format": "date-time",
+                                "maxLength": 40
+                              },
+                              "source_version": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                              },
+                              "heuristic": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        }
                       }
                     ]
                   }
@@ -1848,6 +2049,626 @@
         "x-required-scope": "connector.postgresql.read",
         "x-service-id": "postgresql"
       }
+    },
+    "/internal/v1/observability/pitr-readiness/{database_ref}": {
+      "get": {
+        "operationId": "postgresql_pitr_readiness",
+        "description": "Private read-only PostgreSQL recovery evidence projection. No SQL or restore command.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "database_ref",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tenant-bound evidence references only",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "tenant_id",
+                    "database_ref",
+                    "observed_at",
+                    "status",
+                    "evidence_refs",
+                    "checks"
+                  ],
+                  "properties": {
+                    "tenant_id": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                    },
+                    "database_ref": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                    },
+                    "observed_at": {
+                      "type": "string",
+                      "format": "date-time",
+                      "maxLength": 40
+                    },
+                    "status": {
+                      "enum": [
+                        "ready",
+                        "not_ready",
+                        "unknown"
+                      ]
+                    },
+                    "evidence_refs": {
+                      "type": "array",
+                      "maxItems": 100,
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      }
+                    },
+                    "checks": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "wal_archiving",
+                        "base_backup_recent",
+                        "recovery_target_supported"
+                      ],
+                      "properties": {
+                        "wal_archiving": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        },
+                        "base_backup_recent": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        },
+                        "recovery_target_supported": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "status": {
+                            "const": "ready"
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "checks": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "wal_archiving",
+                              "base_backup_recent",
+                              "recovery_target_supported"
+                            ],
+                            "properties": {
+                              "wal_archiving": {
+                                "const": true
+                              },
+                              "base_backup_recent": {
+                                "const": true
+                              },
+                              "recovery_target_supported": {
+                                "const": true
+                              }
+                            }
+                          },
+                          "evidence_refs": {
+                            "minItems": 1
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workload scope or tenant forbidden"
+          },
+          "404": {
+            "description": "Evidence not found"
+          },
+          "503": {
+            "description": "Evidence unavailable"
+          }
+        },
+        "x-required-scope": "connector.postgresql.read",
+        "x-service-id": "postgresql"
+      }
+    },
+    "/internal/v1/observability/capacity-status/{database_ref}": {
+      "get": {
+        "operationId": "postgresql_capacity_status",
+        "description": "Private read-only PostgreSQL recovery evidence projection. No SQL or restore command.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "database_ref",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tenant-bound evidence references only",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "tenant_id",
+                    "database_ref",
+                    "observed_at",
+                    "status",
+                    "evidence_refs",
+                    "checks"
+                  ],
+                  "properties": {
+                    "tenant_id": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                    },
+                    "database_ref": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                    },
+                    "observed_at": {
+                      "type": "string",
+                      "format": "date-time",
+                      "maxLength": 40
+                    },
+                    "status": {
+                      "enum": [
+                        "ready",
+                        "not_ready",
+                        "unknown"
+                      ]
+                    },
+                    "evidence_refs": {
+                      "type": "array",
+                      "maxItems": 100,
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      }
+                    },
+                    "checks": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "storage_within_threshold",
+                        "growth_sample_recent",
+                        "disk_free_known"
+                      ],
+                      "properties": {
+                        "storage_within_threshold": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        },
+                        "growth_sample_recent": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        },
+                        "disk_free_known": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "status": {
+                            "const": "ready"
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "checks": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "storage_within_threshold",
+                              "growth_sample_recent",
+                              "disk_free_known"
+                            ],
+                            "properties": {
+                              "storage_within_threshold": {
+                                "const": true
+                              },
+                              "growth_sample_recent": {
+                                "const": true
+                              },
+                              "disk_free_known": {
+                                "const": true
+                              }
+                            }
+                          },
+                          "evidence_refs": {
+                            "minItems": 1
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workload scope or tenant forbidden"
+          },
+          "404": {
+            "description": "Evidence not found"
+          },
+          "503": {
+            "description": "Evidence unavailable"
+          }
+        },
+        "x-required-scope": "connector.postgresql.read",
+        "x-service-id": "postgresql"
+      }
+    },
+    "/internal/v1/observability/maintenance-health/{database_ref}": {
+      "get": {
+        "operationId": "postgresql_maintenance_health",
+        "description": "Private read-only PostgreSQL recovery evidence projection. No SQL or restore command.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "database_ref",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tenant-bound evidence references only",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "tenant_id",
+                    "database_ref",
+                    "observed_at",
+                    "status",
+                    "evidence_refs",
+                    "checks"
+                  ],
+                  "properties": {
+                    "tenant_id": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                    },
+                    "database_ref": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                    },
+                    "observed_at": {
+                      "type": "string",
+                      "format": "date-time",
+                      "maxLength": 40
+                    },
+                    "status": {
+                      "enum": [
+                        "ready",
+                        "not_ready",
+                        "unknown"
+                      ]
+                    },
+                    "evidence_refs": {
+                      "type": "array",
+                      "maxItems": 100,
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      }
+                    },
+                    "checks": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "autovacuum_healthy",
+                        "analyze_recent",
+                        "checkpoint_healthy"
+                      ],
+                      "properties": {
+                        "autovacuum_healthy": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        },
+                        "analyze_recent": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        },
+                        "checkpoint_healthy": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "status": {
+                            "const": "ready"
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "checks": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "autovacuum_healthy",
+                              "analyze_recent",
+                              "checkpoint_healthy"
+                            ],
+                            "properties": {
+                              "autovacuum_healthy": {
+                                "const": true
+                              },
+                              "analyze_recent": {
+                                "const": true
+                              },
+                              "checkpoint_healthy": {
+                                "const": true
+                              }
+                            }
+                          },
+                          "evidence_refs": {
+                            "minItems": 1
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workload scope or tenant forbidden"
+          },
+          "404": {
+            "description": "Evidence not found"
+          },
+          "503": {
+            "description": "Evidence unavailable"
+          }
+        },
+        "x-required-scope": "connector.postgresql.read",
+        "x-service-id": "postgresql"
+      }
+    },
+    "/internal/v1/observability/failover-rehearsal/{database_ref}": {
+      "get": {
+        "operationId": "postgresql_failover_rehearsal",
+        "description": "Private read-only PostgreSQL recovery evidence projection. No SQL or restore command.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "database_ref",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tenant-bound evidence references only",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "tenant_id",
+                    "database_ref",
+                    "observed_at",
+                    "status",
+                    "evidence_refs",
+                    "checks"
+                  ],
+                  "properties": {
+                    "tenant_id": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                    },
+                    "database_ref": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                    },
+                    "observed_at": {
+                      "type": "string",
+                      "format": "date-time",
+                      "maxLength": 40
+                    },
+                    "status": {
+                      "enum": [
+                        "ready",
+                        "not_ready",
+                        "unknown"
+                      ]
+                    },
+                    "evidence_refs": {
+                      "type": "array",
+                      "maxItems": 100,
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      }
+                    },
+                    "checks": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "rehearsal_completed",
+                        "integrity_verified",
+                        "rto_recorded"
+                      ],
+                      "properties": {
+                        "rehearsal_completed": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        },
+                        "integrity_verified": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        },
+                        "rto_recorded": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "status": {
+                            "const": "ready"
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "checks": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "rehearsal_completed",
+                              "integrity_verified",
+                              "rto_recorded"
+                            ],
+                            "properties": {
+                              "rehearsal_completed": {
+                                "const": true
+                              },
+                              "integrity_verified": {
+                                "const": true
+                              },
+                              "rto_recorded": {
+                                "const": true
+                              }
+                            }
+                          },
+                          "evidence_refs": {
+                            "minItems": 1
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workload scope or tenant forbidden"
+          },
+          "404": {
+            "description": "Evidence not found"
+          },
+          "503": {
+            "description": "Evidence unavailable"
+          }
+        },
+        "x-required-scope": "connector.postgresql.read",
+        "x-service-id": "postgresql"
+      }
     }
   },
   "components": {
@@ -2238,6 +3059,207 @@
                     }
                   }
                 }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "command_type",
+                  "payload"
+                ],
+                "properties": {
+                  "command_type": {
+                    "const": "face-id.watchlist.membership.update.v1"
+                  },
+                  "target": {
+                    "const": "face-id"
+                  },
+                  "capability": {
+                    "const": "FACE_ID_WATCHLIST_REFERENCE"
+                  },
+                  "payload": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "watchlist_ref",
+                      "subject_ref",
+                      "action",
+                      "decision_ref"
+                    ],
+                    "properties": {
+                      "watchlist_ref": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      },
+                      "subject_ref": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      },
+                      "action": {
+                        "enum": [
+                          "add",
+                          "remove"
+                        ]
+                      },
+                      "decision_ref": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "command_type",
+                  "payload"
+                ],
+                "properties": {
+                  "command_type": {
+                    "const": "face-id.enrollment.quality.review.v1"
+                  },
+                  "target": {
+                    "const": "face-id"
+                  },
+                  "capability": {
+                    "const": "FACE_ID_ENROLLMENT_REVIEW"
+                  },
+                  "payload": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "session_ref",
+                      "quality_evidence_ref",
+                      "decision"
+                    ],
+                    "properties": {
+                      "session_ref": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      },
+                      "quality_evidence_ref": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      },
+                      "decision": {
+                        "enum": [
+                          "accept",
+                          "reject",
+                          "needs_review"
+                        ]
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "command_type",
+                  "payload"
+                ],
+                "properties": {
+                  "command_type": {
+                    "const": "face-id.duplicate.review.resolve.v1"
+                  },
+                  "target": {
+                    "const": "face-id"
+                  },
+                  "capability": {
+                    "const": "FACE_ID_ENROLLMENT_REVIEW"
+                  },
+                  "payload": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "review_ref",
+                      "candidate_subject_ref",
+                      "evidence_ref",
+                      "resolution"
+                    ],
+                    "properties": {
+                      "review_ref": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      },
+                      "candidate_subject_ref": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      },
+                      "evidence_ref": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      },
+                      "resolution": {
+                        "enum": [
+                          "distinct",
+                          "same_subject_candidate",
+                          "needs_review"
+                        ]
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "command_type",
+                  "payload"
+                ],
+                "properties": {
+                  "command_type": {
+                    "const": "camera-gateway.event.normalize.v1"
+                  },
+                  "target": {
+                    "const": "camera-gateway"
+                  },
+                  "capability": {
+                    "const": "CAMERA_EVENT_NORMALIZATION"
+                  },
+                  "payload": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "event_ref",
+                      "camera_ref",
+                      "event_kind",
+                      "observed_at",
+                      "source_version",
+                      "heuristic"
+                    ],
+                    "properties": {
+                      "event_ref": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      },
+                      "camera_ref": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      },
+                      "event_kind": {
+                        "enum": [
+                          "motion",
+                          "scene_change",
+                          "tamper",
+                          "health"
+                        ]
+                      },
+                      "observed_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "maxLength": 40
+                      },
+                      "source_version": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                      },
+                      "heuristic": {
+                        "type": "boolean"
+                      }
+                    }
+                  }
+                }
               }
             ]
           }
@@ -2398,6 +3420,142 @@
             "duration_elapsed",
             "failsafe"
           ]
+        }
+      }
+    },
+    "face-id.watchlist.membership.update.v1": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "watchlist_ref",
+        "subject_ref",
+        "membership_ref",
+        "state",
+        "audit_ref"
+      ],
+      "properties": {
+        "watchlist_ref": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+        },
+        "subject_ref": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+        },
+        "membership_ref": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+        },
+        "state": {
+          "enum": [
+            "present",
+            "absent"
+          ]
+        },
+        "audit_ref": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+        }
+      }
+    },
+    "face-id.enrollment.quality.review.v1": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "session_ref",
+        "review_ref",
+        "decision",
+        "audit_ref",
+        "identity_asserted"
+      ],
+      "properties": {
+        "session_ref": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+        },
+        "review_ref": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+        },
+        "decision": {
+          "enum": [
+            "accept",
+            "reject",
+            "needs_review"
+          ]
+        },
+        "audit_ref": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+        },
+        "identity_asserted": {
+          "const": false
+        }
+      }
+    },
+    "face-id.duplicate.review.resolve.v1": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "review_ref",
+        "resolution_ref",
+        "resolution",
+        "audit_ref",
+        "auto_merged",
+        "identity_asserted"
+      ],
+      "properties": {
+        "review_ref": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+        },
+        "resolution_ref": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+        },
+        "resolution": {
+          "enum": [
+            "distinct",
+            "same_subject_candidate",
+            "needs_review"
+          ]
+        },
+        "audit_ref": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+        },
+        "auto_merged": {
+          "const": false
+        },
+        "identity_asserted": {
+          "const": false
+        }
+      }
+    },
+    "camera-gateway.event.normalize.v1": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_ref",
+        "camera_ref",
+        "normalized_event_ref",
+        "stored_raw_frame"
+      ],
+      "properties": {
+        "event_ref": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+        },
+        "camera_ref": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+        },
+        "normalized_event_ref": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+        },
+        "stored_raw_frame": {
+          "const": false
         }
       }
     }

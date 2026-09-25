@@ -50,9 +50,9 @@
     },
     {
       "connector_id": "face-id",
-      "prefix": "face-id.verify.",
+      "prefix": "face-id.watchlist.",
       "readback_required": true,
-      "required_capability": "FACE_ID_VERIFY",
+      "required_capability": "FACE_ID_WATCHLIST_REFERENCE",
       "timeout_seconds": 30,
       "unknown_outcome_requires_readback": true
     },

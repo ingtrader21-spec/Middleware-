@@ -307,6 +307,39 @@
         "staging"
       ],
       "campaign_scoped": false
+    },
+    "FACE_ID_WATCHLIST_REFERENCE": {
+      "classification": "external_effect",
+      "effect_flags": [],
+      "umbrella_controls": [
+        "EXTERNAL_DELIVERY_ENABLED"
+      ],
+      "environments": [
+        "staging"
+      ],
+      "campaign_scoped": false
+    },
+    "FACE_ID_ENROLLMENT_REVIEW": {
+      "classification": "external_effect",
+      "effect_flags": [],
+      "umbrella_controls": [
+        "EXTERNAL_DELIVERY_ENABLED"
+      ],
+      "environments": [
+        "staging"
+      ],
+      "campaign_scoped": false
+    },
+    "CAMERA_EVENT_NORMALIZATION": {
+      "classification": "external_effect",
+      "effect_flags": [],
+      "umbrella_controls": [
+        "EXTERNAL_DELIVERY_ENABLED"
+      ],
+      "environments": [
+        "staging"
+      ],
+      "campaign_scoped": false
     }
   },
   "limits": {

@@ -281,8 +281,19 @@ class IdentityServiceAdapter(BaseAdapter):
             ):
                 result = raw.get("result")
                 validate_schema(MISSION_RESULTS[operation.command_type], result)
-                for field in ("event_ref", "camera_ref"):
-                    if field in result and result[field] != context.payload.get(field):
+                for field in (
+                    "event_ref",
+                    "camera_ref",
+                    "watchlist_ref",
+                    "subject_ref",
+                    "session_ref",
+                    "review_ref",
+                ):
+                    if (
+                        field in result
+                        and field in context.payload
+                        and result[field] != context.payload[field]
+                    ):
                         return ReadbackResult(ReadbackStatus.MISMATCH)
             status = {
                 "completed": ReadbackStatus.MATCHED,

@@ -308,7 +308,8 @@
       "allowed_command_prefixes": [
         "face-id.verify.",
         "face-id.access.",
-        "camera-gateway.ptz."
+        "camera-gateway.ptz.",
+        "face-id.watchlist."
       ],
       "allowed_targets": [
         "face-id",
@@ -320,18 +321,24 @@
     "face-id-reviewer": {
       "command_scope": "platform.command",
       "status_scope": "platform.command.read",
-      "allowed_command_prefixes": [],
-      "allowed_targets": [],
-      "connector_commands_allowed": false,
+      "allowed_command_prefixes": [
+        "face-id.duplicate."
+      ],
+      "allowed_targets": [
+        "face-id"
+      ],
       "compatibility_only": false,
       "staging_auth_matrix": false
     },
     "face-id-enrollment": {
       "command_scope": "platform.command",
       "status_scope": "platform.command.read",
-      "allowed_command_prefixes": [],
-      "allowed_targets": [],
-      "connector_commands_allowed": false,
+      "allowed_command_prefixes": [
+        "face-id.enrollment."
+      ],
+      "allowed_targets": [
+        "face-id"
+      ],
       "compatibility_only": false,
       "staging_auth_matrix": false
     },
@@ -352,6 +359,18 @@
       ],
       "allowed_targets": [
         "face-id"
+      ],
+      "compatibility_only": false,
+      "staging_auth_matrix": false
+    },
+    "camera-gateway-service": {
+      "command_scope": "platform.command",
+      "status_scope": "platform.command.read",
+      "allowed_command_prefixes": [
+        "camera-gateway.event."
+      ],
+      "allowed_targets": [
+        "camera-gateway"
       ],
       "compatibility_only": false,
       "staging_auth_matrix": false

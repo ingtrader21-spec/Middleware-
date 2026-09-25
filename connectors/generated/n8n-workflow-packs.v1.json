@@ -28,6 +28,7 @@
       "direct_n8n_access": false,
       "workflow_families": [
         "camera-gateway.capture",
+        "camera-gateway.event",
         "camera-gateway.ptz"
       ]
     },
@@ -39,8 +40,11 @@
       "direct_n8n_access": false,
       "workflow_families": [
         "face-id.access",
+        "face-id.duplicate",
+        "face-id.enrollment",
         "face-id.presence",
-        "face-id.verify"
+        "face-id.verify",
+        "face-id.watchlist"
       ]
     },
     {
