@@ -41,7 +41,8 @@
       "command_prefixes": [
         "camera-gateway.capture.",
         "camera-gateway.ptz.",
-        "camera-gateway.event."
+        "camera-gateway.event.",
+        "camera-gateway.maintenance."
       ],
       "direct_n8n": false
     },

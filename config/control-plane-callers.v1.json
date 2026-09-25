@@ -309,7 +309,8 @@
         "face-id.verify.",
         "face-id.access.",
         "camera-gateway.ptz.",
-        "face-id.watchlist."
+        "face-id.watchlist.",
+        "camera-gateway.maintenance."
       ],
       "allowed_targets": [
         "face-id",

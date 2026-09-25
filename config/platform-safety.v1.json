@@ -340,6 +340,17 @@
         "staging"
       ],
       "campaign_scoped": false
+    },
+    "CAMERA_MAINTENANCE_METADATA": {
+      "classification": "external_effect",
+      "effect_flags": [],
+      "umbrella_controls": [
+        "EXTERNAL_DELIVERY_ENABLED"
+      ],
+      "environments": [
+        "staging"
+      ],
+      "campaign_scoped": false
     }
   },
   "limits": {

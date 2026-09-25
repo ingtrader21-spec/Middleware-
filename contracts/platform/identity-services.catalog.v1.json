@@ -1252,5 +1252,704 @@
         "replication-recovery": "/v1/postgresql/recovery"
       }
     }
+  },
+  "service_readback_contracts": {
+    "camera-contract-version": {
+      "service_id": "camera-gateway",
+      "method": "GET",
+      "path": "/v1/contract-version",
+      "scope": "connector.camera-gateway.read",
+      "resource_param": null,
+      "state": "IMPLEMENTED_READ_ONLY",
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "service",
+          "service_version",
+          "api_version",
+          "contract_revision",
+          "capability_sha256",
+          "middleware_authority"
+        ],
+        "properties": {
+          "service": {
+            "const": "camera-gateway"
+          },
+          "service_version": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+          },
+          "api_version": {
+            "const": "v1"
+          },
+          "contract_revision": {
+            "const": "camera-gateway.missions-11-22.v1"
+          },
+          "capability_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "middleware_authority": {
+            "const": true
+          }
+        }
+      }
+    },
+    "camera-configuration-snapshot": {
+      "service_id": "camera-gateway",
+      "method": "GET",
+      "path": "/v1/cameras/{camera_ref}/configuration-snapshot",
+      "scope": "connector.camera-gateway.read",
+      "resource_param": "camera_ref",
+      "state": "IMPLEMENTED_READ_ONLY",
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "camera_id",
+          "observed_at",
+          "config_sha256",
+          "enabled",
+          "vendor",
+          "rtsp_transport",
+          "onvif_enabled",
+          "credential_ref_present",
+          "labels_count"
+        ],
+        "properties": {
+          "camera_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "maxLength": 40
+          },
+          "config_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "vendor": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+          },
+          "rtsp_transport": {
+            "enum": [
+              "tcp",
+              "udp"
+            ]
+          },
+          "onvif_enabled": {
+            "type": "boolean"
+          },
+          "credential_ref_present": {
+            "type": "boolean"
+          },
+          "labels_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 32
+          }
+        }
+      }
+    },
+    "camera-connectivity-evidence": {
+      "service_id": "camera-gateway",
+      "method": "GET",
+      "path": "/v1/cameras/{camera_ref}/connectivity-evidence",
+      "scope": "connector.camera-gateway.read",
+      "resource_param": "camera_ref",
+      "state": "IMPLEMENTED_READ_ONLY",
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "camera_id",
+          "observed_at",
+          "status",
+          "last_success_at",
+          "last_error_code",
+          "recent_event_count"
+        ],
+        "properties": {
+          "camera_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "maxLength": 40
+          },
+          "status": {
+            "enum": [
+              "unknown",
+              "online",
+              "offline",
+              "auth_failed",
+              "error"
+            ]
+          },
+          "last_success_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "maxLength": 40
+          },
+          "last_error_code": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 128
+          },
+          "recent_event_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 200
+          }
+        }
+      }
+    },
+    "camera-stream-quality": {
+      "service_id": "camera-gateway",
+      "method": "GET",
+      "path": "/v1/cameras/{camera_ref}/stream-quality",
+      "scope": "connector.camera-gateway.read",
+      "resource_param": "camera_ref",
+      "state": "IMPLEMENTED_READ_ONLY",
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "camera_id",
+          "observed_at",
+          "status",
+          "codec",
+          "width",
+          "height",
+          "fps",
+          "last_frame_at",
+          "stale"
+        ],
+        "properties": {
+          "camera_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "maxLength": 40
+          },
+          "status": {
+            "enum": [
+              "known",
+              "unknown"
+            ]
+          },
+          "codec": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 64
+          },
+          "width": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1
+          },
+          "height": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1
+          },
+          "fps": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "last_frame_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "maxLength": 40
+          },
+          "stale": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "camera-maintenance-state": {
+      "service_id": "camera-gateway",
+      "method": "GET",
+      "path": "/v1/cameras/{camera_ref}/maintenance",
+      "scope": "connector.camera-gateway.read",
+      "resource_param": "camera_ref",
+      "state": "IMPLEMENTED_READ_ONLY",
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "camera_id",
+          "enabled",
+          "reason_ref",
+          "changed_at"
+        ],
+        "properties": {
+          "camera_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "reason_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "changed_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "maxLength": 40
+          }
+        }
+      }
+    },
+    "camera-inventory-search": {
+      "service_id": "camera-gateway",
+      "method": "GET",
+      "path": "/v1/camera-inventory/search",
+      "scope": "connector.camera-gateway.read",
+      "resource_param": null,
+      "state": "IMPLEMENTED_READ_ONLY",
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "total"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 200,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 200
+          }
+        }
+      }
+    },
+    "camera-compatibility": {
+      "service_id": "camera-gateway",
+      "method": "GET",
+      "path": "/v1/cameras/{camera_ref}/compatibility",
+      "scope": "connector.camera-gateway.read",
+      "resource_param": "camera_ref",
+      "state": "IMPLEMENTED_READ_ONLY",
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "camera_id",
+          "compatible",
+          "checks",
+          "warnings"
+        ],
+        "properties": {
+          "camera_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "compatible": {
+            "type": "boolean"
+          },
+          "checks": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "maxProperties": 32
+          },
+          "warnings": {
+            "type": "array",
+            "maxItems": 32,
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+            }
+          }
+        }
+      }
+    },
+    "camera-event-page": {
+      "service_id": "camera-gateway",
+      "method": "GET",
+      "path": "/v1/cameras/{camera_ref}/events/page",
+      "scope": "connector.camera-gateway.read",
+      "resource_param": "camera_ref",
+      "state": "IMPLEMENTED_READ_ONLY",
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "next_offset",
+          "limit",
+          "offset"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 200,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "camera_id",
+                "observed_at",
+                "kind",
+                "source",
+                "source_version",
+                "heuristic",
+                "confidence_kind",
+                "signal"
+              ],
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "camera_id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                },
+                "observed_at": {
+                  "type": "string",
+                  "format": "date-time",
+                  "maxLength": 40
+                },
+                "kind": {
+                  "enum": [
+                    "motion",
+                    "scene_change",
+                    "tamper",
+                    "health"
+                  ]
+                },
+                "source": {
+                  "enum": [
+                    "gateway_health",
+                    "frame_delta",
+                    "camera_native"
+                  ]
+                },
+                "source_version": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+                },
+                "heuristic": {
+                  "type": "boolean"
+                },
+                "confidence_kind": {
+                  "enum": [
+                    "heuristic",
+                    "observed"
+                  ]
+                },
+                "score": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "signal": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                }
+              }
+            }
+          },
+          "next_offset": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "camera-health-slo": {
+      "service_id": "camera-gateway",
+      "method": "GET",
+      "path": "/v1/cameras/{camera_ref}/health/slo",
+      "scope": "connector.camera-gateway.read",
+      "resource_param": "camera_ref",
+      "state": "IMPLEMENTED_READ_ONLY",
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "camera_id",
+          "observed_at",
+          "health_fresh",
+          "frame_fresh",
+          "last_success_at",
+          "last_frame_at",
+          "status"
+        ],
+        "properties": {
+          "camera_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "maxLength": 40
+          },
+          "health_fresh": {
+            "type": "boolean"
+          },
+          "frame_fresh": {
+            "type": "boolean"
+          },
+          "last_success_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "maxLength": 40
+          },
+          "last_frame_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "maxLength": 40
+          },
+          "status": {
+            "enum": [
+              "healthy",
+              "degraded",
+              "unknown"
+            ]
+          }
+        }
+      }
+    },
+    "camera-secret-reference-health": {
+      "service_id": "camera-gateway",
+      "method": "GET",
+      "path": "/v1/cameras/{camera_ref}/credentials/reference-health",
+      "scope": "connector.camera-gateway.read",
+      "resource_param": "camera_ref",
+      "state": "IMPLEMENTED_READ_ONLY",
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "camera_id",
+          "configured",
+          "scheme",
+          "fingerprint",
+          "reference_valid",
+          "last_successful_auth"
+        ],
+        "properties": {
+          "camera_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "configured": {
+            "type": "boolean"
+          },
+          "scheme": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "openbao",
+              null
+            ]
+          },
+          "fingerprint": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[0-9a-f]{16}$"
+          },
+          "reference_valid": {
+            "type": "boolean"
+          },
+          "last_successful_auth": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "maxLength": 40
+          }
+        }
+      }
+    },
+    "camera-retention-policy": {
+      "service_id": "camera-gateway",
+      "method": "GET",
+      "path": "/v1/cameras/{camera_ref}/retention-policy",
+      "scope": "connector.camera-gateway.read",
+      "resource_param": "camera_ref",
+      "state": "IMPLEMENTED_READ_ONLY",
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "camera_id",
+          "clip_retention_s",
+          "rolling_buffer_retention_s",
+          "health_event_limit",
+          "normalized_event_limit",
+          "raw_frames_persisted"
+        ],
+        "properties": {
+          "camera_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "clip_retention_s": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "rolling_buffer_retention_s": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "health_event_limit": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "normalized_event_limit": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "raw_frames_persisted": {
+            "const": false
+          }
+        }
+      }
+    },
+    "camera-diagnostics": {
+      "service_id": "camera-gateway",
+      "method": "GET",
+      "path": "/v1/cameras/{camera_ref}/diagnostics",
+      "scope": "connector.camera-gateway.read",
+      "resource_param": "camera_ref",
+      "state": "IMPLEMENTED_READ_ONLY",
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "camera_id",
+          "observed_at",
+          "health_status",
+          "inventory_stale",
+          "credentials_configured",
+          "rolling_buffer_enabled",
+          "maintenance_enabled",
+          "clock_drift_ms",
+          "secrets_exposed"
+        ],
+        "properties": {
+          "camera_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "maxLength": 40
+          },
+          "health_status": {
+            "enum": [
+              "unknown",
+              "online",
+              "offline",
+              "auth_failed",
+              "error"
+            ]
+          },
+          "inventory_stale": {
+            "type": "boolean"
+          },
+          "credentials_configured": {
+            "type": "boolean"
+          },
+          "rolling_buffer_enabled": {
+            "type": "boolean"
+          },
+          "maintenance_enabled": {
+            "type": "boolean"
+          },
+          "clock_drift_ms": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "secrets_exposed": {
+            "const": false
+          }
+        }
+      }
+    }
   }
 }

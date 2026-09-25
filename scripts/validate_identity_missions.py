@@ -9,7 +9,12 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from jsonschema import Draft202012Validator  # noqa: E402
-from app.identity_missions import MISSION_COMMANDS, MISSION_RESULTS, READBACKS  # noqa: E402
+from app.identity_missions import (  # noqa: E402
+    MISSION_COMMANDS,
+    MISSION_RESULTS,
+    READBACKS,
+    SERVICE_READBACKS,
+)
 from app.commands import CommandPolicyRegistry  # noqa: E402
 from app.control_plane_auth import CONTROL_PLANE_CALLERS  # noqa: E402
 from app.platform.safety import SafetySwitches  # noqa: E402
@@ -30,6 +35,10 @@ def validate() -> None:
     )
     require(spec["x-mission-results"] == MISSION_RESULTS, "result schema drift")
     require(catalog["readback_contracts"] == READBACKS, "observability schema drift")
+    require(
+        catalog["service_readback_contracts"] == SERVICE_READBACKS,
+        "service readback schema drift",
+    )
     policies = CommandPolicyRegistry.load()
     safety = SafetySwitches.load()
     branches = []
@@ -81,6 +90,40 @@ def validate() -> None:
             "readback drift",
         )
         Draft202012Validator.check_schema(value["schema"])
+    for name, value in SERVICE_READBACKS.items():
+        route = spec["paths"][value["path"]]
+        require(set(route) == {"get"}, f"{name}: service readback must be GET-only")
+        operation = route["get"]
+        require(
+            operation["responses"]["200"]["content"]["application/json"]["schema"]
+            == value["schema"],
+            f"{name}: service readback schema drift",
+        )
+        require(
+            operation["x-required-scope"] == value["scope"]
+            and operation["x-service-id"] == value["service_id"]
+            and operation["x-caller-supplied-url"] is False,
+            f"{name}: service readback authority drift",
+        )
+        Draft202012Validator.check_schema(value["schema"])
+        resource_param = value["resource_param"]
+        parameters = operation["parameters"]
+        if resource_param is None:
+            require(
+                not any(p.get("in") == "path" for p in parameters),
+                f"{name}: unexpected path parameter",
+            )
+        else:
+            require(
+                any(
+                    p.get("in") == "path"
+                    and p.get("name") == resource_param
+                    and p.get("required") is True
+                    for p in parameters
+                ),
+                f"{name}: resource parameter drift",
+            )
+
     matrix = json.loads(
         (ROOT / "contracts/platform/face-id-authorization.v1.json").read_text()
     )

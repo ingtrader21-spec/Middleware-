@@ -358,6 +358,7 @@ async def assert_kernel_delivery(cmd, test_settings, result=None):
             "face-id.enrollment.review",
             "camera-gateway.ptz.control",
             "camera-gateway.events.write",
+            "camera-gateway.maintenance.write",
         ),
         caller=ControlPlaneCaller(
             client_id="middleware-api",

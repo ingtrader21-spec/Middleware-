@@ -29,6 +29,7 @@
       "workflow_families": [
         "camera-gateway.capture",
         "camera-gateway.event",
+        "camera-gateway.maintenance",
         "camera-gateway.ptz"
       ]
     },
