@@ -2454,6 +2454,42 @@
       "upstream": "middleware-integration-api:8095"
     },
     {
+      "operation_id": "list_operations_platform_v1_operations_get",
+      "method": "GET",
+      "path": "/platform/v1/operations",
+      "classification": "shared_edge",
+      "calling_client": "platform-command-client",
+      "audience": "middleware-api",
+      "scope": "platform.command.read",
+      "auth": "service-or-user-jwt",
+      "request_schema": "none",
+      "response_schema": "#/components/schemas/OperationList",
+      "idempotency": {
+        "required": false,
+        "carrier": "none",
+        "replay": "safe-read"
+      },
+      "correlation_fields": [
+        "X-Correlation-ID",
+        "body.correlation_id"
+      ],
+      "echo_fields": [
+        "X-Correlation-ID",
+        "body.correlation_id"
+      ],
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        429,
+        503
+      ],
+      "owner": "middleware",
+      "upstream": "middleware-integration-api:8095"
+    },
+    {
       "operation_id": "get_operation_platform_v1_operations__operation_id__get",
       "method": "GET",
       "path": "/platform/v1/operations/{operation_id}",
@@ -2464,6 +2500,42 @@
       "auth": "service-or-user-jwt",
       "request_schema": "none",
       "response_schema": "#/components/schemas/OperationStatus",
+      "idempotency": {
+        "required": false,
+        "carrier": "none",
+        "replay": "safe-read"
+      },
+      "correlation_fields": [
+        "X-Correlation-ID",
+        "body.correlation_id"
+      ],
+      "echo_fields": [
+        "X-Correlation-ID",
+        "body.correlation_id"
+      ],
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        429,
+        503
+      ],
+      "owner": "middleware",
+      "upstream": "middleware-integration-api:8095"
+    },
+    {
+      "operation_id": "get_attempts_platform_v1_operations__operation_id__attempts_get",
+      "method": "GET",
+      "path": "/platform/v1/operations/{operation_id}/attempts",
+      "classification": "shared_edge",
+      "calling_client": "platform-command-client",
+      "audience": "middleware-api",
+      "scope": "platform.command.read",
+      "auth": "service-or-user-jwt",
+      "request_schema": "none",
+      "response_schema": "#/components/schemas/AttemptList",
       "idempotency": {
         "required": false,
         "carrier": "none",

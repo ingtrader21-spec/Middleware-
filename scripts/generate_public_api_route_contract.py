@@ -52,7 +52,9 @@ def _schema(operation_id: str, operation: dict[str, Any], *, request: bool) -> s
 
 KERNEL_ROUTE_SCOPES = {
     ("POST", "/platform/v1/commands"): "platform.command",
+    ("GET", "/platform/v1/operations"): "platform.command.read",
     ("GET", "/platform/v1/operations/{operation_id}"): "platform.command.read",
+    ("GET", "/platform/v1/operations/{operation_id}/attempts"): "platform.command.read",
     ("GET", "/platform/v1/operations/{operation_id}/timeline"): "platform.command.read",
     ("POST", "/platform/v1/operations/{operation_id}/cancel"): "platform.command",
     ("POST", "/platform/v1/operations/{operation_id}/replay"): "platform.command.replay",

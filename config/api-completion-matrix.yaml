@@ -899,8 +899,20 @@ operations:
   runtime_state: IMPLEMENTED
 - domain: platform
   method: GET
+  path: /platform/v1/operations
+  canonical_operation_id: list_operations_platform_v1_operations_get
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: platform
+  method: GET
   path: /platform/v1/operations/{operation_id}
   canonical_operation_id: get_operation_platform_v1_operations__operation_id__get
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: platform
+  method: GET
+  path: /platform/v1/operations/{operation_id}/attempts
+  canonical_operation_id: get_attempts_platform_v1_operations__operation_id__attempts_get
   implementation_file: registered FastAPI runtime
   runtime_state: IMPLEMENTED
 - domain: platform

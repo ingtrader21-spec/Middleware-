@@ -1,4 +1,4 @@
-"""The canonical V3 kernel surface: six routes under ``/platform/v1``.
+"""The canonical V3 kernel surface under /platform/v1.
 
 Served by every application profile through the router registry, so the
 deployed integration API (8095) exposes them behind Kong. Every handler
@@ -25,7 +25,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.api_inputs import optional_header, required_header
-from app.commands import API_OPERATION_STATES, CommandCapabilityDisabled, CommandEnvelope, CommandNotFound, CommandOperation, OperationEvent, redact_metadata
+from app.commands import API_OPERATION_STATES, CommandCapabilityDisabled, CommandEnvelope, CommandNotFound, CommandOperation, OperationAttempt, OperationEvent, redact_metadata
 from app.platform.kernel import PLATFORM_OPERATOR_ROLE, SCOPE_COMMAND, SCOPE_COMMAND_READ, SCOPE_COMMAND_REPLAY
 from app.platform.principal import KernelPrincipal, authenticate
 from app.platform.resilience import ReplayMode
@@ -113,6 +113,32 @@ class OperationStatus(BaseModel):
     cancelled_at: datetime | None = None
     cancellation_reason: str | None = None
     reconciliation: dict[str, Any] | None = None
+
+
+class OperationList(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    items: list[OperationStatus]
+
+
+class AttemptStatus(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    attempt_id: int
+    operation_id: UUID
+    attempt_number: int
+    state: str
+    provider_operation_id: str | None = None
+    error_code: str | None = None
+    started_at: datetime
+    finished_at: datetime | None = None
+
+
+class AttemptList(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    operation_id: UUID
+    items: list[AttemptStatus]
 
 
 class TimelineEvent(BaseModel):
@@ -240,6 +266,34 @@ def _status(operation: CommandOperation) -> OperationStatus:
     )
 
 
+def _attempt_status(attempt: OperationAttempt) -> AttemptStatus:
+    return AttemptStatus(
+        attempt_id=attempt.attempt_id,
+        operation_id=attempt.operation_id,
+        attempt_number=attempt.attempt_number,
+        state=API_OPERATION_STATES.get(attempt.state, attempt.state.upper()),
+        provider_operation_id=attempt.provider_operation_id,
+        error_code=attempt.safe_error_code,
+        started_at=attempt.started_at,
+        finished_at=attempt.finished_at,
+    )
+
+
+def _operation_state_filter(value: str | None) -> str | None:
+    if value is None:
+        return None
+    normalized = value.strip()
+    if not normalized:
+        raise RequestValidationError("state filter must not be empty")
+    if normalized in API_OPERATION_STATES:
+        return normalized
+    reverse = {public: internal for internal, public in API_OPERATION_STATES.items()}
+    internal = reverse.get(normalized.upper())
+    if internal is None:
+        raise RequestValidationError("unknown operation state filter")
+    return internal
+
+
 def _event_type(event: OperationEvent) -> str:
     metadata = event.safe_metadata or {}
     if event.previous_state is None:
@@ -354,6 +408,34 @@ async def submit_command(body: KernelCommandRequest, request: Request) -> JSONRe
 
 
 # ----------------------------------------------------------------------
+# GET /platform/v1/operations
+# ----------------------------------------------------------------------
+@router.get("/operations", response_model=OperationList)
+async def list_operations(
+    request: Request,
+    limit: int = 100,
+    state: str | None = None,
+    command_type: str | None = None,
+) -> OperationList:
+    principal = await authenticate(request, required_scope=SCOPE_COMMAND_READ)
+    _runtime_container, platform = _runtime(request)
+    tenant_id = _tenant_for_read(request, principal)
+    if limit < 1 or limit > 100:
+        raise RequestValidationError("limit must be between 1 and 100")
+    if command_type is not None:
+        command_type = command_type.strip()
+        if not command_type or len(command_type) > 160:
+            raise RequestValidationError("command_type filter is invalid")
+    operations = await platform.kernel.operations(
+        tenant_id,
+        limit=limit,
+        state=_operation_state_filter(state),
+        command_type=command_type,
+    )
+    return OperationList(items=[_status(operation) for operation in operations])
+
+
+# ----------------------------------------------------------------------
 # GET /platform/v1/operations/{operation_id}
 # ----------------------------------------------------------------------
 @router.get("/operations/{operation_id}", response_model=OperationStatus)
@@ -376,6 +458,28 @@ async def get_timeline(operation_id: UUID, request: Request) -> JSONResponse:
     operation = await platform.kernel.get(tenant_id, operation_id)
     events = await platform.kernel.timeline(tenant_id, operation_id)
     return _respond(200, Timeline(operation_id=operation_id, items=_timeline(operation, events)), correlation_id=operation.correlation_id)
+
+
+# ----------------------------------------------------------------------
+# GET /platform/v1/operations/{operation_id}/attempts
+# ----------------------------------------------------------------------
+@router.get("/operations/{operation_id}/attempts", response_model=AttemptList)
+async def get_attempts(operation_id: UUID, request: Request, limit: int = 100) -> JSONResponse:
+    principal = await authenticate(request, required_scope=SCOPE_COMMAND_READ)
+    _runtime_container, platform = _runtime(request)
+    tenant_id = _tenant_for_read(request, principal)
+    if limit < 1 or limit > 100:
+        raise RequestValidationError("limit must be between 1 and 100")
+    operation = await platform.kernel.get(tenant_id, operation_id)
+    attempts = await platform.kernel.attempts(tenant_id, operation_id, limit=limit)
+    return _respond(
+        200,
+        AttemptList(
+            operation_id=operation_id,
+            items=[_attempt_status(attempt) for attempt in attempts],
+        ),
+        correlation_id=operation.correlation_id,
+    )
 
 
 # ----------------------------------------------------------------------
