@@ -319,3 +319,131 @@ def test_local_effectful_requests_require_explicit_opt_in() -> None:
 def test_safe_methods_are_not_skipped_by_effect_guard() -> None:
     for method in ("GET", "HEAD", "OPTIONS"):
         assert _run_collection_prerequest(method, "production", "false") is False
+
+
+def _database_collection_prerequest() -> str:
+    path = (
+        ROOT / "postman" / "collections"
+        / "Middleware-V3-Database-Certification.postman_collection.json"
+    )
+    collection = json.loads(path.read_text(encoding="utf-8"))
+    return "\n".join(collection["event"][0]["script"]["exec"])
+
+
+def _run_database_prerequest(
+    *,
+    method: str,
+    environment: str,
+    allow_mutations: str,
+    private_target: bool,
+    private_base_url: str,
+) -> tuple[int, str]:
+    script = _database_collection_prerequest()
+    values = json.dumps(
+        {
+            "{{environment}}": environment,
+            "{{allow_database_mutations}}": allow_mutations,
+            "{{db_private_base_url}}": private_base_url,
+        }
+    )
+    marker = "private" if private_target else None
+    node_source = f"""
+const values = {values};
+const headers = new Map();
+if ({json.dumps(private_target)}) headers.set('X-Codestra-Certification-Target', {json.dumps(marker)});
+const pm = {{
+  request: {{
+    method: {json.dumps(method)},
+    headers: {{
+      get: (key) => headers.get(key),
+      remove: (key) => headers.delete(key),
+    }},
+  }},
+  variables: {{ replaceIn: (value) => values[value] ?? value }},
+}};
+try {{
+{script}
+  process.stdout.write(JSON.stringify({{ok: true, markerRemoved: !headers.has('X-Codestra-Certification-Target')}}));
+}} catch (error) {{
+  process.stdout.write(JSON.stringify({{ok: false, message: String(error.message || error)}}));
+  process.exitCode = 7;
+}}
+"""
+    result = subprocess.run(
+        ["node", "-e", node_source],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return result.returncode, result.stdout
+
+
+def test_database_collection_javascript_is_syntactically_valid() -> None:
+    script = _database_collection_prerequest()
+    result = subprocess.run(
+        ["node", "-e", f"new Function({json.dumps(script)});"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+     )
+    assert result.returncode == 0, result.stderr
+
+
+def test_database_collection_production_mutations_are_always_denied() -> None:
+    for environment in ("production", "prod"):
+        for allow in ("false", "true"):
+            code, output = _run_database_prerequest(
+                method="POST",
+                environment=environment,
+                allow_mutations=allow,
+                private_target=False,
+                private_base_url="http://127.0.0.1:8095",
+            )
+            assert code == 7
+            assert "PRODUCTION_DATABASE_MUTATION_GATED" in output
+
+
+def test_database_collection_nonproduction_mutation_requires_opt_in() -> None:
+    denied_code, denied_output = _run_database_prerequest(
+        method="POST",
+        environment="staging",
+        allow_mutations="false",
+        private_target=False,
+        private_base_url="http://127.0.0.1:8095",
+     )
+    assert denied_code == 7
+    assert "DATABASE_MUTATION_OPT_IN_REQUIRED" in denied_output
+
+    allowed_code, allowed_output = _run_database_prerequest(
+        method="POST",
+        environment="staging",
+        allow_mutations="true",
+        private_target=False,
+        private_base_url="http://127.0.0.1:8095",
+     )
+    assert allowed_code == 0
+    assert json.loads(allowed_output)["ok"] is True
+
+
+def test_database_private_target_requires_resolved_base_and_strips_marker() -> None:
+    code, output = _run_database_prerequest(
+        method="GET",
+        environment="staging",
+        allow_mutations="false",
+        private_target=True,
+        private_base_url="{{db_private_base_url}}",
+     )
+    assert code == 7
+    assert "DB_PRIVATE_BASE_URL_REQUIRED" in output
+
+    code, output = _run_database_prerequest(
+        method="GET",
+        environment="staging",
+        allow_mutations="false",
+        private_target=True,
+        private_base_url="http://127.0.0.1:8095",
+     )
+    assert code == 0
+    assert json.loads(output)["markerRemoved"] is True

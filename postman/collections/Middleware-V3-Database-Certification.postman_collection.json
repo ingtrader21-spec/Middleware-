@@ -10,19 +10,22 @@
       "script": {
         "type": "text/javascript",
         "exec": [
-          "const env = String(pm.variables.replaceIn({{environment}}) || local).trim().toLowerCase();",
-          "const allow = String(pm.variables.replaceIn({{allow_database_mutations}}) || false).toLowerCase() === true;",
-          "const mutating = [POST,PUT,PATCH,DELETE].includes(String(pm.request.method || ).toUpperCase());",
-          "const privateTarget = pm.request.headers.get(X-Codestra-Certification-Target) === private;",
-          "pm.request.headers.remove(X-Codestra-Certification-Target);",
+          "const env = String(pm.variables.replaceIn('{{environment}}') || 'local').trim().toLowerCase();",
+          "const allow = String(pm.variables.replaceIn('{{allow_database_mutations}}') || 'false').trim().toLowerCase() === 'true';",
+          "const mutating = ['POST','PUT','PATCH','DELETE'].includes(String(pm.request.method || '').toUpperCase());",
+          "const privateTarget = pm.request.headers.get('X-Codestra-Certification-Target') === 'private';",
+          "pm.request.headers.remove('X-Codestra-Certification-Target');",
           "if (privateTarget) {",
-          "  const privateBase = String(pm.variables.replaceIn({{db_private_base_url}}) || ).trim();",
-          "  if (!privateBase || privateBase.includes({{)) {",
-          "    throw new Error(DB_PRIVATE_BASE_URL_REQUIRED);",
+          "  const privateBase = String(pm.variables.replaceIn('{{db_private_base_url}}') || '').trim();",
+          "  if (!privateBase || privateBase.includes('{{')) {",
+          "    throw new Error('DB_PRIVATE_BASE_URL_REQUIRED');",
           "  }",
           "}",
-          "if ([production,prod].includes(env) && mutating) {",
-          "  throw new Error(PRODUCTION_DATABASE_MUTATION_GATED);",
+          "if (['production','prod'].includes(env) && mutating) {",
+          "  throw new Error('PRODUCTION_DATABASE_MUTATION_GATED');",
+          "}",
+          "if (!['production','prod'].includes(env) && mutating && !allow) {",
+          "  throw new Error('DATABASE_MUTATION_OPT_IN_REQUIRED');",
           "}"
         ]
       }
