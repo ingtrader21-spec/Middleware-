@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock
 from uuid import UUID, uuid4
@@ -116,6 +118,20 @@ def delivery_event(**overrides):
     value.update(overrides)
     if value["event_type"] in {"soft_bounce", "hard_bounce"}:
         value["bounce_class"] = "soft" if value["event_type"] == "soft_bounce" else "hard"
+    if "payload_hash" not in overrides:
+        hash_event = {
+            key: item
+            for key, item in value.items()
+            if key not in {"received_at", "payload_hash"}
+        }
+        value["payload_hash"] = hashlib.sha256(
+            json.dumps(
+                hash_event,
+                ensure_ascii=False,
+                separators=(",", ":"),
+                sort_keys=True,
+            ).encode("utf-8")
+        ).hexdigest()
     return value
 
 
