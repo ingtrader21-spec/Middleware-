@@ -50,11 +50,19 @@ def validate_callback_preflight(repo_root: str | Path) -> CallbackPreflight:
     auth = ingress.get("authentication") or {}
     if auth.get("algorithm") != "HMAC-SHA256":
         raise CallbackCertificationError("callback signature algorithm mismatch")
-    ttl = int(auth.get("freshness_ttl_seconds") or 0)
+    try:
+        ttl = int(auth.get("freshness_ttl_seconds") or 0)
+    except (TypeError, ValueError) as error:
+        raise CallbackCertificationError("callback freshness TTL must be an integer") from error
     if ttl <= 0 or ttl > 300:
         raise CallbackCertificationError("callback freshness TTL must be 1..300 seconds")
 
-    headers = set(ingress.get("required_headers") or [])
+    raw_headers = ingress.get("required_headers") or []
+    if not isinstance(raw_headers, list) or any(not isinstance(item, str) for item in raw_headers):
+        raise CallbackCertificationError("required_headers must be a list of strings")
+    if len(raw_headers) != len(set(raw_headers)):
+        raise CallbackCertificationError("required callback headers must be unique")
+    headers = set(raw_headers)
     missing = sorted(_REQUIRED_HEADERS - headers)
     if missing:
         raise CallbackCertificationError("missing required headers: " + ",".join(missing))
@@ -81,6 +89,17 @@ def validate_callback_preflight(repo_root: str | Path) -> CallbackPreflight:
     gates = ingress.get("activation_gates") or {}
     if gates.get("default") is not False:
         raise CallbackCertificationError("callback activation must default off")
+    required_gates = set(gates.get("required") or [])
+    expected_gates = {
+        "TELNEXA_EVENT_INGRESS_ENABLED=true",
+        "SMS_DELIVERY=true",
+        "TELNEXA_EVENT_API_KEY or TELNEXA_EVENT_API_KEY_FILE",
+        "TELNEXA_EVENT_HMAC_SECRET or TELNEXA_EVENT_HMAC_SECRET_FILE",
+    }
+    if required_gates != expected_gates:
+        raise CallbackCertificationError("callback activation gate set drift")
+    if gates.get("provider_credentials_are_separate") is not True:
+        raise CallbackCertificationError("callback provider credentials must remain separate")
 
     live_effects = source_lock.get("liveEffects") or {}
     enabled = [key for key, value in live_effects.items() if value not in (False, 0, "false", "NO")]
