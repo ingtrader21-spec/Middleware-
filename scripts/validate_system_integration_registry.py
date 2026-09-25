@@ -564,7 +564,7 @@ EXPECTED_CANONICAL_ADAPTER_OWNERS = {
     "vicidial-restricted": "appolon1908-hue/Vicidialer-Codestra",
 }
 EXPECTED_CANONICAL_ADAPTER_PROFILES = {
-    "face-id": ("core-communications", "ingtrader21-spec/FACE-ID", ("face-id.",), ()),
+    "face-id": ("core-communications", "ingtrader21-spec/FACE-ID", ("face-id.verify.", "face-id.access.", "face-id.presence."), ()),
     "face-liveness": (
         "core-communications",
         "ingtrader21-spec/Codestra-Face-Liveness",
@@ -574,7 +574,7 @@ EXPECTED_CANONICAL_ADAPTER_PROFILES = {
     "camera-gateway": (
         "core-communications",
         "ingtrader21-spec/Codestra-Camera-Gateway",
-        ("camera-gateway.",),
+        ("camera-gateway.capture.", "camera-gateway.ptz."),
         (),
     ),
     "postgresql": (

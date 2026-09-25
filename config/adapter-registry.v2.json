@@ -35,6 +35,36 @@
       ]
     },
     {
+      "id": "camera-gateway",
+      "cell": "core-communications",
+      "repository": "ingtrader21-spec/Codestra-Camera-Gateway",
+      "command_prefixes": [
+        "camera-gateway.capture.",
+        "camera-gateway.ptz."
+      ],
+      "direct_n8n": false
+    },
+    {
+      "id": "face-id",
+      "cell": "core-communications",
+      "repository": "ingtrader21-spec/FACE-ID",
+      "command_prefixes": [
+        "face-id.verify.",
+        "face-id.access.",
+        "face-id.presence."
+      ],
+      "direct_n8n": false
+    },
+    {
+      "id": "face-liveness",
+      "cell": "core-communications",
+      "repository": "ingtrader21-spec/Codestra-Face-Liveness",
+      "command_prefixes": [
+        "face-liveness."
+      ],
+      "direct_n8n": false
+    },
+    {
       "id": "klyrow-alert-email",
       "cell": "core-communications",
       "repository": "appolon1908-hue/klyrow.com",
@@ -76,6 +106,15 @@
       "repository": "appolon1908-hue/Odoo",
       "command_prefixes": [
         "crm."
+      ],
+      "direct_n8n": false
+    },
+    {
+      "id": "postgresql",
+      "cell": "core-communications",
+      "repository": "ingtrader21-spec/Codestra-PostgreSQL",
+      "command_prefixes": [
+        "postgresql."
       ],
       "direct_n8n": false
     },
@@ -122,42 +161,6 @@
       "repository": "ingtrader21-spec/Evolution-API",
       "command_prefixes": [
         "whatsapp."
-      ],
-      "direct_n8n": false
-    },
-    {
-      "id": "camera-gateway",
-      "cell": "core-communications",
-      "repository": "ingtrader21-spec/Codestra-Camera-Gateway",
-      "command_prefixes": [
-        "camera-gateway."
-      ],
-      "direct_n8n": false
-    },
-    {
-      "id": "face-id",
-      "cell": "core-communications",
-      "repository": "ingtrader21-spec/FACE-ID",
-      "command_prefixes": [
-        "face-id."
-      ],
-      "direct_n8n": false
-    },
-    {
-      "id": "face-liveness",
-      "cell": "core-communications",
-      "repository": "ingtrader21-spec/Codestra-Face-Liveness",
-      "command_prefixes": [
-        "face-liveness."
-      ],
-      "direct_n8n": false
-    },
-    {
-      "id": "postgresql",
-      "cell": "core-communications",
-      "repository": "ingtrader21-spec/Codestra-PostgreSQL",
-      "command_prefixes": [
-        "postgresql."
       ],
       "direct_n8n": false
     }

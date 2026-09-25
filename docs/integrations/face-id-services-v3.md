@@ -8,8 +8,10 @@ these IDs; their active repository lifecycle does not authorize runtime effects.
 
 These source contracts reconcile FACE-ID and introduce Face-Liveness,
 Camera-Gateway and PostgreSQL as independent services. This checkout contained
-no previous FACE-ID route or adapter to migrate. Service implementation and live
-endpoint compatibility remain unverified; no runtime activation is authorized.
+no previous FACE-ID route or adapter to migrate. Readiness aliases and FACE-ID missions 21–25 are now source-verified on the
+integration branches; private command protocol and live compatibility remain
+unverified. See [the five-mission extension](face-id-missions-v3.md) for pinned
+revisions, field mappings and activation gaps. No runtime activation is authorized.
 
 Caddy/Kong → Middleware integration API :8095 → durable command ledger/outbox
 → worker → private service API is the only command path. Middleware owns
@@ -40,7 +42,8 @@ Reuse POST /platform/v1/commands (platform.command), GET
 /platform/v1/operations/{id} and /timeline (platform.command.read).
 The existing JWT validator verifies signature, issuer, audience, expiry and
 registered azp/client; the kernel enforces tenant, actor, target and allowed
-command prefixes. No new caller is enabled. An approved caller registration
+command prefixes. FACE-ID client profiles are declared in source; no Keycloak clients are created
+or production effects enabled. An approved caller registration
 must explicitly allow the corresponding service prefix and target. Replay
 requires platform.command.replay plus platform-operator. Cross-tenant reads
 remain 404. No direct service gateway routes are generated.
@@ -63,7 +66,7 @@ worker-owned token supplier. It uses the RuntimeContainer shared HTTP client
 (with private trust/mTLS configured by that runtime), never creates clients or
 pools, never follows redirects, and does not resolve secrets in the API.
 Manifests and catalog entries are desired state only, not live registration.
-Existing production default_adapters remains empty. All four capabilities
+Existing production default_adapters remains empty. All service capabilities, including the five-mission extensions,
 remain false. Activation requires endpoint conformance, governed caller and
 workload identity provisioning, mTLS evidence and the existing release gates.
 

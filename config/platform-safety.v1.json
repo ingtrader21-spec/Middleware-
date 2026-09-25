@@ -274,6 +274,39 @@
         "staging"
       ],
       "campaign_scoped": false
+    },
+    "FACE_ID_ACCESS_EVALUATE": {
+      "classification": "external_effect",
+      "effect_flags": [],
+      "umbrella_controls": [
+        "EXTERNAL_DELIVERY_ENABLED"
+      ],
+      "environments": [
+        "staging"
+      ],
+      "campaign_scoped": false
+    },
+    "CAMERA_PTZ": {
+      "classification": "external_effect",
+      "effect_flags": [],
+      "umbrella_controls": [
+        "EXTERNAL_DELIVERY_ENABLED"
+      ],
+      "environments": [
+        "staging"
+      ],
+      "campaign_scoped": false
+    },
+    "FACE_ID_PRESENCE_EVENT": {
+      "classification": "external_effect",
+      "effect_flags": [],
+      "umbrella_controls": [
+        "EXTERNAL_DELIVERY_ENABLED"
+      ],
+      "environments": [
+        "staging"
+      ],
+      "campaign_scoped": false
     }
   },
   "limits": {
