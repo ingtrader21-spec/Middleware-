@@ -30,7 +30,9 @@ if printf '%s' "$inspect" | grep -F "$synthetic_marker"; then
   exit 1
 fi
 
-image_archive="$(mktemp -d)"
+temp_root="${RUNNER_TEMP:-${TMPDIR:-/var/tmp}}"
+mkdir -p -- "$temp_root"
+image_archive="$(mktemp -d "${temp_root%/}/middleware-image-verify.XXXXXX")"
 trap 'rm -rf -- "$image_archive"' EXIT
 docker save --output "$image_archive/image.tar" "$image"
 if grep -aF "$synthetic_marker" "$image_archive/image.tar"; then
