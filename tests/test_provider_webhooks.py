@@ -40,23 +40,30 @@ class Session:
         self.added = []
         self.commits = 0
         self.rollbacks = 0
+        self.operations = []
 
     async def execute(self, *_args, **_kwargs):
+        self.operations.append(("execute", None))
         return None
 
     async def scalar(self, _query):
+        self.operations.append(("scalar", None))
         return self.existing
 
     def add(self, value):
         self.added.append(value)
+        self.operations.append(("add", value.__class__.__name__))
 
     async def flush(self):
+        self.operations.append(("flush", None))
         self.added[0].id = 17
 
     async def commit(self):
+        self.operations.append(("commit", None))
         self.commits += 1
 
     async def rollback(self):
+        self.operations.append(("rollback", None))
         self.rollbacks += 1
 
 
@@ -436,17 +443,27 @@ async def test_accepted_event_is_audited_in_the_same_transaction(monkeypatch):
     # The audit row carries no message body or phone number.
     assert audit.redacted_payload == {"event_type": "sms_received"}
     assert session.commits == 1
+    audit_add_index = session.operations.index(("add", "AuditEvent"))
+    commit_index = session.operations.index(("commit", None))
+    assert audit_add_index < commit_index
 
 
 class FailingCommitSession(Session):
     async def commit(self):
+        self.operations.append(("commit", None))
         raise RuntimeError("database unavailable")
 
 
+class FailingFlushSession(Session):
+    async def flush(self):
+        self.operations.append(("flush", None))
+        raise RuntimeError("database unavailable before commit")
+
+
 @pytest.mark.asyncio
-async def test_persistence_failure_fails_closed_with_rollback(monkeypatch):
+@pytest.mark.parametrize("session", [FailingCommitSession(), FailingFlushSession()])
+async def test_persistence_failure_fails_closed_with_rollback(monkeypatch, session):
     request = Request(VICIDIAL)
-    session = FailingCommitSession()
     monkeypatch.setattr(provider_webhooks.settings, "vicidial_webhook_secret", "v" * 32)
     with pytest.raises(HTTPException) as raised:
         await provider_webhooks.vicidial_call_result(
@@ -454,3 +471,4 @@ async def test_persistence_failure_fails_closed_with_rollback(monkeypatch):
         )
     assert raised.value.status_code == 503
     assert session.rollbacks == 1
+    assert session.operations[-1] == ("rollback", None)
