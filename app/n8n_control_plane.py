@@ -2,24 +2,24 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 
 from .api_inputs import authorization_header, required_header
-from .commands import CommandCapabilityDisabled, CommandEnvelope
-from .odoo_provider_adapter import OdooProviderAdapter, OdooProviderAdapterError
-from .security import AuthorizationError, RequestValidationError, authorize_tenant
+from .legacy_effects import DENIED_RESPONSES, denial_dependency, deny
+from .security import authorize_tenant
 from .storage import StorageError
 
 # Deprecated v1 aliases only. Their successor, /v2/automation/*, is mounted by
-# app.router_registry in every application factory, never nested here.
+# app.router_registry in every application factory, never nested here. The
+# submission alias is permanently denied (config/legacy-effect-registry.v1.json);
+# the status read is the one justified read-only compatibility path.
 router = APIRouter(tags=["n8n-control-plane"])
 
 _LEGACY_SUNSET = "Wed, 30 Jun 2027 23:59:59 GMT"
 _LEGACY_WARNING = (
     '299 - "Deprecated n8n v1 compatibility route; migrate to /v2/automation"'
 )
-_COMMAND_SUCCESSOR = '</v2/automation/commands>; rel="successor-version"'
 
 
 def _legacy_headers(*, successor: str) -> dict[str, str]:
@@ -31,91 +31,21 @@ def _legacy_headers(*, successor: str) -> dict[str, str]:
     }
 
 
-def _require_forwarding_headers(
-    request: Request,
-    command: CommandEnvelope,
-) -> None:
-    correlation = required_header(
-        request,
-        "X-Correlation-ID",
-        minimum=1,
-        maximum=180,
-    )
-    idempotency = required_header(
-        request,
-        "Idempotency-Key",
-        minimum=8,
-        maximum=180,
-    )
-    if correlation != command.correlation_id:
-        raise RequestValidationError(
-            "X-Correlation-ID does not match command correlation_id"
-        )
-    if idempotency != command.idempotency_key:
-        raise RequestValidationError(
-            "Idempotency-Key does not match command idempotency_key"
-        )
+@router.post(
+    "/v1/integrations/n8n/commands",
+    deprecated=True,
+    responses=DENIED_RESPONSES,
+    dependencies=[Depends(denial_dependency("LE-N8N-V1-COMMAND-SUBMIT"))],
+)
+async def submit_n8n_command() -> None:
+    """Permanently denied legacy n8n v1 submission (``LE-N8N-V1-COMMAND-SUBMIT``).
 
-
-def _validate_destination_contract(command: CommandEnvelope) -> None:
-    """Reject destination-specific deterministic errors before ledger acceptance."""
-
-    if command.target != "odoo-19":
-        return
-    try:
-        OdooProviderAdapter._validate_command_document(command.model_dump(mode="json"))
-    except OdooProviderAdapterError as exc:
-        raise RequestValidationError(str(exc)) from exc
-
-
-@router.post("/v1/integrations/n8n/commands", deprecated=True)
-async def submit_n8n_command(
-    command: CommandEnvelope, request: Request
-) -> JSONResponse:
-    """Accept a durable command through the legacy n8n v1 compatibility route.
-
-    Kong remains the network/API gateway. Middleware independently validates the
-    original Keycloak token so a gateway routing mistake cannot grant write
-    authority. The canonical successor is the lease-bound v2 automation API.
+    The route stays mounted on the monolith only so former callers receive a
+    410 naming the successor; the denial dependency answers before any body
+    validation, token verification or command-ledger access. The canonical
+    submission authority is the lease-bound ``POST /v2/automation/commands``.
     """
-    active = request.app.state.runtime
-    claims = await active.tokens.verify(
-        authorization_header(request),
-        expected_client_id="n8n-automation",
-        required_scope="middleware.request.forward",
-    )
-    tenant = required_header(request, "X-Tenant-ID", minimum=1, maximum=128)
-    if tenant != command.tenant_id:
-        raise RequestValidationError("X-Tenant-ID does not match command tenant")
-    authorize_tenant(claims, command.tenant_id)
-    _require_forwarding_headers(request, command)
-    subject = claims.get("sub")
-    if not isinstance(subject, str) or not subject:
-        raise AuthorizationError("token subject is required for commands")
-    if active.commands is None:
-        raise StorageError("command ledger is unavailable")
-    _validate_destination_contract(command)
-    if (
-        active.settings.umbrella_controls.get("N8N_EXTERNAL_PROVIDER_WRITES")
-        is not True
-    ):
-        raise CommandCapabilityDisabled("N8N_EXTERNAL_PROVIDER_WRITES is disabled")
-    operation = await active.commands.submit(
-        command,
-        authenticated_subject=subject,
-        authenticated_client_id="n8n-automation",
-    )
-    status_code = 200 if operation.duplicate else 202
-    headers = {
-        "Location": f"/v1/integrations/n8n/operations/{operation.command_id}",
-        "X-Correlation-ID": operation.correlation_id,
-        **_legacy_headers(successor=_COMMAND_SUCCESSOR),
-    }
-    return JSONResponse(
-        status_code=status_code,
-        content=operation.model_dump(mode="json"),
-        headers=headers,
-    )
+    deny("LE-N8N-V1-COMMAND-SUBMIT")
 
 
 @router.get("/v1/integrations/n8n/operations/{command_id}", deprecated=True)

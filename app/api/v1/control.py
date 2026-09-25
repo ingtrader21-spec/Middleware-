@@ -11,17 +11,18 @@ from app.db.models import (
     AuditEvent,
     EventInbox,
     IdempotencyRecord,
-    OutboxEvent,
     PolicyDecision,
     ReconciliationCheckpoint,
     TransferPolicyDecision,
 )
-from app.core.reliability import authorize_transfer, redact, sanitize_for_storage
+from app.core.reliability import authorize_transfer, redact
+from app.legacy_effects import DENIED_RESPONSES, denial_dependency, deny
 
 router = APIRouter(prefix="/api/v1", tags=["control-plane"])
 # TEST_SYN-only synthetic event aliases. They are served by the in-process
 # monolith only (behind its bearer guard); the deployed application serves
-# provider events through the signed ingress routes instead.
+# provider events through the signed ingress routes instead. Only the status
+# read remains (read-only compatibility); the ingest alias is denied.
 legacy_events_router = APIRouter(prefix="/api/v1", tags=["control-plane-legacy-events"])
 
 
@@ -104,54 +105,15 @@ async def persist(
 
 # /events/vicidial is owned by the signed HMAC ingress (app.api.v1.events);
 # the former alias here was always shadowed by it and is not registered.
-@legacy_events_router.post("/events/odoo", status_code=202)
-async def event(
-    request: Request,
-    body: Envelope,
-    db: AsyncSession = Depends(get_session),
-    idempotency_key: str | None = Header(None, alias="Idempotency-Key"),
-    x_correlation_id: str | None = Header(None, alias="X-Correlation-ID"),
-):
-    if body.campaign_id and body.campaign_id != "TEST_SYN":
-        raise HTTPException(403, "production campaigns are disabled")
-    corr = x_correlation_id or str(uuid4())
-    raw = body.model_dump()
-    stored = sanitize_for_storage(raw)
-    key = idempotency_key or body.event_id
-    row, h, kh = await Idem.check(db, key, "events", raw)
-    if row:
-        return row.response
-    eid = body.event_id or str(uuid4())
-    stored["event_id"] = eid
-    stored["correlation_id"] = corr
-    db.add(
-        EventInbox(
-            event_id=eid,
-            source="odoo" if request.url.path.endswith("odoo") else "vicidial",
-            event_type="event",
-            payload=stored,
-            correlation_id=corr,
-        )
-    )
-    db.add(OutboxEvent(topic="event.accepted", payload=stored, correlation_id=corr))
-    await persist(db, "event.ingest", eid, corr, stored)
-    response = {
-        "accepted": True,
-        "event_id": eid,
-        "status": "queued",
-        "correlation_id": corr,
-    }
-    db.add(
-        IdempotencyRecord(
-            scope="events",
-            key_hash=kh,
-            request_hash=h,
-            response=response,
-            status_code=202,
-        )
-    )
-    await db.commit()
-    return response
+# /events/odoo is permanently denied (config/legacy-effect-registry.v1.json):
+# it persisted unsigned inbox rows and an outbox intent a worker could deliver.
+@legacy_events_router.post(
+    "/events/odoo",
+    responses=DENIED_RESPONSES,
+    dependencies=[Depends(denial_dependency("LE-TESTSYN-ODOO-EVENT-INGEST"))],
+)
+async def event() -> None:
+    deny("LE-TESTSYN-ODOO-EVENT-INGEST")
 
 
 @legacy_events_router.get("/events/{event_id}")

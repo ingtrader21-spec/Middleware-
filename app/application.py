@@ -41,6 +41,7 @@ from app.core.config import settings as process_settings
 from app.core.health import RuntimeState, register_health_routes
 from app.core.request_guard import RequestGuard, install_request_guard
 from app.core.runtime import RuntimeContainer
+from app.legacy_effects import enforce_legacy_effect_registry, install_legacy_effect_handler
 from app.observability import MiddlewareObservability
 from app.platform.api import router as platform_kernel_router
 from app.router_registry import (
@@ -166,6 +167,10 @@ def create_app(
     # The Appolon handlers are a superset of the registry's domain handler
     # (same envelope plus the auth-denial metric); installed last so they win.
     appolon_routes.install_error_handlers(app)
+    install_legacy_effect_handler(app)
     assert_unique_routes(app)
+    # Fail closed: a DENIED legacy effect path mounted without its denial
+    # refuses to build (config/legacy-effect-registry.v1.json).
+    enforce_legacy_effect_registry(app)
     appolon_routes.install_canonical_openapi(app)
     return app
