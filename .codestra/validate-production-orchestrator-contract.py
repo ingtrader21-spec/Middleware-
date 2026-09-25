@@ -37,7 +37,7 @@ STANDARD_RELEASE_VALIDATOR_SECURITY_SHA256 = (
     "8d8f21260babfae5eaedbdd46472b1ec"
 )
 MIDDLEWARE_RELEASE_VALIDATOR_SECURITY_SHA256 = (
-    "e6b34c4df8db183d3798605f5d212158718835b50c2f96932f21faacd7f90eae"
+    "f0bd6c897fe3849af9646d995c9eca58e5cb21ae4dd2c03bf59a70b8425ad98b"
 )
 BACKEND_RELEASE_VALIDATOR_SECURITY_SHA256 = (
     "15dbaa6d571a1d1e72c09ca417cc9419"
@@ -488,14 +488,14 @@ APPROVED_COMPLEX_SCRIPT_SHA256: dict[str, dict[str, str]] = {
             "74bf96a7db3813e00f5e5cd5be40b2e8"
         ),
         "scripts/nats_integration_ci.sh": "88d843c665cece68e0fb56a931c295ee10490446cad7b64d9f5356c1cbf7263d",
-        "scripts/project_ci.sh": "12a529ea96f39baec5f1eeb287209dc9db355e5dca000cbbfd7494303501b2ae",
+        "scripts/project_ci.sh": "5191ca3d4fb18c32052a26838d7e015ad78a08db36e8871be04f643ea7e592ae",
         "scripts/release_manifest.py": "e93efd297624edca35658eeec0c83e471149c3ce4fe713cf41a26e470f8eb8c2",
         "scripts/run_ci.sh": "64d7c92279dd442144c7e1f74c3e48f0ab5d5db105238a534dcf8ccd99e93138",
         "scripts/synthetic_acceptance_ci.sh": "087dac2c5371f2013fa0a8dd22ed4024409ab5015231fb8801c75cf3203e3a8a",
         "scripts/temporal_integration_ci.sh": "76a682cc1f5b15a0a3eb15a029d87206238dfe4a262eaf5fa2c79403f147d4d6",
         "scripts/verify_container_image.sh": (
-            "86550c26b32862fefaf2cefdefa2db1e"
-            "73abcb702d28536816f9093df47c5ccd"
+            "9f98cb4e801b9310ea9d7f538b5ea6d8"
+            "aa5e1ad370c4f7f9630d5ccab9da90db"
         ),
         "services/connector-runtime/scripts/test_postgres.sh": "b9b31391d7a04aa8b3362e182a43f880e46f9e85b4d2f5c3c66cb9a9fe88f867",
         "tests/integration/campaign_extension_concurrency.py": "5699be2ee6b9af5a2aed7d39c68086bc09dc9764e8ed8ffb063ec20fd6aea86a",
@@ -686,14 +686,14 @@ APPROVED_CONTROL_PLANE_WORKFLOW_SHA256: dict[str, dict[str, str]] = {
             "35ecd2dac4328dea5615d5939d39e5682"
             "5794cedf919d80abb92a4272ccf81ca"
         ),
-        ".github/workflows/required-ci.yml": "e60caed774e0a4db5a247224e1fa6ba6f67605d03191ae19ce7b815d02508cc4",
+        ".github/workflows/required-ci.yml": "def996053ab7c7e6234f2d30f26909e6d5423233069b5d28a5a2e28401ada0c2",
         ".github/workflows/production-route-contract.yml": (
             "a12d81e9c8d3d1e14a68f4c9ef7f55e8"
             "487e09a83578e35bc3f2457bdb76bdb2"
         ),
         ".github/workflows/release-component-ci.yml": (
-            "da08eeeeae9bfc97f9e5215935caba"
-            "cf3d9337d7c9233d931556e5c3ea3e0463"
+            "b6929af648bf20eea7e5fe83a72382"
+            "a7f9ac22f105abc7a24921112e28039c14"
         ),
     },
     "appolon1908-hue/beyvra-backend": {
@@ -1614,8 +1614,7 @@ def wrapped_executable_index(tokens: list[str], start: int) -> int | None:
         "time": {"--format", "--output", "-f", "-o"},
     }
     index = start
-    while index < len(tokens):
-        wrapper = executable_name(tokens[index])
+    while index < len(tokens):wrapper = executable_name(tokens[index])
         if wrapper not in no_value_options:
             return index
         index += 1
@@ -6403,8 +6402,7 @@ def validate_release_validator_operations(source: str) -> None:
 
     def require_safe_defaults(node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
         defaults = [*node.args.defaults, *node.args.kw_defaults]
-        require(
-            not any(
+        require(not any(
                 value is not None and expression_has_restricted_callable(value)
                 for value in defaults
             ),
@@ -7910,8 +7908,7 @@ jobs:
         (
             "GitHub GraphQL mutation",
             "await github.graphql('mutation { createDeployment(input: {}) { id } }')",
-        ),
-        (
+        ),(
             "aliased GitHub request",
             "const write = github.request; "
             "await write('POST /repos/{owner}/{repo}/deployments')",
@@ -9373,8 +9370,8 @@ APPROVED_NARROW_MUTATION_SHA256: dict[str, dict[str, str]] = {
         # The only external mutation is the required job posting its own exact
         # commit status through checks:write.
         ".github/workflows/required-ci.yml:test": (
-            "9bfdb86d66a987ffddd3035e736358ea"
-            "2e4fb50288845b1785eb211eb6f9710b"
+            "eb4400c3b0312616a9fc09c679d1281f"
+            "99cf5334592d9199ada00f81183eedb1"
         ),
         # The single forward Middleware production publisher: builds, scans,
         # signs and verifies one immutable image from the exact protected-main
