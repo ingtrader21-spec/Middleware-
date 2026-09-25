@@ -1104,6 +1104,23 @@ class PostgresCampaignRecyclingStore:
             raise CampaignRecyclingConflict(
                 "delivery event payload_hash must be lowercase sha256"
             )
+        hash_event = {
+            key: value
+            for key, value in dict(event).items()
+            if key not in {"received_at", "payload_hash"}
+        }
+        canonical_payload = json.dumps(
+            hash_event,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+            default=_json_default,
+        ).encode("utf-8")
+        expected_payload_hash = hashlib.sha256(canonical_payload).hexdigest()
+        if payload_hash != expected_payload_hash:
+            raise CampaignRecyclingConflict(
+                "delivery event payload_hash does not match canonical event"
+            )
         occurred_at = _coerce_event_datetime(event["occurred_at"])
         received_at = _coerce_event_datetime(event["received_at"])
         campaign_id = event.get("campaign_id")
