@@ -794,3 +794,18 @@ def test_authority_matrix(artifacts: dict[str, Any]) -> None:
     grabby = _fresh(artifacts)
     grabby["authority"]["systems"]["n8n"]["owns"].append("direct_provider_write")
     assert any("n8n" in e for e in mcr.validate(grabby))
+
+
+
+def test_runtime_scan_skips_docs_but_keeps_runtime_configs() -> None:
+    assert not mcr._should_scan_runtime_path(
+        Path("deploy/observability-alerts/README.md")
+    )
+    assert not mcr._should_scan_runtime_path(Path("deploy/notes/runtime.txt"))
+    assert mcr._should_scan_runtime_path(
+        Path("deploy/observability-alerts/production.env.example")
+    )
+    assert mcr._should_scan_runtime_path(Path("deploy/production/compose.canary.yaml"))
+    assert mcr._should_scan_runtime_path(
+        Path("deploy/production/server-command-contract.v1.json")
+    )

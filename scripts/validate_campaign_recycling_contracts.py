@@ -152,6 +152,12 @@ RUNTIME_SCAN_GLOBS = (
     "config/route-authority*.json",
     "contracts/platform/middleware-openapi.generated.json",
 )
+RUNTIME_DOCUMENTATION_SUFFIXES = frozenset({".md", ".txt", ".rst"})
+
+
+def _should_scan_runtime_path(path: Path) -> bool:
+    return path.suffix.lower() not in RUNTIME_DOCUMENTATION_SUFFIXES
+
 
 
 def load_artifacts(root: Path = ROOT) -> dict[str, Any]:
@@ -1135,7 +1141,7 @@ def check_no_runtime_activation(
                 allowed_runtime_files = set(allowed) & ALLOWED_RUNTIME_FILES
     for pattern in RUNTIME_SCAN_GLOBS:
         for path in sorted(root.glob(pattern)):
-            if not path.is_file():
+            if not path.is_file() or not _should_scan_runtime_path(path):
                 continue
             text = path.read_text(encoding="utf-8", errors="ignore")
             hits = [marker for marker in RUNTIME_MARKERS if marker in text]

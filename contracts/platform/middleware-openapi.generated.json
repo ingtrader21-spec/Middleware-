@@ -19620,7 +19620,7 @@
             }
           },
           {
-            "description": "Opaque, tenant-bound, server-signed continuation cursor. A cursor from another tenant or query is 400 invalid_cursor.",
+            "description": "Opaque, tenant-and-lead-bound continuation position. It grants no authority; malformed or wrong-scope cursors are 400 invalid_cursor.",
             "in": "query",
             "name": "cursor",
             "required": false,
