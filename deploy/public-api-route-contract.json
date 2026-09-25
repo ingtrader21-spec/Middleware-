@@ -2166,6 +2166,78 @@
       "upstream": "middleware-integration-api:8095"
     },
     {
+      "operation_id": "lead_journey_read",
+      "method": "GET",
+      "path": "/platform/v1/leads/{lead_id}/journey",
+      "classification": "shared_edge",
+      "calling_client": "authorized-provisioning-client",
+      "audience": "middleware-api",
+      "scope": "identity.request",
+      "auth": "service-or-user-jwt",
+      "request_schema": "none",
+      "response_schema": "openapi:inline:lead_journey_read:response",
+      "idempotency": {
+        "required": false,
+        "carrier": "none",
+        "replay": "safe-read"
+      },
+      "correlation_fields": [
+        "X-Correlation-ID",
+        "body.correlation_id"
+      ],
+      "echo_fields": [
+        "X-Correlation-ID",
+        "body.correlation_id"
+      ],
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        429,
+        503
+      ],
+      "owner": "middleware",
+      "upstream": "middleware-integration-api:8095"
+    },
+    {
+      "operation_id": "lead_next_action_read",
+      "method": "GET",
+      "path": "/platform/v1/leads/{lead_id}/next-action",
+      "classification": "shared_edge",
+      "calling_client": "authorized-provisioning-client",
+      "audience": "middleware-api",
+      "scope": "identity.request",
+      "auth": "service-or-user-jwt",
+      "request_schema": "none",
+      "response_schema": "openapi:inline:lead_next_action_read:response",
+      "idempotency": {
+        "required": false,
+        "carrier": "none",
+        "replay": "safe-read"
+      },
+      "correlation_fields": [
+        "X-Correlation-ID",
+        "body.correlation_id"
+      ],
+      "echo_fields": [
+        "X-Correlation-ID",
+        "body.correlation_id"
+      ],
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        429,
+        503
+      ],
+      "owner": "middleware",
+      "upstream": "middleware-integration-api:8095"
+    },
+    {
       "operation_id": "get_my_presence_platform_v1_me_presence_get",
       "method": "GET",
       "path": "/platform/v1/me/presence",

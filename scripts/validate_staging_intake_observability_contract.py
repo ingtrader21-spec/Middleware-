@@ -164,6 +164,7 @@ EXPECTED_REGISTRY_TUPLES = {
         {
             "internal_database_router",
             "platform_kernel_router",
+            "leads_journey_router",
             "automation_v2_router",
             "automation_router",
             "callbacks_router",
@@ -267,6 +268,7 @@ EXPECTED_FACTORY_APP_CALLS: dict[str, str | None] = {
     "assert_unique_routes": None,
     "install_error_handlers": "appolon_routes",
     "install_canonical_openapi": "appolon_routes",
+    "install_leads_openapi": None,
 }
 # Statuses the guard may answer with before routing (fail-closed refusals).
 GUARD_REFUSAL_STATUSES = {400, 401, 413, 415, 429, 503}

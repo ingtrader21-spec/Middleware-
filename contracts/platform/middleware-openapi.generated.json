@@ -5903,6 +5903,24 @@
         "scheme": "bearer",
         "type": "http"
       },
+      "codestraOAuth": {
+        "description": "Keycloak-issued JWT (issuer https://auth.codestra.co/realms/codestra, audience middleware-api). X-Tenant-ID must match the authenticated tenant mapping. These scopes are not yet provisioned in Keycloak.",
+        "flows": {
+          "clientCredentials": {
+            "scopes": {
+              "campaign.delivery_events.publish": "Publish normalized delivery events",
+              "campaign.engine.candidates.read": "Disclose considered and rejected candidates",
+              "campaign.engine.execute": "Reserve exposures and queue commands for a plan",
+              "campaign.engine.plan": "Evaluate dry-run plans",
+              "campaign.engine.read": "Read decisions, eligible leads, and engine status",
+              "campaign.suppressions.write": "Record suppressions",
+              "leads.journey.read": "Read a lead journey"
+            },
+            "tokenUrl": "https://auth.codestra.co/realms/codestra/protocol/openid-connect/token"
+          }
+        },
+        "type": "oauth2"
+      },
       "klyrowBearerApiKey": {
         "bearerFormat": "shared service credential",
         "description": "Klyrow gateway credential; request authenticity also requires the X-Signature HMAC over the exact raw body.",
@@ -19565,6 +19583,2554 @@
         "tags": [
           "platform-command-kernel"
         ]
+      }
+    },
+    "/platform/v1/leads/{lead_id}/journey": {
+      "get": {
+        "operationId": "lead_journey_read",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lead_id",
+            "required": true,
+            "schema": {
+              "description": "Immutable campaign-scoped lead public ID issued by app/core/campaign_identity.py (format_identity, identity_type LEAD).",
+              "pattern": "^[1-9][0-9]*00-L-[0-9]{8}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Correlation-ID",
+            "required": true,
+            "schema": {
+              "maxLength": 180,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
+            "description": "Opaque, tenant-and-lead-bound continuation position. It grants no authority; malformed or wrong-scope cursors are 400 invalid_cursor.",
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 100,
+              "maximum": 200,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "description": "Readback of existing MCR-C rows. Channel health exposes the evidence hash actually retained by storage, not a reconstructed evidence event. Current health and additive suppressions accompany each history page. Lifecycle/exposure history is newest-page-first, chronological within each page; the cursor continues both streams independently. This is a live read, not a multi-request snapshot.",
+                  "properties": {
+                    "channel_health": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "address_ref": {
+                            "description": "Opaque, non-reversible reference to the channel address (for example the Klyrow recipient_reference). Raw email addresses and phone numbers never appear in this contract.",
+                            "maxLength": 200,
+                            "minLength": 8,
+                            "type": "string"
+                          },
+                          "channel": {
+                            "enum": [
+                              "email",
+                              "sms",
+                              "whatsapp",
+                              "voice"
+                            ],
+                            "type": "string"
+                          },
+                          "correlation_id": {
+                            "maxLength": 200,
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          "evidence_hash": {
+                            "pattern": "^[0-9a-f]{64}$",
+                            "type": "string"
+                          },
+                          "health_version": {
+                            "minimum": 1,
+                            "type": "integer"
+                          },
+                          "occurred_at": {
+                            "format": "date-time",
+                            "type": "string"
+                          },
+                          "previous_state": {
+                            "anyOf": [
+                              {
+                                "enum": [
+                                  "unknown",
+                                  "valid",
+                                  "possible",
+                                  "soft_bounce",
+                                  "hard_bounce",
+                                  "complained",
+                                  "unsubscribed",
+                                  "suppressed",
+                                  "invalid"
+                                ],
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "reason_code": {
+                            "enum": [
+                              "VALIDATION_PASSED",
+                              "VALIDATION_PARTIAL",
+                              "VALIDATION_FAILED",
+                              "DELIVERY_CONFIRMED",
+                              "SOFT_BOUNCE",
+                              "SOFT_BOUNCE_ESCALATED",
+                              "HARD_BOUNCE",
+                              "COMPLAINT",
+                              "UNSUBSCRIBE",
+                              "SUPPRESSION_RECORDED",
+                              "DIALING_STATE_BLOCK"
+                            ],
+                            "type": "string"
+                          },
+                          "recorded_at": {
+                            "format": "date-time",
+                            "type": "string"
+                          },
+                          "source": {
+                            "enum": [
+                              "klyrow_delivery_event",
+                              "telnexa_delivery_event",
+                              "inbound_sms_stop",
+                              "lead_validation",
+                              "dialing_eligibility",
+                              "leads_authority",
+                              "data_subject_request",
+                              "operator",
+                              "evolution_delivery_event",
+                              "whatsapp_consent",
+                              "inbound_whatsapp_optout"
+                            ],
+                            "type": "string"
+                          },
+                          "state": {
+                            "enum": [
+                              "unknown",
+                              "valid",
+                              "possible",
+                              "soft_bounce",
+                              "hard_bounce",
+                              "complained",
+                              "unsubscribed",
+                              "suppressed",
+                              "invalid"
+                            ],
+                            "type": "string"
+                          },
+                          "updated_at": {
+                            "format": "date-time",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "channel",
+                          "address_ref",
+                          "state",
+                          "previous_state",
+                          "source",
+                          "reason_code",
+                          "occurred_at",
+                          "recorded_at",
+                          "health_version",
+                          "correlation_id",
+                          "evidence_hash",
+                          "updated_at"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "exposures": {
+                      "items": {
+                        "additionalProperties": false,
+                        "allOf": [
+                          {
+                            "if": {
+                              "properties": {
+                                "status": {
+                                  "const": "reserved"
+                                }
+                              },
+                              "required": [
+                                "status"
+                              ]
+                            },
+                            "then": {
+                              "properties": {
+                                "accepted_at": {
+                                  "type": "null"
+                                },
+                                "delivered_at": {
+                                  "type": "null"
+                                },
+                                "dispatched_at": {
+                                  "type": "null"
+                                },
+                                "provider_message_id": {
+                                  "type": "null"
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "if": {
+                              "properties": {
+                                "status": {
+                                  "const": "delivered"
+                                }
+                              },
+                              "required": [
+                                "status"
+                              ]
+                            },
+                            "then": {
+                              "properties": {
+                                "delivered_at": {
+                                  "format": "date-time",
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "else": {
+                              "properties": {
+                                "engagement_outcome_at": {
+                                  "format": "date-time",
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "if": {
+                              "properties": {
+                                "engagement_outcome": {
+                                  "const": "none"
+                                }
+                              },
+                              "required": [
+                                "engagement_outcome"
+                              ]
+                            },
+                            "then": {
+                              "properties": {
+                                "engagement_outcome_at": {
+                                  "type": "null"
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "else": {
+                              "properties": {
+                                "negative_outcome_at": {
+                                  "format": "date-time",
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "if": {
+                              "properties": {
+                                "negative_outcome": {
+                                  "const": "none"
+                                }
+                              },
+                              "required": [
+                                "negative_outcome"
+                              ]
+                            },
+                            "then": {
+                              "properties": {
+                                "negative_outcome_at": {
+                                  "type": "null"
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "if": {
+                              "properties": {
+                                "channel": {
+                                  "enum": [
+                                    "email",
+                                    "sms",
+                                    "whatsapp"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "channel"
+                              ]
+                            },
+                            "then": {
+                              "properties": {
+                                "sender_identity_id": {
+                                  "format": "uuid",
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        ],
+                        "description": "Durable identity and outcome of exactly one planned touch: lead x campaign x campaign_version x channel x touch_index. Owned by Middleware (command/idempotency authority). A ledger row is reserved before any command is emitted, so the same planned touch can never be issued twice. Contract only; no table or migration exists in MCR-A.",
+                        "properties": {
+                          "accepted_at": {
+                            "anyOf": [
+                              {
+                                "format": "date-time",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "campaign_id": {
+                            "description": "Canonical namespaced campaign reference. Klyrow-owned email/SMS campaigns use klyrow:<raw_id>; Codestra WhatsApp campaigns use whatsapp:<raw_id>. Raw Odoo/VICIdial/provider IDs are never accepted as master campaign IDs.",
+                            "maxLength": 210,
+                            "minLength": 1,
+                            "pattern": "^(klyrow|whatsapp):[A-Za-z0-9][A-Za-z0-9._-]{0,199}$",
+                            "type": "string"
+                          },
+                          "campaign_version": {
+                            "minimum": 1,
+                            "type": "integer"
+                          },
+                          "channel": {
+                            "enum": [
+                              "email",
+                              "sms",
+                              "whatsapp",
+                              "voice"
+                            ],
+                            "type": "string"
+                          },
+                          "command_id": {
+                            "description": "command_id of the canonical command envelope emitted through the outbox.",
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "correlation_id": {
+                            "maxLength": 200,
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          "decision_id": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "delivered_at": {
+                            "anyOf": [
+                              {
+                                "format": "date-time",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "dispatched_at": {
+                            "anyOf": [
+                              {
+                                "format": "date-time",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "engagement_outcome": {
+                            "enum": [
+                              "none",
+                              "open",
+                              "read",
+                              "click",
+                              "reply",
+                              "conversion"
+                            ],
+                            "type": "string"
+                          },
+                          "engagement_outcome_at": {
+                            "anyOf": [
+                              {
+                                "format": "date-time",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "exposure_id": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "idempotency_key": {
+                            "pattern": "^mcr1:[0-9a-f]{64}$",
+                            "type": "string"
+                          },
+                          "lead_id": {
+                            "description": "Immutable campaign-scoped lead public ID issued by app/core/campaign_identity.py (format_identity, identity_type LEAD).",
+                            "pattern": "^[1-9][0-9]*00-L-[0-9]{8}$",
+                            "type": "string"
+                          },
+                          "ledger_version": {
+                            "minimum": 1,
+                            "type": "integer"
+                          },
+                          "message_id": {
+                            "anyOf": [
+                              {
+                                "format": "uuid",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "description": "Communications message id once the command is accepted by the communications service."
+                          },
+                          "negative_outcome": {
+                            "enum": [
+                              "none",
+                              "soft_bounce",
+                              "hard_bounce",
+                              "unsubscribe",
+                              "complaint"
+                            ],
+                            "type": "string"
+                          },
+                          "negative_outcome_at": {
+                            "anyOf": [
+                              {
+                                "format": "date-time",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "policy_version": {
+                            "pattern": "^mcr-policy-[0-9]+\\.[0-9]+\\.[0-9]+$",
+                            "type": "string"
+                          },
+                          "provider_message_id": {
+                            "maxLength": 998,
+                            "minLength": 1,
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "reserved_at": {
+                            "format": "date-time",
+                            "type": "string"
+                          },
+                          "schema_version": {
+                            "const": "1.0"
+                          },
+                          "sender_identity_id": {
+                            "anyOf": [
+                              {
+                                "format": "uuid",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "description": "Stable internal sender-identity registry UUID. Required for email, SMS, and WhatsApp; nullable only for a channel whose v1 execution is unsupported."
+                          },
+                          "status": {
+                            "enum": [
+                              "reserved",
+                              "accepted",
+                              "queued",
+                              "dispatched",
+                              "delivered",
+                              "failed",
+                              "cancelled",
+                              "suppressed",
+                              "expired",
+                              "indeterminate"
+                            ],
+                            "type": "string"
+                          },
+                          "status_at": {
+                            "format": "date-time",
+                            "type": "string"
+                          },
+                          "tenant_id": {
+                            "maxLength": 128,
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          "touch_index": {
+                            "description": "1-based position of this touch within the campaign version's sequence for this lead and channel.",
+                            "maximum": 1000,
+                            "minimum": 1,
+                            "type": "integer"
+                          },
+                          "updated_at": {
+                            "format": "date-time",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "schema_version",
+                          "exposure_id",
+                          "tenant_id",
+                          "lead_id",
+                          "campaign_id",
+                          "campaign_version",
+                          "channel",
+                          "touch_index",
+                          "idempotency_key",
+                          "command_id",
+                          "correlation_id",
+                          "decision_id",
+                          "policy_version",
+                          "sender_identity_id",
+                          "status",
+                          "engagement_outcome",
+                          "negative_outcome",
+                          "message_id",
+                          "provider_message_id",
+                          "reserved_at",
+                          "dispatched_at",
+                          "accepted_at",
+                          "delivered_at",
+                          "status_at",
+                          "engagement_outcome_at",
+                          "negative_outcome_at",
+                          "updated_at",
+                          "ledger_version"
+                        ],
+                        "title": "Campaign exposure ledger entry v1",
+                        "type": "object"
+                      },
+                      "maxItems": 200,
+                      "type": "array"
+                    },
+                    "lead_id": {
+                      "description": "Immutable campaign-scoped lead public ID issued by app/core/campaign_identity.py (format_identity, identity_type LEAD).",
+                      "pattern": "^[1-9][0-9]*00-L-[0-9]{8}$",
+                      "type": "string"
+                    },
+                    "lifecycle_state": {
+                      "enum": [
+                        "NEW",
+                        "VALIDATED",
+                        "ELIGIBLE",
+                        "ACTIVE_CYCLE",
+                        "ENGAGED",
+                        "COOLING",
+                        "REACTIVATION",
+                        "CONVERTED",
+                        "SUPPRESSED"
+                      ],
+                      "type": "string"
+                    },
+                    "lifecycle_version": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "next_cursor": {
+                      "maxLength": 500,
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "schema_version": {
+                      "const": "1.0"
+                    },
+                    "suppressions": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "campaign_id": {
+                            "anyOf": [
+                              {
+                                "description": "Canonical namespaced campaign reference. Klyrow-owned email/SMS campaigns use klyrow:<raw_id>; Codestra WhatsApp campaigns use whatsapp:<raw_id>. Raw Odoo/VICIdial/provider IDs are never accepted as master campaign IDs.",
+                                "maxLength": 210,
+                                "minLength": 1,
+                                "pattern": "^(klyrow|whatsapp):[A-Za-z0-9][A-Za-z0-9._-]{0,199}$",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "channel": {
+                            "anyOf": [
+                              {
+                                "enum": [
+                                  "email",
+                                  "sms",
+                                  "whatsapp",
+                                  "voice"
+                                ],
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "created_at": {
+                            "format": "date-time",
+                            "type": "string"
+                          },
+                          "evidence_hash": {
+                            "pattern": "^[0-9a-f]{64}$",
+                            "type": "string"
+                          },
+                          "occurred_at": {
+                            "format": "date-time",
+                            "type": "string"
+                          },
+                          "reason": {
+                            "enum": [
+                              "legal_hold",
+                              "data_subject_request",
+                              "do_not_contact_request",
+                              "complaint",
+                              "unsubscribe",
+                              "consent_revoked",
+                              "dialing_do_not_call",
+                              "operator_block"
+                            ],
+                            "type": "string"
+                          },
+                          "requested_by": {
+                            "maxLength": 300,
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          "scope": {
+                            "enum": [
+                              "global",
+                              "channel",
+                              "campaign",
+                              "campaign_channel"
+                            ],
+                            "type": "string"
+                          },
+                          "source": {
+                            "enum": [
+                              "klyrow_delivery_event",
+                              "telnexa_delivery_event",
+                              "inbound_sms_stop",
+                              "lead_validation",
+                              "dialing_eligibility",
+                              "leads_authority",
+                              "data_subject_request",
+                              "operator",
+                              "evolution_delivery_event",
+                              "whatsapp_consent",
+                              "inbound_whatsapp_optout"
+                            ],
+                            "type": "string"
+                          },
+                          "suppression_id": {
+                            "format": "uuid",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "scope",
+                          "channel",
+                          "campaign_id",
+                          "reason",
+                          "source",
+                          "occurred_at",
+                          "requested_by",
+                          "suppression_id",
+                          "evidence_hash",
+                          "created_at"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "transitions": {
+                      "items": {
+                        "additionalProperties": false,
+                        "allOf": [
+                          {
+                            "if": {
+                              "properties": {
+                                "from_state": {
+                                  "type": "null"
+                                }
+                              },
+                              "required": [
+                                "from_state"
+                              ]
+                            },
+                            "then": {
+                              "properties": {
+                                "lifecycle_version": {
+                                  "const": 1
+                                },
+                                "reason_code": {
+                                  "const": "LEAD_REGISTERED"
+                                },
+                                "to_state": {
+                                  "const": "NEW"
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "if": {
+                              "properties": {
+                                "from_state": {
+                                  "const": "NEW"
+                                }
+                              },
+                              "required": [
+                                "from_state"
+                              ]
+                            },
+                            "then": {
+                              "properties": {
+                                "to_state": {
+                                  "enum": [
+                                    "VALIDATED",
+                                    "SUPPRESSED"
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "if": {
+                              "properties": {
+                                "from_state": {
+                                  "const": "VALIDATED"
+                                }
+                              },
+                              "required": [
+                                "from_state"
+                              ]
+                            },
+                            "then": {
+                              "properties": {
+                                "to_state": {
+                                  "enum": [
+                                    "ELIGIBLE",
+                                    "SUPPRESSED"
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "if": {
+                              "properties": {
+                                "from_state": {
+                                  "const": "ELIGIBLE"
+                                }
+                              },
+                              "required": [
+                                "from_state"
+                              ]
+                            },
+                            "then": {
+                              "properties": {
+                                "to_state": {
+                                  "enum": [
+                                    "ACTIVE_CYCLE",
+                                    "CONVERTED",
+                                    "SUPPRESSED"
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "if": {
+                              "properties": {
+                                "from_state": {
+                                  "const": "ACTIVE_CYCLE"
+                                }
+                              },
+                              "required": [
+                                "from_state"
+                              ]
+                            },
+                            "then": {
+                              "properties": {
+                                "to_state": {
+                                  "enum": [
+                                    "ENGAGED",
+                                    "COOLING",
+                                    "CONVERTED",
+                                    "SUPPRESSED"
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "if": {
+                              "properties": {
+                                "from_state": {
+                                  "const": "ENGAGED"
+                                }
+                              },
+                              "required": [
+                                "from_state"
+                              ]
+                            },
+                            "then": {
+                              "properties": {
+                                "to_state": {
+                                  "enum": [
+                                    "ACTIVE_CYCLE",
+                                    "COOLING",
+                                    "CONVERTED",
+                                    "SUPPRESSED"
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "if": {
+                              "properties": {
+                                "from_state": {
+                                  "const": "COOLING"
+                                }
+                              },
+                              "required": [
+                                "from_state"
+                              ]
+                            },
+                            "then": {
+                              "properties": {
+                                "to_state": {
+                                  "enum": [
+                                    "REACTIVATION",
+                                    "CONVERTED",
+                                    "SUPPRESSED"
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "if": {
+                              "properties": {
+                                "from_state": {
+                                  "const": "REACTIVATION"
+                                }
+                              },
+                              "required": [
+                                "from_state"
+                              ]
+                            },
+                            "then": {
+                              "properties": {
+                                "to_state": {
+                                  "enum": [
+                                    "ACTIVE_CYCLE",
+                                    "ENGAGED",
+                                    "COOLING",
+                                    "CONVERTED",
+                                    "SUPPRESSED"
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "if": {
+                              "properties": {
+                                "from_state": {
+                                  "const": "CONVERTED"
+                                }
+                              },
+                              "required": [
+                                "from_state"
+                              ]
+                            },
+                            "then": {
+                              "properties": {
+                                "to_state": {
+                                  "enum": [
+                                    "SUPPRESSED"
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "if": {
+                              "properties": {
+                                "from_state": {
+                                  "const": "SUPPRESSED"
+                                }
+                              },
+                              "required": [
+                                "from_state"
+                              ]
+                            },
+                            "then": false
+                          },
+                          {
+                            "if": {
+                              "properties": {
+                                "to_state": {
+                                  "const": "VALIDATED"
+                                }
+                              },
+                              "required": [
+                                "to_state"
+                              ]
+                            },
+                            "then": {
+                              "properties": {
+                                "reason_code": {
+                                  "enum": [
+                                    "VALIDATION_PASSED"
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "if": {
+                              "properties": {
+                                "to_state": {
+                                  "const": "ELIGIBLE"
+                                }
+                              },
+                              "required": [
+                                "to_state"
+                              ]
+                            },
+                            "then": {
+                              "properties": {
+                                "reason_code": {
+                                  "enum": [
+                                    "ELIGIBILITY_ESTABLISHED"
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "if": {
+                              "properties": {
+                                "to_state": {
+                                  "const": "ACTIVE_CYCLE"
+                                }
+                              },
+                              "required": [
+                                "to_state"
+                              ]
+                            },
+                            "then": {
+                              "properties": {
+                                "reason_code": {
+                                  "enum": [
+                                    "CYCLE_STARTED",
+                                    "ENGAGED_SEQUENCE_CONTINUED",
+                                    "REACTIVATION_TOUCH_ISSUED"
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "if": {
+                              "properties": {
+                                "to_state": {
+                                  "const": "ENGAGED"
+                                }
+                              },
+                              "required": [
+                                "to_state"
+                              ]
+                            },
+                            "then": {
+                              "properties": {
+                                "reason_code": {
+                                  "enum": [
+                                    "STRONG_ENGAGEMENT_RECORDED"
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "if": {
+                              "properties": {
+                                "to_state": {
+                                  "const": "COOLING"
+                                }
+                              },
+                              "required": [
+                                "to_state"
+                              ]
+                            },
+                            "then": {
+                              "properties": {
+                                "reason_code": {
+                                  "enum": [
+                                    "CYCLE_EXHAUSTED_UNENGAGED",
+                                    "REACTIVATION_EXHAUSTED_UNENGAGED"
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "if": {
+                              "properties": {
+                                "to_state": {
+                                  "const": "REACTIVATION"
+                                }
+                              },
+                              "required": [
+                                "to_state"
+                              ]
+                            },
+                            "then": {
+                              "properties": {
+                                "reason_code": {
+                                  "enum": [
+                                    "COOLING_ELAPSED"
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "if": {
+                              "properties": {
+                                "to_state": {
+                                  "const": "CONVERTED"
+                                }
+                              },
+                              "required": [
+                                "to_state"
+                              ]
+                            },
+                            "then": {
+                              "properties": {
+                                "reason_code": {
+                                  "enum": [
+                                    "CONVERSION_RECORDED"
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "if": {
+                              "properties": {
+                                "to_state": {
+                                  "const": "SUPPRESSED"
+                                }
+                              },
+                              "required": [
+                                "to_state"
+                              ]
+                            },
+                            "then": {
+                              "properties": {
+                                "reason_code": {
+                                  "enum": [
+                                    "GLOBAL_SUPPRESSION_APPLIED"
+                                  ]
+                                }
+                              }
+                            }
+                          }
+                        ],
+                        "description": "One append-only transition of a lead's cross-channel marketing lifecycle. This is NOT call/dialing eligibility: dialing identity and eligibility states remain owned by docs/operations/campaign-registry/lead-eligibility.md, and no lifecycle state authorizes dialing or any provider effect. Contract only; no runtime handler, table, or migration exists in MCR-A.",
+                        "properties": {
+                          "causation_id": {
+                            "anyOf": [
+                              {
+                                "maxLength": 200,
+                                "minLength": 1,
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "correlation_id": {
+                            "maxLength": 200,
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          "evidence_hash": {
+                            "pattern": "^[0-9a-f]{64}$",
+                            "type": "string"
+                          },
+                          "evidence_ref": {
+                            "maxLength": 500,
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "from_state": {
+                            "anyOf": [
+                              {
+                                "enum": [
+                                  "NEW",
+                                  "VALIDATED",
+                                  "ELIGIBLE",
+                                  "ACTIVE_CYCLE",
+                                  "ENGAGED",
+                                  "COOLING",
+                                  "REACTIVATION",
+                                  "CONVERTED",
+                                  "SUPPRESSED"
+                                ],
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "description": "null only for the initial registration transition into NEW."
+                          },
+                          "lead_id": {
+                            "description": "Immutable campaign-scoped lead public ID issued by app/core/campaign_identity.py (format_identity, identity_type LEAD).",
+                            "pattern": "^[1-9][0-9]*00-L-[0-9]{8}$",
+                            "type": "string"
+                          },
+                          "lifecycle_version": {
+                            "description": "Monotonic optimistic-concurrency version; a writer must present the prior version and loses with 409 on mismatch.",
+                            "minimum": 1,
+                            "type": "integer"
+                          },
+                          "occurred_at": {
+                            "format": "date-time",
+                            "type": "string"
+                          },
+                          "reason_code": {
+                            "enum": [
+                              "LEAD_REGISTERED",
+                              "VALIDATION_PASSED",
+                              "ELIGIBILITY_ESTABLISHED",
+                              "CYCLE_STARTED",
+                              "ENGAGED_SEQUENCE_CONTINUED",
+                              "REACTIVATION_TOUCH_ISSUED",
+                              "STRONG_ENGAGEMENT_RECORDED",
+                              "CYCLE_EXHAUSTED_UNENGAGED",
+                              "REACTIVATION_EXHAUSTED_UNENGAGED",
+                              "COOLING_ELAPSED",
+                              "CONVERSION_RECORDED",
+                              "GLOBAL_SUPPRESSION_APPLIED"
+                            ],
+                            "type": "string"
+                          },
+                          "recorded_at": {
+                            "format": "date-time",
+                            "type": "string"
+                          },
+                          "schema_version": {
+                            "const": "1.0"
+                          },
+                          "source": {
+                            "enum": [
+                              "leads",
+                              "middleware_policy",
+                              "delivery_event",
+                              "odoo_conversion",
+                              "operator"
+                            ],
+                            "type": "string"
+                          },
+                          "tenant_id": {
+                            "maxLength": 128,
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          "to_state": {
+                            "enum": [
+                              "NEW",
+                              "VALIDATED",
+                              "ELIGIBLE",
+                              "ACTIVE_CYCLE",
+                              "ENGAGED",
+                              "COOLING",
+                              "REACTIVATION",
+                              "CONVERTED",
+                              "SUPPRESSED"
+                            ],
+                            "type": "string"
+                          },
+                          "transition_id": {
+                            "format": "uuid",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "schema_version",
+                          "transition_id",
+                          "tenant_id",
+                          "lead_id",
+                          "from_state",
+                          "to_state",
+                          "reason_code",
+                          "source",
+                          "lifecycle_version",
+                          "occurred_at",
+                          "recorded_at",
+                          "correlation_id",
+                          "evidence_hash"
+                        ],
+                        "title": "Cross-channel lead lifecycle transition v1",
+                        "type": "object"
+                      },
+                      "maxItems": 200,
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "schema_version",
+                    "lead_id",
+                    "lifecycle_state",
+                    "lifecycle_version",
+                    "transitions",
+                    "channel_health",
+                    "suppressions",
+                    "exposures",
+                    "next_cursor"
+                  ],
+                  "title": "Lead journey durable read projection v1",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Journey page",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "Echo of the request correlation identifier",
+                "schema": {
+                  "maxLength": 180,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "correlation_id": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "object"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "retryable": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "correlation_id",
+                        "retryable",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Invalid request",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "Echo of the request correlation identifier",
+                "schema": {
+                  "maxLength": 180,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "description": "Canonical error envelope from contracts/http-conventions.md.",
+                  "properties": {
+                    "error": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "maxLength": 100,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "correlation_id": {
+                          "maxLength": 200,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "object"
+                        },
+                        "message": {
+                          "maxLength": 500,
+                          "type": "string"
+                        },
+                        "retryable": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "correlation_id",
+                        "retryable",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Authentication required",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "Echo of the request correlation identifier",
+                "schema": {
+                  "maxLength": 180,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "description": "Canonical error envelope from contracts/http-conventions.md.",
+                  "properties": {
+                    "error": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "maxLength": 100,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "correlation_id": {
+                          "maxLength": 200,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "object"
+                        },
+                        "message": {
+                          "maxLength": 500,
+                          "type": "string"
+                        },
+                        "retryable": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "correlation_id",
+                        "retryable",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Scope or tenant denied",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "Echo of the request correlation identifier",
+                "schema": {
+                  "maxLength": 180,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "description": "Canonical error envelope from contracts/http-conventions.md.",
+                  "properties": {
+                    "error": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "maxLength": 100,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "correlation_id": {
+                          "maxLength": 200,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "object"
+                        },
+                        "message": {
+                          "maxLength": 500,
+                          "type": "string"
+                        },
+                        "retryable": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "correlation_id",
+                        "retryable",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Lead not found",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "Echo of the request correlation identifier",
+                "schema": {
+                  "maxLength": 180,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Version, state, or idempotency conflict"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "description": "Canonical error envelope from contracts/http-conventions.md.",
+                  "properties": {
+                    "error": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "maxLength": 100,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "correlation_id": {
+                          "maxLength": 200,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "object"
+                        },
+                        "message": {
+                          "maxLength": 500,
+                          "type": "string"
+                        },
+                        "retryable": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "correlation_id",
+                        "retryable",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Required authority unavailable",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "Echo of the request correlation identifier",
+                "schema": {
+                  "maxLength": 180,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "codestraOAuth": [
+              "leads.journey.read"
+            ]
+          }
+        ],
+        "summary": "Journey",
+        "tags": [
+          "leads"
+        ],
+        "x-codestra-effects": "none"
+      }
+    },
+    "/platform/v1/leads/{lead_id}/next-action": {
+      "get": {
+        "operationId": "lead_next_action_read",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lead_id",
+            "required": true,
+            "schema": {
+              "description": "Immutable campaign-scoped lead public ID issued by app/core/campaign_identity.py (format_identity, identity_type LEAD).",
+              "pattern": "^[1-9][0-9]*00-L-[0-9]{8}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Correlation-ID",
+            "required": true,
+            "schema": {
+              "maxLength": 180,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "channel",
+            "required": false,
+            "schema": {
+              "enum": [
+                "email",
+                "sms",
+                "whatsapp",
+                "voice"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "allOf": [
+                    {
+                      "else": {
+                        "properties": {
+                          "reason_codes": {
+                            "not": {
+                              "contains": {
+                                "const": "ELIGIBLE"
+                              }
+                            }
+                          },
+                          "selected": {
+                            "type": "null"
+                          }
+                        }
+                      },
+                      "if": {
+                        "properties": {
+                          "eligible": {
+                            "const": true
+                          }
+                        },
+                        "required": [
+                          "eligible"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "next_eligible_at": {
+                            "type": "null"
+                          },
+                          "reason_codes": {
+                            "const": [
+                              "ELIGIBLE"
+                            ]
+                          },
+                          "selected": {
+                            "additionalProperties": false,
+                            "allOf": [
+                              {
+                                "if": {
+                                  "properties": {
+                                    "channel": {
+                                      "enum": [
+                                        "email",
+                                        "sms",
+                                        "whatsapp"
+                                      ]
+                                    }
+                                  },
+                                  "required": [
+                                    "channel"
+                                  ]
+                                },
+                                "then": {
+                                  "properties": {
+                                    "sender_identity_id": {
+                                      "format": "uuid",
+                                      "type": "string"
+                                    }
+                                  }
+                                }
+                              }
+                            ],
+                            "properties": {
+                              "campaign_id": {
+                                "description": "Canonical namespaced campaign reference. Klyrow-owned email/SMS campaigns use klyrow:<raw_id>; Codestra WhatsApp campaigns use whatsapp:<raw_id>. Raw Odoo/VICIdial/provider IDs are never accepted as master campaign IDs.",
+                                "maxLength": 210,
+                                "minLength": 1,
+                                "pattern": "^(klyrow|whatsapp):[A-Za-z0-9][A-Za-z0-9._-]{0,199}$",
+                                "type": "string"
+                              },
+                              "campaign_version": {
+                                "minimum": 1,
+                                "type": "integer"
+                              },
+                              "channel": {
+                                "enum": [
+                                  "email",
+                                  "sms",
+                                  "whatsapp",
+                                  "voice"
+                                ],
+                                "type": "string"
+                              },
+                              "exposure_idempotency_key": {
+                                "pattern": "^mcr1:[0-9a-f]{64}$",
+                                "type": "string"
+                              },
+                              "sender_identity_id": {
+                                "anyOf": [
+                                  {
+                                    "format": "uuid",
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "touch_index": {
+                                "description": "1-based position of this touch within the campaign version's sequence for this lead and channel.",
+                                "maximum": 1000,
+                                "minimum": 1,
+                                "type": "integer"
+                              }
+                            },
+                            "required": [
+                              "campaign_id",
+                              "campaign_version",
+                              "channel",
+                              "sender_identity_id",
+                              "touch_index",
+                              "exposure_idempotency_key"
+                            ],
+                            "type": "object"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "mode": {
+                            "enum": [
+                              "plan",
+                              "read"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "mode"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "dry_run": {
+                            "const": true
+                          },
+                          "reason_codes": {
+                            "not": {
+                              "contains": {
+                                "const": "PRODUCTION_NOT_AUTHORIZED"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "mode": {
+                            "const": "execute"
+                          }
+                        },
+                        "required": [
+                          "mode"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "dry_run": {
+                            "const": false
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "lifecycle_state": {
+                            "enum": [
+                              "NEW",
+                              "VALIDATED",
+                              "COOLING",
+                              "CONVERTED",
+                              "SUPPRESSED"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "lifecycle_state"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "eligible": {
+                            "const": false
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "candidates_redacted": {
+                            "const": true
+                          }
+                        },
+                        "required": [
+                          "candidates_redacted"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "candidates": {
+                            "maxItems": 0
+                          }
+                        }
+                      }
+                    }
+                  ],
+                  "description": "Deterministic Middleware policy decision for one lead. A decision document never causes a provider effect: plan and read modes are pure dry runs, and execute mode only reserves exposure-ledger rows and emits canonical commands through the outbox, which remain capability-gated. Contract only; no runtime handler exists in MCR-A.",
+                  "properties": {
+                    "candidates": {
+                      "items": {
+                        "additionalProperties": false,
+                        "allOf": [
+                          {
+                            "else": {
+                              "properties": {
+                                "reason_codes": {
+                                  "not": {
+                                    "contains": {
+                                      "const": "ELIGIBLE"
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "if": {
+                              "properties": {
+                                "disposition": {
+                                  "const": "selected"
+                                }
+                              },
+                              "required": [
+                                "disposition"
+                              ]
+                            },
+                            "then": {
+                              "properties": {
+                                "reason_codes": {
+                                  "const": [
+                                    "ELIGIBLE"
+                                  ]
+                                }
+                              }
+                            }
+                          }
+                        ],
+                        "properties": {
+                          "campaign_id": {
+                            "description": "Canonical namespaced campaign reference. Klyrow-owned email/SMS campaigns use klyrow:<raw_id>; Codestra WhatsApp campaigns use whatsapp:<raw_id>. Raw Odoo/VICIdial/provider IDs are never accepted as master campaign IDs.",
+                            "maxLength": 210,
+                            "minLength": 1,
+                            "pattern": "^(klyrow|whatsapp):[A-Za-z0-9][A-Za-z0-9._-]{0,199}$",
+                            "type": "string"
+                          },
+                          "campaign_version": {
+                            "minimum": 1,
+                            "type": "integer"
+                          },
+                          "channel": {
+                            "enum": [
+                              "email",
+                              "sms",
+                              "whatsapp",
+                              "voice"
+                            ],
+                            "type": "string"
+                          },
+                          "disposition": {
+                            "enum": [
+                              "selected",
+                              "rejected"
+                            ],
+                            "type": "string"
+                          },
+                          "reason_codes": {
+                            "items": {
+                              "enum": [
+                                "POLICY_NOT_CONFIGURED",
+                                "PRODUCTION_NOT_AUTHORIZED",
+                                "KILL_SWITCH_OPEN",
+                                "EVIDENCE_STALE_OR_CONFLICTING",
+                                "SUPPRESSED_GLOBAL",
+                                "SUPPRESSED_CHANNEL",
+                                "SUPPRESSED_CAMPAIGN",
+                                "SUPPRESSED_CAMPAIGN_CHANNEL",
+                                "LIFECYCLE_TERMINAL",
+                                "LIFECYCLE_NOT_CONTACTABLE",
+                                "CONSENT_MISSING",
+                                "DIALING_NOT_ELIGIBLE",
+                                "CHANNEL_HEALTH_BLOCKED",
+                                "CHANNEL_HEALTH_UNKNOWN",
+                                "CHANNEL_HEALTH_POLICY_GATED",
+                                "CHANNEL_HEALTH_DEFERRED",
+                                "CAMPAIGN_NOT_ACTIVE",
+                                "CAMPAIGN_VERSION_NOT_APPROVED",
+                                "SENDER_IDENTITY_NOT_AUTHORIZED",
+                                "SENDER_IDENTITY_UNAVAILABLE",
+                                "CHANNEL_EXECUTION_NOT_SUPPORTED",
+                                "DUPLICATE_TOUCH",
+                                "COOLING_PERIOD_ACTIVE",
+                                "REACTIVATION_LIMIT_REACHED",
+                                "LIFETIME_EXPOSURE_CAP_REACHED",
+                                "RECENT_WINDOW_CAP_REACHED",
+                                "CHANNEL_CAP_REACHED",
+                                "CAMPAIGN_COOLDOWN_ACTIVE",
+                                "CAMPAIGN_VERSION_EXHAUSTED",
+                                "NO_CANDIDATE",
+                                "ELIGIBLE"
+                              ],
+                              "type": "string"
+                            },
+                            "minItems": 1,
+                            "type": "array",
+                            "uniqueItems": true
+                          }
+                        },
+                        "required": [
+                          "campaign_id",
+                          "campaign_version",
+                          "channel",
+                          "disposition",
+                          "reason_codes"
+                        ],
+                        "type": "object"
+                      },
+                      "maxItems": 200,
+                      "type": "array"
+                    },
+                    "candidates_redacted": {
+                      "description": "true when the caller's scope does not permit candidate disclosure; candidates is then empty.",
+                      "type": "boolean"
+                    },
+                    "correlation_id": {
+                      "maxLength": 200,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "decision_hash": {
+                      "pattern": "^[0-9a-f]{64}$",
+                      "type": "string"
+                    },
+                    "decision_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "dry_run": {
+                      "type": "boolean"
+                    },
+                    "eligible": {
+                      "type": "boolean"
+                    },
+                    "evaluated_at": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "lead_id": {
+                      "description": "Immutable campaign-scoped lead public ID issued by app/core/campaign_identity.py (format_identity, identity_type LEAD).",
+                      "pattern": "^[1-9][0-9]*00-L-[0-9]{8}$",
+                      "type": "string"
+                    },
+                    "lifecycle_state": {
+                      "enum": [
+                        "NEW",
+                        "VALIDATED",
+                        "ELIGIBLE",
+                        "ACTIVE_CYCLE",
+                        "ENGAGED",
+                        "COOLING",
+                        "REACTIVATION",
+                        "CONVERTED",
+                        "SUPPRESSED"
+                      ],
+                      "type": "string"
+                    },
+                    "mode": {
+                      "enum": [
+                        "plan",
+                        "read",
+                        "execute"
+                      ],
+                      "type": "string"
+                    },
+                    "next_eligible_at": {
+                      "anyOf": [
+                        {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "policy_version": {
+                      "pattern": "^mcr-policy-[0-9]+\\.[0-9]+\\.[0-9]+$",
+                      "type": "string"
+                    },
+                    "provider_effects": {
+                      "const": "none",
+                      "description": "A decision never performs a provider call. Any effect after execute is a separately authorized command in the outbox."
+                    },
+                    "reason_codes": {
+                      "items": {
+                        "enum": [
+                          "POLICY_NOT_CONFIGURED",
+                          "PRODUCTION_NOT_AUTHORIZED",
+                          "KILL_SWITCH_OPEN",
+                          "EVIDENCE_STALE_OR_CONFLICTING",
+                          "SUPPRESSED_GLOBAL",
+                          "SUPPRESSED_CHANNEL",
+                          "SUPPRESSED_CAMPAIGN",
+                          "SUPPRESSED_CAMPAIGN_CHANNEL",
+                          "LIFECYCLE_TERMINAL",
+                          "LIFECYCLE_NOT_CONTACTABLE",
+                          "CONSENT_MISSING",
+                          "DIALING_NOT_ELIGIBLE",
+                          "CHANNEL_HEALTH_BLOCKED",
+                          "CHANNEL_HEALTH_UNKNOWN",
+                          "CHANNEL_HEALTH_POLICY_GATED",
+                          "CHANNEL_HEALTH_DEFERRED",
+                          "CAMPAIGN_NOT_ACTIVE",
+                          "CAMPAIGN_VERSION_NOT_APPROVED",
+                          "SENDER_IDENTITY_NOT_AUTHORIZED",
+                          "SENDER_IDENTITY_UNAVAILABLE",
+                          "CHANNEL_EXECUTION_NOT_SUPPORTED",
+                          "DUPLICATE_TOUCH",
+                          "COOLING_PERIOD_ACTIVE",
+                          "REACTIVATION_LIMIT_REACHED",
+                          "LIFETIME_EXPOSURE_CAP_REACHED",
+                          "RECENT_WINDOW_CAP_REACHED",
+                          "CHANNEL_CAP_REACHED",
+                          "CAMPAIGN_COOLDOWN_ACTIVE",
+                          "CAMPAIGN_VERSION_EXHAUSTED",
+                          "NO_CANDIDATE",
+                          "ELIGIBLE"
+                        ],
+                        "type": "string"
+                      },
+                      "minItems": 1,
+                      "type": "array",
+                      "uniqueItems": true
+                    },
+                    "schema_version": {
+                      "const": "1.0"
+                    },
+                    "selected": {
+                      "anyOf": [
+                        {
+                          "additionalProperties": false,
+                          "allOf": [
+                            {
+                              "if": {
+                                "properties": {
+                                  "channel": {
+                                    "enum": [
+                                      "email",
+                                      "sms",
+                                      "whatsapp"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "channel"
+                                ]
+                              },
+                              "then": {
+                                "properties": {
+                                  "sender_identity_id": {
+                                    "format": "uuid",
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            }
+                          ],
+                          "properties": {
+                            "campaign_id": {
+                              "description": "Canonical namespaced campaign reference. Klyrow-owned email/SMS campaigns use klyrow:<raw_id>; Codestra WhatsApp campaigns use whatsapp:<raw_id>. Raw Odoo/VICIdial/provider IDs are never accepted as master campaign IDs.",
+                              "maxLength": 210,
+                              "minLength": 1,
+                              "pattern": "^(klyrow|whatsapp):[A-Za-z0-9][A-Za-z0-9._-]{0,199}$",
+                              "type": "string"
+                            },
+                            "campaign_version": {
+                              "minimum": 1,
+                              "type": "integer"
+                            },
+                            "channel": {
+                              "enum": [
+                                "email",
+                                "sms",
+                                "whatsapp",
+                                "voice"
+                              ],
+                              "type": "string"
+                            },
+                            "exposure_idempotency_key": {
+                              "pattern": "^mcr1:[0-9a-f]{64}$",
+                              "type": "string"
+                            },
+                            "sender_identity_id": {
+                              "anyOf": [
+                                {
+                                  "format": "uuid",
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "touch_index": {
+                              "description": "1-based position of this touch within the campaign version's sequence for this lead and channel.",
+                              "maximum": 1000,
+                              "minimum": 1,
+                              "type": "integer"
+                            }
+                          },
+                          "required": [
+                            "campaign_id",
+                            "campaign_version",
+                            "channel",
+                            "sender_identity_id",
+                            "touch_index",
+                            "exposure_idempotency_key"
+                          ],
+                          "type": "object"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "tenant_id": {
+                      "maxLength": 128,
+                      "minLength": 1,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "schema_version",
+                    "decision_id",
+                    "tenant_id",
+                    "lead_id",
+                    "mode",
+                    "dry_run",
+                    "provider_effects",
+                    "evaluated_at",
+                    "policy_version",
+                    "lifecycle_state",
+                    "eligible",
+                    "selected",
+                    "next_eligible_at",
+                    "reason_codes",
+                    "candidates",
+                    "candidates_redacted",
+                    "decision_hash",
+                    "correlation_id"
+                  ],
+                  "title": "Next-action decision v1",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Read-mode decision when authority is available",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "Echo of the request correlation identifier",
+                "schema": {
+                  "maxLength": 180,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "correlation_id": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "object"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "retryable": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "correlation_id",
+                        "retryable",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Invalid request",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "Echo of the request correlation identifier",
+                "schema": {
+                  "maxLength": 180,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "description": "Canonical error envelope from contracts/http-conventions.md.",
+                  "properties": {
+                    "error": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "maxLength": 100,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "correlation_id": {
+                          "maxLength": 200,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "object"
+                        },
+                        "message": {
+                          "maxLength": 500,
+                          "type": "string"
+                        },
+                        "retryable": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "correlation_id",
+                        "retryable",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Authentication required",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "Echo of the request correlation identifier",
+                "schema": {
+                  "maxLength": 180,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "description": "Canonical error envelope from contracts/http-conventions.md.",
+                  "properties": {
+                    "error": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "maxLength": 100,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "correlation_id": {
+                          "maxLength": 200,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "object"
+                        },
+                        "message": {
+                          "maxLength": 500,
+                          "type": "string"
+                        },
+                        "retryable": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "correlation_id",
+                        "retryable",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Scope or tenant denied",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "Echo of the request correlation identifier",
+                "schema": {
+                  "maxLength": 180,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "description": "Canonical error envelope from contracts/http-conventions.md.",
+                  "properties": {
+                    "error": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "maxLength": 100,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "correlation_id": {
+                          "maxLength": 200,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "object"
+                        },
+                        "message": {
+                          "maxLength": 500,
+                          "type": "string"
+                        },
+                        "retryable": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "correlation_id",
+                        "retryable",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Lead not found",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "Echo of the request correlation identifier",
+                "schema": {
+                  "maxLength": 180,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Version, state, or idempotency conflict"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "description": "Canonical error envelope from contracts/http-conventions.md.",
+                  "properties": {
+                    "error": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "maxLength": 100,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "correlation_id": {
+                          "maxLength": 200,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "object"
+                        },
+                        "message": {
+                          "maxLength": 500,
+                          "type": "string"
+                        },
+                        "retryable": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "correlation_id",
+                        "retryable",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Required authority unavailable",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "Echo of the request correlation identifier",
+                "schema": {
+                  "maxLength": 180,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "codestraOAuth": [
+              "campaign.engine.read"
+            ]
+          }
+        ],
+        "summary": "Next Action",
+        "tags": [
+          "leads"
+        ],
+        "x-codestra-dry-run": "always",
+        "x-codestra-effects": "none",
+        "x-runtime-blocked-by": "authoritative candidate catalog and address selection"
       }
     },
     "/platform/v1/me/presence": {

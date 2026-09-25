@@ -64,6 +64,7 @@ from app.api.v1.control import legacy_events_router as control_legacy_events_rou
 from app.api.v1.control import router as control_router
 from app.api.v1.events import router as events_router
 from app.api.v1.integrations import router as integrations_router
+from app.api.v1.leads_journey import router as leads_journey_router
 from app.api.v1.lead_automation import router as lead_automation_router
 from app.api.v1.lead_reconciliation import router as lead_reconciliation_router
 from app.api.v1.mappings import router as mappings_router
@@ -129,6 +130,7 @@ CANONICAL_ROUTERS: tuple[APIRouter, ...] = (
     internal_database_router,
     # The V3 command kernel: the six /platform/v1 kernel routes, on every profile.
     platform_kernel_router,
+    leads_journey_router,
     automation_v2_router,
     automation_router,
     callbacks_router,

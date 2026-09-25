@@ -1074,6 +1074,1706 @@ paths:
           description: Required durable dependency unavailable
       security:
       - bearerAuth: []
+  /platform/v1/leads/{lead_id}/journey:
+    get:
+      tags:
+      - leads
+      summary: Journey
+      operationId: lead_journey_read
+      parameters:
+      - name: lead_id
+        in: path
+        required: true
+        schema:
+          description: Immutable campaign-scoped lead public ID issued by app/core/campaign_identity.py
+            (format_identity, identity_type LEAD).
+          type: string
+          pattern: ^[1-9][0-9]*00-L-[0-9]{8}$
+      - name: X-Tenant-ID
+        in: header
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 128
+      - name: X-Correlation-ID
+        in: header
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 180
+      - name: cursor
+        in: query
+        required: false
+        description: Opaque, tenant-and-lead-bound continuation position. It grants
+          no authority; malformed or wrong-scope cursors are 400 invalid_cursor.
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 500
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 200
+          default: 100
+      responses:
+        '200':
+          description: Journey page
+          content:
+            application/json:
+              schema:
+                title: Lead journey durable read projection v1
+                description: Readback of existing MCR-C rows. Channel health exposes
+                  the evidence hash actually retained by storage, not a reconstructed
+                  evidence event. Current health and additive suppressions accompany
+                  each history page. Lifecycle/exposure history is newest-page-first,
+                  chronological within each page; the cursor continues both streams
+                  independently. This is a live read, not a multi-request snapshot.
+                type: object
+                additionalProperties: false
+                required:
+                - schema_version
+                - lead_id
+                - lifecycle_state
+                - lifecycle_version
+                - transitions
+                - channel_health
+                - suppressions
+                - exposures
+                - next_cursor
+                properties:
+                  schema_version:
+                    const: '1.0'
+                  lead_id:
+                    description: Immutable campaign-scoped lead public ID issued by
+                      app/core/campaign_identity.py (format_identity, identity_type
+                      LEAD).
+                    type: string
+                    pattern: ^[1-9][0-9]*00-L-[0-9]{8}$
+                  lifecycle_state:
+                    type: string
+                    enum:
+                    - NEW
+                    - VALIDATED
+                    - ELIGIBLE
+                    - ACTIVE_CYCLE
+                    - ENGAGED
+                    - COOLING
+                    - REACTIVATION
+                    - CONVERTED
+                    - SUPPRESSED
+                  lifecycle_version:
+                    type: integer
+                    minimum: 1
+                  transitions:
+                    type: array
+                    maxItems: 200
+                    items:
+                      title: Cross-channel lead lifecycle transition v1
+                      description: 'One append-only transition of a lead''s cross-channel
+                        marketing lifecycle. This is NOT call/dialing eligibility:
+                        dialing identity and eligibility states remain owned by docs/operations/campaign-registry/lead-eligibility.md,
+                        and no lifecycle state authorizes dialing or any provider
+                        effect. Contract only; no runtime handler, table, or migration
+                        exists in MCR-A.'
+                      type: object
+                      additionalProperties: false
+                      required:
+                      - schema_version
+                      - transition_id
+                      - tenant_id
+                      - lead_id
+                      - from_state
+                      - to_state
+                      - reason_code
+                      - source
+                      - lifecycle_version
+                      - occurred_at
+                      - recorded_at
+                      - correlation_id
+                      - evidence_hash
+                      properties:
+                        schema_version:
+                          const: '1.0'
+                        transition_id:
+                          type: string
+                          format: uuid
+                        tenant_id:
+                          type: string
+                          minLength: 1
+                          maxLength: 128
+                        lead_id:
+                          description: Immutable campaign-scoped lead public ID issued
+                            by app/core/campaign_identity.py (format_identity, identity_type
+                            LEAD).
+                          type: string
+                          pattern: ^[1-9][0-9]*00-L-[0-9]{8}$
+                        from_state:
+                          description: null only for the initial registration transition
+                            into NEW.
+                          anyOf:
+                          - type: string
+                            enum:
+                            - NEW
+                            - VALIDATED
+                            - ELIGIBLE
+                            - ACTIVE_CYCLE
+                            - ENGAGED
+                            - COOLING
+                            - REACTIVATION
+                            - CONVERTED
+                            - SUPPRESSED
+                          - type: 'null'
+                        to_state:
+                          type: string
+                          enum:
+                          - NEW
+                          - VALIDATED
+                          - ELIGIBLE
+                          - ACTIVE_CYCLE
+                          - ENGAGED
+                          - COOLING
+                          - REACTIVATION
+                          - CONVERTED
+                          - SUPPRESSED
+                        reason_code:
+                          type: string
+                          enum:
+                          - LEAD_REGISTERED
+                          - VALIDATION_PASSED
+                          - ELIGIBILITY_ESTABLISHED
+                          - CYCLE_STARTED
+                          - ENGAGED_SEQUENCE_CONTINUED
+                          - REACTIVATION_TOUCH_ISSUED
+                          - STRONG_ENGAGEMENT_RECORDED
+                          - CYCLE_EXHAUSTED_UNENGAGED
+                          - REACTIVATION_EXHAUSTED_UNENGAGED
+                          - COOLING_ELAPSED
+                          - CONVERSION_RECORDED
+                          - GLOBAL_SUPPRESSION_APPLIED
+                        source:
+                          type: string
+                          enum:
+                          - leads
+                          - middleware_policy
+                          - delivery_event
+                          - odoo_conversion
+                          - operator
+                        lifecycle_version:
+                          description: Monotonic optimistic-concurrency version; a
+                            writer must present the prior version and loses with 409
+                            on mismatch.
+                          type: integer
+                          minimum: 1
+                        occurred_at:
+                          type: string
+                          format: date-time
+                        recorded_at:
+                          type: string
+                          format: date-time
+                        correlation_id:
+                          type: string
+                          minLength: 1
+                          maxLength: 200
+                        causation_id:
+                          anyOf:
+                          - type: string
+                            minLength: 1
+                            maxLength: 200
+                          - type: 'null'
+                        evidence_hash:
+                          type: string
+                          pattern: ^[0-9a-f]{64}$
+                        evidence_ref:
+                          type:
+                          - string
+                          - 'null'
+                          maxLength: 500
+                      allOf:
+                      - if:
+                          properties:
+                            from_state:
+                              type: 'null'
+                          required:
+                          - from_state
+                        then:
+                          properties:
+                            to_state:
+                              const: NEW
+                            reason_code:
+                              const: LEAD_REGISTERED
+                            lifecycle_version:
+                              const: 1
+                      - if:
+                          properties:
+                            from_state:
+                              const: NEW
+                          required:
+                          - from_state
+                        then:
+                          properties:
+                            to_state:
+                              enum:
+                              - VALIDATED
+                              - SUPPRESSED
+                      - if:
+                          properties:
+                            from_state:
+                              const: VALIDATED
+                          required:
+                          - from_state
+                        then:
+                          properties:
+                            to_state:
+                              enum:
+                              - ELIGIBLE
+                              - SUPPRESSED
+                      - if:
+                          properties:
+                            from_state:
+                              const: ELIGIBLE
+                          required:
+                          - from_state
+                        then:
+                          properties:
+                            to_state:
+                              enum:
+                              - ACTIVE_CYCLE
+                              - CONVERTED
+                              - SUPPRESSED
+                      - if:
+                          properties:
+                            from_state:
+                              const: ACTIVE_CYCLE
+                          required:
+                          - from_state
+                        then:
+                          properties:
+                            to_state:
+                              enum:
+                              - ENGAGED
+                              - COOLING
+                              - CONVERTED
+                              - SUPPRESSED
+                      - if:
+                          properties:
+                            from_state:
+                              const: ENGAGED
+                          required:
+                          - from_state
+                        then:
+                          properties:
+                            to_state:
+                              enum:
+                              - ACTIVE_CYCLE
+                              - COOLING
+                              - CONVERTED
+                              - SUPPRESSED
+                      - if:
+                          properties:
+                            from_state:
+                              const: COOLING
+                          required:
+                          - from_state
+                        then:
+                          properties:
+                            to_state:
+                              enum:
+                              - REACTIVATION
+                              - CONVERTED
+                              - SUPPRESSED
+                      - if:
+                          properties:
+                            from_state:
+                              const: REACTIVATION
+                          required:
+                          - from_state
+                        then:
+                          properties:
+                            to_state:
+                              enum:
+                              - ACTIVE_CYCLE
+                              - ENGAGED
+                              - COOLING
+                              - CONVERTED
+                              - SUPPRESSED
+                      - if:
+                          properties:
+                            from_state:
+                              const: CONVERTED
+                          required:
+                          - from_state
+                        then:
+                          properties:
+                            to_state:
+                              enum:
+                              - SUPPRESSED
+                      - if:
+                          properties:
+                            from_state:
+                              const: SUPPRESSED
+                          required:
+                          - from_state
+                        then: false
+                      - if:
+                          properties:
+                            to_state:
+                              const: VALIDATED
+                          required:
+                          - to_state
+                        then:
+                          properties:
+                            reason_code:
+                              enum:
+                              - VALIDATION_PASSED
+                      - if:
+                          properties:
+                            to_state:
+                              const: ELIGIBLE
+                          required:
+                          - to_state
+                        then:
+                          properties:
+                            reason_code:
+                              enum:
+                              - ELIGIBILITY_ESTABLISHED
+                      - if:
+                          properties:
+                            to_state:
+                              const: ACTIVE_CYCLE
+                          required:
+                          - to_state
+                        then:
+                          properties:
+                            reason_code:
+                              enum:
+                              - CYCLE_STARTED
+                              - ENGAGED_SEQUENCE_CONTINUED
+                              - REACTIVATION_TOUCH_ISSUED
+                      - if:
+                          properties:
+                            to_state:
+                              const: ENGAGED
+                          required:
+                          - to_state
+                        then:
+                          properties:
+                            reason_code:
+                              enum:
+                              - STRONG_ENGAGEMENT_RECORDED
+                      - if:
+                          properties:
+                            to_state:
+                              const: COOLING
+                          required:
+                          - to_state
+                        then:
+                          properties:
+                            reason_code:
+                              enum:
+                              - CYCLE_EXHAUSTED_UNENGAGED
+                              - REACTIVATION_EXHAUSTED_UNENGAGED
+                      - if:
+                          properties:
+                            to_state:
+                              const: REACTIVATION
+                          required:
+                          - to_state
+                        then:
+                          properties:
+                            reason_code:
+                              enum:
+                              - COOLING_ELAPSED
+                      - if:
+                          properties:
+                            to_state:
+                              const: CONVERTED
+                          required:
+                          - to_state
+                        then:
+                          properties:
+                            reason_code:
+                              enum:
+                              - CONVERSION_RECORDED
+                      - if:
+                          properties:
+                            to_state:
+                              const: SUPPRESSED
+                          required:
+                          - to_state
+                        then:
+                          properties:
+                            reason_code:
+                              enum:
+                              - GLOBAL_SUPPRESSION_APPLIED
+                  channel_health:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: false
+                      required:
+                      - channel
+                      - address_ref
+                      - state
+                      - previous_state
+                      - source
+                      - reason_code
+                      - occurred_at
+                      - recorded_at
+                      - health_version
+                      - correlation_id
+                      - evidence_hash
+                      - updated_at
+                      properties:
+                        channel:
+                          type: string
+                          enum:
+                          - email
+                          - sms
+                          - whatsapp
+                          - voice
+                        address_ref:
+                          description: Opaque, non-reversible reference to the channel
+                            address (for example the Klyrow recipient_reference).
+                            Raw email addresses and phone numbers never appear in
+                            this contract.
+                          type: string
+                          minLength: 8
+                          maxLength: 200
+                        state:
+                          type: string
+                          enum:
+                          - unknown
+                          - valid
+                          - possible
+                          - soft_bounce
+                          - hard_bounce
+                          - complained
+                          - unsubscribed
+                          - suppressed
+                          - invalid
+                        previous_state:
+                          anyOf:
+                          - type: string
+                            enum:
+                            - unknown
+                            - valid
+                            - possible
+                            - soft_bounce
+                            - hard_bounce
+                            - complained
+                            - unsubscribed
+                            - suppressed
+                            - invalid
+                          - type: 'null'
+                        source:
+                          type: string
+                          enum:
+                          - klyrow_delivery_event
+                          - telnexa_delivery_event
+                          - inbound_sms_stop
+                          - lead_validation
+                          - dialing_eligibility
+                          - leads_authority
+                          - data_subject_request
+                          - operator
+                          - evolution_delivery_event
+                          - whatsapp_consent
+                          - inbound_whatsapp_optout
+                        reason_code:
+                          type: string
+                          enum:
+                          - VALIDATION_PASSED
+                          - VALIDATION_PARTIAL
+                          - VALIDATION_FAILED
+                          - DELIVERY_CONFIRMED
+                          - SOFT_BOUNCE
+                          - SOFT_BOUNCE_ESCALATED
+                          - HARD_BOUNCE
+                          - COMPLAINT
+                          - UNSUBSCRIBE
+                          - SUPPRESSION_RECORDED
+                          - DIALING_STATE_BLOCK
+                        occurred_at:
+                          type: string
+                          format: date-time
+                        recorded_at:
+                          type: string
+                          format: date-time
+                        health_version:
+                          type: integer
+                          minimum: 1
+                        correlation_id:
+                          type: string
+                          minLength: 1
+                          maxLength: 200
+                        evidence_hash:
+                          type: string
+                          pattern: ^[0-9a-f]{64}$
+                        updated_at:
+                          type: string
+                          format: date-time
+                  suppressions:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: false
+                      required:
+                      - scope
+                      - channel
+                      - campaign_id
+                      - reason
+                      - source
+                      - occurred_at
+                      - requested_by
+                      - suppression_id
+                      - evidence_hash
+                      - created_at
+                      properties:
+                        scope:
+                          type: string
+                          enum:
+                          - global
+                          - channel
+                          - campaign
+                          - campaign_channel
+                        channel:
+                          anyOf:
+                          - type: string
+                            enum:
+                            - email
+                            - sms
+                            - whatsapp
+                            - voice
+                          - type: 'null'
+                        campaign_id:
+                          anyOf:
+                          - description: Canonical namespaced campaign reference.
+                              Klyrow-owned email/SMS campaigns use klyrow:<raw_id>;
+                              Codestra WhatsApp campaigns use whatsapp:<raw_id>. Raw
+                              Odoo/VICIdial/provider IDs are never accepted as master
+                              campaign IDs.
+                            type: string
+                            minLength: 1
+                            maxLength: 210
+                            pattern: ^(klyrow|whatsapp):[A-Za-z0-9][A-Za-z0-9._-]{0,199}$
+                          - type: 'null'
+                        reason:
+                          type: string
+                          enum:
+                          - legal_hold
+                          - data_subject_request
+                          - do_not_contact_request
+                          - complaint
+                          - unsubscribe
+                          - consent_revoked
+                          - dialing_do_not_call
+                          - operator_block
+                        source:
+                          type: string
+                          enum:
+                          - klyrow_delivery_event
+                          - telnexa_delivery_event
+                          - inbound_sms_stop
+                          - lead_validation
+                          - dialing_eligibility
+                          - leads_authority
+                          - data_subject_request
+                          - operator
+                          - evolution_delivery_event
+                          - whatsapp_consent
+                          - inbound_whatsapp_optout
+                        occurred_at:
+                          type: string
+                          format: date-time
+                        requested_by:
+                          type: string
+                          minLength: 1
+                          maxLength: 300
+                        suppression_id:
+                          type: string
+                          format: uuid
+                        evidence_hash:
+                          type: string
+                          pattern: ^[0-9a-f]{64}$
+                        created_at:
+                          type: string
+                          format: date-time
+                  exposures:
+                    type: array
+                    maxItems: 200
+                    items:
+                      title: Campaign exposure ledger entry v1
+                      description: 'Durable identity and outcome of exactly one planned
+                        touch: lead x campaign x campaign_version x channel x touch_index.
+                        Owned by Middleware (command/idempotency authority). A ledger
+                        row is reserved before any command is emitted, so the same
+                        planned touch can never be issued twice. Contract only; no
+                        table or migration exists in MCR-A.'
+                      type: object
+                      additionalProperties: false
+                      required:
+                      - schema_version
+                      - exposure_id
+                      - tenant_id
+                      - lead_id
+                      - campaign_id
+                      - campaign_version
+                      - channel
+                      - touch_index
+                      - idempotency_key
+                      - command_id
+                      - correlation_id
+                      - decision_id
+                      - policy_version
+                      - sender_identity_id
+                      - status
+                      - engagement_outcome
+                      - negative_outcome
+                      - message_id
+                      - provider_message_id
+                      - reserved_at
+                      - dispatched_at
+                      - accepted_at
+                      - delivered_at
+                      - status_at
+                      - engagement_outcome_at
+                      - negative_outcome_at
+                      - updated_at
+                      - ledger_version
+                      properties:
+                        schema_version:
+                          const: '1.0'
+                        exposure_id:
+                          type: string
+                          format: uuid
+                        tenant_id:
+                          type: string
+                          minLength: 1
+                          maxLength: 128
+                        lead_id:
+                          description: Immutable campaign-scoped lead public ID issued
+                            by app/core/campaign_identity.py (format_identity, identity_type
+                            LEAD).
+                          type: string
+                          pattern: ^[1-9][0-9]*00-L-[0-9]{8}$
+                        campaign_id:
+                          description: Canonical namespaced campaign reference. Klyrow-owned
+                            email/SMS campaigns use klyrow:<raw_id>; Codestra WhatsApp
+                            campaigns use whatsapp:<raw_id>. Raw Odoo/VICIdial/provider
+                            IDs are never accepted as master campaign IDs.
+                          type: string
+                          minLength: 1
+                          maxLength: 210
+                          pattern: ^(klyrow|whatsapp):[A-Za-z0-9][A-Za-z0-9._-]{0,199}$
+                        campaign_version:
+                          type: integer
+                          minimum: 1
+                        channel:
+                          type: string
+                          enum:
+                          - email
+                          - sms
+                          - whatsapp
+                          - voice
+                        touch_index:
+                          description: 1-based position of this touch within the campaign
+                            version's sequence for this lead and channel.
+                          type: integer
+                          minimum: 1
+                          maximum: 1000
+                        idempotency_key:
+                          type: string
+                          pattern: ^mcr1:[0-9a-f]{64}$
+                        command_id:
+                          description: command_id of the canonical command envelope
+                            emitted through the outbox.
+                          type: string
+                          format: uuid
+                        correlation_id:
+                          type: string
+                          minLength: 1
+                          maxLength: 200
+                        decision_id:
+                          type: string
+                          format: uuid
+                        policy_version:
+                          type: string
+                          pattern: ^mcr-policy-[0-9]+\.[0-9]+\.[0-9]+$
+                        sender_identity_id:
+                          description: Stable internal sender-identity registry UUID.
+                            Required for email, SMS, and WhatsApp; nullable only for
+                            a channel whose v1 execution is unsupported.
+                          anyOf:
+                          - type: string
+                            format: uuid
+                          - type: 'null'
+                        status:
+                          type: string
+                          enum:
+                          - reserved
+                          - accepted
+                          - queued
+                          - dispatched
+                          - delivered
+                          - failed
+                          - cancelled
+                          - suppressed
+                          - expired
+                          - indeterminate
+                        engagement_outcome:
+                          type: string
+                          enum:
+                          - none
+                          - open
+                          - read
+                          - click
+                          - reply
+                          - conversion
+                        negative_outcome:
+                          type: string
+                          enum:
+                          - none
+                          - soft_bounce
+                          - hard_bounce
+                          - unsubscribe
+                          - complaint
+                        message_id:
+                          description: Communications message id once the command
+                            is accepted by the communications service.
+                          anyOf:
+                          - type: string
+                            format: uuid
+                          - type: 'null'
+                        provider_message_id:
+                          type:
+                          - string
+                          - 'null'
+                          minLength: 1
+                          maxLength: 998
+                        reserved_at:
+                          type: string
+                          format: date-time
+                        dispatched_at:
+                          anyOf:
+                          - type: string
+                            format: date-time
+                          - type: 'null'
+                        accepted_at:
+                          anyOf:
+                          - type: string
+                            format: date-time
+                          - type: 'null'
+                        delivered_at:
+                          anyOf:
+                          - type: string
+                            format: date-time
+                          - type: 'null'
+                        status_at:
+                          type: string
+                          format: date-time
+                        engagement_outcome_at:
+                          anyOf:
+                          - type: string
+                            format: date-time
+                          - type: 'null'
+                        negative_outcome_at:
+                          anyOf:
+                          - type: string
+                            format: date-time
+                          - type: 'null'
+                        updated_at:
+                          type: string
+                          format: date-time
+                        ledger_version:
+                          type: integer
+                          minimum: 1
+                      allOf:
+                      - if:
+                          properties:
+                            status:
+                              const: reserved
+                          required:
+                          - status
+                        then:
+                          properties:
+                            provider_message_id:
+                              type: 'null'
+                            dispatched_at:
+                              type: 'null'
+                            accepted_at:
+                              type: 'null'
+                            delivered_at:
+                              type: 'null'
+                      - if:
+                          properties:
+                            status:
+                              const: delivered
+                          required:
+                          - status
+                        then:
+                          properties:
+                            delivered_at:
+                              type: string
+                              format: date-time
+                      - if:
+                          properties:
+                            engagement_outcome:
+                              const: none
+                          required:
+                          - engagement_outcome
+                        then:
+                          properties:
+                            engagement_outcome_at:
+                              type: 'null'
+                        else:
+                          properties:
+                            engagement_outcome_at:
+                              type: string
+                              format: date-time
+                      - if:
+                          properties:
+                            negative_outcome:
+                              const: none
+                          required:
+                          - negative_outcome
+                        then:
+                          properties:
+                            negative_outcome_at:
+                              type: 'null'
+                        else:
+                          properties:
+                            negative_outcome_at:
+                              type: string
+                              format: date-time
+                      - if:
+                          properties:
+                            channel:
+                              enum:
+                              - email
+                              - sms
+                              - whatsapp
+                          required:
+                          - channel
+                        then:
+                          properties:
+                            sender_identity_id:
+                              type: string
+                              format: uuid
+                  next_cursor:
+                    type:
+                    - string
+                    - 'null'
+                    maxLength: 500
+          headers:
+            X-Correlation-ID: &id002
+              description: Echo of the request correlation identifier
+              schema:
+                type: string
+                minLength: 1
+                maxLength: 180
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Correlation-ID: *id002
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                description: Canonical error envelope from contracts/http-conventions.md.
+                type: object
+                additionalProperties: false
+                required:
+                - error
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    required:
+                    - code
+                    - message
+                    - correlation_id
+                    - retryable
+                    - details
+                    properties:
+                      code:
+                        type: string
+                        minLength: 1
+                        maxLength: 100
+                      message:
+                        type: string
+                        maxLength: 500
+                      correlation_id:
+                        type: string
+                        minLength: 1
+                        maxLength: 200
+                      retryable:
+                        type: boolean
+                      details:
+                        type: object
+          headers:
+            X-Correlation-ID: *id002
+        '403':
+          description: Scope or tenant denied
+          content:
+            application/json:
+              schema:
+                description: Canonical error envelope from contracts/http-conventions.md.
+                type: object
+                additionalProperties: false
+                required:
+                - error
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    required:
+                    - code
+                    - message
+                    - correlation_id
+                    - retryable
+                    - details
+                    properties:
+                      code:
+                        type: string
+                        minLength: 1
+                        maxLength: 100
+                      message:
+                        type: string
+                        maxLength: 500
+                      correlation_id:
+                        type: string
+                        minLength: 1
+                        maxLength: 200
+                      retryable:
+                        type: boolean
+                      details:
+                        type: object
+          headers:
+            X-Correlation-ID: *id002
+        '404':
+          description: Lead not found
+          content:
+            application/json:
+              schema:
+                description: Canonical error envelope from contracts/http-conventions.md.
+                type: object
+                additionalProperties: false
+                required:
+                - error
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    required:
+                    - code
+                    - message
+                    - correlation_id
+                    - retryable
+                    - details
+                    properties:
+                      code:
+                        type: string
+                        minLength: 1
+                        maxLength: 100
+                      message:
+                        type: string
+                        maxLength: 500
+                      correlation_id:
+                        type: string
+                        minLength: 1
+                        maxLength: 200
+                      retryable:
+                        type: boolean
+                      details:
+                        type: object
+          headers:
+            X-Correlation-ID: *id002
+        '503':
+          description: Required authority unavailable
+          content:
+            application/json:
+              schema:
+                description: Canonical error envelope from contracts/http-conventions.md.
+                type: object
+                additionalProperties: false
+                required:
+                - error
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    required:
+                    - code
+                    - message
+                    - correlation_id
+                    - retryable
+                    - details
+                    properties:
+                      code:
+                        type: string
+                        minLength: 1
+                        maxLength: 100
+                      message:
+                        type: string
+                        maxLength: 500
+                      correlation_id:
+                        type: string
+                        minLength: 1
+                        maxLength: 200
+                      retryable:
+                        type: boolean
+                      details:
+                        type: object
+          headers:
+            X-Correlation-ID: *id002
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+      security:
+      - codestraOAuth:
+        - leads.journey.read
+      x-codestra-effects: none
+  /platform/v1/leads/{lead_id}/next-action:
+    get:
+      tags:
+      - leads
+      summary: Next Action
+      operationId: lead_next_action_read
+      parameters:
+      - name: lead_id
+        in: path
+        required: true
+        schema:
+          description: Immutable campaign-scoped lead public ID issued by app/core/campaign_identity.py
+            (format_identity, identity_type LEAD).
+          type: string
+          pattern: ^[1-9][0-9]*00-L-[0-9]{8}$
+      - name: X-Tenant-ID
+        in: header
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 128
+      - name: X-Correlation-ID
+        in: header
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 180
+      - name: channel
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - email
+          - sms
+          - whatsapp
+          - voice
+      responses:
+        '200':
+          description: Read-mode decision when authority is available
+          content:
+            application/json:
+              schema:
+                title: Next-action decision v1
+                description: 'Deterministic Middleware policy decision for one lead.
+                  A decision document never causes a provider effect: plan and read
+                  modes are pure dry runs, and execute mode only reserves exposure-ledger
+                  rows and emits canonical commands through the outbox, which remain
+                  capability-gated. Contract only; no runtime handler exists in MCR-A.'
+                type: object
+                additionalProperties: false
+                required:
+                - schema_version
+                - decision_id
+                - tenant_id
+                - lead_id
+                - mode
+                - dry_run
+                - provider_effects
+                - evaluated_at
+                - policy_version
+                - lifecycle_state
+                - eligible
+                - selected
+                - next_eligible_at
+                - reason_codes
+                - candidates
+                - candidates_redacted
+                - decision_hash
+                - correlation_id
+                properties:
+                  schema_version:
+                    const: '1.0'
+                  decision_id:
+                    type: string
+                    format: uuid
+                  tenant_id:
+                    type: string
+                    minLength: 1
+                    maxLength: 128
+                  lead_id:
+                    description: Immutable campaign-scoped lead public ID issued by
+                      app/core/campaign_identity.py (format_identity, identity_type
+                      LEAD).
+                    type: string
+                    pattern: ^[1-9][0-9]*00-L-[0-9]{8}$
+                  mode:
+                    type: string
+                    enum:
+                    - plan
+                    - read
+                    - execute
+                  dry_run:
+                    type: boolean
+                  provider_effects:
+                    description: A decision never performs a provider call. Any effect
+                      after execute is a separately authorized command in the outbox.
+                    const: none
+                  evaluated_at:
+                    type: string
+                    format: date-time
+                  policy_version:
+                    type: string
+                    pattern: ^mcr-policy-[0-9]+\.[0-9]+\.[0-9]+$
+                  lifecycle_state:
+                    type: string
+                    enum:
+                    - NEW
+                    - VALIDATED
+                    - ELIGIBLE
+                    - ACTIVE_CYCLE
+                    - ENGAGED
+                    - COOLING
+                    - REACTIVATION
+                    - CONVERTED
+                    - SUPPRESSED
+                  eligible:
+                    type: boolean
+                  selected:
+                    anyOf:
+                    - type: object
+                      additionalProperties: false
+                      required:
+                      - campaign_id
+                      - campaign_version
+                      - channel
+                      - sender_identity_id
+                      - touch_index
+                      - exposure_idempotency_key
+                      properties:
+                        campaign_id:
+                          description: Canonical namespaced campaign reference. Klyrow-owned
+                            email/SMS campaigns use klyrow:<raw_id>; Codestra WhatsApp
+                            campaigns use whatsapp:<raw_id>. Raw Odoo/VICIdial/provider
+                            IDs are never accepted as master campaign IDs.
+                          type: string
+                          minLength: 1
+                          maxLength: 210
+                          pattern: ^(klyrow|whatsapp):[A-Za-z0-9][A-Za-z0-9._-]{0,199}$
+                        campaign_version:
+                          type: integer
+                          minimum: 1
+                        channel:
+                          type: string
+                          enum:
+                          - email
+                          - sms
+                          - whatsapp
+                          - voice
+                        sender_identity_id:
+                          anyOf:
+                          - type: string
+                            format: uuid
+                          - type: 'null'
+                        touch_index:
+                          description: 1-based position of this touch within the campaign
+                            version's sequence for this lead and channel.
+                          type: integer
+                          minimum: 1
+                          maximum: 1000
+                        exposure_idempotency_key:
+                          type: string
+                          pattern: ^mcr1:[0-9a-f]{64}$
+                      allOf:
+                      - if:
+                          properties:
+                            channel:
+                              enum:
+                              - email
+                              - sms
+                              - whatsapp
+                          required:
+                          - channel
+                        then:
+                          properties:
+                            sender_identity_id:
+                              type: string
+                              format: uuid
+                    - type: 'null'
+                  next_eligible_at:
+                    anyOf:
+                    - type: string
+                      format: date-time
+                    - type: 'null'
+                  reason_codes:
+                    type: array
+                    minItems: 1
+                    uniqueItems: true
+                    items:
+                      type: string
+                      enum:
+                      - POLICY_NOT_CONFIGURED
+                      - PRODUCTION_NOT_AUTHORIZED
+                      - KILL_SWITCH_OPEN
+                      - EVIDENCE_STALE_OR_CONFLICTING
+                      - SUPPRESSED_GLOBAL
+                      - SUPPRESSED_CHANNEL
+                      - SUPPRESSED_CAMPAIGN
+                      - SUPPRESSED_CAMPAIGN_CHANNEL
+                      - LIFECYCLE_TERMINAL
+                      - LIFECYCLE_NOT_CONTACTABLE
+                      - CONSENT_MISSING
+                      - DIALING_NOT_ELIGIBLE
+                      - CHANNEL_HEALTH_BLOCKED
+                      - CHANNEL_HEALTH_UNKNOWN
+                      - CHANNEL_HEALTH_POLICY_GATED
+                      - CHANNEL_HEALTH_DEFERRED
+                      - CAMPAIGN_NOT_ACTIVE
+                      - CAMPAIGN_VERSION_NOT_APPROVED
+                      - SENDER_IDENTITY_NOT_AUTHORIZED
+                      - SENDER_IDENTITY_UNAVAILABLE
+                      - CHANNEL_EXECUTION_NOT_SUPPORTED
+                      - DUPLICATE_TOUCH
+                      - COOLING_PERIOD_ACTIVE
+                      - REACTIVATION_LIMIT_REACHED
+                      - LIFETIME_EXPOSURE_CAP_REACHED
+                      - RECENT_WINDOW_CAP_REACHED
+                      - CHANNEL_CAP_REACHED
+                      - CAMPAIGN_COOLDOWN_ACTIVE
+                      - CAMPAIGN_VERSION_EXHAUSTED
+                      - NO_CANDIDATE
+                      - ELIGIBLE
+                  candidates:
+                    type: array
+                    maxItems: 200
+                    items:
+                      type: object
+                      additionalProperties: false
+                      required:
+                      - campaign_id
+                      - campaign_version
+                      - channel
+                      - disposition
+                      - reason_codes
+                      properties:
+                        campaign_id:
+                          description: Canonical namespaced campaign reference. Klyrow-owned
+                            email/SMS campaigns use klyrow:<raw_id>; Codestra WhatsApp
+                            campaigns use whatsapp:<raw_id>. Raw Odoo/VICIdial/provider
+                            IDs are never accepted as master campaign IDs.
+                          type: string
+                          minLength: 1
+                          maxLength: 210
+                          pattern: ^(klyrow|whatsapp):[A-Za-z0-9][A-Za-z0-9._-]{0,199}$
+                        campaign_version:
+                          type: integer
+                          minimum: 1
+                        channel:
+                          type: string
+                          enum:
+                          - email
+                          - sms
+                          - whatsapp
+                          - voice
+                        disposition:
+                          type: string
+                          enum:
+                          - selected
+                          - rejected
+                        reason_codes:
+                          type: array
+                          minItems: 1
+                          uniqueItems: true
+                          items:
+                            type: string
+                            enum:
+                            - POLICY_NOT_CONFIGURED
+                            - PRODUCTION_NOT_AUTHORIZED
+                            - KILL_SWITCH_OPEN
+                            - EVIDENCE_STALE_OR_CONFLICTING
+                            - SUPPRESSED_GLOBAL
+                            - SUPPRESSED_CHANNEL
+                            - SUPPRESSED_CAMPAIGN
+                            - SUPPRESSED_CAMPAIGN_CHANNEL
+                            - LIFECYCLE_TERMINAL
+                            - LIFECYCLE_NOT_CONTACTABLE
+                            - CONSENT_MISSING
+                            - DIALING_NOT_ELIGIBLE
+                            - CHANNEL_HEALTH_BLOCKED
+                            - CHANNEL_HEALTH_UNKNOWN
+                            - CHANNEL_HEALTH_POLICY_GATED
+                            - CHANNEL_HEALTH_DEFERRED
+                            - CAMPAIGN_NOT_ACTIVE
+                            - CAMPAIGN_VERSION_NOT_APPROVED
+                            - SENDER_IDENTITY_NOT_AUTHORIZED
+                            - SENDER_IDENTITY_UNAVAILABLE
+                            - CHANNEL_EXECUTION_NOT_SUPPORTED
+                            - DUPLICATE_TOUCH
+                            - COOLING_PERIOD_ACTIVE
+                            - REACTIVATION_LIMIT_REACHED
+                            - LIFETIME_EXPOSURE_CAP_REACHED
+                            - RECENT_WINDOW_CAP_REACHED
+                            - CHANNEL_CAP_REACHED
+                            - CAMPAIGN_COOLDOWN_ACTIVE
+                            - CAMPAIGN_VERSION_EXHAUSTED
+                            - NO_CANDIDATE
+                            - ELIGIBLE
+                      allOf:
+                      - if:
+                          properties:
+                            disposition:
+                              const: selected
+                          required:
+                          - disposition
+                        then:
+                          properties:
+                            reason_codes:
+                              const:
+                              - ELIGIBLE
+                        else:
+                          properties:
+                            reason_codes:
+                              not:
+                                contains:
+                                  const: ELIGIBLE
+                  candidates_redacted:
+                    description: true when the caller's scope does not permit candidate
+                      disclosure; candidates is then empty.
+                    type: boolean
+                  decision_hash:
+                    type: string
+                    pattern: ^[0-9a-f]{64}$
+                  correlation_id:
+                    type: string
+                    minLength: 1
+                    maxLength: 200
+                allOf:
+                - if:
+                    properties:
+                      eligible:
+                        const: true
+                    required:
+                    - eligible
+                  then:
+                    properties:
+                      selected:
+                        type: object
+                        additionalProperties: false
+                        required:
+                        - campaign_id
+                        - campaign_version
+                        - channel
+                        - sender_identity_id
+                        - touch_index
+                        - exposure_idempotency_key
+                        properties:
+                          campaign_id:
+                            description: Canonical namespaced campaign reference.
+                              Klyrow-owned email/SMS campaigns use klyrow:<raw_id>;
+                              Codestra WhatsApp campaigns use whatsapp:<raw_id>. Raw
+                              Odoo/VICIdial/provider IDs are never accepted as master
+                              campaign IDs.
+                            type: string
+                            minLength: 1
+                            maxLength: 210
+                            pattern: ^(klyrow|whatsapp):[A-Za-z0-9][A-Za-z0-9._-]{0,199}$
+                          campaign_version:
+                            type: integer
+                            minimum: 1
+                          channel:
+                            type: string
+                            enum:
+                            - email
+                            - sms
+                            - whatsapp
+                            - voice
+                          sender_identity_id:
+                            anyOf:
+                            - type: string
+                              format: uuid
+                            - type: 'null'
+                          touch_index:
+                            description: 1-based position of this touch within the
+                              campaign version's sequence for this lead and channel.
+                            type: integer
+                            minimum: 1
+                            maximum: 1000
+                          exposure_idempotency_key:
+                            type: string
+                            pattern: ^mcr1:[0-9a-f]{64}$
+                        allOf:
+                        - if:
+                            properties:
+                              channel:
+                                enum:
+                                - email
+                                - sms
+                                - whatsapp
+                            required:
+                            - channel
+                          then:
+                            properties:
+                              sender_identity_id:
+                                type: string
+                                format: uuid
+                      next_eligible_at:
+                        type: 'null'
+                      reason_codes:
+                        const:
+                        - ELIGIBLE
+                  else:
+                    properties:
+                      selected:
+                        type: 'null'
+                      reason_codes:
+                        not:
+                          contains:
+                            const: ELIGIBLE
+                - if:
+                    properties:
+                      mode:
+                        enum:
+                        - plan
+                        - read
+                    required:
+                    - mode
+                  then:
+                    properties:
+                      dry_run:
+                        const: true
+                      reason_codes:
+                        not:
+                          contains:
+                            const: PRODUCTION_NOT_AUTHORIZED
+                - if:
+                    properties:
+                      mode:
+                        const: execute
+                    required:
+                    - mode
+                  then:
+                    properties:
+                      dry_run:
+                        const: false
+                - if:
+                    properties:
+                      lifecycle_state:
+                        enum:
+                        - NEW
+                        - VALIDATED
+                        - COOLING
+                        - CONVERTED
+                        - SUPPRESSED
+                    required:
+                    - lifecycle_state
+                  then:
+                    properties:
+                      eligible:
+                        const: false
+                - if:
+                    properties:
+                      candidates_redacted:
+                        const: true
+                    required:
+                    - candidates_redacted
+                  then:
+                    properties:
+                      candidates:
+                        maxItems: 0
+          headers:
+            X-Correlation-ID: *id002
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Correlation-ID: *id002
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                description: Canonical error envelope from contracts/http-conventions.md.
+                type: object
+                additionalProperties: false
+                required:
+                - error
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    required:
+                    - code
+                    - message
+                    - correlation_id
+                    - retryable
+                    - details
+                    properties:
+                      code:
+                        type: string
+                        minLength: 1
+                        maxLength: 100
+                      message:
+                        type: string
+                        maxLength: 500
+                      correlation_id:
+                        type: string
+                        minLength: 1
+                        maxLength: 200
+                      retryable:
+                        type: boolean
+                      details:
+                        type: object
+          headers:
+            X-Correlation-ID: *id002
+        '403':
+          description: Scope or tenant denied
+          content:
+            application/json:
+              schema:
+                description: Canonical error envelope from contracts/http-conventions.md.
+                type: object
+                additionalProperties: false
+                required:
+                - error
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    required:
+                    - code
+                    - message
+                    - correlation_id
+                    - retryable
+                    - details
+                    properties:
+                      code:
+                        type: string
+                        minLength: 1
+                        maxLength: 100
+                      message:
+                        type: string
+                        maxLength: 500
+                      correlation_id:
+                        type: string
+                        minLength: 1
+                        maxLength: 200
+                      retryable:
+                        type: boolean
+                      details:
+                        type: object
+          headers:
+            X-Correlation-ID: *id002
+        '404':
+          description: Lead not found
+          content:
+            application/json:
+              schema:
+                description: Canonical error envelope from contracts/http-conventions.md.
+                type: object
+                additionalProperties: false
+                required:
+                - error
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    required:
+                    - code
+                    - message
+                    - correlation_id
+                    - retryable
+                    - details
+                    properties:
+                      code:
+                        type: string
+                        minLength: 1
+                        maxLength: 100
+                      message:
+                        type: string
+                        maxLength: 500
+                      correlation_id:
+                        type: string
+                        minLength: 1
+                        maxLength: 200
+                      retryable:
+                        type: boolean
+                      details:
+                        type: object
+          headers:
+            X-Correlation-ID: *id002
+        '503':
+          description: Required authority unavailable
+          content:
+            application/json:
+              schema:
+                description: Canonical error envelope from contracts/http-conventions.md.
+                type: object
+                additionalProperties: false
+                required:
+                - error
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    required:
+                    - code
+                    - message
+                    - correlation_id
+                    - retryable
+                    - details
+                    properties:
+                      code:
+                        type: string
+                        minLength: 1
+                        maxLength: 100
+                      message:
+                        type: string
+                        maxLength: 500
+                      correlation_id:
+                        type: string
+                        minLength: 1
+                        maxLength: 200
+                      retryable:
+                        type: boolean
+                      details:
+                        type: object
+          headers:
+            X-Correlation-ID: *id002
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+      security:
+      - codestraOAuth:
+        - campaign.engine.read
+      x-codestra-effects: none
+      x-codestra-dry-run: always
+      x-runtime-blocked-by: authoritative candidate catalog and address selection
   /v2/automation/jobs/claim:
     post:
       tags:
@@ -1685,7 +3385,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - &id002
+      - &id003
         name: X-Tenant-ID
         in: header
         required: true
@@ -1693,7 +3393,7 @@ paths:
           type: string
           minLength: 1
           maxLength: 128
-      - &id003
+      - &id004
         name: X-Correlation-ID
         in: header
         required: true
@@ -1701,7 +3401,7 @@ paths:
           type: string
           minLength: 1
           maxLength: 180
-      - &id004
+      - &id005
         name: Idempotency-Key
         in: header
         required: true
@@ -1753,9 +3453,9 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
       - *id003
       - *id004
+      - *id005
   /api/v1/automation/events:
     post:
       tags:
@@ -1787,9 +3487,9 @@ paths:
         schema:
           type: string
           title: X-Codestra-Signature
-      - *id002
       - *id003
       - *id004
+      - *id005
       responses:
         '202':
           description: Successful Response
@@ -1833,9 +3533,9 @@ paths:
         schema:
           type: string
           title: Authorization
-      - *id002
       - *id003
       - *id004
+      - *id005
       requestBody:
         required: true
         content:
@@ -1891,9 +3591,9 @@ paths:
           - retry
           type: string
           title: Transition
-      - *id002
       - *id003
       - *id004
+      - *id005
       requestBody:
         required: true
         content:
@@ -1973,9 +3673,9 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
       - *id003
       - *id004
+      - *id005
   /api/v1/automation/events/{event_id}:
     get:
       tags:
@@ -1989,7 +3689,7 @@ paths:
         schema:
           type: string
           title: Event Id
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -2041,7 +3741,7 @@ paths:
         schema:
           type: string
           title: Identifier
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -2088,7 +3788,7 @@ paths:
           - overdue
           type: string
           title: State
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -2150,7 +3850,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
+      - *id003
   /api/v1/automation/actions/{action}:
     post:
       tags:
@@ -2164,9 +3864,9 @@ paths:
         schema:
           type: string
           title: Action
-      - *id002
       - *id003
       - *id004
+      - *id005
       requestBody:
         required: true
         content:
@@ -2232,7 +3932,7 @@ paths:
           type: string
           default: ''
           title: Authorization
-      - *id002
+      - *id003
       requestBody:
         required: true
         content:
@@ -2281,7 +3981,7 @@ paths:
           type: string
           default: ''
           title: Authorization
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -2324,7 +4024,7 @@ paths:
           type: string
           default: ''
           title: Authorization
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -2367,7 +4067,7 @@ paths:
           type: string
           default: ''
           title: Authorization
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -2417,7 +4117,7 @@ paths:
           type: string
           default: ''
           title: Authorization
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -2478,7 +4178,7 @@ paths:
           type: string
           default: ''
           title: Authorization
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -2542,7 +4242,7 @@ paths:
           type: string
           default: ''
           title: Authorization
-      - *id002
+      - *id003
       requestBody:
         required: true
         content:
@@ -2598,9 +4298,9 @@ paths:
           type: string
           default: ''
           title: Authorization
-      - *id002
       - *id003
       - *id004
+      - *id005
       requestBody:
         required: true
         content:
@@ -2670,7 +4370,7 @@ paths:
           type: string
           default: ''
           title: Authorization
-      - *id002
+      - *id003
       requestBody:
         required: true
         content:
@@ -2740,7 +4440,7 @@ paths:
           type: string
           default: ''
           title: Authorization
-      - *id002
+      - *id003
       requestBody:
         required: true
         content:
@@ -2810,7 +4510,7 @@ paths:
           type: string
           default: ''
           title: Authorization
-      - *id002
+      - *id003
       requestBody:
         required: true
         content:
@@ -2880,7 +4580,7 @@ paths:
           type: string
           default: ''
           title: Authorization
-      - *id002
+      - *id003
       requestBody:
         required: true
         content:
@@ -2950,7 +4650,7 @@ paths:
           type: string
           default: ''
           title: Authorization
-      - *id002
+      - *id003
       requestBody:
         required: true
         content:
@@ -3020,7 +4720,7 @@ paths:
           type: string
           default: ''
           title: Authorization
-      - *id002
+      - *id003
       requestBody:
         required: true
         content:
@@ -3090,7 +4790,7 @@ paths:
           type: string
           default: ''
           title: Authorization
-      - *id002
+      - *id003
       requestBody:
         required: true
         content:
@@ -7055,7 +8755,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
+      - *id003
   /v1/observability/services/{service_id}/health:
     get:
       tags:
@@ -7078,7 +8778,7 @@ paths:
           type: string
           default: production
           title: Environment
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -7136,7 +8836,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
+      - *id003
   /v1/observability/metrics/query:
     post:
       tags:
@@ -7179,9 +8879,9 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
       - *id003
       - *id004
+      - *id005
   /v1/observability/metrics/query-range:
     post:
       tags:
@@ -7224,9 +8924,9 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
       - *id003
       - *id004
+      - *id005
   /v1/observability/logs/query:
     post:
       tags:
@@ -7269,9 +8969,9 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
       - *id003
       - *id004
+      - *id005
   /v1/observability/traces/search:
     post:
       tags:
@@ -7314,9 +9014,9 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
       - *id003
       - *id004
+      - *id005
   /v1/observability/traces/{trace_id}:
     get:
       tags:
@@ -7332,7 +9032,7 @@ paths:
         schema:
           type: string
           title: Trace Id
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -7386,7 +9086,7 @@ paths:
           minimum: 1
           default: 100
           title: Limit
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -7440,7 +9140,7 @@ paths:
           minimum: 1
           default: 100
           title: Limit
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -7494,7 +9194,7 @@ paths:
           minimum: 1
           default: 100
           title: Limit
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -7548,7 +9248,7 @@ paths:
           minimum: 1
           default: 100
           title: Limit
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -7606,7 +9306,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
+      - *id003
   /v1/observability/integrations:
     get:
       tags:
@@ -7637,7 +9337,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
+      - *id003
   /v1/observability/integrations/{integration_id}:
     get:
       tags:
@@ -7670,7 +9370,7 @@ paths:
           minimum: 1
           default: 100
           title: Limit
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -7732,7 +9432,7 @@ paths:
           minimum: 1
           default: 100
           title: Limit
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -7775,7 +9475,7 @@ paths:
         schema:
           type: string
           title: Campaign Id
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -7819,7 +9519,7 @@ paths:
           type: string
           default: '0'
           title: Last-Event-Id
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -7888,9 +9588,9 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
       - *id003
       - *id004
+      - *id005
   /v1/observability/probe-runs/{probe_run_id}:
     get:
       tags:
@@ -7906,7 +9606,7 @@ paths:
         schema:
           type: string
           title: Probe Run Id
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -7976,9 +9676,9 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
       - *id003
       - *id004
+      - *id005
   /v1/observability/kpis:
     post:
       tags:
@@ -8002,7 +9702,7 @@ paths:
           type: string
           minLength: 1
           maxLength: 180
-      - *id002
+      - *id003
       requestBody:
         required: true
         content:
@@ -8082,7 +9782,7 @@ paths:
           minimum: 1
           default: 100
           title: Limit
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -8132,7 +9832,7 @@ paths:
           type: string
           minLength: 1
           maxLength: 180
-      - *id002
+      - *id003
       requestBody:
         required: true
         content:
@@ -8180,7 +9880,7 @@ paths:
         schema:
           type: string
           title: Event Id
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -8236,7 +9936,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
+      - *id003
   /api/v1/integrations/runtime:
     get:
       tags:
@@ -8276,7 +9976,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
+      - *id003
   /api/v1/integrations/odoo/health:
     get:
       tags:
@@ -8310,7 +10010,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
+      - *id003
   /api/v1/integrations/odoo/readiness:
     get:
       tags:
@@ -8345,7 +10045,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
+      - *id003
   /api/v1/integrations/odoo/campaigns/{campaign_id}:
     get:
       tags:
@@ -8381,7 +10081,7 @@ paths:
         schema:
           type: string
           title: Authorization
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -8448,7 +10148,7 @@ paths:
         schema:
           type: string
           title: Authorization
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -8511,9 +10211,9 @@ paths:
           - type: string
           - type: 'null'
           title: X-Signature
-      - *id002
       - *id003
       - *id004
+      - *id005
       requestBody:
         required: true
         content:
@@ -8565,7 +10265,7 @@ paths:
         schema:
           type: string
           title: Command Id
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -8631,7 +10331,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
+      - *id003
   /api/v1/integrations/odoo/sync-status:
     get:
       tags:
@@ -8661,7 +10361,7 @@ paths:
           type: string
           default: staging
           title: Environment
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -8737,7 +10437,7 @@ paths:
           minimum: 0
           default: 0
           title: Offset
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -8798,9 +10498,9 @@ paths:
           - type: string
           - type: 'null'
           title: X-Signature
-      - *id002
       - *id003
       - *id004
+      - *id005
       requestBody:
         required: true
         content:
@@ -8859,8 +10559,8 @@ paths:
           type: string
           minLength: 8
           maxLength: 180
-      - *id002
       - *id003
+      - *id004
       requestBody:
         required: true
         content:
@@ -8928,7 +10628,7 @@ paths:
         schema:
           type: string
           title: Authorization
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -9005,9 +10705,9 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
       - *id003
       - *id004
+      - *id005
   /api/v1/integrations/n8n/dead-letter:
     post:
       tags:
@@ -9054,9 +10754,9 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
       - *id003
       - *id004
+      - *id005
   /api/v1/integrations/n8n/errors:
     post:
       tags:
@@ -9102,9 +10802,9 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
       - *id003
       - *id004
+      - *id005
   /api/v1/integrations/n8n/reconciliation:
     post:
       tags:
@@ -9151,9 +10851,9 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
       - *id003
       - *id004
+      - *id005
   /api/v1/odoo/events:
     post:
       tags:
@@ -9212,9 +10912,9 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
       - *id003
       - *id004
+      - *id005
   /api/v1/campaign-designs/preview:
     post:
       tags:
@@ -10076,7 +11776,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
+      - *id003
   /v1/operations-dashboard/auth-gateway:
     get:
       tags:
@@ -10106,7 +11806,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
+      - *id003
   /v1/operations-dashboard/routes:
     get:
       tags:
@@ -10136,7 +11836,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
+      - *id003
   /v1/operations-dashboard/providers:
     get:
       tags:
@@ -10166,7 +11866,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
+      - *id003
   /v1/operations-dashboard/messages/lifecycle:
     get:
       tags:
@@ -10196,7 +11896,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
+      - *id003
   /v1/operations-dashboard/webhooks:
     get:
       tags:
@@ -10238,7 +11938,7 @@ paths:
         schema:
           type: string
           title: Tenant Id
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -10293,7 +11993,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
+      - *id003
   /v1/operations-dashboard/release-gates:
     get:
       tags:
@@ -10323,7 +12023,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
+      - *id003
   /v1/operations-dashboard/canaries:
     get:
       tags:
@@ -10353,7 +12053,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
+      - *id003
   /v1/operations:
     get:
       tags:
@@ -10407,7 +12107,7 @@ paths:
             maxLength: 180
           - type: 'null'
           title: Command Type
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -10448,7 +12148,7 @@ paths:
           type: string
           format: uuid
           title: Command Id
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -10506,7 +12206,7 @@ paths:
           - type: string
           - type: 'null'
           title: Cursor
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -10564,7 +12264,7 @@ paths:
           - type: string
           - type: 'null'
           title: Cursor
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -10605,9 +12305,9 @@ paths:
           type: string
           format: uuid
           title: Command Id
-      - *id002
       - *id003
       - *id004
+      - *id005
       requestBody:
         required: true
         content:
@@ -10654,9 +12354,9 @@ paths:
           type: string
           format: uuid
           title: Command Id
-      - *id002
       - *id003
       - *id004
+      - *id005
       requestBody:
         required: true
         content:
@@ -10713,7 +12413,7 @@ paths:
           - type: string
           - type: 'null'
           title: Cursor
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -10763,7 +12463,7 @@ paths:
           - type: string
           - type: 'null'
           title: Cursor
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -10802,7 +12502,7 @@ paths:
         schema:
           type: string
           title: Record Id
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -10841,7 +12541,7 @@ paths:
         schema:
           type: integer
           title: Record Id
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -10880,7 +12580,7 @@ paths:
         schema:
           type: string
           title: Record Id
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -10919,7 +12619,7 @@ paths:
         schema:
           type: integer
           title: Record Id
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -10958,9 +12658,9 @@ paths:
         schema:
           type: string
           title: Record Id
-      - *id002
       - *id003
       - *id004
+      - *id005
       requestBody:
         required: true
         content:
@@ -11005,9 +12705,9 @@ paths:
         schema:
           type: string
           title: Record Id
-      - *id002
       - *id003
       - *id004
+      - *id005
       requestBody:
         required: true
         content:
@@ -11052,9 +12752,9 @@ paths:
         schema:
           type: string
           title: Record Id
-      - *id002
       - *id003
       - *id004
+      - *id005
       requestBody:
         required: true
         content:
@@ -11099,9 +12799,9 @@ paths:
         schema:
           type: string
           title: Record Id
-      - *id002
       - *id003
       - *id004
+      - *id005
       requestBody:
         required: true
         content:
@@ -11146,9 +12846,9 @@ paths:
         schema:
           type: integer
           title: Record Id
-      - *id002
       - *id003
       - *id004
+      - *id005
       requestBody:
         required: true
         content:
@@ -11193,9 +12893,9 @@ paths:
         schema:
           type: integer
           title: Record Id
-      - *id002
       - *id003
       - *id004
+      - *id005
       requestBody:
         required: true
         content:
@@ -11240,9 +12940,9 @@ paths:
         schema:
           type: integer
           title: Record Id
-      - *id002
       - *id003
       - *id004
+      - *id005
       requestBody:
         required: true
         content:
@@ -11287,9 +12987,9 @@ paths:
         schema:
           type: integer
           title: Record Id
-      - *id002
       - *id003
       - *id004
+      - *id005
       requestBody:
         required: true
         content:
@@ -11350,7 +13050,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
+      - *id003
   /v1/system/safety-state:
     get:
       tags:
@@ -11380,7 +13080,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
+      - *id003
   /v1/system/readiness:
     get:
       tags:
@@ -11410,7 +13110,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
+      - *id003
   /v1/policy/effective:
     get:
       tags:
@@ -11440,7 +13140,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
+      - *id003
   /v1/policy/decisions:
     post:
       tags:
@@ -11479,9 +13179,9 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
       - *id003
       - *id004
+      - *id005
   /v1/reconciliation/operations:
     get:
       tags:
@@ -11498,7 +13198,7 @@ paths:
           minimum: 1
           default: 50
           title: Limit
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -11548,7 +13248,7 @@ paths:
           - type: string
           - type: 'null'
           title: Cursor
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -11596,7 +13296,7 @@ paths:
           type: string
           format: uuid
           title: Probe Id
-      - *id002
+      - *id003
       responses:
         '404':
           description: Identity and tenant authorization succeeded; the random probe
@@ -11667,9 +13367,9 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
       - *id003
       - *id004
+      - *id005
   /api/v1/control/communications/email:
     post:
       tags:
@@ -11716,9 +13416,9 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
       - *id003
       - *id004
+      - *id005
   /api/v1/control/communications/sms:
     post:
       tags:
@@ -11765,9 +13465,9 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
       - *id003
       - *id004
+      - *id005
   /api/v1/control/marketing/campaigns:
     post:
       tags:
@@ -11814,9 +13514,9 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
       - *id003
       - *id004
+      - *id005
   /api/v1/control/social/publications:
     post:
       tags:
@@ -11863,9 +13563,9 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
       - *id003
       - *id004
+      - *id005
   /api/v1/operations:
     get:
       tags:
@@ -11919,7 +13619,7 @@ paths:
             maxLength: 180
           - type: 'null'
           title: Command Type
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -11959,7 +13659,7 @@ paths:
           type: string
           format: uuid
           title: Operation Id
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -11999,9 +13699,9 @@ paths:
           type: string
           format: uuid
           title: Operation Id
-      - *id002
       - *id003
       - *id004
+      - *id005
       requestBody:
         required: true
         content:
@@ -12047,9 +13747,9 @@ paths:
           type: string
           format: uuid
           title: Operation Id
-      - *id002
       - *id003
       - *id004
+      - *id005
       requestBody:
         required: true
         content:
@@ -12105,7 +13805,7 @@ paths:
           - type: string
           - type: 'null'
           title: Cursor
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -12144,7 +13844,7 @@ paths:
         schema:
           type: string
           title: Record Id
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -12194,7 +13894,7 @@ paths:
           - type: string
           - type: 'null'
           title: Cursor
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -12233,7 +13933,7 @@ paths:
         schema:
           type: integer
           title: Record Id
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -12297,9 +13997,9 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
       - *id003
       - *id004
+      - *id005
   /api/v1/reconciliation/operations:
     get:
       tags:
@@ -12324,7 +14024,7 @@ paths:
           - type: string
           - type: 'null'
           title: Cursor
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -12363,7 +14063,7 @@ paths:
         schema:
           type: integer
           title: Record Id
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -12402,9 +14102,9 @@ paths:
         schema:
           type: integer
           title: Record Id
-      - *id002
       - *id003
       - *id004
+      - *id005
       requestBody:
         required: true
         content:
@@ -12460,7 +14160,7 @@ paths:
           - type: string
           - type: 'null'
           title: Cursor
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -12499,7 +14199,7 @@ paths:
         schema:
           type: string
           title: Record Id
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -12538,9 +14238,9 @@ paths:
         schema:
           type: string
           title: Record Id
-      - *id002
       - *id003
       - *id004
+      - *id005
       requestBody:
         required: true
         content:
@@ -12585,9 +14285,9 @@ paths:
         schema:
           type: string
           title: Record Id
-      - *id002
       - *id003
       - *id004
+      - *id005
       requestBody:
         required: true
         content:
@@ -12665,9 +14365,9 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
       - *id003
       - *id004
+      - *id005
   /v1/telephony/calls/requests/{operation_id}:
     get:
       tags:
@@ -12683,7 +14383,7 @@ paths:
           type: string
           format: uuid
           title: Operation Id
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -12725,9 +14425,9 @@ paths:
           type: string
           format: uuid
           title: Operation Id
-      - *id002
       - *id003
       - *id004
+      - *id005
       requestBody:
         required: true
         content:
@@ -12781,9 +14481,9 @@ paths:
           type: string
           format: uuid
           title: Operation Id
-      - *id002
       - *id003
       - *id004
+      - *id005
       requestBody:
         required: true
         content:
@@ -12868,9 +14568,9 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
       - *id003
       - *id004
+      - *id005
   /v1/odoo/commands:
     post:
       tags:
@@ -12916,9 +14616,9 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
       - *id003
       - *id004
+      - *id005
   /v1/crm/commands:
     post:
       tags:
@@ -12964,9 +14664,9 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
       - *id003
       - *id004
+      - *id005
   /v1/email/commands:
     post:
       tags:
@@ -13012,9 +14712,9 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
       - *id003
       - *id004
+      - *id005
   /v1/sms/commands:
     post:
       tags:
@@ -13060,9 +14760,9 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
       - *id003
       - *id004
+      - *id005
   /v1/telephony/commands:
     post:
       tags:
@@ -13108,9 +14808,9 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
       - *id003
       - *id004
+      - *id005
   /v1/social/commands:
     post:
       tags:
@@ -13156,9 +14856,9 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
       - *id003
       - *id004
+      - *id005
   /v1/marketing/commands:
     post:
       tags:
@@ -13204,9 +14904,9 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
       - *id003
       - *id004
+      - *id005
   /v1/ai/commands:
     post:
       tags:
@@ -13252,9 +14952,9 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
       - *id003
       - *id004
+      - *id005
   /v1/odoo/operations/{operation_id}:
     get:
       tags:
@@ -13269,7 +14969,7 @@ paths:
           type: string
           format: uuid
           title: Operation Id
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -13309,7 +15009,7 @@ paths:
           type: string
           format: uuid
           title: Operation Id
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -13349,7 +15049,7 @@ paths:
           type: string
           format: uuid
           title: Operation Id
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -13389,7 +15089,7 @@ paths:
           type: string
           format: uuid
           title: Operation Id
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -13429,7 +15129,7 @@ paths:
           type: string
           format: uuid
           title: Operation Id
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -13469,7 +15169,7 @@ paths:
           type: string
           format: uuid
           title: Operation Id
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -13509,7 +15209,7 @@ paths:
           type: string
           format: uuid
           title: Operation Id
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -13549,7 +15249,7 @@ paths:
           type: string
           format: uuid
           title: Operation Id
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -13604,7 +15304,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
+      - *id003
   /v1/crm/operations:
     get:
       tags:
@@ -13634,7 +15334,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
+      - *id003
   /v1/email/operations:
     get:
       tags:
@@ -13664,7 +15364,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
+      - *id003
   /v1/sms/operations:
     get:
       tags:
@@ -13694,7 +15394,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
+      - *id003
   /v1/telephony/operations:
     get:
       tags:
@@ -13724,7 +15424,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
+      - *id003
   /v1/social/operations:
     get:
       tags:
@@ -13754,7 +15454,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
+      - *id003
   /v1/marketing/operations:
     get:
       tags:
@@ -13784,7 +15484,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
+      - *id003
   /v1/ai/operations:
     get:
       tags:
@@ -13814,7 +15514,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
+      - *id003
   /v1/odoo/operations/{operation_id}/cancel:
     post:
       tags:
@@ -13829,9 +15529,9 @@ paths:
           type: string
           format: uuid
           title: Operation Id
-      - *id002
       - *id003
       - *id004
+      - *id005
       requestBody:
         required: true
         content:
@@ -13877,9 +15577,9 @@ paths:
           type: string
           format: uuid
           title: Operation Id
-      - *id002
       - *id003
       - *id004
+      - *id005
       requestBody:
         required: true
         content:
@@ -13925,9 +15625,9 @@ paths:
           type: string
           format: uuid
           title: Operation Id
-      - *id002
       - *id003
       - *id004
+      - *id005
       requestBody:
         required: true
         content:
@@ -13973,9 +15673,9 @@ paths:
           type: string
           format: uuid
           title: Operation Id
-      - *id002
       - *id003
       - *id004
+      - *id005
       requestBody:
         required: true
         content:
@@ -14021,9 +15721,9 @@ paths:
           type: string
           format: uuid
           title: Operation Id
-      - *id002
       - *id003
       - *id004
+      - *id005
       requestBody:
         required: true
         content:
@@ -14069,9 +15769,9 @@ paths:
           type: string
           format: uuid
           title: Operation Id
-      - *id002
       - *id003
       - *id004
+      - *id005
       requestBody:
         required: true
         content:
@@ -14117,9 +15817,9 @@ paths:
           type: string
           format: uuid
           title: Operation Id
-      - *id002
       - *id003
       - *id004
+      - *id005
       requestBody:
         required: true
         content:
@@ -14165,9 +15865,9 @@ paths:
           type: string
           format: uuid
           title: Operation Id
-      - *id002
       - *id003
       - *id004
+      - *id005
       requestBody:
         required: true
         content:
@@ -14213,9 +15913,9 @@ paths:
           type: string
           format: uuid
           title: Operation Id
-      - *id002
       - *id003
       - *id004
+      - *id005
       requestBody:
         required: true
         content:
@@ -14261,9 +15961,9 @@ paths:
           type: string
           format: uuid
           title: Operation Id
-      - *id002
       - *id003
       - *id004
+      - *id005
       requestBody:
         required: true
         content:
@@ -14309,9 +16009,9 @@ paths:
           type: string
           format: uuid
           title: Operation Id
-      - *id002
       - *id003
       - *id004
+      - *id005
       requestBody:
         required: true
         content:
@@ -14357,9 +16057,9 @@ paths:
           type: string
           format: uuid
           title: Operation Id
-      - *id002
       - *id003
       - *id004
+      - *id005
       requestBody:
         required: true
         content:
@@ -14420,7 +16120,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
+      - *id003
   /v1/ai/provider-health:
     get:
       tags:
@@ -14450,7 +16150,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
+      - *id003
   /v1/providers/status:
     get:
       tags:
@@ -14480,7 +16180,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
+      - *id003
   /v1/crm/mappings/validate:
     post:
       tags:
@@ -14520,9 +16220,9 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
       - *id003
       - *id004
+      - *id005
   /v1/odoo/mappings/validate:
     post:
       tags:
@@ -14562,9 +16262,9 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
       - *id003
       - *id004
+      - *id005
   /v1/webhooks/{connector_id}/{endpoint_key}/{webhook_id}:
     post:
       tags:
@@ -14916,7 +16616,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
+      - *id003
     post:
       tags:
       - appolon-control-plane
@@ -14961,9 +16661,9 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
       - *id003
       - *id004
+      - *id005
   /v1/communication/messages:
     post:
       tags:
@@ -15009,9 +16709,9 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
       - *id003
       - *id004
+      - *id005
   /v1/communications/messages/by-idempotency:
     get:
       tags:
@@ -15042,8 +16742,8 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
-      - *id004
+      - *id003
+      - *id005
   /v1/communications/messages/{messageId}:
     get:
       tags:
@@ -15058,7 +16758,7 @@ paths:
           type: string
           format: uuid
           title: Messageid
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -15099,7 +16799,7 @@ paths:
           type: string
           format: uuid
           title: Messageid
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -15140,7 +16840,7 @@ paths:
           type: string
           format: uuid
           title: Messageid
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -15181,9 +16881,9 @@ paths:
           type: string
           format: uuid
           title: Messageid
-      - *id002
       - *id003
       - *id004
+      - *id005
       responses:
         '200':
           description: Successful Response
@@ -15246,7 +16946,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
+      - *id003
   /v1/communications/provider-health:
     get:
       tags:
@@ -15277,7 +16977,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
+      - *id003
   /v1/communications/reputation:
     get:
       tags:
@@ -15308,7 +17008,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
+      - *id003
   /v1/communications/usage:
     get:
       tags:
@@ -15334,7 +17034,7 @@ paths:
             format: date-time
           - type: 'null'
           title: To
-      - *id002
+      - *id003
       responses:
         '200':
           description: Successful Response
@@ -15390,9 +17090,9 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
       - *id003
       - *id004
+      - *id005
   /v1/intake/surveys/responses:
     post:
       tags:
@@ -15422,9 +17122,9 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
       - *id003
       - *id004
+      - *id005
   /v1/commands:
     post:
       tags:
@@ -15470,9 +17170,9 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
       - *id003
       - *id004
+      - *id005
   /api/v1/n8n/results:
     post:
       tags:
@@ -15530,9 +17230,9 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
       - *id003
       - *id004
+      - *id005
   /api/v1/vicidial/events:
     post:
       tags:
@@ -15590,9 +17290,9 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
       - *id003
       - *id004
+      - *id005
   /api/v1/telnexa/events:
     post:
       tags:
@@ -15650,9 +17350,9 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
       - *id003
       - *id004
+      - *id005
   /api/v1/klyrow/events:
     post:
       tags:
@@ -15710,9 +17410,9 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
       - *id003
       - *id004
+      - *id005
   /api/v1/kyqra/results:
     post:
       tags:
@@ -15770,9 +17470,9 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
       - *id003
       - *id004
+      - *id005
   /api/v1/kyqra/progress:
     post:
       tags:
@@ -15830,9 +17530,9 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
       - *id003
       - *id004
+      - *id005
   /api/v1/postly/events:
     post:
       tags:
@@ -15890,9 +17590,9 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - *id002
       - *id003
       - *id004
+      - *id005
 components:
   schemas:
     ApprovalRequest:
@@ -20136,6 +21836,22 @@ components:
     HTTPBearer:
       type: http
       scheme: bearer
+    codestraOAuth:
+      type: oauth2
+      description: Keycloak-issued JWT (issuer https://auth.codestra.co/realms/codestra,
+        audience middleware-api). X-Tenant-ID must match the authenticated tenant
+        mapping. These scopes are not yet provisioned in Keycloak.
+      flows:
+        clientCredentials:
+          tokenUrl: https://auth.codestra.co/realms/codestra/protocol/openid-connect/token
+          scopes:
+            campaign.engine.plan: Evaluate dry-run plans
+            campaign.engine.execute: Reserve exposures and queue commands for a plan
+            campaign.engine.read: Read decisions, eligible leads, and engine status
+            campaign.engine.candidates.read: Disclose considered and rejected candidates
+            leads.journey.read: Read a lead journey
+            campaign.delivery_events.publish: Publish normalized delivery events
+            campaign.suppressions.write: Record suppressions
     bearerAuth:
       type: http
       scheme: bearer

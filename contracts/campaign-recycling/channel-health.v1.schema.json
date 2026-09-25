@@ -1,0 +1,656 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.codestra.co/campaign-recycling/channel-health.v1.schema.json",
+  "title": "Lead channel-health record v1",
+  "description": "Per-lead, per-channel, per-address health observation for email, SMS, WhatsApp, and voice. Automatic signals are channel-local: a bad address on one channel never changes another channel's health. Suppression is additive, scoped, and always overrides eligibility. Contract only; no runtime handler, table, or migration exists in MCR-A.",
+  "x-codestra-contract": {
+    "mission": "MCR-A",
+    "runtime_status": "contract_only",
+    "system_of_record": "leads",
+    "send_time_enforcement": {
+      "module": "app/communications.py",
+      "rule": "The existing communications suppression set remains the last-line send gate and is never weakened or cleared by this contract. A suppression recorded here with scope=global maps to the existing (tenant_id, subject) tuple; scope=channel maps to (tenant_id, channel, subject). Campaign scopes are evaluated by the decision engine before any command is emitted.",
+      "channels_source": "Desired channels are frozen by this contract. app/communications.py is the current runtime subset; WhatsApp is blocked pending Middleware PR #316 and may not execute until that dependency is merged and green."
+    },
+    "dialing_overlay": {
+      "contract": "docs/operations/campaign-registry/lead-eligibility.md",
+      "rule": "Dialing states DO_NOT_CALL and CONSENT_REVOKED are recorded as voice-channel suppressions (reasons dialing_do_not_call and consent_revoked). Voice health never grants dialing eligibility."
+    }
+  },
+  "x-channel-health": {
+    "channels": [
+      "email",
+      "sms",
+      "whatsapp",
+      "voice"
+    ],
+    "states": [
+      "unknown",
+      "valid",
+      "possible",
+      "soft_bounce",
+      "hard_bounce",
+      "complained",
+      "unsubscribed",
+      "suppressed",
+      "invalid"
+    ],
+    "contact_semantics": {
+      "unknown": "blocked_until_validated",
+      "valid": "contactable",
+      "possible": "policy_gated",
+      "soft_bounce": "deferred",
+      "hard_bounce": "blocked",
+      "complained": "blocked_and_suppressed",
+      "unsubscribed": "blocked_and_suppressed",
+      "suppressed": "blocked_and_suppressed",
+      "invalid": "blocked"
+    },
+    "states_requiring_suppression": [
+      "complained",
+      "unsubscribed",
+      "suppressed"
+    ],
+    "automatic_cross_channel_effect": "none",
+    "suppression_scope_precedence": [
+      "global",
+      "channel",
+      "campaign",
+      "campaign_channel"
+    ],
+    "suppression_reason_precedence": [
+      "legal_hold",
+      "data_subject_request",
+      "do_not_contact_request",
+      "complaint",
+      "unsubscribe",
+      "consent_revoked",
+      "dialing_do_not_call",
+      "operator_block"
+    ],
+    "global_scope_sources": [
+      "operator",
+      "data_subject_request",
+      "leads_authority"
+    ],
+    "precedence_rule": "Any active suppression matching the candidate lead/channel/campaign blocks it, regardless of lifecycle, channel health, or engagement. When several match, the reported reason is chosen deterministically by scope precedence (index 0 highest), then reason precedence, then earliest occurred_at, then lexicographic suppression_id. No positive signal (delivery, open, click, reply, conversion) lifts a suppression; there is no release operation in v1."
+  },
+  "$defs": {
+    "Channel": {
+      "type": "string",
+      "enum": [
+        "email",
+        "sms",
+        "whatsapp",
+        "voice"
+      ]
+    },
+    "ChannelHealthState": {
+      "type": "string",
+      "enum": [
+        "unknown",
+        "valid",
+        "possible",
+        "soft_bounce",
+        "hard_bounce",
+        "complained",
+        "unsubscribed",
+        "suppressed",
+        "invalid"
+      ]
+    },
+    "SuppressionScope": {
+      "type": "string",
+      "enum": [
+        "global",
+        "channel",
+        "campaign",
+        "campaign_channel"
+      ]
+    },
+    "SuppressionReason": {
+      "type": "string",
+      "enum": [
+        "legal_hold",
+        "data_subject_request",
+        "do_not_contact_request",
+        "complaint",
+        "unsubscribe",
+        "consent_revoked",
+        "dialing_do_not_call",
+        "operator_block"
+      ]
+    },
+    "HealthSource": {
+      "type": "string",
+      "enum": [
+        "klyrow_delivery_event",
+        "telnexa_delivery_event",
+        "inbound_sms_stop",
+        "lead_validation",
+        "dialing_eligibility",
+        "leads_authority",
+        "data_subject_request",
+        "operator",
+        "evolution_delivery_event",
+        "whatsapp_consent",
+        "inbound_whatsapp_optout"
+      ]
+    },
+    "HealthReason": {
+      "type": "string",
+      "enum": [
+        "VALIDATION_PASSED",
+        "VALIDATION_PARTIAL",
+        "VALIDATION_FAILED",
+        "DELIVERY_CONFIRMED",
+        "SOFT_BOUNCE",
+        "SOFT_BOUNCE_ESCALATED",
+        "HARD_BOUNCE",
+        "COMPLAINT",
+        "UNSUBSCRIBE",
+        "SUPPRESSION_RECORDED",
+        "DIALING_STATE_BLOCK"
+      ]
+    },
+    "AddressRef": {
+      "description": "Opaque, non-reversible reference to the channel address (for example the Klyrow recipient_reference). Raw email addresses and phone numbers never appear in this contract.",
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 200
+    },
+    "CampaignId": {
+      "description": "Canonical namespaced campaign reference. Klyrow-owned email/SMS campaigns use klyrow:<raw_id>; Codestra WhatsApp campaigns use whatsapp:<raw_id>. Raw Odoo/VICIdial/provider IDs are never accepted as master campaign IDs.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 210,
+      "pattern": "^(klyrow|whatsapp):[A-Za-z0-9][A-Za-z0-9._-]{0,199}$"
+    },
+    "Evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "evidence_hash"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "delivery_event",
+            "validation_result",
+            "dialing_state",
+            "operator_change",
+            "data_subject_request",
+            "consent_proof"
+          ]
+        },
+        "event_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "event_source": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 100
+        },
+        "provider": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 100
+        },
+        "provider_message_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 998
+        },
+        "evidence_hash": {
+          "$ref": "lifecycle.v1.schema.json#/$defs/Sha256"
+        },
+        "evidence_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 500
+        }
+      }
+    },
+    "Suppression": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "suppression_id",
+        "scope",
+        "reason",
+        "occurred_at"
+      ],
+      "properties": {
+        "suppression_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "scope": {
+          "$ref": "#/$defs/SuppressionScope"
+        },
+        "reason": {
+          "$ref": "#/$defs/SuppressionReason"
+        },
+        "campaign_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CampaignId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "occurred_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "scope": {
+                "enum": [
+                  "campaign",
+                  "campaign_channel"
+                ]
+              }
+            },
+            "required": [
+              "scope"
+            ]
+          },
+          "then": {
+            "required": [
+              "campaign_id"
+            ],
+            "properties": {
+              "campaign_id": {
+                "$ref": "#/$defs/CampaignId"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "scope": {
+                "enum": [
+                  "global",
+                  "channel"
+                ]
+              }
+            },
+            "required": [
+              "scope"
+            ]
+          },
+          "then": {
+            "properties": {
+              "campaign_id": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "SuppressionRequest": {
+      "description": "Body of POST /platform/v1/suppressions. Suppressions are additive and idempotent; v1 defines no release operation.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "lead_id",
+        "scope",
+        "reason",
+        "source",
+        "occurred_at",
+        "evidence",
+        "requested_by"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "1.0"
+        },
+        "lead_id": {
+          "$ref": "lifecycle.v1.schema.json#/$defs/LeadId"
+        },
+        "scope": {
+          "$ref": "#/$defs/SuppressionScope"
+        },
+        "channel": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Channel"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "campaign_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CampaignId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reason": {
+          "$ref": "#/$defs/SuppressionReason"
+        },
+        "source": {
+          "$ref": "#/$defs/HealthSource"
+        },
+        "occurred_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "evidence": {
+          "$ref": "#/$defs/Evidence"
+        },
+        "requested_by": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "scope": {
+                "const": "global"
+              }
+            },
+            "required": [
+              "scope"
+            ]
+          },
+          "then": {
+            "properties": {
+              "channel": {
+                "type": "null"
+              },
+              "campaign_id": {
+                "type": "null"
+              },
+              "source": {
+                "enum": [
+                  "operator",
+                  "data_subject_request",
+                  "leads_authority"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "scope": {
+                "const": "channel"
+              }
+            },
+            "required": [
+              "scope"
+            ]
+          },
+          "then": {
+            "required": [
+              "channel"
+            ],
+            "properties": {
+              "channel": {
+                "$ref": "#/$defs/Channel"
+              },
+              "campaign_id": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "scope": {
+                "const": "campaign"
+              }
+            },
+            "required": [
+              "scope"
+            ]
+          },
+          "then": {
+            "required": [
+              "campaign_id"
+            ],
+            "properties": {
+              "channel": {
+                "type": "null"
+              },
+              "campaign_id": {
+                "$ref": "#/$defs/CampaignId"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "scope": {
+                "const": "campaign_channel"
+              }
+            },
+            "required": [
+              "scope"
+            ]
+          },
+          "then": {
+            "required": [
+              "channel",
+              "campaign_id"
+            ],
+            "properties": {
+              "channel": {
+                "$ref": "#/$defs/Channel"
+              },
+              "campaign_id": {
+                "$ref": "#/$defs/CampaignId"
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "tenant_id",
+    "lead_id",
+    "channel",
+    "address_ref",
+    "state",
+    "previous_state",
+    "source",
+    "reason_code",
+    "occurred_at",
+    "recorded_at",
+    "evidence",
+    "suppression",
+    "cross_channel_effect",
+    "health_version",
+    "correlation_id"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "tenant_id": {
+      "$ref": "lifecycle.v1.schema.json#/$defs/TenantId"
+    },
+    "lead_id": {
+      "$ref": "lifecycle.v1.schema.json#/$defs/LeadId"
+    },
+    "channel": {
+      "$ref": "#/$defs/Channel"
+    },
+    "address_ref": {
+      "$ref": "#/$defs/AddressRef"
+    },
+    "state": {
+      "$ref": "#/$defs/ChannelHealthState"
+    },
+    "previous_state": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ChannelHealthState"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "source": {
+      "$ref": "#/$defs/HealthSource"
+    },
+    "reason_code": {
+      "$ref": "#/$defs/HealthReason"
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "recorded_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "evidence": {
+      "$ref": "#/$defs/Evidence"
+    },
+    "suppression": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Suppression"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "cross_channel_effect": {
+      "description": "Automatic health changes never propagate to another channel. Lead-wide blocking is expressed only as an explicit scope=global suppression.",
+      "const": "none"
+    },
+    "health_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "correlation_id": {
+      "$ref": "lifecycle.v1.schema.json#/$defs/CorrelationId"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "enum": [
+              "complained",
+              "unsubscribed",
+              "suppressed"
+            ]
+          }
+        },
+        "required": [
+          "state"
+        ]
+      },
+      "then": {
+        "properties": {
+          "suppression": {
+            "$ref": "#/$defs/Suppression"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "enum": [
+              "unknown",
+              "valid",
+              "possible",
+              "soft_bounce",
+              "hard_bounce",
+              "invalid"
+            ]
+          }
+        },
+        "required": [
+          "state"
+        ]
+      },
+      "then": {
+        "properties": {
+          "suppression": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "suppression": {
+            "type": "object",
+            "properties": {
+              "scope": {
+                "const": "global"
+              }
+            },
+            "required": [
+              "scope"
+            ]
+          }
+        },
+        "required": [
+          "suppression"
+        ]
+      },
+      "then": {
+        "properties": {
+          "source": {
+            "enum": [
+              "operator",
+              "data_subject_request",
+              "leads_authority"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}
