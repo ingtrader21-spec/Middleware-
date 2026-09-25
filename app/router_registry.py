@@ -66,6 +66,7 @@ from app.api.v1.events import router as events_router
 from app.api.v1.integrations import router as integrations_router
 from app.api.v1.lead_automation import router as lead_automation_router
 from app.api.v1.lead_reconciliation import router as lead_reconciliation_router
+from app.api.v1.legacy_effects import router as legacy_effects_router
 from app.api.v1.mappings import router as mappings_router
 from app.api.v1.n8n_runtime import router as n8n_runtime_router
 from app.api.v1.n8n_staging import router as n8n_staging_router
@@ -127,6 +128,8 @@ CANONICAL_ROUTERS: tuple[APIRouter, ...] = (
     # Private read-only database operational evidence; explicit auth,
     # edge-denied under /internal/*, and shared by every profile.
     internal_database_router,
+    # Read-only readback of the legacy-effect denial authority, every profile.
+    legacy_effects_router,
     # The V3 command kernel: the six /platform/v1 kernel routes, on every profile.
     platform_kernel_router,
     automation_v2_router,
@@ -214,9 +217,9 @@ MONOLITH_ROUTERS: tuple[APIRouter, ...] = (
 # Deprecated routers that exist only on the in-process monolith. The canonical
 # edge contract classifies their paths as ``denied``: Kong and Caddy answer 404,
 # and the deployed application never mounts them (the release endpoint audit
-# fails if a denied path is mounted there). They stay on the monolith until
-# their published sunset so existing in-process callers keep receiving
-# Deprecation/Sunset/Link metadata; new use is prohibited.
+# fails if a denied path is mounted there). Their mutations are permanently
+# denied by config/legacy-effect-registry.v1.json (410 before any effect); only
+# the registered read-only compatibility reads still execute until the sunset.
 LEGACY_MONOLITH_ONLY_ROUTERS: tuple[APIRouter, ...] = (
     n8n_control_plane_router,
     domain_legacy_n8n_router,

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from uuid import UUID
-from fastapi import APIRouter, Query, Request
+from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import JSONResponse
 
 from .api_inputs import authenticated_tenant, required_header
@@ -11,6 +11,7 @@ from .commands import (
     OperationMutationRequest,
 )
 from .control_plane_auth import authorize_command
+from .legacy_effects import DENIED_RESPONSES, denial_dependency, deny
 from .operations import (
     OperationApiState,
     OperationResponse,
@@ -237,9 +238,10 @@ for _domain in ("odoo", "crm", "telephony", "social", "marketing", "ai"):
 # Legacy n8n operation aliases. The canonical Middleware edge contract
 # classifies every /v1/integrations/n8n/* path as ``denied``: Kong and Caddy
 # return 404 for them and the deployed application never mounts this router
-# (``app.router_registry.LEGACY_MONOLITH_ONLY_ROUTERS``). They remain only on
-# the in-process monolith until the published sunset so existing callers keep
-# their deprecation metadata; new use is prohibited.
+# (``app.router_registry.LEGACY_MONOLITH_ONLY_ROUTERS``). The listing read
+# remains on the in-process monolith until the published sunset as read-only
+# compatibility; the cancel/reconcile mutations are permanently denied by
+# config/legacy-effect-registry.v1.json.
 _LEGACY_ALIAS_SUNSET = "Wed, 30 Jun 2027 23:59:59 GMT"
 legacy_n8n_router = APIRouter(tags=["domain-control-legacy-n8n"])
 
@@ -272,41 +274,25 @@ async def n8n_operations(
 
 
 @legacy_n8n_router.post(
-    "/v1/integrations/n8n/operations/{operation_id}/cancel", deprecated=True
+    "/v1/integrations/n8n/operations/{operation_id}/cancel",
+    deprecated=True,
+    responses=DENIED_RESPONSES,
+    dependencies=[Depends(denial_dependency("LE-N8N-V1-OPERATION-CANCEL"))],
 )
-async def n8n_cancel(
-    operation_id: UUID, body: OperationMutationRequest, request: Request
-):
-    return await _mutate_any(operation_id, body, request, "cancel")
+async def n8n_cancel() -> None:
+    """Permanently denied (``LE-N8N-V1-OPERATION-CANCEL``); use ``/v1/operations``."""
+    deny("LE-N8N-V1-OPERATION-CANCEL")
 
 
 @legacy_n8n_router.post(
-    "/v1/integrations/n8n/operations/{operation_id}/reconcile", deprecated=True
+    "/v1/integrations/n8n/operations/{operation_id}/reconcile",
+    deprecated=True,
+    responses=DENIED_RESPONSES,
+    dependencies=[Depends(denial_dependency("LE-N8N-V1-OPERATION-RECONCILE"))],
 )
-async def n8n_reconcile(
-    operation_id: UUID, body: OperationMutationRequest, request: Request
-):
-    return await _mutate_any(operation_id, body, request, "reconcile")
-
-
-async def _mutate_any(
-    operation_id: UUID, body: OperationMutationRequest, request: Request, action: str
-):
-    operation = await _mutation_context(request)
-    service, tenant, actor, idem = operation
-    result = await service.mutate_operation(
-        tenant,
-        operation_id,
-        action=action,
-        actor_id=actor,
-        idempotency_key=idem,
-        expected_version=body.expected_version,
-        reason=body.reason,
-    )
-    return JSONResponse(
-        content=_operation_json(result),
-        headers=_legacy_alias_headers(f"/v2/automation/commands/{operation_id}"),
-    )
+async def n8n_reconcile() -> None:
+    """Permanently denied (``LE-N8N-V1-OPERATION-RECONCILE``); use ``/v1/operations``."""
+    deny("LE-N8N-V1-OPERATION-RECONCILE")
 
 
 async def _health(request: Request, provider: str):

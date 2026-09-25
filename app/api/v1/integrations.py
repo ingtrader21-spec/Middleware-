@@ -37,6 +37,7 @@ from app.adapters.odoo.campaign_control import (
 )
 from app.adapters.odoo.results import OdooResultError, _build_odoo_client
 from app.core.endpoint_registry import RegistryDependencyUnavailable, ResolutionDenied
+from app.legacy_effects import DENIED_RESPONSES, denial_dependency, deny
 
 router = APIRouter(prefix="/api/v1/integrations", tags=["integrations"])
 
@@ -52,16 +53,6 @@ class RuntimeIntegrationStatus(BaseModel):
     external_effects_enabled: bool
     gates: dict[str, bool]
     timestamp: datetime
-
-
-class CommandRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    command_id: str = Field(min_length=1, max_length=128)
-    command_type: str = Field(min_length=1, max_length=128)
-    payload: dict[str, Any] = Field(default_factory=dict)
-    correlation_id: str = Field(min_length=1, max_length=128)
-    trace_id: str = Field(min_length=1, max_length=128)
-    idempotency_key: str = Field(min_length=1, max_length=256)
 
 
 class CallbackResult(BaseModel):
@@ -108,21 +99,6 @@ ODOO_CAMPAIGN_ACTION_TYPES = frozenset(
         "CHANGE_STATUS",
     }
 )
-
-
-def _require_replay_headers(
-    timestamp: str | None, nonce: str | None, signature: str | None
-) -> None:
-    if not timestamp or not nonce or not signature:
-        raise HTTPException(401, "timestamp, nonce, and signature are required")
-    try:
-        if (
-            abs(datetime.now(timezone.utc).timestamp() - float(timestamp))
-            > settings.signature_ttl_seconds
-        ):
-            raise HTTPException(401, "request timestamp expired")
-    except ValueError as exc:
-        raise HTTPException(401, "request timestamp invalid") from exc
 
 
 def _scope_values(claims: dict[str, Any], plural: str, singular: str) -> set[str]:
@@ -384,17 +360,17 @@ async def odoo_campaign_desired_state(
         raise HTTPException(503, "Odoo campaign dependency unavailable") from exc
 
 
-@router.post("/odoo/commands", status_code=202)
-async def odoo_command(
-    body: CommandRequest,
-    x_timestamp: str | None = Header(None, alias="X-Timestamp"),
-    x_nonce: str | None = Header(None, alias="X-Nonce"),
-    x_signature: str | None = Header(None, alias="X-Signature"),
-) -> dict[str, str]:
-    _require_replay_headers(x_timestamp, x_nonce, x_signature)
-    if not settings.odoo_automation_writes_enabled:
-        raise HTTPException(503, "Odoo automation writes are disabled")
-    return {"command_id": body.command_id, "status": "queued"}
+# Legacy placeholders below answered 202 without recording or executing
+# anything (false acknowledgements of business writes and dispatches). They
+# are permanently denied by config/legacy-effect-registry.v1.json and stay
+# mounted only so former callers receive a 410 naming the successor.
+@router.post(
+    "/odoo/commands",
+    responses=DENIED_RESPONSES,
+    dependencies=[Depends(denial_dependency("LE-INTEGRATIONS-ODOO-COMMAND-PLACEHOLDER"))],
+)
+async def odoo_command() -> None:
+    deny("LE-INTEGRATIONS-ODOO-COMMAND-PLACEHOLDER")
 
 
 @router.get("/odoo/commands/{command_id}")
@@ -541,17 +517,13 @@ async def odoo_sync_errors(
     }
 
 
-@router.post("/n8n/dispatch", status_code=202)
-async def n8n_dispatch(
-    body: CommandRequest,
-    x_timestamp: str | None = Header(None, alias="X-Timestamp"),
-    x_nonce: str | None = Header(None, alias="X-Nonce"),
-    x_signature: str | None = Header(None, alias="X-Signature"),
-) -> dict[str, str]:
-    _require_replay_headers(x_timestamp, x_nonce, x_signature)
-    if not settings.n8n_event_delivery_enabled:
-        raise HTTPException(503, "n8n delivery is disabled")
-    return {"command_id": body.command_id, "status": "queued"}
+@router.post(
+    "/n8n/dispatch",
+    responses=DENIED_RESPONSES,
+    dependencies=[Depends(denial_dependency("LE-INTEGRATIONS-N8N-DISPATCH"))],
+)
+async def n8n_dispatch() -> None:
+    deny("LE-INTEGRATIONS-N8N-DISPATCH")
 
 
 @router.post("/n8n/results", status_code=202)
@@ -568,7 +540,7 @@ async def n8n_result(
         claims = _authenticate_n8n(authorization, "n8n.results.submit")
         return await _accept_standard_result(result, claims, idempotency_key, db)
     CallbackResult.model_validate(body)
-    raise HTTPException(410, "legacy unauthenticated callbacks are retired")
+    deny("LE-INTEGRATIONS-N8N-UNAUTHENTICATED-CALLBACK")
 
 
 async def _accept_standard_result(
@@ -723,21 +695,37 @@ async def n8n_result_status(
     }
 
 
-@router.post("/n8n/progress", status_code=202)
-async def n8n_progress(body: CallbackResult) -> dict[str, str]:
-    return {"accepted": "true", "command_id": body.command_id, "status": body.status}
+@router.post(
+    "/n8n/progress",
+    responses=DENIED_RESPONSES,
+    dependencies=[Depends(denial_dependency("LE-INTEGRATIONS-N8N-PROGRESS"))],
+)
+async def n8n_progress() -> None:
+    deny("LE-INTEGRATIONS-N8N-PROGRESS")
 
 
-@router.post("/n8n/dead-letter", status_code=202)
-async def n8n_dead_letter(body: CallbackResult) -> dict[str, str]:
-    return {"accepted": "true", "command_id": body.command_id, "status": body.status}
+@router.post(
+    "/n8n/dead-letter",
+    responses=DENIED_RESPONSES,
+    dependencies=[Depends(denial_dependency("LE-INTEGRATIONS-N8N-DEAD-LETTER"))],
+)
+async def n8n_dead_letter() -> None:
+    deny("LE-INTEGRATIONS-N8N-DEAD-LETTER")
 
 
-@router.post("/n8n/errors", status_code=202)
-async def n8n_error(body: CallbackResult) -> dict[str, str]:
-    return {"accepted": "true", "command_id": body.command_id, "status": body.status}
+@router.post(
+    "/n8n/errors",
+    responses=DENIED_RESPONSES,
+    dependencies=[Depends(denial_dependency("LE-INTEGRATIONS-N8N-ERRORS"))],
+)
+async def n8n_error() -> None:
+    deny("LE-INTEGRATIONS-N8N-ERRORS")
 
 
-@router.post("/n8n/reconciliation", status_code=202)
-async def n8n_reconciliation(body: CommandRequest) -> dict[str, str]:
-    return {"accepted": "true", "command_id": body.command_id, "status": "recorded"}
+@router.post(
+    "/n8n/reconciliation",
+    responses=DENIED_RESPONSES,
+    dependencies=[Depends(denial_dependency("LE-INTEGRATIONS-N8N-RECONCILIATION"))],
+)
+async def n8n_reconciliation() -> None:
+    deny("LE-INTEGRATIONS-N8N-RECONCILIATION")

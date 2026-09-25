@@ -1,0 +1,188 @@
+{
+  "schema": "codestra.middleware.legacy-effect-registry.v1",
+  "registry_id": "middleware-legacy-effect-registry",
+  "authority": "PAS-59",
+  "policy": {
+    "denied_disposition": "DENIED",
+    "read_only_disposition": "READ_ONLY_COMPAT",
+    "denial_status": 410,
+    "denial_code": "legacy_effect_denied",
+    "reactivation_allowed": false,
+    "runtime_override_allowed": false,
+    "provider_effects_enabled": false,
+    "read_only_methods": ["GET", "HEAD", "OPTIONS"],
+    "enforcement": [
+      "every mounted route of a DENIED route entry carries the registry denial dependency; create_app refuses to build otherwise",
+      "the denial dependency runs before request-body parsing, authentication and any ledger, database or provider call",
+      "a READ_ONLY_COMPAT entry may only name a read method",
+      "a DENIED payload_shape entry is enforced by its handler through app.legacy_effects.deny"
+    ]
+  },
+  "entries": [
+    {
+      "id": "LE-N8N-V1-COMMAND-SUBMIT",
+      "method": "POST",
+      "path": "/v1/integrations/n8n/commands",
+      "match": "route",
+      "disposition": "DENIED",
+      "effect_class": "command_submission",
+      "owner": "app.n8n_control_plane",
+      "successor": "POST /v2/automation/commands",
+      "reason": "deprecated n8n v1 submission wrote the durable command ledger that dispatches provider commands; the lease-bound v2 automation API is the only n8n submission authority"
+    },
+    {
+      "id": "LE-N8N-V1-OPERATION-READ",
+      "method": "GET",
+      "path": "/v1/integrations/n8n/operations/{command_id}",
+      "match": "route",
+      "disposition": "READ_ONLY_COMPAT",
+      "effect_class": "read",
+      "owner": "app.n8n_control_plane",
+      "successor": "GET /v2/automation/commands/{command_id}",
+      "reason": "tenant-scoped status readback for commands accepted before the v1 submission denial; no mutation"
+    },
+    {
+      "id": "LE-N8N-V1-OPERATIONS-LIST",
+      "method": "GET",
+      "path": "/v1/integrations/n8n/operations",
+      "match": "route",
+      "disposition": "READ_ONLY_COMPAT",
+      "effect_class": "read",
+      "owner": "app.domain_api",
+      "successor": "GET /v1/operations",
+      "reason": "tenant-scoped operation listing for existing callers; no mutation"
+    },
+    {
+      "id": "LE-N8N-V1-OPERATION-CANCEL",
+      "method": "POST",
+      "path": "/v1/integrations/n8n/operations/{operation_id}/cancel",
+      "match": "route",
+      "disposition": "DENIED",
+      "effect_class": "business_mutation",
+      "owner": "app.domain_api",
+      "successor": "POST /v1/operations/{command_id}/cancel",
+      "reason": "deprecated alias mutated durable command state without the domain prefix check of the canonical operation API"
+    },
+    {
+      "id": "LE-N8N-V1-OPERATION-RECONCILE",
+      "method": "POST",
+      "path": "/v1/integrations/n8n/operations/{operation_id}/reconcile",
+      "match": "route",
+      "disposition": "DENIED",
+      "effect_class": "business_mutation",
+      "owner": "app.domain_api",
+      "successor": "POST /v1/operations/{command_id}/reconcile",
+      "reason": "deprecated alias mutated durable command state without the domain prefix check of the canonical operation API"
+    },
+    {
+      "id": "LE-TESTSYN-ODOO-EVENT-INGEST",
+      "method": "POST",
+      "path": "/api/v1/events/odoo",
+      "match": "route",
+      "disposition": "DENIED",
+      "effect_class": "synthetic_event_ingest",
+      "owner": "app.api.v1.control",
+      "successor": "POST /api/v1/odoo/events",
+      "reason": "unsigned TEST_SYN alias persisted inbox rows and an outbox intent a worker could deliver; Odoo events enter only through the signed ingress"
+    },
+    {
+      "id": "LE-TESTSYN-EVENT-READ",
+      "method": "GET",
+      "path": "/api/v1/events/{event_id}",
+      "match": "route",
+      "disposition": "READ_ONLY_COMPAT",
+      "effect_class": "read",
+      "owner": "app.api.v1.control",
+      "successor": null,
+      "reason": "status readback of previously ingested synthetic events; no mutation"
+    },
+    {
+      "id": "LE-INTEGRATIONS-ODOO-COMMAND-PLACEHOLDER",
+      "method": "POST",
+      "path": "/api/v1/integrations/odoo/commands",
+      "match": "route",
+      "disposition": "DENIED",
+      "effect_class": "false_acknowledgement",
+      "owner": "app.api.v1.integrations",
+      "successor": "POST /v2/automation/commands",
+      "reason": "placeholder answered 202 queued without persisting anything; a false acceptance of an Odoo business write"
+    },
+    {
+      "id": "LE-INTEGRATIONS-ODOO-COMMAND-STATUS-PLACEHOLDER",
+      "method": "GET",
+      "path": "/api/v1/integrations/odoo/commands/{command_id}",
+      "match": "route",
+      "disposition": "READ_ONLY_COMPAT",
+      "effect_class": "read",
+      "owner": "app.api.v1.integrations",
+      "successor": "GET /v2/automation/commands/{command_id}",
+      "reason": "static not_configured status; reads nothing and mutates nothing"
+    },
+    {
+      "id": "LE-INTEGRATIONS-N8N-DISPATCH",
+      "method": "POST",
+      "path": "/api/v1/integrations/n8n/dispatch",
+      "match": "route",
+      "disposition": "DENIED",
+      "effect_class": "provider_dispatch",
+      "owner": "app.api.v1.integrations",
+      "successor": "POST /v2/automation/commands",
+      "reason": "placeholder answered 202 queued for an n8n dispatch it never performed; dispatch is owned by the command kernel"
+    },
+    {
+      "id": "LE-INTEGRATIONS-N8N-PROGRESS",
+      "method": "POST",
+      "path": "/api/v1/integrations/n8n/progress",
+      "match": "route",
+      "disposition": "DENIED",
+      "effect_class": "false_acknowledgement",
+      "owner": "app.api.v1.integrations",
+      "successor": "POST /api/v1/integrations/n8n/results",
+      "reason": "echo stub acknowledged workflow progress without recording it"
+    },
+    {
+      "id": "LE-INTEGRATIONS-N8N-DEAD-LETTER",
+      "method": "POST",
+      "path": "/api/v1/integrations/n8n/dead-letter",
+      "match": "route",
+      "disposition": "DENIED",
+      "effect_class": "false_acknowledgement",
+      "owner": "app.api.v1.integrations",
+      "successor": "POST /api/v1/integrations/n8n/results",
+      "reason": "echo stub acknowledged a dead letter without recording it"
+    },
+    {
+      "id": "LE-INTEGRATIONS-N8N-ERRORS",
+      "method": "POST",
+      "path": "/api/v1/integrations/n8n/errors",
+      "match": "route",
+      "disposition": "DENIED",
+      "effect_class": "false_acknowledgement",
+      "owner": "app.api.v1.integrations",
+      "successor": "POST /api/v1/integrations/n8n/results",
+      "reason": "echo stub acknowledged a workflow error without recording it"
+    },
+    {
+      "id": "LE-INTEGRATIONS-N8N-RECONCILIATION",
+      "method": "POST",
+      "path": "/api/v1/integrations/n8n/reconciliation",
+      "match": "route",
+      "disposition": "DENIED",
+      "effect_class": "false_acknowledgement",
+      "owner": "app.api.v1.integrations",
+      "successor": "POST /api/v1/integrations/n8n/results",
+      "reason": "echo stub answered recorded for a reconciliation it never recorded"
+    },
+    {
+      "id": "LE-INTEGRATIONS-N8N-UNAUTHENTICATED-CALLBACK",
+      "method": "POST",
+      "path": "/api/v1/integrations/n8n/results",
+      "match": "payload_shape:callback_result",
+      "disposition": "DENIED",
+      "effect_class": "callback_payload_shape",
+      "owner": "app.api.v1.integrations",
+      "successor": "POST /api/v1/integrations/n8n/results",
+      "reason": "the pre-envelope callback shape carried no event binding or service token; only the signed AutomationResult envelope is accepted on this path"
+    }
+  ]
+}
