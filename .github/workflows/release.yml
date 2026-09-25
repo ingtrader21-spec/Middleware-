@@ -118,7 +118,7 @@ jobs:
       IMAGE_REPOSITORY: ghcr.io/ingtrader21-spec/codestra-middleware
       COSIGN_YES: "true"
       SOURCE_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
-      EXPECTED_SCHEMA_HEAD: 0067_service_catalog_monitoring_state
+      EXPECTED_SCHEMA_HEAD: 0069_progressive_tenant_rls
 
     steps:
       - name: Check out the exact CI-accepted source
@@ -289,7 +289,7 @@ jobs:
           PY
           cosign sign --yes \
             --annotations "codestra.source_sha=$RELEASE_SOURCE_SHA" \
-            --annotations "codestra.schema_head=0067_service_catalog_monitoring_state" \
+            --annotations "codestra.schema_head=0069_progressive_tenant_rls" \
             "$RELEASE_IMAGE_REFERENCE"
           cosign attest --yes \
             --predicate "$RELEASE_SBOM_PATH" \

@@ -480,8 +480,8 @@ APPROVED_COMPLEX_SCRIPT_SHA256: dict[str, dict[str, str]] = {
         ),
         "scripts/integration_ci.sh": "8d9327fd9ad51d6ba7243d051336f623a4f75d60c60e69fd012e65f598b12d4a",
         "scripts/validate_middleware_authority_convergence.py": (
-            "fd1f54c2f85567aa1cf776b159cc1660"
-            "8041950152c41341eeada6bd2e666be8"
+            "623c6b47ace6016820f5656403e72457"
+            "f3c15ab62071946ceb8802fa5583142b"
         ),
         "scripts/validate-order-orchestration.py": (
             "a9d3688d3175661f54d86d113c8e03fa"
@@ -663,8 +663,8 @@ APPROVED_CONTROL_PLANE_WORKFLOW_SHA256: dict[str, dict[str, str]] = {
             "9e21c8a67466533112117d6cf671ad4"
         ),
         ".github/workflows/exact-main-production-release.yml": (
-            "5406ce4080316fb2e6e270b30a36e9b3e"
-            "1324e2997502c019b3a37df06f72c5c"
+            "6c54ffb872a7db4296eef7c45f4b3bb3b"
+            "cf600b59c387bd9ec052acac0947a9d"
         ),
         ".github/workflows/lead-automation-n8n-source-v1.yml": (
             "6b0cb7126987c14757bd1f48667bf81d"
@@ -871,7 +871,7 @@ APPROVED_READ_ONLY_SCRIPT_INVOCATIONS: dict[
             frozenset({()}),
         ),
         "scripts/validate_middleware_authority_convergence.py": (
-            "fd1f54c2f85567aa1cf776b159cc16608041950152c41341eeada6bd2e666be8",
+            "623c6b47ace6016820f5656403e72457f3c15ab62071946ceb8802fa5583142b",
             frozenset({()}),
         ),
         "scripts/apply_portfolio_main_release_authorities.py": (
@@ -9381,7 +9381,7 @@ APPROVED_NARROW_MUTATION_SHA256: dict[str, dict[str, str]] = {
         # source after Middleware CI succeeded. Only these exact job bytes are
         # authorized; any edit to the job needs a new trust generation.
         ".github/workflows/release.yml:release": (
-            "f27b3be9bdca2bb96ed171a4f23ed6842f01a27c6f4d85508afea3fe1f63c2db"
+            "fa37172c1a78f4fed34589c259802d06fde5200a03277893e781595ee1349e8b"
         ),
     },
 }

@@ -6,7 +6,7 @@ CONTRACT_VERSION="1.0"
 SERVER_ROLE="CODESTRA_APPLICATION_SERVER_A"
 COMPOSE_PROJECT="codestra-middleware-production-canary"
 COMPOSE_SERVICE="middleware-api-canary"
-EXPECTED_SCHEMA_HEAD="0067_service_catalog_monitoring_state"
+EXPECTED_SCHEMA_HEAD="0069_progressive_tenant_rls"
 CONFIG_FILE="${CODESTRA_MIDDLEWARE_DEPLOY_CONFIG:-/etc/codestra-middleware/deploy.conf}"
 STAGE="arguments"
 LOCK_FD=9
@@ -310,7 +310,7 @@ build = value.get("build", {})
 if str(build.get("run_id")) != run_id or build.get("workflow_path") != ".github/workflows/release.yml":
     raise SystemExit("release workflow authority mismatch")
 runtime = value.get("runtime", {})
-if runtime.get("schema_or_migration_head") != "0067_service_catalog_monitoring_state" or runtime.get("external_effects_default") != "disabled":
+if runtime.get("schema_or_migration_head") != "0069_progressive_tenant_rls" or runtime.get("external_effects_default") != "disabled":
     raise SystemExit("release runtime authority mismatch")
 promotion = value.get("promotion", {})
 if promotion.get("mutable_tags_authoritative") is not False or promotion.get("staging_and_production_same_digest") is not True:
@@ -607,7 +607,7 @@ if readiness.get("status") != "ready" or readiness.get("environment") != "produc
     raise SystemExit("readiness is not production-ready")
 if readiness.get("release_sha") != source_sha or readiness.get("image_digest") != image_digest:
     raise SystemExit("readiness source or image mismatch")
-if readiness.get("schema_or_migration_head") != "0067_service_catalog_monitoring_state":
+if readiness.get("schema_or_migration_head") != "0069_progressive_tenant_rls":
     raise SystemExit("readiness migration head mismatch")
 expected_version = {
     "environment": "production",
@@ -615,8 +615,8 @@ expected_version = {
     "source_sha": source_sha,
     "git_sha": source_sha,
     "image_digest": image_digest,
-    "schema_head": "0067_service_catalog_monitoring_state",
-    "schema_version": "0067_service_catalog_monitoring_state",
+    "schema_head": "0069_progressive_tenant_rls",
+    "schema_version": "0069_progressive_tenant_rls",
     "release_id": release_id,
     "configuration_checksum": configuration_checksum,
 }
@@ -730,7 +730,7 @@ value = {
         "sha256": os.environ["E_BACKUP_SHA256"],
         "restore_rehearsal": "PASS",
     },
-    "migration": {"status": "PASS", "head": "0067_service_catalog_monitoring_state"},
+    "migration": {"status": "PASS", "head": "0069_progressive_tenant_rls"},
     "runtime": {
         "health": "PASS",
         "readiness": "PASS",

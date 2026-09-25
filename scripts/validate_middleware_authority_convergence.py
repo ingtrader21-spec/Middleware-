@@ -25,14 +25,14 @@ _SPEC.loader.exec_module(_BASE)
 
 ROOT = _BASE.ROOT
 # Forward schema requirement; preserve the reviewed historical base verbatim.
-setattr(_BASE, "CURRENT_SCHEMA_HEAD", "0067_service_catalog_monitoring_state")
+setattr(_BASE, "CURRENT_SCHEMA_HEAD", "0069_progressive_tenant_rls")
 SOURCE_RESOLUTION = (
     "resolve the exact protected-main GitHub event SHA at workflow execution"
 )
 REQUIRED_RUNTIME_EVIDENCE = (
     "signed release manifest bound to exact protected-main source",
     "immutable image digest and verified provenance",
-    "schema head 0067_service_catalog_monitoring_state",
+    "schema head 0069_progressive_tenant_rls",
     "effective source, digest, schema, profile, and capability read-back",
     "backup and isolated restore evidence",
     "rollback rehearsal and data-integrity evidence",
