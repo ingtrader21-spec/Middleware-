@@ -698,7 +698,7 @@ class MemoryCommandStore:
                     item.lease_owner = None
                     item.lease_until = None
         else:
-            if operation.state != "failed":
+            if operation.state not in {"failed", "dead_lettered"}:
                 raise CommandConflict("operation is not safely retryable")
             updates = {"state": "queued", "last_error": None}
             source = intents[-1] if intents else None

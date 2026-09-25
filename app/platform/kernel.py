@@ -384,6 +384,34 @@ class CommandKernel:
         return operation
 
     # ------------------------------------------------------------------
+    # Retry / redrive: reuse the durable command identity and schedule a new
+    # execution attempt only for states the command store classifies safe.
+    # ------------------------------------------------------------------
+    async def retry(
+        self,
+        tenant_id: str,
+        operation_id: UUID,
+        *,
+        principal: KernelPrincipal,
+        idempotency_key: str,
+        expected_version: int,
+        reason: str,
+    ) -> CommandOperation:
+        if PLATFORM_OPERATOR_ROLE not in principal.roles:
+            raise ReplayNotAllowed("retry requires the platform-operator role")
+        operation = await self.commands.mutate_operation(
+            tenant_id,
+            operation_id,
+            action="retry",
+            actor_id=principal.subject,
+            idempotency_key=idempotency_key,
+            expected_version=expected_version,
+            reason=reason,
+        )
+        self.metrics.replays.labels(mode="RETRY").inc()
+        return operation
+
+    # ------------------------------------------------------------------
     # Replay (Phase 12)
     # ------------------------------------------------------------------
     async def replay(

@@ -171,6 +171,166 @@
       ]
     },
     {
+      "name": "Command Result",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearer_token}}"
+          }
+        ],
+        "url": "{{base_url}}/platform/v1/commands/{{command_id}}/result"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('result 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('result bound to command', function () { pm.expect(pm.response.json().command_id).to.eql(pm.collectionVariables.get('command_id')); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Command History",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearer_token}}"
+          }
+        ],
+        "url": "{{base_url}}/platform/v1/commands/{{command_id}}/history"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('history 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('history not empty', function () { pm.expect(pm.response.json().items.length).to.be.above(0); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Connector Readback",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearer_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/platform/v1/connectors/test-syn/readback",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"operation_id\": \"{{command_id}}\",\n  \"provider_reference\": null\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('readback 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('readback tenant safe', function () { const j=pm.response.json(); pm.expect(j.command_id).to.eql(pm.collectionVariables.get('command_id')); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Connector Reconcile",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearer_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/platform/v1/connectors/test-syn/reconcile",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"operation_id\": \"{{command_id}}\",\n  \"provider_reference\": null\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('reconcile 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('reconcile has consistency', function () { pm.expect(pm.response.json()).to.have.property('consistency'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dead Letter List",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearer_token}}"
+          }
+        ],
+        "url": "{{base_url}}/platform/v1/dead-letters"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('dead letters 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('dead letters bounded list', function () { pm.expect(pm.response.json().items).to.be.an('array'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reconciliation Scan",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearer_token}}"
+          }
+        ],
+        "url": "{{base_url}}/platform/v1/reconciliation/scan"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('scan 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('scan action present', function () { pm.expect(pm.response.json()).to.have.property('action'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
       "name": "Protected Catalog Rejects Missing Token",
       "request": {
         "method": "GET",
