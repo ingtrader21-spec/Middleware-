@@ -15,7 +15,8 @@
     "deploy/observability-alerts/production.env.example",
     "deploy/production/compose.canary.yaml",
     "deploy/production/server/codestra-middleware-deploy",
-    "deploy/production/server-command-contract.v1.json"
+    "deploy/production/server-command-contract.v1.json",
+    "migrations/versions/0070_campaign_recycling_decision_ledger.py"
   ],
   "reviewed_runtime": {
     "files": [

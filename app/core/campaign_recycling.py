@@ -39,6 +39,26 @@ def _delivery_validator() -> Draft202012Validator:
         schema, registry=registry, format_checker=Draft202012Validator.FORMAT_CHECKER
     )
 
+@lru_cache(maxsize=1)
+def _next_action_validator() -> Draft202012Validator:
+    """Validate durable decision evidence against the frozen MCR-A schema."""
+    schemas = [
+        json.loads(path.read_text(encoding="utf-8"))
+        for path in (ROOT / "contracts/campaign-recycling").glob("*.schema.json")
+    ]
+    registry = Registry().with_resources(
+        (schema["$id"], Resource.from_contents(schema)) for schema in schemas
+    )
+    schema = next(
+        item for item in schemas
+        if item["$id"].endswith("/next-action.v1.schema.json")
+    )
+    return Draft202012Validator(
+        schema,
+        registry=registry,
+        format_checker=Draft202012Validator.FORMAT_CHECKER,
+    )
+
 LifecycleState = Literal[
     "NEW", "VALIDATED", "ELIGIBLE", "ACTIVE_CYCLE", "ENGAGED",
     "COOLING", "REACTIVATION", "CONVERTED", "SUPPRESSED",
@@ -794,6 +814,105 @@ class CampaignRecyclingEngine:
 @dataclass
 class PostgresCampaignRecyclingStore:
     pool: asyncpg.Pool
+
+    async def record_decision(
+        self,
+        *,
+        tenant_id: str,
+        lead_id: str,
+        idempotency_key: str,
+        request_hash: str,
+        document: Mapping[str, Any],
+    ) -> tuple[dict[str, Any], bool]:
+        """Persist one frozen next-action decision, replaying exact requests safely."""
+        payload = dict(document)
+        if not _next_action_validator().is_valid(payload):
+            raise CampaignRecyclingConflict(
+                "decision document violates the frozen next-action contract"
+            )
+        if payload.get("tenant_id") != tenant_id or payload.get("lead_id") != lead_id:
+            raise CampaignRecyclingConflict("decision tenant/lead binding mismatch")
+        if (
+            not isinstance(request_hash, str)
+            or len(request_hash) != 64
+            or any(ch not in "0123456789abcdef" for ch in request_hash)
+        ):
+            raise CampaignRecyclingConflict("decision request_hash must be sha256 hex")
+        response_hash = canonical_digest(payload)
+        decision_id = UUID(str(payload["decision_id"]))
+        evaluated_at = _coerce_event_datetime(payload["evaluated_at"])
+        next_eligible_at = (
+            _coerce_event_datetime(payload["next_eligible_at"])
+            if payload.get("next_eligible_at") is not None
+            else None
+        )
+        async with self.pool.acquire() as conn:
+            async with conn.transaction():
+                existing = await conn.fetchrow(
+                    """
+                    SELECT request_hash, decision_json
+                    FROM mcr_decisions
+                    WHERE tenant_id=$1 AND idempotency_key=$2
+                    """,
+                    tenant_id,
+                    idempotency_key,
+                )
+                if existing is not None:
+                    if str(existing["request_hash"]) != request_hash:
+                        raise CampaignRecyclingIdempotencyConflict(
+                            "decision idempotency key was reused with a different request"
+                        )
+                    return dict(existing["decision_json"]), True
+                await conn.execute(
+                    """
+                    INSERT INTO mcr_decisions (
+                      record_id, tenant_id, decision_id, lead_id,
+                      idempotency_key, request_hash, response_hash,
+                      decision_hash, policy_version, lifecycle_state, mode,
+                      eligible, next_eligible_at, correlation_id, evaluated_at,
+                      decision_json
+                    )
+                    VALUES (
+                      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16
+                    )
+                    """,
+                    uuid4(),
+                    tenant_id,
+                    decision_id,
+                    lead_id,
+                    idempotency_key,
+                    request_hash,
+                    response_hash,
+                    payload["decision_hash"],
+                    payload["policy_version"],
+                    payload["lifecycle_state"],
+                    payload["mode"],
+                    bool(payload["eligible"]),
+                    next_eligible_at,
+                    payload["correlation_id"],
+                    evaluated_at,
+                    payload,
+                )
+        return payload, False
+
+    async def latest_decision(
+        self, *, tenant_id: str, lead_id: str
+    ) -> dict[str, Any] | None:
+        """Return the newest durable decision for exactly one tenant/lead."""
+        async with self.pool.acquire() as conn:
+            row = await conn.fetchrow(
+                """
+                SELECT decision_json
+                FROM mcr_decisions
+                WHERE tenant_id=$1 AND lead_id=$2
+                ORDER BY evaluated_at DESC, created_at DESC
+                LIMIT 1
+                """,
+                tenant_id,
+                lead_id,
+            )
+        return dict(row["decision_json"]) if row is not None else None
+
 
     async def transition_lifecycle(
         self,
