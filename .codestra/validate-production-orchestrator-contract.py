@@ -37,7 +37,7 @@ STANDARD_RELEASE_VALIDATOR_SECURITY_SHA256 = (
     "8d8f21260babfae5eaedbdd46472b1ec"
 )
 MIDDLEWARE_RELEASE_VALIDATOR_SECURITY_SHA256 = (
-    "a4188204cd6a3e2d72ac889e6ff7c1df49f420a3d59d74b037c39a7560052f49"
+    "e3b70953e9fac5ba4e8dbe696241a8057be2cf530bb0e782fe83d3a268e820b0"
 )
 BACKEND_RELEASE_VALIDATOR_SECURITY_SHA256 = (
     "15dbaa6d571a1d1e72c09ca417cc9419"
@@ -671,8 +671,8 @@ APPROVED_CONTROL_PLANE_WORKFLOW_SHA256: dict[str, dict[str, str]] = {
             "50caaed769389cb30fc725766ea6bed6"
         ),
         ".github/workflows/middleware-ci.yml": (
-            "2d1140c32ea0abea273afed2c135932c3"
-            "5b3701d24c5d7a75f6571edfd7a9812"
+            "31a2aac314d40f8f1b21418801d1a4005"
+            "c91187e3ec316040570cdd556b97aed"
         ),
         ".github/workflows/integration-main-release-authorities.yml": (
             "910acf0149a0b9060544817a71577222a"
@@ -686,7 +686,7 @@ APPROVED_CONTROL_PLANE_WORKFLOW_SHA256: dict[str, dict[str, str]] = {
             "35ecd2dac4328dea5615d5939d39e5682"
             "5794cedf919d80abb92a4272ccf81ca"
         ),
-        ".github/workflows/required-ci.yml": "a1f773814d37cb2a3b6d88a2622f11ffbf8c501cbe1ed1f2c6cd5c5d258c76b9",
+        ".github/workflows/required-ci.yml": "666a4524d0c3bf2c62de9d0b7b71a0106446f71709ab10c019a8b83bbef52de3",
         ".github/workflows/production-route-contract.yml": (
             "a12d81e9c8d3d1e14a68f4c9ef7f55e8"
             "487e09a83578e35bc3f2457bdb76bdb2"
@@ -9373,8 +9373,8 @@ APPROVED_NARROW_MUTATION_SHA256: dict[str, dict[str, str]] = {
         # The only external mutation is the required job posting its own exact
         # commit status through checks:write.
         ".github/workflows/required-ci.yml:test": (
-            "38f1c11cf22709bf52fa6fbb0ce61df6"
-            "5a0917131060f85393358b203a9d58b9"
+            "4c1335859514a384a7e7b9667250821b"
+            "8ee7d0bbf9d34e3968d40174d9dd4f3b"
         ),
         # The single forward Middleware production publisher: builds, scans,
         # signs and verifies one immutable image from the exact protected-main
