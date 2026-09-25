@@ -451,7 +451,7 @@ components:
       name: cursor
       in: query
       required: false
-      description: Opaque, tenant-bound, server-signed continuation cursor. A cursor from another tenant or query is 400 invalid_cursor.
+      description: Opaque, tenant-and-lead-bound continuation position. It grants no authority; malformed or wrong-scope cursors are 400 invalid_cursor.
       schema:
         type: string
         minLength: 1
