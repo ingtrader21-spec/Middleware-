@@ -30,7 +30,7 @@ TENANT = "TEST_SYN"
 def token(*, azp: str = "middleware-api", scope: str = "platform.command platform.command.read", sub: str = "user-1", tenants: tuple[str, ...] = (TENANT,), roles: tuple[str, ...] = ()) -> str:
     now = int(time.time())
     claims: dict[str, Any] = {"iss": "fake", "aud": "middleware-api", "azp": azp, "sub": sub, "iat": now, "exp": now + 120, "scope": scope, "tenant_ids": list(tenants), "realm_access": {"roles": list(roles)}}
-    return jwt.encode(claims, "unit-test-only", algorithm="HS256")
+    return jwt.encode(claims, "unit-test-only-key-material-32-bytes-minimum", algorithm="HS256")
 
 
 class ClaimsVerifier:
@@ -41,7 +41,7 @@ class ClaimsVerifier:
         if scheme.lower() != "bearer" or not raw:
             raise AuthenticationError("Authorization must be a Bearer token")
         try:
-            claims = jwt.decode(raw, "unit-test-only", algorithms=["HS256"], options={"verify_aud": False})
+            claims = jwt.decode(raw, "unit-test-only-key-material-32-bytes-minimum", algorithms=["HS256"], options={"verify_aud": False})
         except Exception as exc:  # noqa: BLE001
             raise AuthenticationError("invalid bearer token") from exc
         if claims.get("azp") != expected_client_id:
