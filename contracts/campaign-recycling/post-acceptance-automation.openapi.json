@@ -1,0 +1,1708 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "MCR-F post-acceptance automation contracts",
+    "version": "1.0.0",
+    "description": "Proposed Middleware APIs; not mounted runtime routes. All workflows remain inactive. See post-acceptance-automation.v1.json for durable semantics."
+  },
+  "x-runtime-status": "contract_only",
+  "paths": {
+    "/platform/v1/automation/post-acceptance/triggers": {
+      "post": {
+        "operationId": "post_acceptance_trigger",
+        "summary": "Trigger post-acceptance automation",
+        "description": "Contract only. Resolve acceptance from trusted Middleware ledger, never from caller claims. Authenticate pinned client and scope; bind tenant, correlation, headers and path to request and persisted record. Reject unavailable dependencies before reservation. No external effects.",
+        "x-authorized-client": "middleware-api",
+        "x-contract-operation": "trigger",
+        "x-request-schema": "TriggerRequest",
+        "x-effects": "none",
+        "security": [
+          {
+            "codestraOAuth": [
+              "workflow.trigger"
+            ]
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TenantId"
+          },
+          {
+            "$ref": "#/components/parameters/CorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/CausationId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Durable readback or exact duplicate",
+            "headers": {
+              "X-Correlation-ID": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "\\S"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecutionResponse"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Durably recorded; no provider delivery claim",
+            "headers": {
+              "X-Correlation-ID": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "\\S"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecutionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Header/body or path/body mismatch",
+            "headers": {
+              "X-Correlation-ID": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "\\S"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid, expired or absent JWT",
+            "headers": {
+              "X-Correlation-ID": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "\\S"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Client/scope or lifecycle precondition denied",
+            "headers": {
+              "X-Correlation-ID": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "\\S"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Missing or cross-tenant execution",
+            "headers": {
+              "X-Correlation-ID": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "\\S"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicting key, binding, version, lease or terminal state",
+            "headers": {
+              "X-Correlation-ID": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "\\S"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request schema",
+            "headers": {
+              "X-Correlation-ID": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "\\S"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Retry budget or rate limit",
+            "headers": {
+              "X-Correlation-ID": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "\\S"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Trusted ledger, policy or dependency unavailable; fail closed",
+            "headers": {
+              "X-Correlation-ID": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "\\S"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TriggerRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/platform/v1/automation/post-acceptance/results": {
+      "post": {
+        "operationId": "post_acceptance_result",
+        "summary": "Result post-acceptance automation",
+        "description": "Contract only. Resolve acceptance from trusted Middleware ledger, never from caller claims. Authenticate pinned client and scope; bind tenant, correlation, headers and path to request and persisted record. Reject unavailable dependencies before reservation. No external effects.",
+        "x-authorized-client": "n8n-automation",
+        "x-contract-operation": "result",
+        "x-request-schema": "ResultRequest",
+        "x-effects": "none",
+        "security": [
+          {
+            "codestraOAuth": [
+              "workflow.result.publish"
+            ]
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TenantId"
+          },
+          {
+            "$ref": "#/components/parameters/CorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/CausationId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Durable readback or exact duplicate",
+            "headers": {
+              "X-Correlation-ID": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "\\S"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecutionResponse"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Durably recorded; no provider delivery claim",
+            "headers": {
+              "X-Correlation-ID": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "\\S"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecutionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Header/body or path/body mismatch",
+            "headers": {
+              "X-Correlation-ID": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "\\S"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid, expired or absent JWT",
+            "headers": {
+              "X-Correlation-ID": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "\\S"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Client/scope or lifecycle precondition denied",
+            "headers": {
+              "X-Correlation-ID": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "\\S"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Missing or cross-tenant execution",
+            "headers": {
+              "X-Correlation-ID": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "\\S"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicting key, binding, version, lease or terminal state",
+            "headers": {
+              "X-Correlation-ID": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "\\S"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request schema",
+            "headers": {
+              "X-Correlation-ID": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "\\S"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Retry budget or rate limit",
+            "headers": {
+              "X-Correlation-ID": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "\\S"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Trusted ledger, policy or dependency unavailable; fail closed",
+            "headers": {
+              "X-Correlation-ID": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "\\S"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResultRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/platform/v1/automation/post-acceptance/executions/{execution_id}": {
+      "get": {
+        "operationId": "post_acceptance_readback",
+        "summary": "Readback post-acceptance automation",
+        "description": "Contract only. Resolve acceptance from trusted Middleware ledger, never from caller claims. Authenticate pinned client and scope; bind tenant, correlation, headers and path to request and persisted record. Reject unavailable dependencies before reservation. No external effects.",
+        "x-authorized-client": "middleware-api",
+        "x-contract-operation": "readback",
+        "x-request-schema": "ReadbackRequest",
+        "x-effects": "none",
+        "security": [
+          {
+            "codestraOAuth": [
+              "workflow.status.read"
+            ]
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TenantId"
+          },
+          {
+            "$ref": "#/components/parameters/CorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/CausationId"
+          },
+          {
+            "name": "execution_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "pattern": "\\S"
+            }
+          },
+          {
+            "name": "acceptance_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "pattern": "\\S"
+            }
+          },
+          {
+            "name": "command_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "pattern": "\\S"
+            }
+          },
+          {
+            "name": "lead_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "pattern": "\\S"
+            }
+          },
+          {
+            "name": "campaign_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "pattern": "\\S"
+            }
+          },
+          {
+            "name": "campaign_version",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "pattern": "\\S"
+            }
+          },
+          {
+            "name": "workflow_key",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "pattern": "\\S"
+            }
+          },
+          {
+            "name": "workflow_version",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "pattern": "\\S"
+            }
+          },
+          {
+            "name": "schema_version",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "const": "1.0"
+            }
+          },
+          {
+            "name": "lifecycle_version",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Durable readback or exact duplicate",
+            "headers": {
+              "X-Correlation-ID": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "\\S"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecutionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Header/body or path/body mismatch",
+            "headers": {
+              "X-Correlation-ID": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "\\S"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid, expired or absent JWT",
+            "headers": {
+              "X-Correlation-ID": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "\\S"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Client/scope or lifecycle precondition denied",
+            "headers": {
+              "X-Correlation-ID": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "\\S"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Missing or cross-tenant execution",
+            "headers": {
+              "X-Correlation-ID": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "\\S"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicting key, binding, version, lease or terminal state",
+            "headers": {
+              "X-Correlation-ID": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "\\S"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request schema",
+            "headers": {
+              "X-Correlation-ID": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "\\S"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Retry budget or rate limit",
+            "headers": {
+              "X-Correlation-ID": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "\\S"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Trusted ledger, policy or dependency unavailable; fail closed",
+            "headers": {
+              "X-Correlation-ID": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "\\S"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/platform/v1/automation/post-acceptance/dead-letters/{dead_letter_id}/replay": {
+      "post": {
+        "operationId": "post_acceptance_replay",
+        "summary": "Replay post-acceptance automation",
+        "description": "Contract only. Resolve acceptance from trusted Middleware ledger, never from caller claims. Authenticate pinned client and scope; bind tenant, correlation, headers and path to request and persisted record. Reject unavailable dependencies before reservation. No external effects.",
+        "x-authorized-client": "middleware-api",
+        "x-contract-operation": "replay",
+        "x-request-schema": "ReplayRequest",
+        "x-effects": "none",
+        "security": [
+          {
+            "codestraOAuth": [
+              "automation.replay.request"
+            ]
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TenantId"
+          },
+          {
+            "$ref": "#/components/parameters/CorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/CausationId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "name": "dead_letter_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "pattern": "\\S"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Durable readback or exact duplicate",
+            "headers": {
+              "X-Correlation-ID": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "\\S"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecutionResponse"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Durably recorded; no provider delivery claim",
+            "headers": {
+              "X-Correlation-ID": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "\\S"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecutionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Header/body or path/body mismatch",
+            "headers": {
+              "X-Correlation-ID": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "\\S"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid, expired or absent JWT",
+            "headers": {
+              "X-Correlation-ID": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "\\S"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Client/scope or lifecycle precondition denied",
+            "headers": {
+              "X-Correlation-ID": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "\\S"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Missing or cross-tenant execution",
+            "headers": {
+              "X-Correlation-ID": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "\\S"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicting key, binding, version, lease or terminal state",
+            "headers": {
+              "X-Correlation-ID": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "\\S"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request schema",
+            "headers": {
+              "X-Correlation-ID": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "\\S"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Retry budget or rate limit",
+            "headers": {
+              "X-Correlation-ID": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "\\S"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Trusted ledger, policy or dependency unavailable; fail closed",
+            "headers": {
+              "X-Correlation-ID": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "pattern": "\\S"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplayRequest"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "codestraOAuth": {
+        "type": "oauth2",
+        "flows": {
+          "clientCredentials": {
+            "tokenUrl": "https://auth.codestra.co/realms/codestra/protocol/openid-connect/token",
+            "scopes": {
+              "workflow.trigger": "trigger",
+              "workflow.result.publish": "result",
+              "workflow.status.read": "readback",
+              "automation.replay.request": "replay"
+            }
+          }
+        }
+      }
+    },
+    "parameters": {
+      "TenantId": {
+        "name": "X-Tenant-ID",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "\\S"
+        }
+      },
+      "CorrelationId": {
+        "name": "X-Correlation-ID",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "\\S"
+        }
+      },
+      "CausationId": {
+        "name": "X-Causation-ID",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "\\S"
+        }
+      },
+      "IdempotencyKey": {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "\\S"
+        }
+      }
+    },
+    "schemas": {
+      "TriggerRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tenant_id",
+          "correlation_id",
+          "acceptance_id",
+          "command_id",
+          "lead_id",
+          "campaign_id",
+          "campaign_version",
+          "workflow_key",
+          "workflow_version",
+          "schema_version",
+          "causation_id",
+          "lifecycle_version",
+          "idempotency_key"
+        ],
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "correlation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "acceptance_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "command_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "lead_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "campaign_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "campaign_version": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "workflow_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "workflow_version": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "schema_version": {
+            "const": "1.0"
+          },
+          "causation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "lifecycle_version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          }
+        }
+      },
+      "ResultRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tenant_id",
+          "correlation_id",
+          "acceptance_id",
+          "command_id",
+          "lead_id",
+          "campaign_id",
+          "campaign_version",
+          "workflow_key",
+          "workflow_version",
+          "schema_version",
+          "causation_id",
+          "lifecycle_version",
+          "idempotency_key",
+          "execution_id",
+          "lease_id",
+          "attempt",
+          "status",
+          "result_hash"
+        ],
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "correlation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "acceptance_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "command_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "lead_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "campaign_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "campaign_version": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "workflow_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "workflow_version": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "schema_version": {
+            "const": "1.0"
+          },
+          "causation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "lifecycle_version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "execution_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "lease_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "attempt": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3
+          },
+          "status": {
+            "enum": [
+              "COMPLETED",
+              "FAILED",
+              "UNKNOWN"
+            ]
+          },
+          "result_hash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      },
+      "ReadbackRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tenant_id",
+          "correlation_id",
+          "acceptance_id",
+          "command_id",
+          "lead_id",
+          "campaign_id",
+          "campaign_version",
+          "workflow_key",
+          "workflow_version",
+          "schema_version",
+          "causation_id",
+          "lifecycle_version",
+          "execution_id"
+        ],
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "correlation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "acceptance_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "command_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "lead_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "campaign_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "campaign_version": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "workflow_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "workflow_version": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "schema_version": {
+            "const": "1.0"
+          },
+          "causation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "lifecycle_version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "execution_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          }
+        }
+      },
+      "ReplayRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tenant_id",
+          "correlation_id",
+          "acceptance_id",
+          "command_id",
+          "lead_id",
+          "campaign_id",
+          "campaign_version",
+          "workflow_key",
+          "workflow_version",
+          "schema_version",
+          "causation_id",
+          "lifecycle_version",
+          "idempotency_key",
+          "dead_letter_id",
+          "approval_id"
+        ],
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "correlation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "acceptance_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "command_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "lead_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "campaign_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "campaign_version": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "workflow_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "workflow_version": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "schema_version": {
+            "const": "1.0"
+          },
+          "causation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "lifecycle_version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "dead_letter_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "approval_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          }
+        }
+      },
+      "ExecutionResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tenant_id",
+          "correlation_id",
+          "acceptance_id",
+          "command_id",
+          "lead_id",
+          "campaign_id",
+          "campaign_version",
+          "workflow_key",
+          "workflow_version",
+          "schema_version",
+          "causation_id",
+          "lifecycle_version",
+          "execution_id",
+          "status",
+          "attempt",
+          "duplicate",
+          "external_effects_enabled"
+        ],
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "correlation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "acceptance_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "command_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "lead_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "campaign_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "campaign_version": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "workflow_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "workflow_version": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "schema_version": {
+            "const": "1.0"
+          },
+          "causation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "lifecycle_version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "execution_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "status": {
+            "enum": [
+              "PENDING",
+              "CLAIMED",
+              "RUNNING",
+              "RETRY_SCHEDULED",
+              "UNKNOWN",
+              "COMPLETED",
+              "DEAD_LETTER"
+            ]
+          },
+          "attempt": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3
+          },
+          "duplicate": {
+            "type": "boolean"
+          },
+          "external_effects_enabled": {
+            "const": false
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "correlation_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "correlation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          }
+        }
+      }
+    }
+  }
+}
