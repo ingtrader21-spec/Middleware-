@@ -33,8 +33,12 @@ paths:
         Pure evaluation. Writes no exposure rows, emits no commands, and
         performs no provider call. Returns a plan_hash that execute must echo.
         Idempotency-Key is optional because the operation has no effect.
+        Candidate details inside each decision are disclosed only when the
+        caller also has campaign.engine.candidates.read; otherwise candidates
+        are redacted according to the next-action contract.
       x-codestra-effects: none
       x-codestra-dry-run: always
+      x-codestra-candidate-disclosure-scope: campaign.engine.candidates.read
       security:
         - codestraOAuth: [campaign.engine.plan]
       parameters:

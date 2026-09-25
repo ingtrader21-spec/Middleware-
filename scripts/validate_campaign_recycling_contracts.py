@@ -97,6 +97,10 @@ DRY_RUN_OPERATIONS = {
     "/platform/v1/leads/{lead_id}/next-action",
     "/platform/v1/campaigns/{campaign_id}/eligible-leads",
 }
+CANDIDATE_DISCLOSURE_OPERATIONS = {
+    "/platform/v1/campaign-engine/plan",
+    "/platform/v1/leads/{lead_id}/next-action",
+}
 REQUIRED_SYSTEMS = {
     "leads",
     "middleware",
@@ -837,6 +841,18 @@ def check_openapi(artifacts: dict[str, Any], errors: list[str], root: Path) -> N
             or operation.get("x-codestra-dry-run") != "always"
         ):
             errors.append(f"openapi: {path} must be a dry run with no effects")
+        if path in CANDIDATE_DISCLOSURE_OPERATIONS:
+            disclosure_scope = operation.get(
+                "x-codestra-candidate-disclosure-scope"
+            )
+            if (
+                disclosure_scope != "campaign.engine.candidates.read"
+                or disclosure_scope not in scopes
+            ):
+                errors.append(
+                    f"openapi: {method.upper()} {path} must gate candidate "
+                    "disclosure with campaign.engine.candidates.read"
+                )
         for status, response in operation["responses"].items():
             if status.startswith(("4", "5")) and not response.get(
                 "$ref", ""

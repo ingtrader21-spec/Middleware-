@@ -681,6 +681,25 @@ def test_api_controls(artifacts: dict[str, Any]) -> None:
         "x-codestra-effects"
     ] = "command_outbox_only"
     assert any("dry run" in e for e in mcr.validate(effectful_plan))
+    disclosure_gap = _fresh(artifacts)
+    del disclosure_gap["openapi"]["paths"]["/platform/v1/campaign-engine/plan"][
+        "post"
+    ]["x-codestra-candidate-disclosure-scope"]
+    assert any(
+        "gate candidate disclosure" in e for e in mcr.validate(disclosure_gap)
+    )
+    assert (
+        artifacts["openapi"]["paths"]["/platform/v1/campaign-engine/plan"]["post"][
+            "x-codestra-candidate-disclosure-scope"
+        ]
+        == "campaign.engine.candidates.read"
+    )
+    assert (
+        artifacts["openapi"]["paths"]["/platform/v1/leads/{lead_id}/next-action"][
+            "get"
+        ]["x-codestra-candidate-disclosure-scope"]
+        == "campaign.engine.candidates.read"
+    )
     envelope = artifacts["openapi"]["components"]["schemas"]["ErrorEnvelope"][
         "properties"
     ]["error"]
