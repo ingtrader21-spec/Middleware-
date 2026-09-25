@@ -4,6 +4,8 @@ from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 from app.db.models import Base
+from app.db import recording_models as _recording_models  # noqa: F401
+from app.email.models import Base as EmailBase
 from app.monitoring.store import metadata as monitoring_metadata
 
 config = context.config
@@ -14,7 +16,7 @@ if supplied_connection is None:
     config.set_main_option("sqlalchemy.url", settings.database_url.replace("%", "%%"))
 if config.config_file_name and config.get_section("loggers"):
     fileConfig(config.config_file_name)
-target_metadata = [Base.metadata, monitoring_metadata]
+target_metadata = [Base.metadata, EmailBase.metadata, monitoring_metadata]
 
 
 def run_migrations_offline():
