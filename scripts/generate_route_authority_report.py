@@ -61,6 +61,7 @@ KERNEL_CALLS = (
     ("platform.kernel.timeline(", "CommandKernel.timeline"),
     ("commands.submit(", "CommandService.submit"),
     ("commands.mutate_operation(", "CommandService.mutate_operation"),
+    ("runtime.commands.reconcile(", "CommandService.reconcile"),
     (".mutate_operation(", "CommandStore.mutate_operation"),
     ("active.commands", "CommandService"),
 )
@@ -175,6 +176,8 @@ def classify(method: str, path: str, route, overrides: dict[str, Any]) -> dict[s
             row["effectful"] = True
             if path.startswith("/platform/v1/commands") or path.startswith("/platform/v1/operations"):
                 row["scope"] = "platform.command.replay" if path.endswith("/replay") else "platform.command"
+            elif path.startswith("/platform/v1/reconciliation/"):
+                row["scope"] = "platform.command.replay"
             return row
     if any(re.search(pattern, path) for pattern in READ_ONLY_POSTS):
         row["classification"] = "READ_ONLY"

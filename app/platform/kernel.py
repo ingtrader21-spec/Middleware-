@@ -326,6 +326,23 @@ class CommandKernel:
     async def get(self, tenant_id: str, operation_id: UUID) -> CommandOperation:
         return await self.commands.get(tenant_id, operation_id)
 
+    async def operations(
+        self,
+        tenant_id: str,
+        *,
+        limit: int = 100,
+        position: tuple[datetime, UUID] | None = None,
+        state: str | None = None,
+        command_type: str | None = None,
+    ) -> list[CommandOperation]:
+        return await self.commands.list_operations(
+            tenant_id,
+            limit=limit,
+            position=position,
+            state=state,
+            command_type=command_type,
+        )
+
     async def timeline(self, tenant_id: str, operation_id: UUID, *, limit: int = 200) -> list[OperationEvent]:
         events = await self.commands.list_events(tenant_id, operation_id, limit=limit)
         # Append-only and monotonic by construction; verify rather than trust.

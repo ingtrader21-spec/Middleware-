@@ -1,0 +1,185 @@
+Python 3.14.4
+
+################ test-upstream-signing-identity
+test_exact_reusable_identity_from_github_run_evidence (test_upstream_signing_identity.SigningIdentityTest.test_exact_reusable_identity_from_github_run_evidence) ... ok
+test_rejects_abbreviated_source_sha (test_upstream_signing_identity.SigningIdentityTest.test_rejects_abbreviated_source_sha) ... ok
+test_rejects_ambiguous_workflow_evidence (test_upstream_signing_identity.SigningIdentityTest.test_rejects_ambiguous_workflow_evidence) ... ok
+test_rejects_missing_resolved_sha (test_upstream_signing_identity.SigningIdentityTest.test_rejects_missing_resolved_sha) ... ok
+test_rejects_missing_workflow_evidence (test_upstream_signing_identity.SigningIdentityTest.test_rejects_missing_workflow_evidence) ... ok
+test_rejects_mutable_reference (test_upstream_signing_identity.SigningIdentityTest.test_rejects_mutable_reference) ... ok
+test_rejects_other_repository_source_or_run (test_upstream_signing_identity.SigningIdentityTest.test_rejects_other_repository_source_or_run) ... ok
+test_rejects_other_workflow_or_lookalike_repository (test_upstream_signing_identity.SigningIdentityTest.test_rejects_other_workflow_or_lookalike_repository) ... ok
+test_rejects_resolved_sha_disagreement (test_upstream_signing_identity.SigningIdentityTest.test_rejects_resolved_sha_disagreement) ... ok
+test_workflow_uses_exact_identity_and_fixed_oidc_issuer (test_upstream_signing_identity.SigningIdentityTest.test_workflow_uses_exact_identity_and_fixed_oidc_issuer) ... ok
+
+----------------------------------------------------------------------
+Ran 10 tests in 0.047s
+
+OK
+
+################ production-orchestrator-contract
+required check workflow definition drift: appolon1908-hue/Infustruction-repo:.github/workflows/production-orchestrator-contract.yml
+Traceback (most recent call last):
+  File "/home/Codestra/pas179/infra/.codestra/validate-production-orchestrator-contract.py", line 9360, in <module>
+    raise SystemExit(main())
+                     ~~~~^^
+  File "/home/Codestra/pas179/infra/.codestra/validate-production-orchestrator-contract.py", line 9345, in main
+    subprocess.run(
+    ~~~~~~~~~~~~~~^
+        ["python3", str(RELEASE_VALIDATOR_PATH), "--self-test"],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        cwd=ROOT,
+        ^^^^^^^^^
+        check=True,
+        ^^^^^^^^^^^
+    )
+    ^
+  File "/usr/lib/python3.14/subprocess.py", line 578, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['python3', '/home/Codestra/pas179/infra/.codestra/validate-release-intent.py', '--self-test']' returned non-zero exit status 1.
+
+######## negative: orchestrator without env -u (expect: outside the protected catalog identity map)
+    raise ContractError(message)
+ContractError: repository is outside the protected catalog identity map
+
+################ release-policy-review-tests
+test_closed_draft_and_wrong_pr (test_release_policy_review.ReviewTests.test_closed_draft_and_wrong_pr) ... ok
+test_comment_does_not_replace_approval (test_release_policy_review.ReviewTests.test_comment_does_not_replace_approval) ... ok
+test_duplicate_review_identity (test_release_policy_review.ReviewTests.test_duplicate_review_identity) ... ok
+test_exact_independent_approval (test_release_policy_review.ReviewTests.test_exact_independent_approval) ... ok
+test_invalid_candidate_sha (test_release_policy_review.ReviewTests.test_invalid_candidate_sha) ... ok
+test_missing_approval (test_release_policy_review.ReviewTests.test_missing_approval) ... ok
+test_repository_and_branch_binding (test_release_policy_review.ReviewTests.test_repository_and_branch_binding) ... ok
+test_reviewer_must_be_collaborator (test_release_policy_review.ReviewTests.test_reviewer_must_be_collaborator) ... ok
+test_self_review (test_release_policy_review.ReviewTests.test_self_review) ... ok
+test_stale_approval (test_release_policy_review.ReviewTests.test_stale_approval) ... ok
+test_substitute_reviewer (test_release_policy_review.ReviewTests.test_substitute_reviewer) ... ok
+test_unknown_review_state (test_release_policy_review.ReviewTests.test_unknown_review_state) ... ok
+test_withdrawn_or_changes_requested (test_release_policy_review.ReviewTests.test_withdrawn_or_changes_requested) ... ok
+test_closure_values_and_test_inputs_remain_bound_without_execution (test_release_policy_review.SourceTests.test_closure_values_and_test_inputs_remain_bound_without_execution) ... ok
+
+----------------------------------------------------------------------
+Ran 14 tests in 7.229s
+
+OK
+test_another_app_is_not_authoritative (test_release_check_identity.CheckIdentityTests.test_another_app_is_not_authoritative) ... ok
+test_exact_workflow_run_job_and_source (test_release_check_identity.CheckIdentityTests.test_exact_workflow_run_job_and_source) ... ok
+test_incomplete_run_or_job_evidence_does_not_pass (test_release_check_identity.CheckIdentityTests.test_incomplete_run_or_job_evidence_does_not_pass) ... ok
+test_job_identity_mismatch_fails (test_release_check_identity.CheckIdentityTests.test_job_identity_mismatch_fails) ... ok
+test_pending_authoritative_check_stays_pending (test_release_check_identity.CheckIdentityTests.test_pending_authoritative_check_stays_pending) ... ok
+test_same_name_from_another_workflow_is_not_authoritative (test_release_check_identity.CheckIdentityTests.test_same_name_from_another_workflow_is_not_authoritative) ... ok
+test_shared_actions_app_is_not_sufficient (test_release_check_identity.CheckIdentityTests.test_shared_actions_app_is_not_sufficient) ... ok
+test_stale_source_wrong_branch_and_wrong_event_fail (test_release_check_identity.CheckIdentityTests.test_stale_source_wrong_branch_and_wrong_event_fail) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.001s
+
+OK
+
+################ test-deploy-readiness-build-context
+test_both_paths_preserve_default_layout (test_deploy_readiness_build_context.BuildContextRegression.test_both_paths_preserve_default_layout) ... ok
+test_both_paths_reject_invalid_paths_before_build (test_deploy_readiness_build_context.BuildContextRegression.test_both_paths_reject_invalid_paths_before_build) ... ok
+test_both_paths_use_root_context_and_utc_metadata (test_deploy_readiness_build_context.BuildContextRegression.test_both_paths_use_root_context_and_utc_metadata) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 49.304s
+
+OK
+..........                                                               [100%]
+10 passed in 6.25s
+..                                                                       [100%]
+2 passed in 14.81s
+
+################ source-authority-matrix
+SOURCE_AUTHORITY_MATRIX=PASS
+test_original_report_bodies_remain_byte_identical (test_pr30_evidence_authority.HistoricalEvidenceAuthorityTests.test_original_report_bodies_remain_byte_identical) ... ok
+test_prior_pass_reports_are_explicitly_superseded (test_pr30_evidence_authority.HistoricalEvidenceAuthorityTests.test_prior_pass_reports_are_explicitly_superseded) ... ok
+test_readme_preserves_historical_and_canonical_authority_distinction (test_pr30_evidence_authority.HistoricalEvidenceAuthorityTests.test_readme_preserves_historical_and_canonical_authority_distinction) ... ok
+test_retry_requires_complete_immutable_artifact_resolution (test_pr30_evidence_authority.HistoricalEvidenceAuthorityTests.test_retry_requires_complete_immutable_artifact_resolution) ... ok
+test_retry_retains_access_safety_and_separate_authorization_gates (test_pr30_evidence_authority.HistoricalEvidenceAuthorityTests.test_retry_retains_access_safety_and_separate_authorization_gates) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.152s
+
+OK
+/home/Codestra/pas179/runner-temp/gitleaks.tar.gz: OK
+9:33AM INF scanned ~4736661 bytes (4.74 MB) in 9.47s
+9:33AM INF no leaks found
+PASS: reproduce original false positive
+PASS: allow only archived Podman context
+PASS: keep same numeric credentials detectable
+PASS: keep other credentials detectable
+PASS: do not allow another evidence path
+PASS: allow typed Git SHA field
+PASS: prove default token detection
+PASS: do not allow unrelated token family
+PASS: prove default generic-key detection
+PASS: do not allow unrelated generic key
+PASS: reproduce source-refresh SHA false positive
+PASS: allow exact reviewed source-refresh SHA
+PASS: allow exact reviewed resolved-refresh SHA
+PASS: allow exact reviewed resolved conflict SHA
+PASS: do not allow refreshed SHA in other files
+PASS: keep tokens detectable in resolved lock
+PASS: keep generic keys detectable in resolved lock
+PASS: reproduce September SHA false positive
+PASS: allow exact September source SHA
+PASS: allow exact September resolved SHA
+PASS: allow exact September resolved conflict SHA
+PASS: keep September SHA detectable outside lock files
+PASS: keep September SHA detectable in credential fields
+GITLEAKS_POLICY_REGRESSIONS=PASS (23 cases)
+
+################ calling-contract-pin
+/home/Codestra/pas179/venv/bin/python: can't open file '/mnt/c/Users/agent/AppData/Local/Temp/claude/c--Users-agent-Documents-GitHub-Middleware-/e00a5012-e026-4a9d-9dc3-e96f0eb1a009/scratchpad/wsl/home/Codestra/pas179/bin/calling_contract_check.py': [Errno 2] No such file or directory
+
+################ test-provenance-integrity(python-parts)
+/home/Codestra/pas179/venv/bin/python: can't open file '/mnt/c/Users/agent/AppData/Local/Temp/claude/c--Users-agent-Documents-GitHub-Middleware-/e00a5012-e026-4a9d-9dc3-e96f0eb1a009/scratchpad/wsl/home/Codestra/pas179/bin/provenance_generate.py': [Errno 2] No such file or directory
+............................................s                            [100%]
+44 passed, 1 skipped in 13.29s
+
+################ repository-name-authority
+Codestra repository-name authority validation: PASS
+Repository record and one-cutover transition authority: PASS
+.ERROR: PostgreSQL Exporter is referenced by gateway source in operations/caddy/postgres-exporter.caddy
+.ERROR: PostgreSQL Exporter port is host-published in deploy/compose.yaml
+.ERROR: PostgreSQL Exporter port is host-published in deploy/compose.yaml
+.ERROR: PostgreSQL Exporter is referenced by gateway source in k8s/metrics-route.yaml
+.ERROR: release/synthetic-source-lock.json binds repository ID 1351353723 to conflicting repository fields (repository=appolon1908-hue/unapproved-social-fork); expected appolon1908-hue/Codesrea-Social-
+..ERROR: historical Stage 6 source lock content changed
+.ERROR: release/synthetic-conflict.json binds repository ID 1351353723 to conflicting repository fields (repository=appolon1908-hue/unapproved-social-fork); expected appolon1908-hue/Codesrea-Social-
+.ERROR: Stage 6-8 social-control release repository must use appolon1908-hue/Codesrea-Social-, found appolon1908-hue/unapproved-social-fork
+.ERROR: PostgreSQL Exporter is exposed by a public Kubernetes service or hostPort in k8s/postgres-exporter-deployment.yaml
+..ERROR: planned repository target appears in active operational source before cutover: appolon1908-hue/restaurant-frontend in release/synthetic-lock.json
+..ERROR: PostgreSQL Exporter is exposed by a public Kubernetes service or hostPort in k8s/postgres-exporter-service.yaml
+..ERROR: release/synthetic-multi-entry-lock.json binds repository ID 1351353723 to conflicting repository fields (repository=appolon1908-hue/unapproved-social-fork); expected appolon1908-hue/Codesrea-Social-
+.ERROR: release/synthetic-source-lock.toml binds repository ID 1351353723 to conflicting repository fields (repository=appolon1908-hue/unapproved-social-fork); expected appolon1908-hue/Codesrea-Social-
+.ERROR: repository mappings do not exactly match the approved migration set
+.ERROR: release/synthetic-source-lock.yaml binds repository ID 1351353723 to conflicting repository fields (repository=appolon1908-hue/unapproved-social-fork); expected appolon1908-hue/Codesrea-Social-
+.ERROR: production.tf binds repository ID 1351353723 to conflicting repository fields (repository=attacker/unapproved-fork); expected appolon1908-hue/Codesrea-Social-
+..ERROR: synthetic.json binds repository ID 1351353723 to conflicting repository fields (repository=appolon1908-hue/unapproved-social-fork); expected appolon1908-hue/Codesrea-Social-
+..ERROR: cutover PR may not add or remove governed repository IDs
+..ERROR: unsupported repository status transition for repository ID 1: PREPARED_NOT_RENAMED -> ROLLED_BACK_VERIFIED
+.ERROR: unsupported repository status transition for repository ID 1: RENAMED_VERIFIED -> PREPARED_NOT_RENAMED
+...ERROR: one_repository_per_cutover violation: status changed for repository IDs [1, 2]
+..
+----------------------------------------------------------------------
+Ran 32 tests in 0.063s
+
+OK
+
+################ independent-release-policy-review (main's validator, real PR #126 JSON)
+RELEASE_POLICY_REVIEW=FAIL: workflow repository mismatch
+
+=================== SUMMARY on 60eff4c3ea848a202561412610728000de299f29
+calling-contract-pin                          PASS
+independent-release-policy-review             FAIL(1)
+orchestrator-no-wrapper-negative              FAILS_AS_EXPECTED
+production-orchestrator-contract              PASS
+release-policy-review-tests                   PASS
+repository-name-authority                     PASS
+source-authority-matrix                       PASS
+test-deploy-readiness-build-context           PASS
+test-provenance-integrity(python-parts)       PASS
+test-upstream-signing-identity                PASS
