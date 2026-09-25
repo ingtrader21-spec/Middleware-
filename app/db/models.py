@@ -2193,3 +2193,31 @@ class OdooCampaignSaga(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+
+class AgentProvisioningRepairIntent(Base):
+    __tablename__ = "agent_provisioning_repair_intent"
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
+    request_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("agent_provisioning_request.id", ondelete="RESTRICT"), nullable=False, index=True)
+    drift_class: Mapped[str] = mapped_column(String(40), nullable=False)
+    proposed_action: Mapped[str] = mapped_column(String(128), nullable=False)
+    state: Mapped[str] = mapped_column(String(24), nullable=False, default="PROPOSED")
+    effect_class: Mapped[str] = mapped_column(String(32), nullable=False, default="provider_mutation")
+    authorized_by: Mapped[str | None] = mapped_column(String(255))
+    result_code: Mapped[str | None] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    executed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+class AgentWebrtcSession(Base):
+    __tablename__ = "agent_webrtc_session"
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
+    request_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("agent_provisioning_request.id", ondelete="RESTRICT"), nullable=False, index=True)
+    tenant_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    employee_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    campaign_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    extension: Mapped[str] = mapped_column(String(16), nullable=False)
+    provider_reference: Mapped[str | None] = mapped_column(String(255))
+    state: Mapped[str] = mapped_column(String(24), nullable=False, default="ISSUED")
+    issued_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    correlation_id: Mapped[str] = mapped_column(String(128), nullable=False)
