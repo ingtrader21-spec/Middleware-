@@ -114,6 +114,7 @@ def error_response(
             "error": {
                 "code": code,
                 "message": message,
+                "request_id": getattr(request.state, "request_id", None),
                 "correlation_id": correlation_id_for(request),
                 "retryable": retryable,
                 "details": {},
