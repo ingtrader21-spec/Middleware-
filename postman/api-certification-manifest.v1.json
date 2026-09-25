@@ -11,13 +11,13 @@
   },
   "route_authority": {
     "path": "config/route-authority-report.v1.json",
-    "sha256": "6c176c14ac31b48c7a94cebcf6f998d636662a88d9f625fbf329451acc30fafd",
+    "sha256": "7993cea53179b4fd4374732d7c0e6de4ed3c702a54e9303df823aca5f05a96a8",
     "operations": 331,
     "direct_effect_bypasses": 0
   },
   "public_edge_contract": {
     "path": "deploy/public-api-route-contract.json",
-    "sha256": "82280b363b3aeb0566e88925d1f0434b2b3845cb4d8bce433b48ef3d0a740c0c",
+    "sha256": "0a5e7ee74804a9064665da7000be41dfa37547b5afdce9fb4de127dd8a06bfb0",
     "routes": 128,
     "shared_edge": 116,
     "private_only": 2,
