@@ -145,6 +145,9 @@ APPROVED_FASTAPI_CONSTRUCTIONS = {
     "app/observability_alerts.py",
     "app/qwen_auth_verifier.py",
     "scripts/generate_integrated_monitoring_openapi.py",
+    # In-process no-effect harness: mounts only the Telnexa router with a
+    # database sentinel override; never served on a port.
+    "scripts/telnexa_callback_harness.py",
 }
 
 

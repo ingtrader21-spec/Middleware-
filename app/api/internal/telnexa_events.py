@@ -2,8 +2,19 @@
 
 Telnexa owns the wire contract for this callback.  This endpoint deliberately
 does not translate the event through the generic Codestra event envelope: the
-raw body is authenticated first and then projected into the durable
-communications read model that Odoo already polls.
+caller's private mTLS identity and the raw body are authenticated first and
+then projected into the durable communications read model that Odoo already
+polls.
+
+Callbacks that arrive before their communication message exist stay in the
+durable inbox as ``retry`` and are reconciled, in ``occurred_at`` order, by the
+next callback for the same message or by the bounded reconciliation sweep.
+After ``TELNEXA_EVENT_RECONCILE_MAX_ATTEMPTS`` they become ``dead_letter``.
+
+``POST /api/v1/events/telnexa/verify`` runs the identical trust chain for
+``synthetic-`` events without a database dependency, so callback trust can be
+certified while live SMS stays disabled.  Synthetic events are refused by the
+effectful ingress.
 """
 
 from __future__ import annotations
@@ -13,6 +24,7 @@ import hmac
 import json
 import logging
 import time
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Literal, cast
@@ -26,9 +38,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.communications import CommunicationMessage, MessageStatus
 from app.core.config import settings
 from app.db.session import get_session
+from app.telnexa_callback_identity import (
+    CLIENT_CERTIFICATE_HEADER_CONTRACT,
+    TelnexaCallbackIdentity,
+    trust_config,
+    verify_callback_identity,
+)
 
 
 PATH = "/api/v1/events/telnexa"
+VERIFY_PATH = "/api/v1/events/telnexa/verify"
+SYNTHETIC_EVENT_PREFIX = "synthetic-"
 SOURCE = "telnexa"
 EVENT_VERSION = "1.0"
 SCHEMA_VERSION = "1.0"
@@ -67,9 +87,11 @@ TELNEXA_REQUIRED_HEADERS = (
         "required": True,
         "schema": {"type": "string", "minLength": 8, "maxLength": 8192},
         "description": (
-            "Bearer shared API key; transport is protected by the internal mTLS edge."
+            "Bearer shared API key; the caller must also present the private "
+            "Telnexa mTLS client identity."
         ),
     },
+    CLIENT_CERTIFICATE_HEADER_CONTRACT,
     {
         "name": "X-Event-Id",
         "in": "header",
@@ -166,9 +188,37 @@ class TelnexaDeliveryAck(BaseModel):
     accepted: Literal[True] = True
     duplicate: bool
     event_id: str
-    status: Literal["complete"] = "complete"
+    status: Literal["complete", "dead_letter"] = "complete"
     message_id: UUID
     communication_status: MessageStatus | None = None
+    reconciled_event_ids: list[str] = Field(default_factory=list)
+
+
+class TelnexaCallbackIdentityEvidence(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    certificate_sha256: str
+    certificate_serial: str
+    uri_san: str
+    not_valid_after: datetime
+
+
+class TelnexaSyntheticVerification(BaseModel):
+    """No-effect proof that a synthetic callback passes the full trust chain."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    verified: Literal[True] = True
+    effect: Literal["none"] = "none"
+    persisted: Literal[False] = False
+    event_id: str
+    event_type: TelnexaEventType
+    message_id: UUID
+    tenant_id: str
+    status: TelnexaStatus
+    signature: Literal["valid"] = "valid"
+    fresh: Literal[True] = True
+    identity: TelnexaCallbackIdentityEvidence
 
 
 def _runtime_setting(request: Request, name: str, default: object = None) -> object:
@@ -256,6 +306,30 @@ def _authenticate(request: Request, body: bytes) -> tuple[str, str, str, str]:
     if not hmac.compare_digest(expected, supplied_signature):
         raise HTTPException(401, "invalid_telnexa_signature")
     return event_id, timestamp, idempotency_key, supplied_signature
+
+
+def _callback_identity(request: Request) -> TelnexaCallbackIdentity:
+    config = trust_config(
+        trusted_proxy_cidrs=_runtime_setting(
+            request, "telnexa_event_trusted_proxy_cidrs", ""
+        ),
+        client_ca_file=_runtime_setting(request, "telnexa_event_client_ca_file", ""),
+        client_uri_san=_runtime_setting(request, "telnexa_event_client_uri_san", ""),
+        pinned_certificate_sha256=_runtime_setting(
+            request, "telnexa_event_client_cert_sha256", ""
+        ),
+    )
+    return verify_callback_identity(request, config)
+
+
+def _bounded_setting(request: Request, name: str, default: int, maximum: int) -> int:
+    try:
+        value = int(cast(int | str, _runtime_setting(request, name, default)))
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(503, "telnexa_reconcile_configuration_invalid") from exc
+    if value <= 0 or value > maximum:
+        raise HTTPException(503, "telnexa_reconcile_configuration_invalid")
+    return value
 
 
 def _signature_is_fresh(request: Request, timestamp: str) -> bool:
@@ -346,6 +420,9 @@ def _payload_value(value: object) -> dict[str, object]:
 def _project_message(
     event: TelnexaDeliveryEvent,
     payload: object,
+    *,
+    callback_identity: dict[str, str] | None = None,
+    reconciled: bool = False,
 ) -> tuple[CommunicationMessage, MessageStatus, bool, UUID]:
     message = CommunicationMessage.model_validate(_payload_value(payload))
     if message.tenantId != event.tenant_id or message.messageId != event.message_id:
@@ -363,8 +440,11 @@ def _project_message(
             "providerStatus": event.provider_status,
             "providerOccurredAt": event.occurred_at.isoformat(),
             "ignoredTransition": ignored,
+            "reconciledFromInbox": reconciled,
         }
     )
+    if callback_identity is not None:
+        metadata["callbackIdentity"] = callback_identity
     update: dict[str, object] = {
         "status": effective,
         "providerReference": event.provider_reference or message.providerReference,
@@ -448,33 +528,282 @@ async def _insert_inbox_if_new(
     return False, None
 
 
-@router.post(
-    PATH,
-    status_code=202,
-    response_model=TelnexaDeliveryAck,
-    responses={200: {"model": TelnexaDeliveryAck}},
-    openapi_extra={
-        "security": [{"telnexaBearerApiKey": []}],
-        "parameters": list(TELNEXA_REQUIRED_HEADERS),
-        "requestBody": {
-            "required": True,
-            "content": {
-                "application/json": {
-                    "schema": TelnexaDeliveryEvent.model_json_schema(),
-                }
-            },
+_DRAIN_INBOX_SQL = """SELECT event_id,payload_hash,payload FROM telnexa_delivery_event_inbox
+    WHERE tenant_id=:tenant_id AND message_id=:message_id
+      AND processing_status='retry' AND event_id<>:event_id
+    ORDER BY occurred_at,received_at,event_id
+    LIMIT :limit
+    FOR UPDATE SKIP LOCKED"""
+
+
+@dataclass(frozen=True)
+class _AppliedEvent:
+    event: TelnexaDeliveryEvent
+    message: CommunicationMessage
+    status: MessageStatus
+    ignored: bool
+    timeline_event_id: UUID
+    reconciled: bool
+
+
+async def _lock_message(db: AsyncSession, tenant_id: str, message_id: UUID) -> object:
+    row = (
+        (
+            await db.execute(
+                text(
+                    "SELECT payload FROM middleware_communication_messages "
+                    "WHERE tenant_id=:tenant_id AND message_id=:message_id "
+                    "FOR UPDATE"
+                ),
+                {"tenant_id": tenant_id, "message_id": message_id},
+            )
+        )
+        .mappings()
+        .first()
+    )
+    return None if row is None else row["payload"]
+
+
+async def _record_analytics(db: AsyncSession, event: TelnexaDeliveryEvent) -> None:
+    await db.execute(
+        text("""INSERT INTO telnexa_delivery_analytics
+            (event_id,tenant_id,message_id,event_type,status,provider_status,
+             occurred_at,received_at)
+            VALUES (:event_id,:tenant,:message,:event_type,:status,:provider_status,
+                    CAST(:occurred_at AS timestamptz),now())
+            ON CONFLICT (event_id) DO NOTHING"""),
+        {
+            "event_id": event.event_id,
+            "tenant": event.tenant_id,
+            "message": event.message_id,
+            "event_type": event.event_type,
+            "status": event.status,
+            "provider_status": event.provider_status,
+            "occurred_at": event.occurred_at.isoformat(),
         },
-    },
-)
-async def receive_telnexa_event(
+    )
+
+
+async def _mark_unavailable(
+    db: AsyncSession, event_id: str, max_attempts: int, error: str
+) -> str:
+    """Count a failed projection attempt; dead-letter it at the policy bound."""
+
+    status = (
+        await db.execute(
+            text("""UPDATE telnexa_delivery_event_inbox
+                SET attempts=attempts+1,
+                    processing_status=CASE WHEN attempts+1 >= :max_attempts
+                        THEN 'dead_letter' ELSE 'retry' END,
+                    last_error=:error,updated_at=now()
+                WHERE event_id=:event_id
+                RETURNING processing_status"""),
+            {"event_id": event_id, "max_attempts": max_attempts, "error": error},
+        )
+    ).scalar_one_or_none()
+    return str(status or "retry")
+
+
+async def _apply_event(
+    db: AsyncSession,
+    event: TelnexaDeliveryEvent,
+    body_hash: str,
+    message_payload: object,
+    *,
+    callback_identity: dict[str, str] | None,
+    reconciled: bool,
+) -> _AppliedEvent:
+    """Project one authenticated inbox event inside the caller's transaction."""
+
+    updated, effective_status, ignored, timeline_event_id = _project_message(
+        event,
+        message_payload,
+        callback_identity=callback_identity,
+        reconciled=reconciled,
+    )
+    await db.execute(
+        text("""UPDATE middleware_communication_messages
+            SET payload=CAST(:payload AS jsonb),updated_at=:updated_at
+            WHERE tenant_id=:tenant_id AND message_id=:message_id"""),
+        {
+            "payload": updated.model_dump_json(),
+            "updated_at": updated.updatedAt,
+            "tenant_id": event.tenant_id,
+            "message_id": event.message_id,
+        },
+    )
+    timeline_metadata: dict[str, object] = {
+        "providerStatus": event.provider_status,
+        "providerEventId": event.event_id,
+        "ignoredTransition": ignored,
+        "reconciledFromInbox": reconciled,
+    }
+    if callback_identity is not None:
+        timeline_metadata["callbackIdentity"] = callback_identity
+    timeline_payload = {
+        "eventId": str(timeline_event_id),
+        "messageId": str(event.message_id),
+        "type": event.event_type,
+        "status": effective_status,
+        "occurredAt": event.occurred_at.isoformat(),
+        "provider": "telnexa",
+        "providerReference": event.provider_reference,
+        "metadata": timeline_metadata,
+    }
+    await db.execute(
+        text("""INSERT INTO middleware_communication_events
+            (tenant_id,event_id,message_id,occurred_at,payload)
+            VALUES (:tenant,:event_id,:message,CAST(:occurred_at AS timestamptz),
+                    CAST(:payload AS jsonb))
+            ON CONFLICT (tenant_id,event_id) DO NOTHING"""),
+        {
+            "tenant": event.tenant_id,
+            "event_id": timeline_event_id,
+            "message": event.message_id,
+            "occurred_at": event.occurred_at.isoformat(),
+            "payload": json.dumps(timeline_payload, separators=(",", ":")),
+        },
+    )
+    await db.execute(
+        text("""INSERT INTO middleware_communication_provider_events
+            (tenant_id,provider_event_id,request_sha256)
+            VALUES (:tenant,:event_id,:hash)
+            ON CONFLICT (tenant_id,provider_event_id) DO NOTHING"""),
+        {"tenant": event.tenant_id, "event_id": event.event_id, "hash": body_hash},
+    )
+    await _record_analytics(db, event)
+    await db.execute(
+        text("""UPDATE telnexa_delivery_event_inbox
+            SET processing_status='complete',attempts=attempts+1,
+                updated_at=now(),last_error=NULL
+            WHERE event_id=:event_id"""),
+        {"event_id": event.event_id},
+    )
+    return _AppliedEvent(
+        event=event,
+        message=updated,
+        status=effective_status,
+        ignored=ignored,
+        timeline_event_id=timeline_event_id,
+        reconciled=reconciled,
+    )
+
+
+async def _pending_inbox_events(
+    db: AsyncSession, event: TelnexaDeliveryEvent, limit: int
+) -> list[tuple[TelnexaDeliveryEvent, str]]:
+    """Lock earlier retry-state callbacks for the same message."""
+
+    rows = (
+        (
+            await db.execute(
+                text(_DRAIN_INBOX_SQL),
+                {
+                    "tenant_id": event.tenant_id,
+                    "message_id": event.message_id,
+                    "event_id": event.event_id,
+                    "limit": limit,
+                },
+            )
+        )
+        .mappings()
+        .all()
+    )
+    pending: list[tuple[TelnexaDeliveryEvent, str]] = []
+    for row in rows:
+        try:
+            stored = TelnexaDeliveryEvent.model_validate(_payload_value(row["payload"]))
+        except ValueError:
+            await db.execute(
+                text("""UPDATE telnexa_delivery_event_inbox
+                    SET processing_status='dead_letter',last_error='invalid_inbox_payload',
+                        updated_at=now()
+                    WHERE event_id=:event_id"""),
+                {"event_id": row["event_id"]},
+            )
+            continue
+        if (
+            stored.event_id != row["event_id"]
+            or stored.tenant_id != event.tenant_id
+            or stored.message_id != event.message_id
+        ):
+            continue
+        pending.append((stored, str(row["payload_hash"])))
+    return pending
+
+
+async def _project_with_reconciliation(
+    db: AsyncSession,
+    event: TelnexaDeliveryEvent,
+    body_hash: str,
+    message_payload: object,
+    *,
+    callback_identity: dict[str, str] | None,
+    reconciled: bool,
+    batch_size: int,
+) -> list[_AppliedEvent]:
+    """Apply ``event`` plus earlier retry-state events in occurrence order."""
+
+    batch = [(event, body_hash, callback_identity, reconciled)]
+    batch.extend(
+        (stored, stored_hash, None, True)
+        for stored, stored_hash in await _pending_inbox_events(db, event, batch_size)
+    )
+    batch.sort(key=lambda item: (item[0].occurred_at, item[0].event_id))
+    applied: list[_AppliedEvent] = []
+    payload: object = message_payload
+    for item_event, item_hash, identity, item_reconciled in batch:
+        result = await _apply_event(
+            db,
+            item_event,
+            item_hash,
+            payload,
+            callback_identity=identity,
+            reconciled=item_reconciled,
+        )
+        payload = result.message.model_dump(mode="json")
+        applied.append(result)
+    return applied
+
+
+def _refresh_cache(request: Request, applied: list[_AppliedEvent]) -> None:
+    app = request.scope.get("app")
+    runtime = getattr(getattr(app, "state", None), "runtime", None)
+    communications = getattr(runtime, "communications", None)
+    store = getattr(communications, "store", None)
+    if store is None:
+        return
+    try:
+        for item in applied:
+            store.synchronize_durable_message(item.message)
+            store.add_event(
+                item.event.tenant_id,
+                item.event.message_id,
+                event_type=item.event.event_type,
+                status=item.status,
+                provider=SOURCE,
+                provider_reference=item.event.provider_reference,
+                metadata={
+                    "providerStatus": item.event.provider_status,
+                    "providerEventId": item.event.event_id,
+                    "ignoredTransition": item.ignored,
+                    "reconciledFromInbox": item.reconciled,
+                },
+                event_id=item.timeline_event_id,
+                occurred_at=item.event.occurred_at,
+            )
+    except Exception:
+        # The database transaction is already committed.  A cache refresh
+        # failure must not make Telnexa retry a durable event.
+        LOGGER.exception("failed to refresh communications cache after Telnexa event")
+
+
+async def _authenticated_callback(
     request: Request,
-    response: Response,
-    db: AsyncSession = Depends(get_session),
-) -> dict[str, object]:
-    if not _runtime_setting(request, "telnexa_event_ingress_enabled", False):
-        raise HTTPException(503, "telnexa_event_ingress_disabled")
-    if not _runtime_setting(request, "sms_delivery", False):
-        raise HTTPException(503, "sms_delivery_disabled")
+) -> tuple[TelnexaDeliveryEvent, bytes, bool, TelnexaCallbackIdentity]:
+    """Run the full trust chain shared by ingress and synthetic verification."""
+
+    identity = _callback_identity(request)
     request_max = int(
         cast(
             int | str,
@@ -497,6 +826,49 @@ async def receive_telnexa_event(
         or event.timestamp != timestamp
     ):
         raise HTTPException(409, "telnexa_header_body_binding_mismatch")
+    return event, body, signature_fresh, identity
+
+
+_TELNEXA_OPENAPI = {
+    "security": [{"telnexaBearerApiKey": []}],
+    "parameters": list(TELNEXA_REQUIRED_HEADERS),
+    "requestBody": {
+        "required": True,
+        "content": {
+            "application/json": {
+                "schema": TelnexaDeliveryEvent.model_json_schema(),
+            }
+        },
+    },
+}
+
+
+@router.post(
+    PATH,
+    status_code=202,
+    response_model=TelnexaDeliveryAck,
+    responses={200: {"model": TelnexaDeliveryAck}},
+    openapi_extra=_TELNEXA_OPENAPI,
+)
+async def receive_telnexa_event(
+    request: Request,
+    response: Response,
+    db: AsyncSession = Depends(get_session),
+) -> dict[str, object]:
+    if not _runtime_setting(request, "telnexa_event_ingress_enabled", False):
+        raise HTTPException(503, "telnexa_event_ingress_disabled")
+    if not _runtime_setting(request, "sms_delivery", False):
+        raise HTTPException(503, "sms_delivery_disabled")
+    max_attempts = _bounded_setting(
+        request, "telnexa_event_reconcile_max_attempts", 12, 100
+    )
+    batch_size = _bounded_setting(
+        request, "telnexa_event_reconcile_batch_size", 100, 1000
+    )
+    event, body, signature_fresh, identity = await _authenticated_callback(request)
+    if event.event_id.startswith(SYNTHETIC_EVENT_PREFIX):
+        # Synthetic callbacks are only ever verified, never projected.
+        raise HTTPException(422, "synthetic_telnexa_event_rejected")
 
     body_hash = hashlib.sha256(body).hexdigest()
     payload_json = json.dumps(
@@ -514,166 +886,49 @@ async def receive_telnexa_event(
             payload_json,
             signature_fresh=signature_fresh,
         )
-        if duplicate and previous_status == "complete":
+        if duplicate and previous_status in {"complete", "dead_letter"}:
             await db.commit()
-            result = {
+            response.status_code = 200
+            return {
                 "accepted": True,
                 "duplicate": True,
                 "event_id": event.event_id,
-                "status": "complete",
+                "status": previous_status,
                 "message_id": str(event.message_id),
             }
-            response.status_code = 200
-            return result
 
-        message_row = (
-            (
-                await db.execute(
-                    text(
-                        "SELECT payload FROM middleware_communication_messages "
-                        "WHERE tenant_id=:tenant_id AND message_id=:message_id "
-                        "FOR UPDATE"
-                    ),
-                    {"tenant_id": event.tenant_id, "message_id": event.message_id},
-                )
-            )
-            .mappings()
-            .first()
-        )
-        if message_row is None:
-            await db.execute(
-                text("""UPDATE telnexa_delivery_event_inbox
-                    SET processing_status='retry',attempts=attempts+1,
-                        last_error='communication_message_unavailable',updated_at=now()
-                    WHERE event_id=:event_id"""),
-                {"event_id": event.event_id},
-            )
-            await db.execute(
-                text("""INSERT INTO telnexa_delivery_analytics
-                    (event_id,tenant_id,message_id,event_type,status,provider_status,
-                     occurred_at,received_at)
-                    VALUES (:event_id,:tenant,:message,:event_type,:status,
-                            :provider_status,CAST(:occurred_at AS timestamptz),now())
-                    ON CONFLICT (event_id) DO NOTHING"""),
-                {
-                    "event_id": event.event_id,
-                    "tenant": event.tenant_id,
-                    "message": event.message_id,
-                    "event_type": event.event_type,
-                    "status": event.status,
-                    "provider_status": event.provider_status,
-                    "occurred_at": event.occurred_at.isoformat(),
-                },
+        message_payload = await _lock_message(db, event.tenant_id, event.message_id)
+        if message_payload is None:
+            await _record_analytics(db, event)
+            outcome = await _mark_unavailable(
+                db, event.event_id, max_attempts, "communication_message_unavailable"
             )
             await db.commit()
-            raise HTTPException(503, "communication_message_unavailable")
+            if outcome != "dead_letter":
+                raise HTTPException(503, "communication_message_unavailable")
+            LOGGER.warning(
+                "telnexa callback dead-lettered without communication message: %s",
+                event.event_id,
+            )
+            response.status_code = 200 if duplicate else 202
+            return {
+                "accepted": True,
+                "duplicate": duplicate,
+                "event_id": event.event_id,
+                "status": "dead_letter",
+                "message_id": str(event.message_id),
+            }
 
-        updated, effective_status, ignored, timeline_event_id = _project_message(
-            event, message_row["payload"]
-        )
-        await db.execute(
-            text("""UPDATE middleware_communication_messages
-                SET payload=CAST(:payload AS jsonb),updated_at=:updated_at
-                WHERE tenant_id=:tenant_id AND message_id=:message_id"""),
-            {
-                "payload": updated.model_dump_json(),
-                "updated_at": updated.updatedAt,
-                "tenant_id": event.tenant_id,
-                "message_id": event.message_id,
-            },
-        )
-        timeline_payload = {
-            "eventId": str(timeline_event_id),
-            "messageId": str(event.message_id),
-            "type": event.event_type,
-            "status": effective_status,
-            "occurredAt": event.occurred_at.isoformat(),
-            "provider": "telnexa",
-            "providerReference": event.provider_reference,
-            "metadata": {
-                "providerStatus": event.provider_status,
-                "providerEventId": event.event_id,
-                "ignoredTransition": ignored,
-            },
-        }
-        await db.execute(
-            text("""INSERT INTO middleware_communication_events
-                (tenant_id,event_id,message_id,occurred_at,payload)
-                VALUES (:tenant,:event_id,:message,CAST(:occurred_at AS timestamptz),
-                        CAST(:payload AS jsonb))
-                ON CONFLICT (tenant_id,event_id) DO NOTHING"""),
-            {
-                "tenant": event.tenant_id,
-                "event_id": timeline_event_id,
-                "message": event.message_id,
-                "occurred_at": event.occurred_at.isoformat(),
-                "payload": json.dumps(timeline_payload, separators=(",", ":")),
-            },
-        )
-        await db.execute(
-            text("""INSERT INTO middleware_communication_provider_events
-                (tenant_id,provider_event_id,request_sha256)
-                VALUES (:tenant,:event_id,:hash)
-                ON CONFLICT (tenant_id,provider_event_id) DO NOTHING"""),
-            {
-                "tenant": event.tenant_id,
-                "event_id": event.event_id,
-                "hash": body_hash,
-            },
-        )
-        await db.execute(
-            text("""INSERT INTO telnexa_delivery_analytics
-                (event_id,tenant_id,message_id,event_type,status,provider_status,
-                 occurred_at,received_at)
-                VALUES (:event_id,:tenant,:message,:event_type,:status,:provider_status,
-                        CAST(:occurred_at AS timestamptz),now())
-                ON CONFLICT (event_id) DO NOTHING"""),
-            {
-                "event_id": event.event_id,
-                "tenant": event.tenant_id,
-                "message": event.message_id,
-                "event_type": event.event_type,
-                "status": event.status,
-                "provider_status": event.provider_status,
-                "occurred_at": event.occurred_at.isoformat(),
-            },
-        )
-        await db.execute(
-            text("""UPDATE telnexa_delivery_event_inbox
-                SET processing_status='complete',attempts=attempts+1,
-                    updated_at=now(),last_error=NULL
-                WHERE event_id=:event_id"""),
-            {"event_id": event.event_id},
+        applied = await _project_with_reconciliation(
+            db,
+            event,
+            body_hash,
+            message_payload,
+            callback_identity=identity.evidence(),
+            reconciled=False,
+            batch_size=batch_size,
         )
         await db.commit()
-        app = request.scope.get("app")
-        runtime = getattr(getattr(app, "state", None), "runtime", None)
-        communications = getattr(runtime, "communications", None)
-        store = getattr(communications, "store", None)
-        if store is not None:
-            try:
-                store.synchronize_durable_message(updated)
-                store.add_event(
-                    event.tenant_id,
-                    event.message_id,
-                    event_type=event.event_type,
-                    status=effective_status,
-                    provider=SOURCE,
-                    provider_reference=event.provider_reference,
-                    metadata={
-                        "providerStatus": event.provider_status,
-                        "providerEventId": event.event_id,
-                        "ignoredTransition": ignored,
-                    },
-                    event_id=timeline_event_id,
-                    occurred_at=event.occurred_at,
-                )
-            except Exception:
-                # The database transaction is already committed.  A cache
-                # refresh failure must not make Telnexa retry a durable event.
-                LOGGER.exception(
-                    "failed to refresh communications cache after Telnexa event"
-                )
     except HTTPException:
         await db.rollback()
         raise
@@ -681,6 +936,7 @@ async def receive_telnexa_event(
         await db.rollback()
         raise HTTPException(503, "telnexa_event_persistence_unavailable") from exc
 
+    _refresh_cache(request, applied)
     response.status_code = 200 if duplicate else 202
     return {
         "accepted": True,
@@ -688,5 +944,143 @@ async def receive_telnexa_event(
         "event_id": event.event_id,
         "status": "complete",
         "message_id": str(event.message_id),
-        "communication_status": effective_status,
+        "communication_status": applied[-1].message.status,
+        "reconciled_event_ids": [
+            item.event.event_id for item in applied if item.reconciled
+        ],
+    }
+
+
+@router.post(
+    VERIFY_PATH,
+    status_code=200,
+    response_model=TelnexaSyntheticVerification,
+    openapi_extra=_TELNEXA_OPENAPI,
+)
+async def verify_synthetic_telnexa_callback(request: Request) -> dict[str, object]:
+    """Verify a signed synthetic callback end to end with no durable effect.
+
+    The handler has no database dependency and never touches the SMS runtime,
+    so it is structurally incapable of projecting, persisting or sending.
+    """
+
+    if not _runtime_setting(request, "telnexa_event_synthetic_verify_enabled", False):
+        raise HTTPException(503, "telnexa_synthetic_verify_disabled")
+    event, _, signature_fresh, identity = await _authenticated_callback(request)
+    if not signature_fresh:
+        raise HTTPException(401, "expired_telnexa_signature")
+    if not event.event_id.startswith(SYNTHETIC_EVENT_PREFIX):
+        raise HTTPException(422, "non_synthetic_telnexa_event_rejected")
+    return {
+        "verified": True,
+        "effect": "none",
+        "persisted": False,
+        "event_id": event.event_id,
+        "event_type": event.event_type,
+        "message_id": str(event.message_id),
+        "tenant_id": event.tenant_id,
+        "status": event.status,
+        "signature": "valid",
+        "fresh": True,
+        "identity": {
+            "certificate_sha256": identity.certificate_sha256,
+            "certificate_serial": identity.certificate_serial,
+            "uri_san": identity.uri_san,
+            "not_valid_after": identity.not_valid_after,
+        },
+    }
+
+
+async def reconcile_telnexa_inbox(
+    db: AsyncSession, *, max_attempts: int, batch_size: int
+) -> dict[str, object]:
+    """Bounded durable sweep of retry-state callbacks; no provider effects.
+
+    Each claimed row is re-projected from its stored, previously authenticated
+    payload.  Rows whose message still does not exist consume an attempt and
+    are dead-lettered at ``max_attempts``; rows that can never bind are
+    dead-lettered immediately.  The caller owns scheduling.
+    """
+
+    if max_attempts not in range(1, 101) or batch_size not in range(1, 1001):
+        raise ValueError("reconciliation bounds are outside policy")
+    rows = (
+        (
+            await db.execute(
+                text("""SELECT event_id,payload_hash,payload FROM telnexa_delivery_event_inbox
+                    WHERE processing_status='retry'
+                    ORDER BY occurred_at,received_at,event_id
+                    LIMIT :limit
+                    FOR UPDATE SKIP LOCKED"""),
+                {"limit": batch_size},
+            )
+        )
+        .mappings()
+        .all()
+    )
+    completed: list[str] = []
+    retried: list[str] = []
+    dead_lettered: list[str] = []
+    try:
+        for row in rows:
+            event_id = str(row["event_id"])
+            if event_id in completed:
+                continue
+            try:
+                event = TelnexaDeliveryEvent.model_validate(_payload_value(row["payload"]))
+                if event.event_id != event_id:
+                    raise ValueError("inbox key mismatch")
+            except ValueError:
+                await db.execute(
+                    text("""UPDATE telnexa_delivery_event_inbox
+                        SET processing_status='dead_letter',
+                            last_error='invalid_inbox_payload',updated_at=now()
+                        WHERE event_id=:event_id"""),
+                    {"event_id": event_id},
+                )
+                dead_lettered.append(event_id)
+                continue
+            message_payload = await _lock_message(db, event.tenant_id, event.message_id)
+            if message_payload is None:
+                outcome = await _mark_unavailable(
+                    db, event_id, max_attempts, "communication_message_unavailable"
+                )
+                (dead_lettered if outcome == "dead_letter" else retried).append(event_id)
+                continue
+            try:
+                async with db.begin_nested():
+                    applied = await _project_with_reconciliation(
+                        db,
+                        event,
+                        str(row["payload_hash"]),
+                        message_payload,
+                        callback_identity=None,
+                        reconciled=True,
+                        batch_size=batch_size,
+                    )
+            except (HTTPException, ValueError) as exc:
+                error = (
+                    str(exc.detail)
+                    if isinstance(exc, HTTPException)
+                    else "invalid_communication_message"
+                )
+                await db.execute(
+                    text("""UPDATE telnexa_delivery_event_inbox
+                        SET processing_status='dead_letter',last_error=:error,
+                            attempts=attempts+1,updated_at=now()
+                        WHERE event_id=:event_id"""),
+                    {"event_id": event_id, "error": error},
+                )
+                dead_lettered.append(event_id)
+                continue
+            completed.extend(item.event.event_id for item in applied)
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise
+    return {
+        "scanned": len(rows),
+        "completed": completed,
+        "retried": retried,
+        "dead_lettered": dead_lettered,
     }

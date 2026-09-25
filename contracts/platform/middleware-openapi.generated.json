@@ -5569,6 +5569,36 @@
         "title": "TelephonySelection",
         "type": "object"
       },
+      "TelnexaCallbackIdentityEvidence": {
+        "additionalProperties": false,
+        "properties": {
+          "certificate_serial": {
+            "title": "Certificate Serial",
+            "type": "string"
+          },
+          "certificate_sha256": {
+            "title": "Certificate Sha256",
+            "type": "string"
+          },
+          "not_valid_after": {
+            "format": "date-time",
+            "title": "Not Valid After",
+            "type": "string"
+          },
+          "uri_san": {
+            "title": "Uri San",
+            "type": "string"
+          }
+        },
+        "required": [
+          "certificate_sha256",
+          "certificate_serial",
+          "uri_san",
+          "not_valid_after"
+        ],
+        "title": "TelnexaCallbackIdentityEvidence",
+        "type": "object"
+      },
       "TelnexaDeliveryAck": {
         "additionalProperties": false,
         "properties": {
@@ -5613,9 +5643,19 @@
             "title": "Message Id",
             "type": "string"
           },
+          "reconciled_event_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reconciled Event Ids",
+            "type": "array"
+          },
           "status": {
-            "const": "complete",
             "default": "complete",
+            "enum": [
+              "complete",
+              "dead_letter"
+            ],
             "title": "Status",
             "type": "string"
           }
@@ -5626,6 +5666,93 @@
           "message_id"
         ],
         "title": "TelnexaDeliveryAck",
+        "type": "object"
+      },
+      "TelnexaSyntheticVerification": {
+        "additionalProperties": false,
+        "description": "No-effect proof that a synthetic callback passes the full trust chain.",
+        "properties": {
+          "effect": {
+            "const": "none",
+            "default": "none",
+            "title": "Effect",
+            "type": "string"
+          },
+          "event_id": {
+            "title": "Event Id",
+            "type": "string"
+          },
+          "event_type": {
+            "enum": [
+              "sms.message.delivered.v1",
+              "sms.message.failed.v1",
+              "sms.message.status.v1",
+              "sms.message.reconciled.v1"
+            ],
+            "title": "Event Type",
+            "type": "string"
+          },
+          "fresh": {
+            "const": true,
+            "default": true,
+            "title": "Fresh",
+            "type": "boolean"
+          },
+          "identity": {
+            "$ref": "#/components/schemas/TelnexaCallbackIdentityEvidence"
+          },
+          "message_id": {
+            "format": "uuid",
+            "title": "Message Id",
+            "type": "string"
+          },
+          "persisted": {
+            "const": false,
+            "default": false,
+            "title": "Persisted",
+            "type": "boolean"
+          },
+          "signature": {
+            "const": "valid",
+            "default": "valid",
+            "title": "Signature",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "accepted",
+              "queued",
+              "dispatched",
+              "delivered",
+              "failed",
+              "cancelled",
+              "suppressed",
+              "expired",
+              "indeterminate"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "tenant_id": {
+            "title": "Tenant Id",
+            "type": "string"
+          },
+          "verified": {
+            "const": true,
+            "default": true,
+            "title": "Verified",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "event_id",
+          "event_type",
+          "message_id",
+          "tenant_id",
+          "status",
+          "identity"
+        ],
+        "title": "TelnexaSyntheticVerification",
         "type": "object"
       },
       "TerminalResult": {
@@ -10250,13 +10377,24 @@
         "operationId": "receive_telnexa_event_api_v1_events_telnexa_post",
         "parameters": [
           {
-            "description": "Bearer shared API key; transport is protected by the internal mTLS edge.",
+            "description": "Bearer shared API key; the caller must also present the private Telnexa mTLS client identity.",
             "in": "header",
             "name": "Authorization",
             "required": true,
             "schema": {
               "maxLength": 8192,
               "minLength": 8,
+              "type": "string"
+            }
+          },
+          {
+            "description": "Base64 DER of the Telnexa mTLS client leaf, forwarded only by the allow-listed internal edge and re-verified against the pinned CA, URI SAN and fingerprint allow-list.",
+            "in": "header",
+            "name": "X-Codestra-Client-Certificate-DER",
+            "required": true,
+            "schema": {
+              "maxLength": 16384,
+              "minLength": 1,
               "type": "string"
             }
           },
@@ -10494,6 +10632,262 @@
           }
         ],
         "summary": "Receive Telnexa Event",
+        "tags": [
+          "telnexa-events"
+        ]
+      }
+    },
+    "/api/v1/events/telnexa/verify": {
+      "post": {
+        "description": "Verify a signed synthetic callback end to end with no durable effect.\n\nThe handler has no database dependency and never touches the SMS runtime,\nso it is structurally incapable of projecting, persisting or sending.",
+        "operationId": "verify_synthetic_telnexa_callback_api_v1_events_telnexa_verify_post",
+        "parameters": [
+          {
+            "description": "Bearer shared API key; the caller must also present the private Telnexa mTLS client identity.",
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "maxLength": 8192,
+              "minLength": 8,
+              "type": "string"
+            }
+          },
+          {
+            "description": "Base64 DER of the Telnexa mTLS client leaf, forwarded only by the allow-listed internal edge and re-verified against the pinned CA, URI SAN and fingerprint allow-list.",
+            "in": "header",
+            "name": "X-Codestra-Client-Certificate-DER",
+            "required": true,
+            "schema": {
+              "maxLength": 16384,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Event-Id",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Timestamp",
+            "required": true,
+            "schema": {
+              "pattern": "^[0-9]{1,12}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Signature",
+            "required": true,
+            "schema": {
+              "pattern": "^sha256=[0-9a-f]{64}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "description": "The exact provider callback body, with no generic-envelope fields.",
+                "properties": {
+                  "correlation_id": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "title": "Correlation Id",
+                    "type": "string"
+                  },
+                  "event_id": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+                    "title": "Event Id",
+                    "type": "string"
+                  },
+                  "event_type": {
+                    "enum": [
+                      "sms.message.delivered.v1",
+                      "sms.message.failed.v1",
+                      "sms.message.status.v1",
+                      "sms.message.reconciled.v1"
+                    ],
+                    "title": "Event Type",
+                    "type": "string"
+                  },
+                  "event_version": {
+                    "pattern": "^1\\.0$",
+                    "title": "Event Version",
+                    "type": "string"
+                  },
+                  "failure_code": {
+                    "anyOf": [
+                      {
+                        "maxLength": 120,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Failure Code"
+                  },
+                  "failure_message": {
+                    "anyOf": [
+                      {
+                        "maxLength": 2000,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Failure Message"
+                  },
+                  "idempotency_key": {
+                    "maxLength": 255,
+                    "minLength": 1,
+                    "title": "Idempotency Key",
+                    "type": "string"
+                  },
+                  "message_id": {
+                    "format": "uuid",
+                    "title": "Message Id",
+                    "type": "string"
+                  },
+                  "occurred_at": {
+                    "format": "date-time",
+                    "title": "Occurred At",
+                    "type": "string"
+                  },
+                  "provider_reference": {
+                    "anyOf": [
+                      {
+                        "maxLength": 998,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Provider Reference"
+                  },
+                  "provider_status": {
+                    "maxLength": 120,
+                    "minLength": 1,
+                    "title": "Provider Status",
+                    "type": "string"
+                  },
+                  "schema_version": {
+                    "pattern": "^1\\.0$",
+                    "title": "Schema Version",
+                    "type": "string"
+                  },
+                  "status": {
+                    "enum": [
+                      "accepted",
+                      "queued",
+                      "dispatched",
+                      "delivered",
+                      "failed",
+                      "cancelled",
+                      "suppressed",
+                      "expired",
+                      "indeterminate"
+                    ],
+                    "title": "Status",
+                    "type": "string"
+                  },
+                  "tenant_id": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "title": "Tenant Id",
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "pattern": "^[0-9]{1,12}$",
+                    "title": "Timestamp",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "event_id",
+                  "event_type",
+                  "event_version",
+                  "schema_version",
+                  "timestamp",
+                  "occurred_at",
+                  "tenant_id",
+                  "correlation_id",
+                  "idempotency_key",
+                  "message_id",
+                  "status",
+                  "provider_status"
+                ],
+                "title": "TelnexaDeliveryEvent",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnexaSyntheticVerification"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "description": "Invalid canonical request"
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "403": {
+            "description": "Scope or tenant denied"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Version, state, or idempotency conflict"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Required durable dependency unavailable"
+          }
+        },
+        "security": [
+          {
+            "telnexaBearerApiKey": []
+          }
+        ],
+        "summary": "Verify Synthetic Telnexa Callback",
         "tags": [
           "telnexa-events"
         ]

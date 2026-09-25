@@ -23,6 +23,7 @@ PUBLIC_PATHS = frozenset(
 )
 SPECIALIZED_INGRESS_SECURITY = {
     "/api/v1/events/telnexa": "telnexaBearerApiKey",
+    "/api/v1/events/telnexa/verify": "telnexaBearerApiKey",
     "/api/v1/events/klyrow": "klyrowBearerApiKey",
 }
 SPECIALIZED_INGRESS_PATHS = frozenset(SPECIALIZED_INGRESS_SECURITY)
