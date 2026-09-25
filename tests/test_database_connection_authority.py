@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from app.core.config import ConfigurationError, Settings, WEBHOOK_PRODUCERS
+from app.core.config import ConfigurationError, Settings, WEBHOOK_PRODUCERS, _load_process_settings
 from app.db.connection import (
     DatabaseConnectionError,
     asyncpg_connection_kwargs,
@@ -139,6 +139,19 @@ def test_process_engine_uses_credential_free_sqlalchemy_url(monkeypatch) -> None
     assert isinstance(connect_args, dict)
     assert connect_args["dsn"].startswith("postgresql://u:p@db.internal/testdb")
     assert connect_args["server_settings"]["application_name"] == "codestra-middleware/test"
+
+
+def test_process_settings_preserve_native_postgresql_dsn(monkeypatch) -> None:
+    native = "postgresql://u:p@db.internal/testdb?sslmode=require"
+    monkeypatch.setenv("APP_ENV", "test")
+    monkeypatch.setenv("DATABASE_URL", native)
+    monkeypatch.setenv("REDIS_URL", "redis://127.0.0.1:6379/0")
+    monkeypatch.delenv("DATABASE_URL_FILE", raising=False)
+    monkeypatch.delenv("REDIS_URL_FILE", raising=False)
+
+    process_settings = _load_process_settings()
+
+    assert process_settings.database_url == native
 
 
 def test_compose_staging_profile_locks_tls_and_topology() -> None:
