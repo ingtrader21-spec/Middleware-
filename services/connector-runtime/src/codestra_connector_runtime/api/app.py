@@ -460,8 +460,8 @@ def create_app() -> FastAPI:
                 detail="Connector upgrade is disabled by runtime policy.",
             )
         raise ProblemError(
-            status=501,
-            code="UPGRADE_WORKFLOW_REQUIRED",
+            status=409,
+            code="CONNECTOR_UPGRADE_UNAVAILABLE",
             title="Protected upgrade workflow required",
             detail="Upgrades are executed through the protected release workflow.",
         )
@@ -617,8 +617,8 @@ def create_app() -> FastAPI:
     ):
         del request, webhook_id, payload, principal
         raise ProblemError(
-            status=501,
-            code="WEBHOOK_UPDATE_WORKFLOW_REQUIRED",
+            status=409,
+            code="CAPABILITY_UNSUPPORTED",
             title="Protected webhook update required",
             detail="Webhook state changes use the protected release workflow.",
         )
@@ -631,8 +631,8 @@ def create_app() -> FastAPI:
     ):
         del request, webhook_id, principal
         raise ProblemError(
-            status=501,
-            code="WEBHOOK_DISABLE_WORKFLOW_REQUIRED",
+            status=409,
+            code="CAPABILITY_UNSUPPORTED",
             title="Protected webhook disablement required",
             detail="Webhook disablement uses the protected release workflow.",
         )
@@ -705,8 +705,8 @@ def create_app() -> FastAPI:
                 detail="Webhook replay requests are disabled by runtime policy.",
             )
         raise ProblemError(
-            status=501,
-            code="REPLAY_APPROVAL_REQUIRED",
+            status=409,
+            code="CAPABILITY_UNSUPPORTED",
             title="Protected replay approval required",
             detail="Replay requires a separate approval and dead-letter workflow.",
         )
