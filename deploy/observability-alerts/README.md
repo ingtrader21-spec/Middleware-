@@ -19,9 +19,9 @@ tenant, scope, correlation ID, transport idempotency key, and
 
 ## Durable incident lifecycle
 
-Apply numbered migrations through the canonical head
-`0069_campaign_recycling_delivery_events` before starting this service (the
-incident lifecycle tables were introduced in `0059_integrated_monitoring`). One PostgreSQL transaction records the incident projection,
+Apply numbered migrations through the canonical runtime schema head declared
+by `config/runtime.env.example` before starting this service (the incident
+lifecycle tables were introduced in `0059_integrated_monitoring`). One PostgreSQL transaction records the incident projection,
 immutable timeline event, immutable audit evidence, durable command/outbox, and
 notification intent. Alert transition identity is derived from Alertmanager's
 group key, fingerprint, state, and start time. It is independent of the HTTP
