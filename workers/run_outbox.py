@@ -134,9 +134,25 @@ async def main() -> None:
                     default_secret=settings.odoo_default_hmac_secret or None,
                 ).dispatch
             )
+        def effect_gate(record: OutboxRecord) -> bool:
+            if record.destination == ADAPTER_COMMAND_DESTINATION:
+                # AdapterDispatch re-evaluates the canonical capability/safety
+                # gate immediately before any provider operation.
+                return adapter_dispatch_enabled
+            if record.destination == NATS_JETSTREAM_DESTINATION:
+                return settings.outbox_dispatch_enabled
+            if record.destination == TEMPORAL_COMMAND_DESTINATION:
+                return temporal_enabled
+            if record.destination == ODOO_COMMAND_DESTINATION:
+                return odoo_enabled
+            if record.destination == KLYROW_ODOO_PROJECTION_DESTINATION:
+                return klyrow_odoo_enabled
+            return False
+
         worker = OutboxWorker(
             PostgresOutboxStore(pool),
             handlers,
+            effect_gate=effect_gate,
         )
         await worker.run_forever()
     finally:
