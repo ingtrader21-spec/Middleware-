@@ -9215,6 +9215,130 @@ paths:
       - *id002
       - *id003
       - *id004
+  /platform/v1/crm/handoffs:
+    post:
+      tags:
+      - mcr-odoo-handoff
+      summary: Submit Handoff
+      operationId: submit_handoff_platform_v1_crm_handoffs_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HandoffCommand'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '400':
+          description: Invalid canonical request
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+      security:
+      - bearerAuth: []
+  /platform/v1/crm/handoffs/{command_id}:
+    get:
+      tags:
+      - mcr-odoo-handoff
+      summary: Read Handoff
+      operationId: read_handoff_platform_v1_crm_handoffs__command_id__get
+      parameters:
+      - name: command_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Command Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '400':
+          description: Invalid canonical request
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+      security:
+      - bearerAuth: []
+  /platform/v1/crm/handoffs/{command_id}/reconcile:
+    post:
+      tags:
+      - mcr-odoo-handoff
+      summary: Reconcile Handoff
+      operationId: reconcile_handoff_platform_v1_crm_handoffs__command_id__reconcile_post
+      parameters:
+      - name: command_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Command Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '400':
+          description: Invalid canonical request
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+      security:
+      - bearerAuth: []
   /api/v1/campaign-designs/preview:
     post:
       tags:
@@ -17767,6 +17891,160 @@ components:
           title: Detail
       type: object
       title: HTTPValidationError
+    HandoffCommand:
+      properties:
+        command_id:
+          type: string
+          format: uuid
+          title: Command Id
+        command_type:
+          type: string
+          const: crm.lifecycle.handoff
+          title: Command Type
+        command_version:
+          type: string
+          const: '1.0'
+          title: Command Version
+        target:
+          type: string
+          const: odoo-19
+          title: Target
+        tenant_id:
+          type: string
+          maxLength: 128
+          minLength: 1
+          title: Tenant Id
+        requested_by:
+          type: string
+          maxLength: 300
+          minLength: 1
+          title: Requested By
+        correlation_id:
+          type: string
+          maxLength: 180
+          minLength: 1
+          title: Correlation Id
+        idempotency_key:
+          type: string
+          pattern: ^mcrodoo1:[a-f0-9]{64}$
+          title: Idempotency Key
+        capability:
+          type: string
+          const: ODOO_WRITE
+          title: Capability
+        payload:
+          $ref: '#/components/schemas/HandoffPayload'
+      additionalProperties: false
+      type: object
+      required:
+      - command_id
+      - command_type
+      - command_version
+      - target
+      - tenant_id
+      - requested_by
+      - correlation_id
+      - idempotency_key
+      - capability
+      - payload
+      title: HandoffCommand
+    HandoffPayload:
+      properties:
+        schema_version:
+          type: string
+          const: '1.0'
+          title: Schema Version
+        lead_id:
+          type: string
+          maxLength: 180
+          pattern: ^\S(?:.*\S)?$
+          title: Lead Id
+        campaign_id:
+          type: string
+          pattern: ^(klyrow|whatsapp):[A-Za-z0-9][A-Za-z0-9._-]{0,127}$
+          title: Campaign Id
+        campaign_version:
+          type: integer
+          minimum: 1
+          title: Campaign Version
+        lifecycle_version:
+          type: integer
+          minimum: 1
+          title: Lifecycle Version
+        policy_version:
+          type: string
+          maxLength: 128
+          pattern: ^\S(?:.*\S)?$
+          title: Policy Version
+        handoff:
+          type: string
+          enum:
+          - accepted
+          - engaged
+          - conversion
+          title: Handoff
+        lifecycle_state:
+          type: string
+          enum:
+          - ELIGIBLE
+          - ACTIVE_CYCLE
+          - ENGAGED
+          - CONVERTED
+          title: Lifecycle State
+        signal:
+          type: string
+          enum:
+          - policy_accepted
+          - click
+          - reply
+          - conversion
+          title: Signal
+        evidence_source:
+          type: string
+          enum:
+          - middleware
+          - odoo
+          title: Evidence Source
+        evidence_id:
+          type: string
+          maxLength: 180
+          pattern: ^\S(?:.*\S)?$
+          title: Evidence Id
+        evidence_hash:
+          type: string
+          pattern: ^[a-f0-9]{64}$
+          title: Evidence Hash
+        occurred_at:
+          type: string
+          format: date-time
+          title: Occurred At
+        dry_run:
+          type: boolean
+          const: true
+          title: Dry Run
+        allow_external_contact:
+          type: boolean
+          const: false
+          title: Allow External Contact
+      additionalProperties: false
+      type: object
+      required:
+      - schema_version
+      - lead_id
+      - campaign_id
+      - campaign_version
+      - lifecycle_version
+      - policy_version
+      - handoff
+      - lifecycle_state
+      - signal
+      - evidence_source
+      - evidence_id
+      - evidence_hash
+      - occurred_at
+      - dry_run
+      - allow_external_contact
+      title: HandoffPayload
     Heartbeat:
       properties:
         service_id:

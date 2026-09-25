@@ -772,6 +772,24 @@ operations:
   implementation_file: registered FastAPI runtime
   runtime_state: IMPLEMENTED
 - domain: platform
+  method: POST
+  path: /platform/v1/crm/handoffs
+  canonical_operation_id: submit_handoff_platform_v1_crm_handoffs_post
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: platform
+  method: GET
+  path: /platform/v1/crm/handoffs/{command_id}
+  canonical_operation_id: read_handoff_platform_v1_crm_handoffs__command_id__get
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: platform
+  method: POST
+  path: /platform/v1/crm/handoffs/{command_id}/reconcile
+  canonical_operation_id: reconcile_handoff_platform_v1_crm_handoffs__command_id__reconcile_post
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: platform
   method: GET
   path: /platform/v1/email/identities
   canonical_operation_id: list_email_identities_platform_v1_email_identities_get
