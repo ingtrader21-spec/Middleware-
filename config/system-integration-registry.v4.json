@@ -442,6 +442,18 @@
           "status": "PREPARED_NOT_RENAMED"
         }
       ]
+    },
+    {
+      "component": "codestra-connect",
+      "github_repository_id": 1386450856,
+      "current_repository": "ingtrader21-spec/Codestra-Connect",
+      "authority_role": "connect-product-routing-source",
+      "lifecycle": "active",
+      "cell": "communications",
+      "integration_mode": "provider-adapter",
+      "middleware_relationship": "target-and-event-source",
+      "adapter_id": "connect-router",
+      "name_aliases": []
     }
   ]
 }

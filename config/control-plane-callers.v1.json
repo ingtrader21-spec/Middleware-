@@ -301,6 +301,24 @@
       "allowed_targets": [],
       "compatibility_only": false,
       "staging_auth_matrix": false
+    },
+    "codestra-connect": {
+      "command_scope": "platform.command",
+      "status_scope": "platform.command.read",
+      "allowed_command_prefixes": [
+        "connect.crm.",
+        "connect.social.",
+        "connect.notification.",
+        "connect.provisioning.",
+        "connect.webhook.",
+        "connect.audit."
+      ],
+      "allowed_targets": [
+        "connect-router"
+      ],
+      "compatibility_only": false,
+      "staging_auth_matrix": true,
+      "connector_commands_allowed": true
     }
   }
 }

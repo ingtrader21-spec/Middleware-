@@ -1,0 +1,128 @@
+{
+  "$schema": "https://contracts.codestra.co/connectors/connector-manifest.v1.schema.json",
+  "authentication": {
+    "audience": "codestra-middleware-api",
+    "scopes": [
+      "connector.connect-router.command",
+      "connector.connect-router.read"
+    ],
+    "secret_references": [
+      "CONNECTOR_CONNECT_ROUTER_CLIENT_SECRET",
+      "CONNECTOR_CONNECT_ROUTER_MTLS_CERT"
+    ],
+    "type": "oauth2-plus-mtls"
+  },
+  "cell": "core-communications",
+  "commands": [
+    {
+      "prefix": "connect.crm.",
+      "readback_required": true,
+      "required_capability": "ODOO_WRITE",
+      "retry_policy": {
+        "initial_backoff_seconds": 2,
+        "jitter_ratio": 0.2,
+        "maximum_attempts": 5,
+        "maximum_backoff_seconds": 120,
+        "unknown_outcome_requires_readback": true
+      },
+      "timeout_seconds": 30
+    },
+    {
+      "prefix": "connect.social.",
+      "readback_required": true,
+      "required_capability": "SOCIAL_PUBLISH",
+      "retry_policy": {
+        "initial_backoff_seconds": 2,
+        "jitter_ratio": 0.2,
+        "maximum_attempts": 5,
+        "maximum_backoff_seconds": 120,
+        "unknown_outcome_requires_readback": true
+      },
+      "timeout_seconds": 30
+    },
+    {
+      "prefix": "connect.notification.",
+      "readback_required": true,
+      "required_capability": "NOTIFICATION_DELIVERY",
+      "retry_policy": {
+        "initial_backoff_seconds": 2,
+        "jitter_ratio": 0.2,
+        "maximum_attempts": 5,
+        "maximum_backoff_seconds": 120,
+        "unknown_outcome_requires_readback": true
+      },
+      "timeout_seconds": 30
+    },
+    {
+      "prefix": "connect.provisioning.",
+      "readback_required": true,
+      "required_capability": "PROVISIONING_WRITE",
+      "retry_policy": {
+        "initial_backoff_seconds": 2,
+        "jitter_ratio": 0.2,
+        "maximum_attempts": 5,
+        "maximum_backoff_seconds": 120,
+        "unknown_outcome_requires_readback": true
+      },
+      "timeout_seconds": 30
+    },
+    {
+      "prefix": "connect.webhook.",
+      "readback_required": true,
+      "required_capability": "WEBHOOK_DELIVERY",
+      "retry_policy": {
+        "initial_backoff_seconds": 2,
+        "jitter_ratio": 0.2,
+        "maximum_attempts": 5,
+        "maximum_backoff_seconds": 120,
+        "unknown_outcome_requires_readback": true
+      },
+      "timeout_seconds": 30
+    },
+    {
+      "prefix": "connect.audit.",
+      "readback_required": true,
+      "required_capability": "AUDIT_EXPORT",
+      "retry_policy": {
+        "initial_backoff_seconds": 2,
+        "jitter_ratio": 0.2,
+        "maximum_attempts": 5,
+        "maximum_backoff_seconds": 120,
+        "unknown_outcome_requires_readback": true
+      },
+      "timeout_seconds": 30
+    }
+  ],
+  "connector_id": "connect-router",
+  "direct_n8n_access": false,
+  "display_name": "Codestra Connect Router",
+  "enabled_by_default": false,
+  "events": [],
+  "forbidden_command_prefixes": [],
+  "forbidden_payload_keys": [
+    "access_token",
+    "client_secret",
+    "password",
+    "private_key",
+    "provider_token",
+    "refresh_token"
+  ],
+  "manifest_version": "1.0",
+  "metadata": {
+    "owner": "codestra-connect",
+    "runtime_activation_authorized": false,
+    "source_only": true
+  },
+  "repository": "ingtrader21-spec/Codestra-Connect",
+  "runtime_binding": {
+    "base_url": "https://connect-router.internal.invalid",
+    "health_path": "/health",
+    "operation_path_template": "/v1/operations/{operation_id}/status",
+    "status": "UNVERIFIED_TEMPLATE_ONLY"
+  },
+  "version": "1.0.0",
+  "webhooks": [],
+  "workflow_families": [
+    "connect.router"
+  ]
+}

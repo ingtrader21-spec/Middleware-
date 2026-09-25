@@ -231,6 +231,12 @@
       "github_repository_id": 1350724865,
       "target_repository_after_cutover": "appolon1908-hue/Codestra-Infrastructure",
       "rename_status": "PREPARED_NOT_RENAMED"
+    },
+    {
+      "component": "codestra-connect",
+      "principal_repository": "ingtrader21-spec/Codestra-Connect",
+      "role": "connect-product-routing-source",
+      "github_repository_id": 1386450856
     }
   ],
   "reference_only": [

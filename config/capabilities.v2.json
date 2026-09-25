@@ -19,7 +19,10 @@
     "PROVISIONING_WRITE": false,
     "SMS_DELIVERY": false,
     "SOCIAL_PUBLISH": false,
-    "TELEPHONY_ADMIN_WRITE": false
+    "TELEPHONY_ADMIN_WRITE": false,
+    "AUDIT_EXPORT": false,
+    "NOTIFICATION_DELIVERY": false,
+    "WEBHOOK_DELIVERY": false
   },
   "activation_requirements": [
     "protected_merged_sha",
