@@ -11629,6 +11629,102 @@
     {
       "item": [
         {
+          "name": "Journey",
+          "request": {
+            "header": [
+              {
+                "key": "X-Tenant-ID",
+                "type": "text",
+                "value": "{{x_tenant_id}}"
+              },
+              {
+                "key": "X-Correlation-ID",
+                "type": "text",
+                "value": "{{x_correlation_id}}"
+              },
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "leads",
+                "{lead_id}",
+                "journey"
+              ],
+              "query": [
+                {
+                  "disabled": true,
+                  "key": "cursor",
+                  "value": "{{cursor}}"
+                },
+                {
+                  "disabled": true,
+                  "key": "limit",
+                  "value": "{{limit}}"
+                }
+              ],
+              "raw": "{{base_url}}/platform/v1/leads/{lead_id}/journey"
+            }
+          }
+        },
+        {
+          "name": "Next Action",
+          "request": {
+            "header": [
+              {
+                "key": "X-Tenant-ID",
+                "type": "text",
+                "value": "{{x_tenant_id}}"
+              },
+              {
+                "key": "X-Correlation-ID",
+                "type": "text",
+                "value": "{{x_correlation_id}}"
+              },
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "leads",
+                "{lead_id}",
+                "next-action"
+              ],
+              "query": [
+                {
+                  "disabled": true,
+                  "key": "channel",
+                  "value": "{{channel}}"
+                }
+              ],
+              "raw": "{{base_url}}/platform/v1/leads/{lead_id}/next-action"
+            }
+          }
+        }
+      ],
+      "name": "leads"
+    },
+    {
+      "item": [
+        {
           "name": "Odoo Event",
           "request": {
             "header": [
