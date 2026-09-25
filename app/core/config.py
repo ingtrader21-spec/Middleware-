@@ -378,6 +378,10 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://localhost/codestra_middleware"
     database_url_file: str = ""
     database_certification_evidence_dir: str = ""
+    # Read-only release certification evidence (release_candidate.json,
+    # backup.json, restore_rehearsal.json, rollback.json, seal.json).
+    release_certification_evidence_dir: str = ""
+    release_certification_max_backup_age_hours: int = Field(default=24, ge=1, le=720)
     redis_url: str = "redis://localhost:6379/2"
     redis_url_file: str = ""
     registry_snapshot_signing_key_file: str = ""

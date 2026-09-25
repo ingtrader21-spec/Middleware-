@@ -16340,6 +16340,390 @@
         ]
       }
     },
+    "/internal/v1/release/backups/latest": {
+      "get": {
+        "operationId": "latest_backup_internal_v1_release_backups_latest_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Latest Backup Internal V1 Release Backups Latest Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "description": "Invalid canonical request"
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "403": {
+            "description": "Scope or tenant denied"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Version, state, or idempotency conflict"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Required durable dependency unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Latest Backup",
+        "tags": [
+          "internal-release-certification"
+        ]
+      }
+    },
+    "/internal/v1/release/candidate": {
+      "get": {
+        "operationId": "release_candidate_internal_v1_release_candidate_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Release Candidate Internal V1 Release Candidate Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "description": "Invalid canonical request"
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "403": {
+            "description": "Scope or tenant denied"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Version, state, or idempotency conflict"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Required durable dependency unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Release Candidate",
+        "tags": [
+          "internal-release-certification"
+        ]
+      }
+    },
+    "/internal/v1/release/certification": {
+      "get": {
+        "operationId": "certification_status_internal_v1_release_certification_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Certification Status Internal V1 Release Certification Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "description": "Invalid canonical request"
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "403": {
+            "description": "Scope or tenant denied"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Version, state, or idempotency conflict"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Required durable dependency unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Certification Status",
+        "tags": [
+          "internal-release-certification"
+        ]
+      }
+    },
+    "/internal/v1/release/certification/evaluate": {
+      "post": {
+        "operationId": "evaluate_bundle_internal_v1_release_certification_evaluate_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Evaluate Bundle Internal V1 Release Certification Evaluate Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "description": "Invalid canonical request"
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "403": {
+            "description": "Scope or tenant denied"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Version, state, or idempotency conflict"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Required durable dependency unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Evaluate Bundle",
+        "tags": [
+          "internal-release-certification"
+        ]
+      }
+    },
+    "/internal/v1/release/lock": {
+      "get": {
+        "operationId": "release_lock_internal_v1_release_lock_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Release Lock Internal V1 Release Lock Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "description": "Invalid canonical request"
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "403": {
+            "description": "Scope or tenant denied"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Version, state, or idempotency conflict"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Required durable dependency unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Release Lock",
+        "tags": [
+          "internal-release-certification"
+        ]
+      }
+    },
+    "/internal/v1/release/restore-rehearsals/latest": {
+      "get": {
+        "operationId": "latest_restore_rehearsal_internal_v1_release_restore_rehearsals_latest_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Latest Restore Rehearsal Internal V1 Release Restore Rehearsals Latest Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "description": "Invalid canonical request"
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "403": {
+            "description": "Scope or tenant denied"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Version, state, or idempotency conflict"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Required durable dependency unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Latest Restore Rehearsal",
+        "tags": [
+          "internal-release-certification"
+        ]
+      }
+    },
+    "/internal/v1/release/rollback/readiness": {
+      "get": {
+        "operationId": "rollback_readiness_internal_v1_release_rollback_readiness_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Rollback Readiness Internal V1 Release Rollback Readiness Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "description": "Invalid canonical request"
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "403": {
+            "description": "Scope or tenant denied"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Version, state, or idempotency conflict"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Required durable dependency unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Rollback Readiness",
+        "tags": [
+          "internal-release-certification"
+        ]
+      }
+    },
+    "/internal/v1/release/seal": {
+      "get": {
+        "operationId": "release_seal_internal_v1_release_seal_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Release Seal Internal V1 Release Seal Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "description": "Invalid canonical request"
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "403": {
+            "description": "Scope or tenant denied"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Version, state, or idempotency conflict"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Required durable dependency unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Release Seal",
+        "tags": [
+          "internal-release-certification"
+        ]
+      }
+    },
     "/metrics": {
       "get": {
         "operationId": "metrics_metrics_get",

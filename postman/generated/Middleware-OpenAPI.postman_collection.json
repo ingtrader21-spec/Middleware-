@@ -11329,6 +11329,223 @@
     {
       "item": [
         {
+          "name": "Latest Backup",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "internal",
+                "v1",
+                "release",
+                "backups",
+                "latest"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/internal/v1/release/backups/latest"
+            }
+          }
+        },
+        {
+          "name": "Release Candidate",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "internal",
+                "v1",
+                "release",
+                "candidate"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/internal/v1/release/candidate"
+            }
+          }
+        },
+        {
+          "name": "Certification Status",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "internal",
+                "v1",
+                "release",
+                "certification"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/internal/v1/release/certification"
+            }
+          }
+        },
+        {
+          "name": "Evaluate Bundle",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "POST",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "internal",
+                "v1",
+                "release",
+                "certification",
+                "evaluate"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/internal/v1/release/certification/evaluate"
+            }
+          }
+        },
+        {
+          "name": "Release Lock",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "internal",
+                "v1",
+                "release",
+                "lock"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/internal/v1/release/lock"
+            }
+          }
+        },
+        {
+          "name": "Latest Restore Rehearsal",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "internal",
+                "v1",
+                "release",
+                "restore-rehearsals",
+                "latest"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/internal/v1/release/restore-rehearsals/latest"
+            }
+          }
+        },
+        {
+          "name": "Rollback Readiness",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "internal",
+                "v1",
+                "release",
+                "rollback",
+                "readiness"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/internal/v1/release/rollback/readiness"
+            }
+          }
+        },
+        {
+          "name": "Release Seal",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "internal",
+                "v1",
+                "release",
+                "seal"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/internal/v1/release/seal"
+            }
+          }
+        }
+      ],
+      "name": "internal-release-certification"
+    },
+    {
+      "item": [
+        {
           "name": "Receive Klyrow Event",
           "request": {
             "body": {

@@ -1,0 +1,345 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://codestra.internal/schemas/release-certification-evidence.v1.json",
+  "title": "Codestra Middleware release certification evidence bundle v1",
+  "description": "Certification only: a CERTIFIED decision never authorizes deployment, signing, backup, restore or rollback execution.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "release_candidate",
+    "backup",
+    "restore_rehearsal",
+    "rollback",
+    "seal"
+  ],
+  "properties": {
+    "release_candidate": {
+      "$ref": "#/$defs/release_candidate"
+    },
+    "backup": {
+      "$ref": "#/$defs/backup"
+    },
+    "restore_rehearsal": {
+      "$ref": "#/$defs/restore_rehearsal"
+    },
+    "rollback": {
+      "$ref": "#/$defs/rollback"
+    },
+    "seal": {
+      "$ref": "#/$defs/seal"
+    }
+  },
+  "$defs": {
+    "release_candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "candidate_id",
+        "repository",
+        "source_sha",
+        "image_repository",
+        "image_digest",
+        "schema_head",
+        "sbom_sha256",
+        "provenance_sha256",
+        "created_utc"
+      ],
+      "properties": {
+        "schema": {
+          "const": "codestra.middleware.release-release-candidate.v1"
+        },
+        "candidate_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$"
+        },
+        "repository": {
+          "const": "ingtrader21-spec/Middleware-"
+        },
+        "source_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "image_repository": {
+          "enum": [
+            "ghcr.io/ingtrader21-spec/codestra-middleware"
+          ]
+        },
+        "image_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "schema_head": {
+          "type": "string",
+          "pattern": "^[0-9]{4}_[a-z0-9_]{1,120}$"
+        },
+        "sbom_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "provenance_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "created_utc": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "(Z|\\+00:00)$"
+        }
+      }
+    },
+    "backup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "backup_id",
+        "source_database",
+        "schema_head",
+        "sha256",
+        "size_bytes",
+        "encrypted",
+        "storage_class",
+        "verified",
+        "started_utc",
+        "completed_utc"
+      ],
+      "properties": {
+        "schema": {
+          "const": "codestra.middleware.release-backup.v1"
+        },
+        "backup_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$"
+        },
+        "source_database": {
+          "type": "string",
+          "pattern": "^[a-z_][a-z0-9_]{0,62}$"
+        },
+        "schema_head": {
+          "type": "string",
+          "pattern": "^[0-9]{4}_[a-z0-9_]{1,120}$"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "encrypted": {
+          "const": true
+        },
+        "storage_class": {
+          "enum": [
+            "offsite_encrypted",
+            "onsite_encrypted"
+          ]
+        },
+        "verified": {
+          "const": true
+        },
+        "started_utc": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "(Z|\\+00:00)$"
+        },
+        "completed_utc": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "(Z|\\+00:00)$"
+        }
+      }
+    },
+    "restore_rehearsal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "rehearsal_id",
+        "backup_id",
+        "backup_sha256",
+        "target_database",
+        "isolated",
+        "restored_schema_head",
+        "integrity_checks_passed",
+        "verified",
+        "rto_seconds",
+        "started_utc",
+        "completed_utc"
+      ],
+      "properties": {
+        "schema": {
+          "const": "codestra.middleware.release-restore-rehearsal.v1"
+        },
+        "rehearsal_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$"
+        },
+        "backup_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$"
+        },
+        "backup_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "target_database": {
+          "type": "string",
+          "pattern": "^[a-z_][a-z0-9_]{0,62}$"
+        },
+        "isolated": {
+          "const": true
+        },
+        "restored_schema_head": {
+          "type": "string",
+          "pattern": "^[0-9]{4}_[a-z0-9_]{1,120}$"
+        },
+        "integrity_checks_passed": {
+          "const": true
+        },
+        "verified": {
+          "const": true
+        },
+        "rto_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "started_utc": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "(Z|\\+00:00)$"
+        },
+        "completed_utc": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "(Z|\\+00:00)$"
+        }
+      }
+    },
+    "rollback": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "rollback_id",
+        "candidate_id",
+        "rollback_source_sha",
+        "rollback_image_digest",
+        "rollback_schema_head",
+        "schema_downgrade_required",
+        "config_backup_sha256",
+        "rehearsed",
+        "verified",
+        "rehearsed_utc"
+      ],
+      "properties": {
+        "schema": {
+          "const": "codestra.middleware.release-rollback.v1"
+        },
+        "rollback_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$"
+        },
+        "candidate_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$"
+        },
+        "rollback_source_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "rollback_image_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "rollback_schema_head": {
+          "type": "string",
+          "pattern": "^[0-9]{4}_[a-z0-9_]{1,120}$"
+        },
+        "schema_downgrade_required": {
+          "const": false
+        },
+        "config_backup_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "rehearsed": {
+          "const": true
+        },
+        "verified": {
+          "const": true
+        },
+        "rehearsed_utc": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "(Z|\\+00:00)$"
+        }
+      }
+    },
+    "seal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "seal_id",
+        "candidate_id",
+        "source_sha",
+        "image_digest",
+        "schema_head",
+        "backup_id",
+        "rehearsal_id",
+        "rollback_id",
+        "evidence_sha256",
+        "sealed_utc"
+      ],
+      "properties": {
+        "schema": {
+          "const": "codestra.middleware.release-seal.v1"
+        },
+        "seal_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$"
+        },
+        "candidate_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$"
+        },
+        "source_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "image_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "schema_head": {
+          "type": "string",
+          "pattern": "^[0-9]{4}_[a-z0-9_]{1,120}$"
+        },
+        "backup_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$"
+        },
+        "rehearsal_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$"
+        },
+        "rollback_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$"
+        },
+        "evidence_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "sealed_utc": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "(Z|\\+00:00)$"
+        }
+      }
+    }
+  }
+}
