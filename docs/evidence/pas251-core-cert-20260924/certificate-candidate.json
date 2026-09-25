@@ -1,0 +1,303 @@
+{
+  "schema": "codestra.core-platform.production-certificate-candidate.v1",
+  "certificate_id": "PAS-251-CORE-CERT-01",
+  "linear": "PAS-251",
+  "scope": "Core Platform: Middleware, Kong, Caddy, Odoo, Keycloak, OpenBao",
+  "prepared_in": {
+    "repository": "ingtrader21-spec/Middleware-",
+    "branch": "mission/pas251-core-cert-20260924",
+    "base_sha": "0606b0db9ff59802f8da3824d209d2effc13f87d"
+  },
+  "observation_window": {
+    "start": "2026-09-25T00:05:00Z",
+    "end": "2026-09-25T00:45:00Z",
+    "method": "Read-only GitHub REST (gh api) on each exact protected-main SHA, the repository files at those SHAs, and the Middleware evidence already on main. No runtime host, registry, identity provider or secret store was contacted."
+  },
+  "certificate": "BLOCKED",
+  "production_go": false,
+  "production_mutation": false,
+  "provider_effects": 0,
+  "decision_rule": "READY only if every mandatory gate of every core component is PASS with a repo: or url: citation, every PASS signed_immutable_artifact gate names a release digest, and blocker-matrix.json has no OPEN blocker. Otherwise BLOCKED. Enforced by scripts/validate_core_platform_certificate.py.",
+  "mandatory_gates": {
+    "protected_main": "The default branch is protected by PR requirement, required status checks, linear history and no force-push or deletion.",
+    "exact_main_ci": "Every required check is green on the merged PR head, and main-push validation is green on the exact protected-main SHA.",
+    "independent_review": "A non-author approval exists against the exact merged head.",
+    "signed_immutable_artifact": "One immutable runtime digest built from the exact main, with signature, SBOM, scans and provenance verified.",
+    "staging_digest_readback": "The exact digest runs in staging, and the running source SHA and digest have been read back.",
+    "identity_route_matrix": "A live token/JWKS/route/ACL matrix at the exact digests (Caddy -> Kong -> Middleware:8095; Odoo ACL/readback).",
+    "secret_binding": "Runtime secrets resolve only through OpenBao references by the workload identity, with live allow and deny evidence.",
+    "backup_restore": "An executed backup and restore of the component's state, with restored-state readback.",
+    "rollback_rehearsal": "Rollback to a recorded previous-known-good digest has been rehearsed in staging.",
+    "monitoring_continuity": "Metrics, logs, traces and alert routing are observed for the exact digest."
+  },
+  "components": [
+    {
+      "id": "middleware",
+      "repository": "ingtrader21-spec/Middleware-",
+      "protected_main_sha": "0606b0db9ff59802f8da3824d209d2effc13f87d",
+      "main_merged_from": {"pull_request": 307, "head_sha": "a95d82f3bd19ba3705c1176900b462034ee4927c", "merged_at": "2026-09-21T14:32:03Z"},
+      "branch_protection": {
+        "protected": true,
+        "rulesets": [22120968, 22196852, 22208428],
+        "required_checks": ["validate", "Validate middleware source head", "Validate middleware merge result", "docker-runtime-build", "docker-test-build", "connector-runtime-build", "container-security", "Disposable PostgreSQL Redis integration", "Disposable NATS JetStream integration", "Temporal critical workflow integration", "Synthetic no-effect acceptance E2E"],
+        "required_approvals": 1,
+        "linear_history": true,
+        "enforce_admins": true
+      },
+      "runtime": {"service": "middleware-integration-api", "listener_port": 8095, "dockerfile": "Dockerfile.runtime", "target": "runtime", "image_repository": "ghcr.io/ingtrader21-spec/codestra-middleware", "schema_head": "0067_service_catalog_monitoring_state"},
+      "artifact": {
+        "base_image_digests": [],
+        "release_digests": [],
+        "release_state": "NO_DIGEST: release.yml 35602170321 denied at push (read_package); 35613442378 on 0606b0d not started (billing lock); RELEASE_SEAL=OPEN"
+      },
+      "gates": {
+        "protected_main": {"status": "PASS", "evidence": ["url:https://github.com/ingtrader21-spec/Middleware-/rules/22120968", "observed:branches/main/protection strict=true, enforce_admins=true, linear=true, allow_force_pushes=false"], "blockers": []},
+        "exact_main_ci": {"status": "PASS", "evidence": ["url:https://github.com/ingtrader21-spec/Middleware-/pull/307", "url:https://github.com/ingtrader21-spec/Middleware-/actions/runs/35612802733", "observed:all 11 required checks success on PR head a95d82f3; Middleware CI main push success on 0606b0d; the only red checks on 0606b0d are the scheduled CodeQL and the release run, both not started (billing lock), and neither is a required check"], "blockers": []},
+        "independent_review": {"status": "PASS", "evidence": ["url:https://github.com/ingtrader21-spec/Middleware-/pull/307", "observed:author ingtrader21-spec; APPROVED by appolon1908-hue and kazan555 on exact head a95d82f3"], "blockers": []},
+        "signed_immutable_artifact": {"status": "FAIL", "evidence": ["repo:docs/evidence/pas27-schema-0067-rc-20260921/05-release-run-35602170321.md"], "blockers": ["PAS251-B010", "PAS251-B001"]},
+        "staging_digest_readback": {"status": "MISSING", "evidence": [], "blockers": ["PAS251-B002", "PAS251-B011"]},
+        "identity_route_matrix": {"status": "MISSING", "evidence": ["repo:deploy/public-api-route-contract.json"], "blockers": ["PAS251-B012"]},
+        "secret_binding": {"status": "MISSING", "evidence": ["repo:contracts/secrets/secret-reference.v1.schema.sha256"], "blockers": ["PAS251-B006"]},
+        "backup_restore": {"status": "MISSING", "evidence": [], "blockers": ["PAS251-B003"]},
+        "rollback_rehearsal": {"status": "MISSING", "evidence": [], "blockers": ["PAS251-B004"]},
+        "monitoring_continuity": {"status": "MISSING", "evidence": [], "blockers": ["PAS251-B005"]}
+      }
+    },
+    {
+      "id": "kong",
+      "repository": "ingtrader21-spec/Kong",
+      "protected_main_sha": "3e68cb2a4955bd71ddb3e839f4d9e3770465fc08",
+      "main_merged_from": {"pull_request": 110, "head_sha": "1403090a9e16bb69d8f24424fd23a361c476eaba", "merged_at": "2026-09-21T03:04:36Z"},
+      "branch_protection": {
+        "protected": true,
+        "rulesets": [22197413, 22208419],
+        "required_checks": ["validate", "kong-config", "security"],
+        "required_approvals": 1,
+        "linear_history": true
+      },
+      "runtime": {"image": "kong/kong-gateway:3.14.0.1-ubuntu@${KONG_IMAGE_DIGEST}", "middleware_service": "middleware-integration-api:8095 (http)", "middleware_routes": 105, "denied_routes": 10},
+      "artifact": {
+        "base_image_digests": [
+          {"image": "python:3.12-alpine (deploy/kong-production-standby/auth-middleware/Dockerfile)", "digest": "sha256:d09d15e60962ca365d1cd544a48773bac9d33f2fb1b00f2aa0deec78ade7dc31"},
+          {"image": "postgres (operations/kong-database rehearsal scripts)", "digest": "sha256:0b657ff48d7f76a1e907f381b1693eb4f2bf54c1d2df4feb6743d7dc601768dd"}
+        ],
+        "release_digests": [],
+        "release_state": "NO_RECORDED_DIGEST: KONG_IMAGE_DIGEST is a runtime variable; no releases or tags"
+      },
+      "gates": {
+        "protected_main": {"status": "PASS", "evidence": ["url:https://github.com/ingtrader21-spec/Kong/rules/22197413"], "blockers": []},
+        "exact_main_ci": {"status": "FAIL", "evidence": ["url:https://github.com/ingtrader21-spec/Kong/actions/runs/35556257677/job/106200365090"], "blockers": ["PAS251-B020"]},
+        "independent_review": {"status": "PASS", "evidence": ["url:https://github.com/ingtrader21-spec/Kong/pull/110", "observed:author ingtrader21-spec; APPROVED by kazan555 on exact head 1403090a"], "blockers": []},
+        "signed_immutable_artifact": {"status": "MISSING", "evidence": [], "blockers": ["PAS251-B021"]},
+        "staging_digest_readback": {"status": "MISSING", "evidence": [], "blockers": ["PAS251-B002"]},
+        "identity_route_matrix": {"status": "FAIL", "evidence": ["url:https://github.com/ingtrader21-spec/Kong/blob/3e68cb2a4955bd71ddb3e839f4d9e3770465fc08/docs/evidence/PRODUCTION_ROUTE_READBACK_20260906.json"], "blockers": ["PAS251-B022"]},
+        "secret_binding": {"status": "FAIL", "evidence": [], "blockers": ["PAS251-B023", "PAS251-B006"]},
+        "backup_restore": {"status": "MISSING", "evidence": [], "blockers": ["PAS251-B003"]},
+        "rollback_rehearsal": {"status": "MISSING", "evidence": [], "blockers": ["PAS251-B004"]},
+        "monitoring_continuity": {"status": "MISSING", "evidence": [], "blockers": ["PAS251-B005"]}
+      }
+    },
+    {
+      "id": "caddy",
+      "repository": "ingtrader21-spec/Caddy",
+      "protected_main_sha": "0feae8a493f54e5f32dfd1f63ba5c967aa5fbf90",
+      "main_merged_from": {"pull_request": 182, "head_sha": "59624a5d09dfea8e927c26f23126d3cf45b7f388", "merged_at": "2026-09-23T17:54:04Z"},
+      "branch_protection": {
+        "protected": true,
+        "rulesets": [22138259, 22196743, 22657889, 22208363],
+        "required_checks": ["validate-source", "validate-merge-result"],
+        "required_approvals": 1,
+        "linear_history": true
+      },
+      "runtime": {"site": "sites/api.codestra.co.caddy", "kong_upstream_variable": "CADDY_KONG_UPSTREAM", "direct_to_middleware_8095": false},
+      "artifact": {
+        "base_image_digests": [
+          {"image": "docker.io/library/caddy:v2.10.0", "digest": "sha256:ae4458638da8e1a91aafffb231c5f8778e964bca650c8a8cb23a7e8ac557aa3c"}
+        ],
+        "release_digests": [],
+        "release_state": "NO_RELEASE_FOR_MAIN: last signed release caddy-production-2489bf0f (ghcr.io/appolon1908-hue/codestra-caddy) has diverged from main (ahead 15, behind 53)"
+      },
+      "gates": {
+        "protected_main": {"status": "PASS", "evidence": ["url:https://github.com/ingtrader21-spec/Caddy/rules/22138259"], "blockers": []},
+        "exact_main_ci": {"status": "FAIL", "evidence": ["url:https://github.com/ingtrader21-spec/Caddy/actions/runs/35898780157", "observed:required validate-source and validate-merge-result success on PR head 59624a5d; main-push validate and validate-source on 0feae8a not started (billing lock)"], "blockers": ["PAS251-B001"]},
+        "independent_review": {"status": "PASS", "evidence": ["url:https://github.com/ingtrader21-spec/Caddy/pull/182", "observed:author ingtrader21-spec; APPROVED by appolon1908-hue on exact head 59624a5d"], "blockers": []},
+        "signed_immutable_artifact": {"status": "FAIL", "evidence": [], "blockers": ["PAS251-B030"]},
+        "staging_digest_readback": {"status": "MISSING", "evidence": [], "blockers": ["PAS251-B002"]},
+        "identity_route_matrix": {"status": "FAIL", "evidence": ["url:https://github.com/ingtrader21-spec/Caddy/blob/0feae8a493f54e5f32dfd1f63ba5c967aa5fbf90/sites/api.codestra.co.caddy"], "blockers": ["PAS251-B031"]},
+        "secret_binding": {"status": "MISSING", "evidence": [], "blockers": ["PAS251-B006"]},
+        "backup_restore": {"status": "MISSING", "evidence": [], "blockers": ["PAS251-B003"]},
+        "rollback_rehearsal": {"status": "MISSING", "evidence": [], "blockers": ["PAS251-B004"]},
+        "monitoring_continuity": {"status": "MISSING", "evidence": [], "blockers": ["PAS251-B005"]}
+      }
+    },
+    {
+      "id": "odoo",
+      "repository": "ingtrader21-spec/Odoo",
+      "protected_main_sha": "c1fb759a85b931bd64be77fdf5e26266c3b176a1",
+      "main_merged_from": {"pull_request": 142, "head_sha": "7a209c310f1940084ff9b6b4cdc4d83f1b1afe4e", "merged_at": "2026-09-21T19:53:25Z"},
+      "branch_protection": {
+        "protected": true,
+        "rulesets": [22197141, 22208437],
+        "required_checks": ["Validate Odoo source head", "Validate Odoo merge result", "Test Odoo 19 and PostgreSQL runtime", "secret-and-source-security", "dependency-review"],
+        "required_approvals": 1,
+        "linear_history": true,
+        "enforce_admins": true
+      },
+      "runtime": {"middleware_modules": ["codestra_middleware_bridge"], "private_only_routes_from_middleware_contract": "odoo:8069 (2 operations)"},
+      "artifact": {
+        "base_image_digests": [
+          {"image": "docker.io/library/odoo", "digest": "sha256:f54272f31d5f77e4146b887efb3761c98480317daf687e4b4b5e76ed8bcc08c5"}
+        ],
+        "release_digests": [],
+        "release_state": "NO_DIGEST_FOR_MAIN: image build on c1fb759a not started (billing lock); latest release deploy-ready-1bad5819 (2026-09-14)"
+      },
+      "gates": {
+        "protected_main": {"status": "PASS", "evidence": ["url:https://github.com/ingtrader21-spec/Odoo/rules/22197141"], "blockers": []},
+        "exact_main_ci": {"status": "FAIL", "evidence": ["url:https://github.com/ingtrader21-spec/Odoo/actions/runs/35647638076/job/106491895309", "observed:all 5 required checks success on PR head 7a209c31; main-push validation, verify, secret scan and image build on c1fb759a not started (billing lock)"], "blockers": ["PAS251-B001"]},
+        "independent_review": {"status": "PASS", "evidence": ["url:https://github.com/ingtrader21-spec/Odoo/pull/142", "observed:author kazan555; APPROVED by appolon1908-hue on exact head 7a209c31"], "blockers": []},
+        "signed_immutable_artifact": {"status": "FAIL", "evidence": [], "blockers": ["PAS251-B040", "PAS251-B001"]},
+        "staging_digest_readback": {"status": "MISSING", "evidence": [], "blockers": ["PAS251-B002"]},
+        "identity_route_matrix": {"status": "MISSING", "evidence": ["url:https://github.com/ingtrader21-spec/Odoo/blob/c1fb759a85b931bd64be77fdf5e26266c3b176a1/custom-addons/codestra_middleware_bridge/security/ir.model.access.csv"], "blockers": ["PAS251-B041"]},
+        "secret_binding": {"status": "MISSING", "evidence": [], "blockers": ["PAS251-B006"]},
+        "backup_restore": {"status": "MISSING", "evidence": [], "blockers": ["PAS251-B003"]},
+        "rollback_rehearsal": {"status": "FAIL", "evidence": ["url:https://github.com/ingtrader21-spec/Odoo/blob/c1fb759a85b931bd64be77fdf5e26266c3b176a1/deploy/rollback/README.md"], "blockers": ["PAS251-B004"]},
+        "monitoring_continuity": {"status": "MISSING", "evidence": [], "blockers": ["PAS251-B005"]}
+      }
+    },
+    {
+      "id": "keycloak",
+      "repository": "ingtrader21-spec/Keycloak",
+      "protected_main_sha": "45a487d71a516ae3039b00c250752897469ffe7a",
+      "main_merged_from": {"pull_request": 118, "head_sha": "fc5265e4a826bc51eae45f15dfd27b8d760b80e0", "merged_at": "2026-09-20T23:19:35Z"},
+      "branch_protection": {
+        "protected": true,
+        "rulesets": [21608098, 22197063, 22208412],
+        "required_checks": ["validate-merge-result", "validate"],
+        "required_approvals": 1,
+        "linear_history": true
+      },
+      "runtime": {"realm": "codestra", "production_issuer": "https://auth.codestra.co/realms/codestra", "staging_issuer": "https://auth-staging.codestra.co/realms/codestra", "jwks_path": "/protocol/openid-connect/certs", "access_token_lifespan_seconds": 300, "middleware_audience": "middleware-api"},
+      "artifact": {
+        "base_image_digests": [
+          {"image": "quay.io/keycloak/keycloak:26.7.2", "digest": "sha256:9d1f1b2b7261ff53c66cb1092dfcdc34a5fb77e81f9e6a6e75b8b6a795de8067"},
+          {"image": "maven:3.9.11-eclipse-temurin-21", "digest": "sha256:6fdc855a6ed81d288ca7ca37ac6ff5e9308b612485c0801d70b25a858c83d237"}
+        ],
+        "release_digests": [],
+        "release_state": "NO_RECORDED_DIGEST: compose.yaml pins identity pattern ghcr.io/appolon1908-hue/codestra-keycloak:<sha>@sha256:<digest>"
+      },
+      "gates": {
+        "protected_main": {"status": "PASS", "evidence": ["url:https://github.com/ingtrader21-spec/Keycloak/rules/21608098"], "blockers": []},
+        "exact_main_ci": {"status": "PASS", "evidence": ["url:https://github.com/ingtrader21-spec/Keycloak/actions/runs/35544309338/job/106169214236", "url:https://github.com/ingtrader21-spec/Keycloak/pull/118", "observed:required validate and validate-merge-result success on PR head fc5265e4; validate success on main 45a487d7; the scheduled non-required pull-request-authority is red (billing lock)"], "blockers": []},
+        "independent_review": {"status": "FAIL", "evidence": ["url:https://github.com/ingtrader21-spec/Keycloak/pull/118"], "blockers": ["PAS251-B050"]},
+        "signed_immutable_artifact": {"status": "MISSING", "evidence": [], "blockers": ["PAS251-B051"]},
+        "staging_digest_readback": {"status": "MISSING", "evidence": [], "blockers": ["PAS251-B002"]},
+        "identity_route_matrix": {"status": "FAIL", "evidence": ["url:https://github.com/ingtrader21-spec/Keycloak/blob/45a487d71a516ae3039b00c250752897469ffe7a/config/contracts/middleware-api-access.v3.json"], "blockers": ["PAS251-B052"]},
+        "secret_binding": {"status": "MISSING", "evidence": [], "blockers": ["PAS251-B006"]},
+        "backup_restore": {"status": "MISSING", "evidence": [], "blockers": ["PAS251-B003"]},
+        "rollback_rehearsal": {"status": "MISSING", "evidence": [], "blockers": ["PAS251-B004"]},
+        "monitoring_continuity": {"status": "MISSING", "evidence": [], "blockers": ["PAS251-B005"]}
+      }
+    },
+    {
+      "id": "openbao",
+      "repository": "ingtrader21-spec/Codestra-OpenBao",
+      "protected_main_sha": "8e9f0bb0b71ac617de859a5ff49971fae2289c1e",
+      "main_merged_from": {"pull_request": 82, "head_sha": "787b6dcf64dc43ddfd862843a0ca68cffc8a140f", "merged_at": "2026-09-23T11:59:05Z"},
+      "branch_protection": {
+        "protected": false,
+        "rulesets": [],
+        "required_checks": [],
+        "required_approvals": 0,
+        "note": "rulesets API returns HTTP 403 (private repository on current plan)"
+      },
+      "runtime": {"deployment_enabled": false, "tracked_files_on_main": 9},
+      "artifact": {
+        "base_image_digests": [],
+        "release_digests": [],
+        "release_state": "NO_IMAGE_ON_MAIN: runtime compose and image pin exist only on unprotected development 46d9d759"
+      },
+      "gates": {
+        "protected_main": {"status": "FAIL", "evidence": [], "blockers": ["PAS251-B060"]},
+        "exact_main_ci": {"status": "MISSING", "evidence": [], "blockers": ["PAS251-B060"]},
+        "independent_review": {"status": "FAIL", "evidence": ["url:https://github.com/ingtrader21-spec/Codestra-OpenBao/pull/82"], "blockers": ["PAS251-B060"]},
+        "signed_immutable_artifact": {"status": "MISSING", "evidence": [], "blockers": ["PAS251-B061"]},
+        "staging_digest_readback": {"status": "MISSING", "evidence": [], "blockers": ["PAS251-B002"]},
+        "identity_route_matrix": {"status": "MISSING", "evidence": [], "blockers": ["PAS251-B061"]},
+        "secret_binding": {"status": "MISSING", "evidence": [], "blockers": ["PAS251-B061", "PAS251-B006"]},
+        "backup_restore": {"status": "MISSING", "evidence": [], "blockers": ["PAS251-B003"]},
+        "rollback_rehearsal": {"status": "MISSING", "evidence": [], "blockers": ["PAS251-B004"]},
+        "monitoring_continuity": {"status": "MISSING", "evidence": [], "blockers": ["PAS251-B005"]}
+      }
+    }
+  ],
+  "design_review": [
+    {
+      "id": "DR-EDGE-01",
+      "topic": "Caddy -> Kong -> Middleware:8095 path",
+      "result": "SOURCE_CONSISTENT_LIVE_UNPROVEN",
+      "finding": "Four repositories pin the same public route contract hash, 9c32daecd4a15104c6f9ff60ce19c8f7e78707fb31d9fd9fcb55b1b8dfa3512b: Middleware deploy/public-api-route-contract.sha256, Kong config/kong-canonical-middleware-routes.json and config/middleware-public-api-route-contract.sha256, Caddy config/caddy-kong-contract.v1.json, and Keycloak config/contracts/middleware-api-access.v3.json. The contract lists 117 operations: 105 shared_edge to middleware-integration-api:8095, 10 denied and 2 private_only to odoo:8069. Kong main carries exactly 105 openid-connect routes to middleware-integration-api:8095 and 10 request-termination denials. Caddy has no direct route to 8095. The open issues are the Caddy transitional bypass (PAS251-B031) and the production Kong drift (PAS251-B022).",
+      "blockers": ["PAS251-B012", "PAS251-B022", "PAS251-B031"]
+    },
+    {
+      "id": "DR-EDGE-02",
+      "topic": "Client address trust at the Middleware listener",
+      "result": "OBSERVATION",
+      "finding": "Dockerfile.runtime runs uvicorn with --proxy-headers --forwarded-allow-ips=127.0.0.1. Kong reaches Middleware from another container, so X-Forwarded-For from Kong is not trusted and request.client is Kong's address. This fails safe and does not block the certificate. Any per-client-IP logic in Middleware sees the gateway address, and rate limiting belongs to Kong (rate-limiting minute=120, redis, fault_tolerant=false).",
+      "blockers": []
+    },
+    {
+      "id": "DR-TOKEN-01",
+      "topic": "Token and JWKS validation",
+      "result": "SOURCE_CONSISTENT_LIVE_UNPROVEN",
+      "finding": "Middleware pins the staging and production issuers (https://auth-staging.codestra.co/realms/codestra, https://auth.codestra.co/realms/codestra). It requires KEYCLOAK_JWKS_URL to equal <issuer>/protocol/openid-connect/certs in deployed environments, aud=middleware-api, RS256 only, an azp allowlist and a lifetime of 300 s or less, and it refuses the synthetic CI identity outside development/test. Kong validates the same issuer through OIDC discovery with audience middleware-api and per-route scopes. The Kong route config sets no algorithm list or leeway; its authentication profile records RS256 and 0 s clock skew. The Keycloak realm sets accessTokenLifespan 300 but no defaultSignatureAlgorithm, and records no key-rotation policy.",
+      "blockers": ["PAS251-B012", "PAS251-B052"]
+    },
+    {
+      "id": "DR-SECRETS-01",
+      "topic": "OpenBao references",
+      "result": "UPSTREAM_AUTHORITY_ABSENT",
+      "finding": "Middleware stores only openbao:// / codestra/<env>/… references and never values (app/secret_reference.py), against a vendored schema whose canonical pin verifies. The owning contract is absent from OpenBao protected main. Kong uses the env vault. Keycloak client secrets are declared external-secret-store-only, with no binding on OpenBao main.",
+      "blockers": ["PAS251-B006", "PAS251-B023", "PAS251-B061"]
+    },
+    {
+      "id": "DR-ODOO-01",
+      "topic": "Odoo ACL and readback",
+      "result": "SOURCE_PARTIAL_LIVE_UNPROVEN",
+      "finding": "The Middleware bridge group has scoped CRUD without unlink on res.partner and mail.activity. Its ACL file grants nothing on project.task. The PAS-46 deterministic task readback is unmerged on both sides, and the only staging evidence is stale and records the readback as BLOCKED.",
+      "blockers": ["PAS251-B041"]
+    },
+    {
+      "id": "DR-GOV-01",
+      "topic": "CI, review and namespace convergence",
+      "result": "FAIL",
+      "finding": "The billing lock blocks hosted CI across all six repositories. Kong main was merged with a red required check. The Keycloak approval is stale and the OpenBao PR was self-merged. Three pre-transfer appolon1908-hue identities remain in runtime-authority positions: the Keycloak image pattern, the Caddy signed release, and the OpenBao secret-reference $id. Middleware config/production-integration-lock.v1.json (2026-09-13, NO_GO, appolon1908-hue SHAs) is stale, and this candidate does not rely on it.",
+      "blockers": ["PAS251-B001", "PAS251-B020", "PAS251-B050", "PAS251-B060", "PAS251-B051", "PAS251-B030"]
+    }
+  ],
+  "reused_evidence": [
+    "repo:docs/evidence/pas27-schema-0067-rc-20260921/00-summary.md",
+    "repo:docs/evidence/pas27-schema-0067-rc-20260921/05-release-run-35602170321.md",
+    "repo:docs/evidence/pas27-schema-0067-rc-20260921/06-ghcr-package-access-diagnosis.md",
+    "repo:docs/evidence/pas27-schema-0067-rc-20260921/07-known-gaps-pas13-handoff.md",
+    "repo:docs/evidence/canonical-core-architecture-20260918/07-identity.md",
+    "repo:docs/evidence/monitoring-openbao-runtime-20260917/FINAL-GATE.md"
+  ],
+  "local_verification": {
+    "scope": "Local only, on the development host, against base 0606b0d plus this evidence change. It does not replace exact-SHA CI.",
+    "python": "3.14.4 (host; the runtime image pins 3.14.7)",
+    "suites": [
+      "tests/test_public_api_route_contract.py",
+      "tests/test_secret_reference_contract.py",
+      "tests/test_certify_edge_integration.py",
+      "tests/test_odoo_sms_readback.py",
+      "tests/test_odoo_transport.py",
+      "tests/test_odoo_command_acceptance.py",
+      "tests/test_odoo_runtime_staging_gate.py",
+      "tests/test_scraper_jwt_auth.py",
+      "tests/test_core_config_authority.py",
+      "tests/test_security.py"
+    ],
+    "result": "177 passed, 0 failed"
+  },
+  "blocker_matrix_sha256": "3e1df3fce42b78c112cf2785d63a8f7a68773ecc42846db8183ad2e1be35c956"
+}

@@ -1,0 +1,353 @@
+{
+  "schema": "codestra.core-platform.certificate-blocker-matrix.v1",
+  "certificate_id": "PAS-251-CORE-CERT-01",
+  "observed_at": "2026-09-25T00:45:00Z",
+  "rule": "Every blocker is mandatory. CERTIFICATE=READY is admissible only when every blocker is CLEARED with cited evidence and every gate of every core component is PASS.",
+  "blockers": [
+    {
+      "id": "PAS251-B001",
+      "component": "platform",
+      "gates": ["exact_main_ci", "signed_immutable_artifact"],
+      "mandatory": true,
+      "status": "OPEN",
+      "title": "GitHub Actions hosted jobs are billing-locked for the owner account",
+      "observed": "Hosted jobs fail with 'The job was not started because your account is locked due to a billing issue.' Latest confirmations: Middleware run 36077007432 (2026-09-25T00:19Z), Kong run 36076814183 (00:17Z), Keycloak run 36076125140 (00:08Z), Odoo run 36074949076 (2026-09-24T23:53Z). The lock is recorded since 2026-09-17. It left the main-push validation of Caddy 0feae8a and Odoo c1fb759a unexecuted, and the Middleware release run 35613442378 on 0606b0d never started. Only the self-hosted runner codestra-ubuntu-middleware executes jobs.",
+      "clear_condition": "The account owner restores Actions billing. Then every required check re-runs green on each exact protected-main SHA, and each component's release workflow runs on the exact main.",
+      "owner": "GitHub account owner (billing)",
+      "evidence": [
+        "url:https://github.com/ingtrader21-spec/Middleware-/actions/runs/36077007432",
+        "url:https://github.com/ingtrader21-spec/Kong/actions/runs/36076814183",
+        "url:https://github.com/ingtrader21-spec/Keycloak/actions/runs/36076125140",
+        "url:https://github.com/ingtrader21-spec/Odoo/actions/runs/36074949076",
+        "url:https://github.com/ingtrader21-spec/Middleware-/actions/runs/35613442378",
+        "repo:docs/evidence/monitoring-openbao-runtime-20260917/FINAL-GATE.md"
+      ]
+    },
+    {
+      "id": "PAS251-B002",
+      "component": "platform",
+      "gates": ["staging_digest_readback"],
+      "mandatory": true,
+      "status": "OPEN",
+      "title": "No exact-digest staging deployment with source/digest readback exists for any core component at its current main",
+      "observed": "No staging deployment of a signed digest is recorded for any of the six mains. Every staging artifact found certifies an older SHA or is only prepared. Caddy release/pas146/caddy-staging-candidate.v1.json is PREPARED_BLOCKED for merged main 22c6d51e, not 0feae8a4. Odoo reports/odoo-staging-evidence.md certifies base 6dc40335 (2026-08-28), not c1fb759a. Kong has a staging-certification procedure but no certification artifact for any SHA. The Middleware staging lane PAS-13 is blocked on PAS251-B010. OpenBao staging was NO_GO_PREPARATION_INCOMPLETE on 2026-09-17.",
+      "clear_condition": "Deploy the exact signed digests of all six components to staging, read back the running source SHA and digest per component, and record the result bound to each protected-main SHA.",
+      "owner": "PAS-13 staging lane",
+      "evidence": [
+        "url:https://github.com/ingtrader21-spec/Caddy/blob/0feae8a493f54e5f32dfd1f63ba5c967aa5fbf90/release/pas146/caddy-staging-candidate.v1.json",
+        "url:https://github.com/ingtrader21-spec/Odoo/blob/c1fb759a85b931bd64be77fdf5e26266c3b176a1/reports/odoo-staging-evidence.md",
+        "repo:docs/evidence/pas27-schema-0067-rc-20260921/00-summary.md",
+        "repo:docs/evidence/monitoring-openbao-runtime-20260917/FINAL-GATE.md"
+      ]
+    },
+    {
+      "id": "PAS251-B003",
+      "component": "platform",
+      "gates": ["backup_restore"],
+      "mandatory": true,
+      "status": "OPEN",
+      "title": "No executed backup/restore evidence for any core state store",
+      "observed": "No backup or restore run is recorded for the Middleware PostgreSQL, Keycloak database, Odoo database, Kong database, Caddy certificate storage or OpenBao storage at the current mains. What exists is procedure only: the backup step of the Middleware controller deploy script, the Keycloak docs/operations/BACKUP_RESTORE.md, and OpenBao restore docs that exist only on the unprotected development branch.",
+      "clear_condition": "For each state store, run and record a backup and a restore into isolated staging, with restored-state readback bound to the exact component SHA and digest.",
+      "owner": "PAS-13 staging lane / component owners",
+      "evidence": [
+        "repo:deploy/production/server/codestra-middleware-deploy",
+        "url:https://github.com/ingtrader21-spec/Keycloak/tree/45a487d71a516ae3039b00c250752897469ffe7a/docs/operations"
+      ]
+    },
+    {
+      "id": "PAS251-B004",
+      "component": "platform",
+      "gates": ["rollback_rehearsal"],
+      "mandatory": true,
+      "status": "OPEN",
+      "title": "No rollback rehearsal and no previous-known-good digest is recorded for any core component",
+      "observed": "The Kong rollback runbooks and the Caddy PAS-146 runbook are procedures, and neither records a last-known-good digest. Odoo deploy/rollback/README.md states 'Rollback rehearsal is BLOCKED until performed against isolated staging.' Middleware has no signed digest at all (PAS251-B010), so it has no rollback target.",
+      "clear_condition": "Record a previous-known-good signed digest for each component. Rehearse rollback from the candidate digest to that digest in staging, with health and data readback.",
+      "owner": "PAS-13 staging lane / component owners",
+      "evidence": [
+        "url:https://github.com/ingtrader21-spec/Odoo/blob/c1fb759a85b931bd64be77fdf5e26266c3b176a1/deploy/rollback/README.md",
+        "url:https://github.com/ingtrader21-spec/Kong/tree/3e68cb2a4955bd71ddb3e839f4d9e3770465fc08/operations/runbooks"
+      ]
+    },
+    {
+      "id": "PAS251-B005",
+      "component": "platform",
+      "gates": ["monitoring_continuity"],
+      "mandatory": true,
+      "status": "OPEN",
+      "title": "No monitoring continuity evidence at the current mains",
+      "observed": "The last monitoring certification (2026-09-17) records STAGING_MONITORING_GO=NO and STAGING_OPENBAO_GO=NO. It covers older SHAs and has not been superseded. No collector run, alert delivery or dashboard readback exists for the six current mains.",
+      "clear_condition": "After the staging deployment, show metrics, logs, traces and alert routing for each core component at its exact digest, with a collector reconciliation readback.",
+      "owner": "Monitoring lane",
+      "evidence": [
+        "repo:docs/evidence/monitoring-openbao-runtime-20260917/FINAL-GATE.md"
+      ]
+    },
+    {
+      "id": "PAS251-B006",
+      "component": "platform",
+      "gates": ["secret_binding"],
+      "mandatory": true,
+      "status": "OPEN",
+      "title": "OpenBao secret custody is absent from protected main, so no component's secret binding can be evidenced",
+      "observed": "Middleware vendors contracts/secrets/secret-reference.v1.schema.json. Its canonical sha256 is 8762a999da747a9450d73dc876718a3f70a3fb47fd1e065689cdf2357849a665, matching the pin. The file's $id names appolon1908-hue/Codestra-OpenBao, and no contracts/ directory exists on OpenBao main 8e9f0bb0. The upstream contract is only proposed, in OpenBao PR #78, which targets development. No live resolution of any codestra/<env>/… reference by a workload identity is recorded.",
+      "clear_condition": "Merge the secret-reference contract, the policies and the auth roles to protected OpenBao main. Re-verify the Middleware vendored pin against it. Record live workload-identity resolution and denial evidence for each component's references in staging.",
+      "owner": "OpenBao lane",
+      "evidence": [
+        "repo:contracts/secrets/secret-reference.v1.schema.json",
+        "repo:contracts/secrets/secret-reference.v1.schema.sha256",
+        "repo:app/secret_reference.py",
+        "url:https://github.com/ingtrader21-spec/Codestra-OpenBao/tree/8e9f0bb0b71ac617de859a5ff49971fae2289c1e"
+      ]
+    },
+    {
+      "id": "PAS251-B010",
+      "component": "middleware",
+      "gates": ["signed_immutable_artifact"],
+      "mandatory": true,
+      "status": "OPEN",
+      "title": "No signed immutable Middleware image digest exists",
+      "observed": "Every release.yml run on main has failed. Run 35602170321 on 8ecf6e9b was denied at push with 'permission_denied: read_package' on ghcr.io/ingtrader21-spec/codestra-middleware. Run 35613442378 on 0606b0d was never started because of the billing lock. TARGET_IMAGE_DIGEST=PENDING_OWNER_PACKAGE_ACCESS and RELEASE_SEAL=OPEN. No SBOM, Grype, Trivy, Cosign or SLSA verification exists.",
+      "clear_condition": "The owner grants the repository write access on the GHCR package. release.yml then runs on exact protected main and yields one digest, verified independently: OCI revision/source labels, single Alembic head 0067_service_catalog_monitoring_state, SBOM bound to the digest, Grype and Trivy policy, SLSA subject, and Cosign identity and issuer.",
+      "owner": "Repository owner (GHCR package access) / PAS-27",
+      "evidence": [
+        "repo:docs/evidence/pas27-schema-0067-rc-20260921/05-release-run-35602170321.md",
+        "repo:docs/evidence/pas27-schema-0067-rc-20260921/06-ghcr-package-access-diagnosis.md",
+        "url:https://github.com/ingtrader21-spec/Middleware-/actions/runs/35602170321",
+        "url:https://github.com/ingtrader21-spec/Middleware-/actions/runs/35613442378"
+      ]
+    },
+    {
+      "id": "PAS251-B011",
+      "component": "middleware",
+      "gates": ["staging_digest_readback"],
+      "mandatory": true,
+      "status": "OPEN",
+      "title": "Controller deploy script asserts SQL receipts 1..10 while main ships receipt 0011",
+      "observed": "deploy/production/server/codestra-middleware-deploy line 510 requires migration_versions == '1,2,3,4,5,6,7,8,9,10'. The migration SQL set on main ends with 0011_audit_timeline_indexes.sql, so the first controller deploy from this main would fail with middleware_migration_head_mismatch (PAS-27 finding F-07). The script is covered by the source closure and needs a governed change.",
+      "clear_condition": "A governed change aligns the receipt assertion with the shipped migrations, re-derives the source closure, and is merged to protected main before the staging deploy.",
+      "owner": "PAS-13 / PAS-180 lane",
+      "evidence": [
+        "repo:deploy/production/server/codestra-middleware-deploy",
+        "repo:docs/evidence/pas27-schema-0067-rc-20260921/07-known-gaps-pas13-handoff.md"
+      ]
+    },
+    {
+      "id": "PAS251-B012",
+      "component": "middleware",
+      "gates": ["identity_route_matrix"],
+      "mandatory": true,
+      "status": "OPEN",
+      "title": "No live Caddy -> Kong -> Middleware:8095 identity/route matrix at an exact digest",
+      "observed": "The source contract is consistent. deploy/public-api-route-contract.json has canonical sha256 9c32daecd4a15104c6f9ff60ce19c8f7e78707fb31d9fd9fcb55b1b8dfa3512b, equal to the .sha256 pin and to the hashes pinned in Kong config/kong-canonical-middleware-routes.json, the Caddy config/caddy-kong-contract.v1.json and the Keycloak middleware-api-access.v3.json. It lists 117 operations: 105 shared_edge to middleware-integration-api:8095, 10 denied and 2 private_only to odoo:8069. The Middleware verifier pins the issuer per environment, requires the JWKS URL to equal <issuer>/protocol/openid-connect/certs, and enforces aud=middleware-api, RS256, an azp allowlist and a lifetime of 300 s or less. No live matrix has been run through the edge (valid, expired, wrong-issuer, wrong-aud, wrong-azp and wrong-scope tokens per route class). The PAS-47 edge and PAS-64 route certification work is still on open PRs (#312, #314), not on main.",
+      "clear_condition": "In staging at the exact digests, run the edge identity/route matrix through Caddy and Kong to Middleware:8095. Record per-route-class status codes and the rejecting layer, with no token material in the report, bound to the six main SHAs.",
+      "owner": "PAS-47 / PAS-64 lanes",
+      "evidence": [
+        "repo:deploy/public-api-route-contract.json",
+        "repo:deploy/public-api-route-contract.sha256",
+        "repo:app/core/config.py",
+        "repo:app/core/jwt_auth.py",
+        "repo:docs/evidence/canonical-core-architecture-20260918/07-identity.md",
+        "repo:tests/test_certify_edge_integration.py"
+      ]
+    },
+    {
+      "id": "PAS251-B020",
+      "component": "kong",
+      "gates": ["exact_main_ci"],
+      "mandatory": true,
+      "status": "OPEN",
+      "title": "Kong required check 'security' is red on the merged PR head and on main",
+      "observed": "Ruleset 22197413 (server65-default-branch-gates) requires validate, kong-config and security under the strict policy, with no bypass actors. On PR #110 head 1403090a, security concluded failure at 2026-09-21T03:04:22Z ('No files were found with the provided path: codeql-results/*.sarif', exit 1), and the PR was merged 14 s later at 03:04:36Z. On main 3e68cb2a, security failed again (run 35556257677). How a failing required check was merged is not recorded.",
+      "clear_condition": "The security check passes on an exact Kong main SHA, and the merge path that admitted a red required check is explained and closed.",
+      "owner": "Kong lane",
+      "evidence": [
+        "url:https://github.com/ingtrader21-spec/Kong/actions/runs/35556225496/job/106200281918",
+        "url:https://github.com/ingtrader21-spec/Kong/actions/runs/35556257677/job/106200365090",
+        "url:https://github.com/ingtrader21-spec/Kong/pull/110"
+      ]
+    },
+    {
+      "id": "PAS251-B021",
+      "component": "kong",
+      "gates": ["signed_immutable_artifact"],
+      "mandatory": true,
+      "status": "OPEN",
+      "title": "No published, signed Kong runtime digest is recorded",
+      "observed": "deploy/kong/compose.kong.yaml takes the image as kong/kong-gateway@${KONG_IMAGE_DIGEST}, a runtime variable. The repository has no releases and no tags. A release-evidence job succeeded on 3e68cb2a (run 35556257642), but its digest exists only as a workflow artifact. No protected record holds it, and no signature is verified.",
+      "clear_condition": "Record the resolved Kong gateway digest and the standby-auth image digest for 3e68cb2a (or its successor) in protected evidence, with signature and provenance verification.",
+      "owner": "Kong lane",
+      "evidence": [
+        "url:https://github.com/ingtrader21-spec/Kong/blob/3e68cb2a4955bd71ddb3e839f4d9e3770465fc08/deploy/kong/compose.kong.yaml",
+        "url:https://github.com/ingtrader21-spec/Kong/actions/runs/35556257642"
+      ]
+    },
+    {
+      "id": "PAS251-B022",
+      "component": "kong",
+      "gates": ["identity_route_matrix"],
+      "mandatory": true,
+      "status": "OPEN",
+      "title": "Production Kong drifts from main and has not been read back since 2026-09-06",
+      "observed": "Main config/kong-middleware-routes.production.yml defines 1 service (middleware-integration-api:8095, http) with 105 routes on api.codestra.co. Every route has openid-connect (issuer https://auth.codestra.co/realms/codestra discovery; audience middleware-api on 103 routes and codestra-callback-api on 2), post-function header scrub, correlation-id, rate-limiting and request-size-limiting, and 10 request-termination denials. The only live readback, PRODUCTION_ROUTE_READBACK_20260906.json (29 routes, 2026-09-06), shows other upstreams: codestra-middleware-integration-api-1, appolon-middleware-integration-api and several auth adapters. The readback is not bound to a SHA. Open PR #115 changes the Middleware route files.",
+      "clear_condition": "Deploy the main route set to staging, then production, and record a sanitized Admin API readback whose route hash equals main. Resolve PR #115 first.",
+      "owner": "Kong lane",
+      "evidence": [
+        "url:https://github.com/ingtrader21-spec/Kong/blob/3e68cb2a4955bd71ddb3e839f4d9e3770465fc08/config/kong-middleware-routes.production.yml",
+        "url:https://github.com/ingtrader21-spec/Kong/blob/3e68cb2a4955bd71ddb3e839f4d9e3770465fc08/docs/evidence/PRODUCTION_ROUTE_READBACK_20260906.json",
+        "url:https://github.com/ingtrader21-spec/Kong/pull/115"
+      ]
+    },
+    {
+      "id": "PAS251-B023",
+      "component": "kong",
+      "gates": ["secret_binding"],
+      "mandatory": true,
+      "status": "OPEN",
+      "title": "Kong resolves secrets through the env vault only",
+      "observed": "Kong sets KONG_VAULTS=env and uses {vault://env/...} references: the OIDC cache-token salt, the rate-limit Redis password, the control-plane gateway secret and the database password. It has no OpenBao reference. The repository describes the env vault as the seam a future OpenBao vault replaces.",
+      "clear_condition": "Bind Kong runtime secrets to OpenBao references under codestra/<env>/kong/…, or record an approved custody decision, and show live resolution evidence in staging.",
+      "owner": "Kong lane / OpenBao lane",
+      "evidence": [
+        "url:https://github.com/ingtrader21-spec/Kong/blob/3e68cb2a4955bd71ddb3e839f4d9e3770465fc08/deploy/kong/compose.kong.yaml"
+      ]
+    },
+    {
+      "id": "PAS251-B030",
+      "component": "caddy",
+      "gates": ["signed_immutable_artifact"],
+      "mandatory": true,
+      "status": "OPEN",
+      "title": "No Caddy release or signed image exists for main 0feae8a",
+      "observed": "The newest signed production release, caddy-production-2489bf0f… (2026-09-07), names ghcr.io/appolon1908-hue/codestra-caddy@sha256:3331e636ab23e73b62dc4062c51288ad9f16d73e3bd065f95019b1bed4e441e4, the pre-transfer namespace. Its source SHA is not an ancestor of main. The staging candidate pins only the upstream base docker.io/library/caddy@sha256:ae4458638da8e1a91aafffb231c5f8778e964bca650c8a8cb23a7e8ac557aa3c (v2.10.0) and a configuration sha256 for 22c6d51e.",
+      "clear_condition": "Build, sign and record the Caddy image and configuration digest for the exact protected main under the ingtrader21-spec namespace.",
+      "owner": "Caddy lane",
+      "evidence": [
+        "url:https://github.com/ingtrader21-spec/Caddy/releases",
+        "url:https://github.com/ingtrader21-spec/Caddy/blob/0feae8a493f54e5f32dfd1f63ba5c967aa5fbf90/release/pas146/caddy-staging-candidate.v1.json"
+      ]
+    },
+    {
+      "id": "PAS251-B031",
+      "component": "caddy",
+      "gates": ["identity_route_matrix"],
+      "mandatory": true,
+      "status": "OPEN",
+      "title": "Caddy transitional bypass handlers forward identity headers unscrubbed",
+      "observed": "In sites/api.codestra.co.caddy, the Kong-bound handlers proxy to {$CADDY_KONG_UPSTREAM} and delete 23 client-supplied identity headers (X-User-ID, X-Authenticated-*, X-Codestra-*, X-Consumer-*, X-Admin and others). Two handlers skip that scrub: @realtime (/ws/agent, /api/v1/realtime/sessions, /healthz, /readyz, /version) to {$CADDY_REALTIME_UPSTREAM}, and the catch-all handle to {$CADDY_LEGACY_API_UPSTREAM}. No route goes directly to Middleware:8095, which is correct. Open PRs #186 and #181 change this site and the Caddy-Kong contract.",
+      "clear_condition": "Remove the transitional fallbacks or apply the same identity-header scrub to them. Resolve PRs #186 and #181 on main, and prove the behaviour in the staging edge matrix.",
+      "owner": "Caddy lane",
+      "evidence": [
+        "url:https://github.com/ingtrader21-spec/Caddy/blob/0feae8a493f54e5f32dfd1f63ba5c967aa5fbf90/sites/api.codestra.co.caddy",
+        "url:https://github.com/ingtrader21-spec/Caddy/blob/0feae8a493f54e5f32dfd1f63ba5c967aa5fbf90/config/caddy-kong-contract.v1.json"
+      ]
+    },
+    {
+      "id": "PAS251-B040",
+      "component": "odoo",
+      "gates": ["signed_immutable_artifact"],
+      "mandatory": true,
+      "status": "OPEN",
+      "title": "No built or scanned Odoo image digest exists for main c1fb759a",
+      "observed": "On c1fb759a, 'Build and scan digest-pinned Odoo image' did not start (billing lock). The latest release, deploy-ready-1bad5819… (2026-09-14), is for an older source. Only the upstream base docker.io/library/odoo@sha256:f54272f31d5f77e4146b887efb3761c98480317daf687e4b4b5e76ed8bcc08c5 is pinned.",
+      "clear_condition": "Build and scan the Odoo image on the exact protected main, and record and sign its digest.",
+      "owner": "Odoo lane",
+      "evidence": [
+        "url:https://github.com/ingtrader21-spec/Odoo/actions/runs/35647637944/job/106491894936",
+        "url:https://github.com/ingtrader21-spec/Odoo/releases"
+      ]
+    },
+    {
+      "id": "PAS251-B041",
+      "component": "odoo",
+      "gates": ["identity_route_matrix"],
+      "mandatory": true,
+      "status": "OPEN",
+      "title": "Odoo Middleware ACL and deterministic readback are not certified live",
+      "observed": "Source ACLs exist on main. custom-addons/codestra_middleware_bridge/security/ir.model.access.csv grants the bridge group read/write/create without unlink on res.partner and mail.activity, plus the Klyrow projection models. That file grants nothing on project.task. The PAS-46 deterministic task readback is unmerged on both sides: Odoo PR #145 and Middleware commit 747e26c are not on main. The only staging evidence (base 6dc40335, 2026-08-28) records 'External middleware/VICIdial/n8n read-back … BLOCKED'.",
+      "clear_condition": "Merge the readback contract on both sides. Then, in staging at the exact digests, run the ACL allow/deny matrix with the Middleware technical identity and a deterministic readback.",
+      "owner": "Odoo lane / PAS-46",
+      "evidence": [
+        "url:https://github.com/ingtrader21-spec/Odoo/blob/c1fb759a85b931bd64be77fdf5e26266c3b176a1/custom-addons/codestra_middleware_bridge/security/ir.model.access.csv",
+        "url:https://github.com/ingtrader21-spec/Odoo/blob/c1fb759a85b931bd64be77fdf5e26266c3b176a1/reports/odoo-staging-evidence.md",
+        "url:https://github.com/ingtrader21-spec/Odoo/pull/145"
+      ]
+    },
+    {
+      "id": "PAS251-B050",
+      "component": "keycloak",
+      "gates": ["independent_review"],
+      "mandatory": true,
+      "status": "OPEN",
+      "title": "Keycloak main was merged without an exact-head approval",
+      "observed": "PR #118 was merged as 45a487d7 from head fc5265e4. The only approval, by a reviewer other than the author, was submitted against ea18bbcb.",
+      "clear_condition": "Independently review the exact Keycloak main tree (or a successor PR head) and record the approval against that exact head.",
+      "owner": "Keycloak lane",
+      "evidence": [
+        "url:https://github.com/ingtrader21-spec/Keycloak/pull/118"
+      ]
+    },
+    {
+      "id": "PAS251-B051",
+      "component": "keycloak",
+      "gates": ["signed_immutable_artifact"],
+      "mandatory": true,
+      "status": "OPEN",
+      "title": "No published Keycloak runtime digest; image identity pinned to the pre-transfer namespace",
+      "observed": "compose.yaml accepts KEYCLOAK_IMAGE only if it matches ghcr.io/appolon1908-hue/codestra-keycloak:<sha>@sha256:<digest>. No digest for 45a487d7 is recorded. Only the base quay.io/keycloak/keycloak:26.7.2@sha256:9d1f1b2b7261ff53c66cb1092dfcdc34a5fb77e81f9e6a6e75b8b6a795de8067 is pinned.",
+      "clear_condition": "Converge the image identity to the canonical owner namespace, build and sign it on the exact main, and record the digest.",
+      "owner": "Keycloak lane",
+      "evidence": [
+        "url:https://github.com/ingtrader21-spec/Keycloak/blob/45a487d71a516ae3039b00c250752897469ffe7a/compose.yaml",
+        "url:https://github.com/ingtrader21-spec/Keycloak/blob/45a487d71a516ae3039b00c250752897469ffe7a/Dockerfile"
+      ]
+    },
+    {
+      "id": "PAS251-B052",
+      "component": "keycloak",
+      "gates": ["identity_route_matrix"],
+      "mandatory": true,
+      "status": "OPEN",
+      "title": "Middleware API access is PREPARED_DISABLED; signing algorithm and key rotation are not pinned",
+      "observed": "config/contracts/middleware-api-access.v3.json has status PREPARED_DISABLED, runtimeApplyAuthorized=false and targetAudience middleware-api, and binds route contract 9c32daecd4a15104c6f9ff60ce19c8f7e78707fb31d9fd9fcb55b1b8dfa3512b. Realm config/realms/codestra.json has accessTokenLifespan 300 but no defaultSignatureAlgorithm. No realm signing-key rotation policy is recorded. RS256 is enforced only by Middleware and the certification scripts. No live issuer or JWKS readback exists.",
+      "clear_condition": "Pin the realm signing algorithm to RS256 and add a key-rotation policy. Authorize and apply the v3 access contract in staging, and record the issuer and JWKS readback (kid set) with a token-matrix result.",
+      "owner": "Keycloak lane / PAS-157",
+      "evidence": [
+        "url:https://github.com/ingtrader21-spec/Keycloak/blob/45a487d71a516ae3039b00c250752897469ffe7a/config/contracts/middleware-api-access.v3.json",
+        "url:https://github.com/ingtrader21-spec/Keycloak/blob/45a487d71a516ae3039b00c250752897469ffe7a/config/realms/codestra.json"
+      ]
+    },
+    {
+      "id": "PAS251-B060",
+      "component": "openbao",
+      "gates": ["protected_main", "exact_main_ci", "independent_review"],
+      "mandatory": true,
+      "status": "OPEN",
+      "title": "OpenBao main is unprotected, unchecked and self-merged",
+      "observed": "GET branches/main reports protected=false. The rulesets API returns HTTP 403 (private repository on the current plan). 8e9f0bb0 has zero check-runs and zero commit statuses. PR #82 was authored and merged by the same account with no review.",
+      "clear_condition": "Protect OpenBao main with a PR requirement, required checks, linear history and no force-push (plan or visibility change as needed). Land the next main through a reviewed PR with green required checks.",
+      "owner": "Repository owner / OpenBao lane",
+      "evidence": [
+        "url:https://github.com/ingtrader21-spec/Codestra-OpenBao/pull/82",
+        "url:https://github.com/ingtrader21-spec/Codestra-OpenBao/commit/8e9f0bb0b71ac617de859a5ff49971fae2289c1e"
+      ]
+    },
+    {
+      "id": "PAS251-B061",
+      "component": "openbao",
+      "gates": ["signed_immutable_artifact", "identity_route_matrix", "secret_binding"],
+      "mandatory": true,
+      "status": "OPEN",
+      "title": "OpenBao main is a source-only bootstrap with no runtime authority",
+      "observed": "Main 8e9f0bb0 has 9 files, and CODESTRA_UPSTREAM.json sets deployment_enabled=false. docs/CODESTRA-SECRETS-AUTHORITY.md states that deployment, initialization, unseal/recovery configuration and Keycloak integration 'are not enabled'. Main has no image pin, policies, auth roles, audit device, secret-reference contract or HA/unseal posture. That content exists only on development 46d9d759 and on open PRs to development (#78, #77, #85, #86).",
+      "clear_condition": "Promote the reviewed OpenBao runtime authority to protected main: image digest, least-privilege Middleware policy, workload auth roles, fail-closed audit device, unseal/HA custody and the secret-reference contract. Then certify it in staging.",
+      "owner": "OpenBao lane",
+      "evidence": [
+        "url:https://github.com/ingtrader21-spec/Codestra-OpenBao/blob/8e9f0bb0b71ac617de859a5ff49971fae2289c1e/CODESTRA_UPSTREAM.json",
+        "url:https://github.com/ingtrader21-spec/Codestra-OpenBao/blob/8e9f0bb0b71ac617de859a5ff49971fae2289c1e/docs/CODESTRA-SECRETS-AUTHORITY.md",
+        "url:https://github.com/ingtrader21-spec/Codestra-OpenBao/pull/78"
+      ]
+    }
+  ]
+}
