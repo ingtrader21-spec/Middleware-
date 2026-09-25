@@ -40,7 +40,8 @@
       "repository": "ingtrader21-spec/Codestra-Camera-Gateway",
       "command_prefixes": [
         "camera-gateway.capture.",
-        "camera-gateway.ptz."
+        "camera-gateway.ptz.",
+        "camera-gateway.event."
       ],
       "direct_n8n": false
     },
@@ -51,7 +52,10 @@
       "command_prefixes": [
         "face-id.verify.",
         "face-id.access.",
-        "face-id.presence."
+        "face-id.presence.",
+        "face-id.watchlist.",
+        "face-id.enrollment.",
+        "face-id.duplicate."
       ],
       "direct_n8n": false
     },

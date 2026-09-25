@@ -58,6 +58,57 @@ MISSION_COMMANDS = {
     "camera-gateway.ptz.stop.v1": ("CAMERA_PTZ", closed({"camera_ref": REF})),
 }
 
+MISSION_COMMANDS.update(
+    {
+        "face-id.watchlist.membership.update.v1": (
+            "FACE_ID_WATCHLIST_REFERENCE",
+            closed(
+                {
+                    "watchlist_ref": REF,
+                    "subject_ref": REF,
+                    "action": {"enum": ["add", "remove"]},
+                    "decision_ref": REF,
+                }
+            ),
+        ),
+        "face-id.enrollment.quality.review.v1": (
+            "FACE_ID_ENROLLMENT_REVIEW",
+            closed(
+                {
+                    "session_ref": REF,
+                    "quality_evidence_ref": REF,
+                    "decision": {"enum": ["accept", "reject", "needs_review"]},
+                }
+            ),
+        ),
+        "face-id.duplicate.review.resolve.v1": (
+            "FACE_ID_ENROLLMENT_REVIEW",
+            closed(
+                {
+                    "review_ref": REF,
+                    "candidate_subject_ref": REF,
+                    "evidence_ref": REF,
+                    "resolution": {"enum": ["distinct", "same_subject_candidate", "needs_review"]},
+                }
+            ),
+        ),
+        "camera-gateway.event.normalize.v1": (
+            "CAMERA_EVENT_NORMALIZATION",
+            closed(
+                {
+                    "event_ref": REF,
+                    "camera_ref": REF,
+                    "event_kind": {"enum": ["motion", "scene_change", "tamper", "health"]},
+                    "observed_at": TIME,
+                    "source_version": REF,
+                    "heuristic": {"type": "boolean"},
+                }
+            ),
+        ),
+    }
+)
+
+
 # Only sanitized, closed results can enter the operation evidence ledger.
 MISSION_RESULTS = {
     "face-id.access.evaluate.v1": closed(
@@ -87,6 +138,48 @@ MISSION_RESULTS = {
         for action in ("move", "stop")
     },
 }
+
+MISSION_RESULTS.update(
+    {
+        "face-id.watchlist.membership.update.v1": closed(
+            {
+                "watchlist_ref": REF,
+                "subject_ref": REF,
+                "membership_ref": REF,
+                "state": {"enum": ["present", "absent"]},
+                "audit_ref": REF,
+            }
+        ),
+        "face-id.enrollment.quality.review.v1": closed(
+            {
+                "session_ref": REF,
+                "review_ref": REF,
+                "decision": {"enum": ["accept", "reject", "needs_review"]},
+                "audit_ref": REF,
+                "identity_asserted": {"const": False},
+            }
+        ),
+        "face-id.duplicate.review.resolve.v1": closed(
+            {
+                "review_ref": REF,
+                "resolution_ref": REF,
+                "resolution": {"enum": ["distinct", "same_subject_candidate", "needs_review"]},
+                "audit_ref": REF,
+                "auto_merged": {"const": False},
+                "identity_asserted": {"const": False},
+            }
+        ),
+        "camera-gateway.event.normalize.v1": closed(
+            {
+                "event_ref": REF,
+                "camera_ref": REF,
+                "normalized_event_ref": REF,
+                "stored_raw_frame": {"const": False},
+            }
+        ),
+    }
+)
+
 
 READBACKS: dict[str, dict[str, Any]] = {
     name: {
@@ -153,6 +246,48 @@ for _name, _checks in {
     ]
 
 
+for _name, _checks in {
+    "pitr-readiness": ("wal_archiving", "base_backup_recent", "recovery_target_supported"),
+    "capacity-status": ("storage_within_threshold", "growth_sample_recent", "disk_free_known"),
+    "maintenance-health": ("autovacuum_healthy", "analyze_recent", "checkpoint_healthy"),
+    "failover-rehearsal": ("rehearsal_completed", "integrity_verified", "rto_recorded"),
+}.items():
+    READBACKS[_name] = {
+        "service_id": "postgresql",
+        "method": "GET",
+        "path": f"/internal/v1/observability/{_name}",
+        "scope": "connector.postgresql.read",
+        "state": "IMPLEMENTED_READ_ONLY",
+        "schema": closed(
+            {
+                "tenant_id": REF,
+                "database_ref": REF,
+                "observed_at": TIME,
+                "status": {"enum": ["ready", "not_ready", "unknown"]},
+                "evidence_refs": {
+                    "type": "array",
+                    "maxItems": 100,
+                    "uniqueItems": True,
+                    "items": REF,
+                },
+                "checks": closed({key: {"type": ["boolean", "null"]} for key in _checks}),
+            }
+        ),
+    }
+    _schema = READBACKS[_name]["schema"]
+    _schema["allOf"] = [
+        {
+            "if": {"properties": {"status": {"const": "ready"}}},
+            "then": {
+                "properties": {
+                    "checks": closed({key: {"const": True} for key in _checks}),
+                    "evidence_refs": {"minItems": 1},
+                }
+            },
+        }
+    ]
+
+
 def validate_schema(schema: dict, value: Any) -> None:
     def finite(item: Any) -> bool:
         if isinstance(item, float):
@@ -180,7 +315,10 @@ def authorize_mission(command_type: str, scopes: tuple[str, ...]) -> bool:
         and {
             "FACE_ID_ACCESS_EVALUATE": "face-id.access.evaluate",
             "FACE_ID_PRESENCE_EVENT": "face-id.presence.write",
+            "FACE_ID_WATCHLIST_REFERENCE": "face-id.watchlist.write",
+            "FACE_ID_ENROLLMENT_REVIEW": "face-id.enrollment.review",
             "CAMERA_PTZ": "camera-gateway.ptz.control",
+            "CAMERA_EVENT_NORMALIZATION": "camera-gateway.events.write",
         }[mission[0]]
         in scopes
     )
@@ -190,3 +328,16 @@ def validate_event_idempotency(command_type: str, payload: dict, key: str) -> No
     if command_type in {"face-id.presence.enter.v1", "face-id.presence.exit.v1"}:
         if key != "presence:" + payload["event_ref"]:
             raise ValueError("presence idempotency key must be presence:<event_ref>")
+    elif command_type == "face-id.watchlist.membership.update.v1":
+        expected = "watchlist:" + payload["watchlist_ref"] + ":" + payload["subject_ref"] + ":" + payload["action"]
+        if key != expected:
+            raise ValueError("watchlist idempotency key invalid")
+    elif command_type == "face-id.enrollment.quality.review.v1":
+        if key != "enrollment-review:" + payload["session_ref"]:
+            raise ValueError("enrollment review idempotency key invalid")
+    elif command_type == "face-id.duplicate.review.resolve.v1":
+        if key != "duplicate-review:" + payload["review_ref"]:
+            raise ValueError("duplicate review idempotency key invalid")
+    elif command_type == "camera-gateway.event.normalize.v1":
+        if key != "camera-event:" + payload["event_ref"]:
+            raise ValueError("camera event idempotency key invalid")

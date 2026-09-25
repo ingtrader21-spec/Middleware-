@@ -26,7 +26,10 @@
     "POSTGRESQL_BACKUP": false,
     "FACE_ID_ACCESS_EVALUATE": false,
     "CAMERA_PTZ": false,
-    "FACE_ID_PRESENCE_EVENT": false
+    "FACE_ID_PRESENCE_EVENT": false,
+    "FACE_ID_WATCHLIST_REFERENCE": false,
+    "FACE_ID_ENROLLMENT_REVIEW": false,
+    "CAMERA_EVENT_NORMALIZATION": false
   },
   "activation_requirements": [
     "protected_merged_sha",

@@ -184,3 +184,16 @@ all five client profiles, cross-tenant reads/actions, and evidence sanitization.
 Run `python scripts/validate_identity_missions.py` alongside the existing connector,
 registry, control-plane, OpenAPI and integration-fabric validators. The execution
 record is in [the verification report](../../reports/face-id-missions-v3-20260924.md).
+
+## Missions 6-9 - implementation continuation
+
+- Watchlist/category references carry only opaque watchlist, subject, decision,
+  membership, and audit references. No raw identity or biometric payload is accepted.
+- Enrollment quality and duplicate review use session/review/evidence references,
+  bounded decisions, deterministic idempotency, identity_asserted=false, and auto_merged=false.
+- Camera events use a versioned motion/scene/tamper/health reference envelope with
+  camera-event:<event_ref> idempotency. Raw frames are not stored in Middleware.
+- PostgreSQL PITR, capacity, maintenance, and failover rehearsal surfaces are fixed
+  GET-only evidence projections. No arbitrary SQL, restore, or failover command exists.
+
+All added capabilities remain disabled by default and production activation remains forbidden.

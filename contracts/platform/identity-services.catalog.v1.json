@@ -555,6 +555,474 @@
           }
         ]
       }
+    },
+    "pitr-readiness": {
+      "service_id": "postgresql",
+      "method": "GET",
+      "path": "/internal/v1/observability/pitr-readiness",
+      "scope": "connector.postgresql.read",
+      "state": "IMPLEMENTED_READ_ONLY",
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tenant_id",
+          "database_ref",
+          "observed_at",
+          "status",
+          "evidence_refs",
+          "checks"
+        ],
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "database_ref": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "maxLength": 40
+          },
+          "status": {
+            "enum": [
+              "ready",
+              "not_ready",
+              "unknown"
+            ]
+          },
+          "evidence_refs": {
+            "type": "array",
+            "maxItems": 100,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          },
+          "checks": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "wal_archiving",
+              "base_backup_recent",
+              "recovery_target_supported"
+            ],
+            "properties": {
+              "wal_archiving": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "base_backup_recent": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "recovery_target_supported": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "status": {
+                  "const": "ready"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "checks": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "wal_archiving",
+                    "base_backup_recent",
+                    "recovery_target_supported"
+                  ],
+                  "properties": {
+                    "wal_archiving": {
+                      "const": true
+                    },
+                    "base_backup_recent": {
+                      "const": true
+                    },
+                    "recovery_target_supported": {
+                      "const": true
+                    }
+                  }
+                },
+                "evidence_refs": {
+                  "minItems": 1
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "capacity-status": {
+      "service_id": "postgresql",
+      "method": "GET",
+      "path": "/internal/v1/observability/capacity-status",
+      "scope": "connector.postgresql.read",
+      "state": "IMPLEMENTED_READ_ONLY",
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tenant_id",
+          "database_ref",
+          "observed_at",
+          "status",
+          "evidence_refs",
+          "checks"
+        ],
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "database_ref": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "maxLength": 40
+          },
+          "status": {
+            "enum": [
+              "ready",
+              "not_ready",
+              "unknown"
+            ]
+          },
+          "evidence_refs": {
+            "type": "array",
+            "maxItems": 100,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          },
+          "checks": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "storage_within_threshold",
+              "growth_sample_recent",
+              "disk_free_known"
+            ],
+            "properties": {
+              "storage_within_threshold": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "growth_sample_recent": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "disk_free_known": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "status": {
+                  "const": "ready"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "checks": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "storage_within_threshold",
+                    "growth_sample_recent",
+                    "disk_free_known"
+                  ],
+                  "properties": {
+                    "storage_within_threshold": {
+                      "const": true
+                    },
+                    "growth_sample_recent": {
+                      "const": true
+                    },
+                    "disk_free_known": {
+                      "const": true
+                    }
+                  }
+                },
+                "evidence_refs": {
+                  "minItems": 1
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "maintenance-health": {
+      "service_id": "postgresql",
+      "method": "GET",
+      "path": "/internal/v1/observability/maintenance-health",
+      "scope": "connector.postgresql.read",
+      "state": "IMPLEMENTED_READ_ONLY",
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tenant_id",
+          "database_ref",
+          "observed_at",
+          "status",
+          "evidence_refs",
+          "checks"
+        ],
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "database_ref": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "maxLength": 40
+          },
+          "status": {
+            "enum": [
+              "ready",
+              "not_ready",
+              "unknown"
+            ]
+          },
+          "evidence_refs": {
+            "type": "array",
+            "maxItems": 100,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          },
+          "checks": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "autovacuum_healthy",
+              "analyze_recent",
+              "checkpoint_healthy"
+            ],
+            "properties": {
+              "autovacuum_healthy": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "analyze_recent": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "checkpoint_healthy": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "status": {
+                  "const": "ready"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "checks": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "autovacuum_healthy",
+                    "analyze_recent",
+                    "checkpoint_healthy"
+                  ],
+                  "properties": {
+                    "autovacuum_healthy": {
+                      "const": true
+                    },
+                    "analyze_recent": {
+                      "const": true
+                    },
+                    "checkpoint_healthy": {
+                      "const": true
+                    }
+                  }
+                },
+                "evidence_refs": {
+                  "minItems": 1
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "failover-rehearsal": {
+      "service_id": "postgresql",
+      "method": "GET",
+      "path": "/internal/v1/observability/failover-rehearsal",
+      "scope": "connector.postgresql.read",
+      "state": "IMPLEMENTED_READ_ONLY",
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tenant_id",
+          "database_ref",
+          "observed_at",
+          "status",
+          "evidence_refs",
+          "checks"
+        ],
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "database_ref": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "maxLength": 40
+          },
+          "status": {
+            "enum": [
+              "ready",
+              "not_ready",
+              "unknown"
+            ]
+          },
+          "evidence_refs": {
+            "type": "array",
+            "maxItems": 100,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          },
+          "checks": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "rehearsal_completed",
+              "integrity_verified",
+              "rto_recorded"
+            ],
+            "properties": {
+              "rehearsal_completed": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "integrity_verified": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "rto_recorded": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "status": {
+                  "const": "ready"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "checks": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "rehearsal_completed",
+                    "integrity_verified",
+                    "rto_recorded"
+                  ],
+                  "properties": {
+                    "rehearsal_completed": {
+                      "const": true
+                    },
+                    "integrity_verified": {
+                      "const": true
+                    },
+                    "rto_recorded": {
+                      "const": true
+                    }
+                  }
+                },
+                "evidence_refs": {
+                  "minItems": 1
+                }
+              }
+            }
+          }
+        ]
+      }
     }
   },
   "source_reconciliation": {

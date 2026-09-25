@@ -67,11 +67,91 @@ RESULTS: dict[str, dict[str, Any]] = {
     },
 }
 
+PAYLOADS.update(
+    {
+        "face-id.watchlist.membership.update.v1": {
+            "watchlist_ref": "watchlist-1",
+            "subject_ref": "subject-1",
+            "action": "add",
+            "decision_ref": "decision-1",
+        },
+        "face-id.enrollment.quality.review.v1": {
+            "session_ref": "session-1",
+            "quality_evidence_ref": "quality-1",
+            "decision": "needs_review",
+        },
+        "face-id.duplicate.review.resolve.v1": {
+            "review_ref": "review-1",
+            "candidate_subject_ref": "subject-2",
+            "evidence_ref": "evidence-1",
+            "resolution": "distinct",
+        },
+        "camera-gateway.event.normalize.v1": {
+            "event_ref": "event-1",
+            "camera_ref": "camera-1",
+            "event_kind": "motion",
+            "observed_at": "2026-09-25T12:00:00Z",
+            "source_version": "camera-gateway-v1",
+            "heuristic": True,
+        },
+    }
+)
+
+RESULTS.update(
+    {
+        "face-id.watchlist.membership.update.v1": {
+            "watchlist_ref": "watchlist-1",
+            "subject_ref": "subject-1",
+            "membership_ref": "membership-1",
+            "state": "present",
+            "audit_ref": "audit-1",
+        },
+        "face-id.enrollment.quality.review.v1": {
+            "session_ref": "session-1",
+            "review_ref": "review-1",
+            "decision": "needs_review",
+            "audit_ref": "audit-1",
+            "identity_asserted": False,
+        },
+        "face-id.duplicate.review.resolve.v1": {
+            "review_ref": "review-1",
+            "resolution_ref": "resolution-1",
+            "resolution": "distinct",
+            "audit_ref": "audit-1",
+            "auto_merged": False,
+            "identity_asserted": False,
+        },
+        "camera-gateway.event.normalize.v1": {
+            "event_ref": "event-1",
+            "camera_ref": "camera-1",
+            "normalized_event_ref": "normalized-1",
+            "stored_raw_frame": False,
+        },
+    }
+)
+
+
 
 def mission(name):
     base = command(name.split(".")[0]).model_dump()
     if ".presence." in name:
         base["idempotency_key"] = "presence:" + PAYLOADS[name]["event_ref"]
+    elif name == "face-id.watchlist.membership.update.v1":
+        payload = PAYLOADS[name]
+        base["idempotency_key"] = (
+            "watchlist:"
+            + payload["watchlist_ref"]
+            + ":"
+            + payload["subject_ref"]
+            + ":"
+            + payload["action"]
+        )
+    elif name == "face-id.enrollment.quality.review.v1":
+        base["idempotency_key"] = "enrollment-review:" + PAYLOADS[name]["session_ref"]
+    elif name == "face-id.duplicate.review.resolve.v1":
+        base["idempotency_key"] = "duplicate-review:" + PAYLOADS[name]["review_ref"]
+    elif name == "camera-gateway.event.normalize.v1":
+        base["idempotency_key"] = "camera-event:" + PAYLOADS[name]["event_ref"]
     return CommandEnvelope.model_validate(
         {
             **base,
@@ -465,3 +545,58 @@ async def test_presence_direction_conflict_and_tenant_scoped_keys():
     )
     await store.submit(foreign, authenticated_client_id="face-id-service")
     assert len(store._outbox) == 2
+
+def test_new_missions_never_accept_raw_identity_or_effect_escalation():
+    for name in (
+        "face-id.watchlist.membership.update.v1",
+        "face-id.enrollment.quality.review.v1",
+        "face-id.duplicate.review.resolve.v1",
+        "camera-gateway.event.normalize.v1",
+    ):
+        cmd = mission(name)
+        request = cmd.model_dump(exclude={"target", "capability"})
+        for forbidden in (
+            {"raw_image": "base64"},
+            {"embedding": [0.1]},
+            {"sql": "SELECT 1"},
+            {"restore": True},
+            {"auto_merge": True},
+        ):
+            with pytest.raises(ValidationError):
+                KernelCommandRequest.model_validate(
+                    {**request, "payload": {**cmd.payload, **forbidden}}
+                )
+
+
+def test_review_results_cannot_assert_identity_or_auto_merge():
+    from app.identity_missions import MISSION_RESULTS, validate_schema
+
+    with pytest.raises(ValueError):
+        validate_schema(
+            MISSION_RESULTS["face-id.enrollment.quality.review.v1"],
+            {**RESULTS["face-id.enrollment.quality.review.v1"], "identity_asserted": True},
+        )
+    with pytest.raises(ValueError):
+        validate_schema(
+            MISSION_RESULTS["face-id.duplicate.review.resolve.v1"],
+            {**RESULTS["face-id.duplicate.review.resolve.v1"], "auto_merged": True},
+        )
+
+
+def test_camera_gateway_service_has_only_event_normalization_authority():
+    caller = CONTROL_PLANE_CALLERS["camera-gateway-service"]
+    authorize_command(
+        caller,
+        command_type="camera-gateway.event.normalize.v1",
+        target="camera-gateway",
+    )
+    assert authorize_mission(
+        "camera-gateway.event.normalize.v1",
+        ("platform.command", "camera-gateway.events.write"),
+    )
+    with pytest.raises(AuthorizationError):
+        authorize_command(
+            caller,
+            command_type="camera-gateway.ptz.move.v1",
+            target="camera-gateway",
+        )
