@@ -1,0 +1,20 @@
+Interpreter: /home/codestra/Worktrees/Middleware-/.venv-test/bin/python (Python 3.14.4)
+Harness: docs/evidence/parallel-auth-tenant-review-20260924/run_checks.py
+All commands run from repository root. Logs capture stdout/stderr.
+
+python HARNESS pytest -q tests/test_security.py tests/test_auth.py tests/test_platform_security_matrix.py tests/test_platform_verified_authority.py tests/test_platform_kernel.py tests/test_platform_api.py tests/test_control_plane_product_auth.py tests/test_internal_authorization.py tests/test_provider_webhooks.py tests/test_replay.py tests/test_secret_reference_contract.py tests/test_secret_file_fail_closed.py tests/test_klyrow_email_adapter.py tests/test_email_production_control.py tests/test_communications_email.py tests/test_n8n_security_invariants.py tests/test_n8n_result_security.py tests/test_lead_callback_auth.py tests/test_route_authority_report.py tests/test_identity_webhook_contract_validation.py
+=> security-tests.log
+
+python HARNESS pytest -q -rs tests/review_auth_tenant_boundaries.py tests/test_tenants_api.py tests/test_tenants_and_campaigns.py tests/test_platform_control_plane_route_ownership.py tests/test_platform_adapter_conformance.py tests/test_platform_contract.py tests/test_beyvra_email_migration_safety.py tests/test_klyrow_ingress_contract.py tests/test_n8n_jwt_guard_routing.py
+=> extended-tests.log
+
+python HARNESS scripts/validate_identity_webhook_contracts.py
+=> identity-validator.log
+
+python HARNESS scripts/generate_route_authority_report.py --check
+=> route-validator.log
+
+Staged all and only authorized review files, then ran:
+git diff --check
+git diff --cached --check
+=> diff-check.log

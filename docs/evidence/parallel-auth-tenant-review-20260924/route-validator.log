@@ -1,0 +1,3 @@
+<frozen site>:107: RuntimeWarning: Unexpected value in sys.prefix, expected /home/codestra/Worktrees/Middleware-/.venv-test, got /home/codestra/Worktrees/Middleware-/parallel-auth-tenant-review/../.venv-test
+<frozen site>:107: RuntimeWarning: Unexpected value in sys.exec_prefix, expected /home/codestra/Worktrees/Middleware-/.venv-test, got /home/codestra/Worktrees/Middleware-/parallel-auth-tenant-review/../.venv-test
+ROUTE_AUTHORITY=MATCH operations=320 DIRECT_EFFECT_BYPASSES=0

@@ -1,0 +1,10 @@
+<frozen site>:107: RuntimeWarning: Unexpected value in sys.prefix, expected /home/codestra/Worktrees/Middleware-/.venv-test, got /home/codestra/Worktrees/Middleware-/parallel-auth-tenant-review/../.venv-test
+<frozen site>:107: RuntimeWarning: Unexpected value in sys.exec_prefix, expected /home/codestra/Worktrees/Middleware-/.venv-test, got /home/codestra/Worktrees/Middleware-/parallel-auth-tenant-review/../.venv-test
+SERVICE_CLIENTS=18
+SERVICE_GRANTS=32
+WEBHOOK_CONTRACTS=8
+WEBHOOK_EVENT_TYPES=40
+SOURCE_STATE_COUNTS={"adapter-present-runtime-unverified":2,"contract-only":9,"contract-source-missing":2,"gateway-present-runtime-unverified":3,"repository-unconfirmed":1,"workflow-source-missing":1}
+IDENTITY_ACCESS_POLICY=PASS
+API_WEBHOOK_CONTRACT_POLICY=PASS
+MIDDLEWARE_INTEGRATION_CONTRACTS=PASS
