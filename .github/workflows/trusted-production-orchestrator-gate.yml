@@ -15,7 +15,7 @@ jobs:
   validate-candidate:
     if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
     name: trusted-orchestrator-evidence
-    runs-on: [self-hosted, Linux, X64, middleware-ci]
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       contents: read
