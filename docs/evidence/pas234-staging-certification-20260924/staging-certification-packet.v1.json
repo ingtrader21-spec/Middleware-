@@ -1,0 +1,104 @@
+{
+  "schema_version": "1.0",
+  "issue": "PAS-234",
+  "packet_date": "2026-09-24",
+  "status": {
+    "GATE_A": "COMPLETE",
+    "GATE_B": "NO_GO",
+    "STAGING_CERTIFIED": "NO",
+    "ROLLBACK_PROVEN": "NO",
+    "TARGET_IMAGE_DIGEST": "PENDING_PAS27",
+    "RUNTIME_MUTATION": 0,
+    "PROVIDER_EFFECTS": 0,
+    "PRODUCTION_GO": "NO"
+  },
+  "source": {
+    "protected_main": "0606b0db9ff59802f8da3824d209d2effc13f87d",
+    "alembic_head": "0067_service_catalog_monitoring_state",
+    "core_sql_receipts": 11,
+    "image_repository": "ghcr.io/ingtrader21-spec/codestra-middleware",
+    "image_build_target": "runtime",
+    "image_user": "65532:65532",
+    "compose_runtime_user": "10001:10001",
+    "runtime_profile_id": "codestra-middleware-staging-v1"
+  },
+  "staging_units": [
+    {
+      "service": "middleware-integration-api",
+      "command": ["python", "-m", "app.entrypoints.integration_api"],
+      "database_url_secret": "/etc/codestra/secrets/middleware-runtime/middleware-integration-api-database-url",
+      "db_role": "middleware_api"
+    },
+    {
+      "service": "middleware-notification-worker",
+      "command": ["python", "-m", "app.entrypoints.notification_worker"],
+      "database_url_secret": "/etc/codestra/secrets/middleware-runtime/middleware-notification-worker-database-url",
+      "db_role": "middleware_worker"
+    },
+    {
+      "service": "middleware-scheduler",
+      "command": ["python", "-m", "app.entrypoints.scheduler"],
+      "database_url_secret": "/etc/codestra/secrets/middleware-runtime/middleware-scheduler-database-url",
+      "db_role": "middleware_scheduler"
+    },
+    {
+      "service": "middleware-reconciliation-worker",
+      "command": ["python", "-m", "app.entrypoints.reconciliation_worker"],
+      "database_url_secret": "/etc/codestra/secrets/middleware-runtime/middleware-reconciliation-worker-database-url",
+      "db_role": "middleware_reconciler"
+    }
+  ],
+  "effects_off": {
+    "safety_positive_true_flags": ["HEALTH_REQUIRE_DATABASE", "VICIDIAL_ODOO_SYNTHETIC_ONLY"],
+    "recorded_compose_exceptions": [
+      ["middleware-integration-api", "N8N_RUNTIME_ENABLED", "true"],
+      ["middleware-n8n-runtime-worker", "N8N_RUNTIME_ENABLED", "true"],
+      ["middleware-odoo-campaign-saga-worker", "ENVIRONMENT", "production"],
+      ["middleware-odoo-result-worker", "ENVIRONMENT", "production"],
+      ["middleware-social-n8n-delivery-worker", "N8N_RUNTIME_ENABLED", "true"]
+    ],
+    "staging_unit_allowed_exceptions": [
+      ["middleware-integration-api", "N8N_RUNTIME_ENABLED", "true"]
+    ]
+  },
+  "contracts": {
+    "public_route_contract_sha256": "9c32daecd4a15104c6f9ff60ce19c8f7e78707fb31d9fd9fcb55b1b8dfa3512b",
+    "required_openapi_operations": [
+      ["get", "/healthz"],
+      ["get", "/readyz"],
+      ["get", "/metrics"],
+      ["get", "/v1/runtime/safety"],
+      ["get", "/internal/v1/database/readiness"],
+      ["get", "/internal/v1/database/security/tls"],
+      ["post", "/internal/v1/database/migrations/verify"],
+      ["post", "/platform/v1/commands"],
+      ["get", "/platform/v1/kernel/describe"],
+      ["get", "/platform/v1/operations/{operation_id}"],
+      ["get", "/platform/v1/operations/{operation_id}/timeline"],
+      ["post", "/platform/v1/operations/{operation_id}/cancel"],
+      ["post", "/platform/v1/operations/{operation_id}/replay"]
+    ],
+    "forbidden_openapi_paths": [
+      "/internal/v1/database/migrations/apply",
+      "/internal/v1/database/sql",
+      "/internal/v1/database/query"
+    ],
+    "postman_db_staging_environment": "postman/environments/Middleware-V3-DB-Staging.postman_environment.json"
+  },
+  "blockers": [
+    {"id": "B-01", "status": "OPEN", "owner": "PAS-190", "summary": "Hosted GitHub Actions for ingtrader21-spec/Middleware- not executing (billing lock); no trustworthy exact-head CI."},
+    {"id": "B-02", "status": "OPEN", "owner": "PAS-27", "summary": "No signed RC digest; release runs 35602170321 and 35613442378 failed."},
+    {"id": "B-03", "status": "OPEN", "owner": "PAS-79/PAS-80", "summary": "validate_runtime rejects every locked-profile DATABASE_URL after the module-level postgresql+asyncpg rewrite (main and PR #304 head)."},
+    {"id": "B-04", "status": "OPEN", "owner": "PAS-79/PAS-80", "summary": "Staging profile on main does not admit the Server 1 topology (host postgres, db middleware_staging, per-role users, cert paths); database_alternates exist only in unmerged PR #304."},
+    {"id": "B-05", "status": "OPEN", "owner": "PAS-151", "summary": "PR #309 0067 CHECK-constraint reconciler not accepted; its rehearsal on a restored staging backup shows four protected schema-digest mismatches that block migrate_runtime.py --verify-only until it runs."},
+    {"id": "B-06", "status": "OPEN", "owner": "PAS-13", "summary": "No staging compose overlay/env in Git; APP_ENV, RUNTIME_PROFILE_ID and DATABASE_URL_FILE are host-only."},
+    {"id": "B-07", "status": "OPEN", "owner": "PAS-79", "summary": "Per-role CN-bound client certificates not yet issued/mounted per unit; no in-app certificate expiry/identity check."},
+    {"id": "B-08", "status": "OPEN", "owner": "PAS-151", "summary": "Caddy -> Kong -> Middleware chain not certifiable (Kong OIDC plugin unlicensed; Kong PRs #115/#116 unaccepted)."}
+  ],
+  "reused_evidence": [
+    {"issue": "PAS-27", "ref": "docs/evidence/pas27-schema-0067-rc-20260921/", "commit": "0606b0db9ff59802f8da3824d209d2effc13f87d"},
+    {"issue": "PAS-180", "ref": "origin/pas-180/staging-preflight-refresh2-20260924:docs/evidence/staging-preflight-20260924/", "commit": "8d0edd8"},
+    {"issue": "PAS-151", "ref": "https://github.com/ingtrader21-spec/Middleware-/pull/309", "commit": "16afd4688680cbe8738d657a1e0d7e62b8956835"},
+    {"issue": "PAS-102", "ref": "postman/collections/Middleware-V3-Database-Certification.postman_collection.json", "commit": "bd406a6508c8095a3f23b35149a2eebcb94c94c6"}
+  ]
+}
