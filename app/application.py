@@ -71,12 +71,15 @@ class AppProfile(str, Enum):
     CONTROL_PLANE = "control-plane"
     # ``app.main:app``: every group, including the edge-denied legacy aliases.
     MONOLITH = "monolith"
+    # Canonical :8095 composition: Sections 1-6 without legacy/direct-provider routes.
+    CANONICAL_8095 = "canonical-8095"
 
 
 _DEFAULT_SERVICE = {
     AppProfile.INTEGRATION: SERVICE_INTEGRATION_API,
     AppProfile.CONTROL_PLANE: SERVICE_CANONICAL_API,
     AppProfile.MONOLITH: SERVICE_CANONICAL_API,
+    AppProfile.CANONICAL_8095: SERVICE_INTEGRATION_API,
 }
 
 
@@ -156,7 +159,7 @@ def create_app(
     register_health_routes(app, service=service_name, state=state)
     mount_canonical_routers(app)
     mount_common_routers(app)
-    if profile in {AppProfile.INTEGRATION, AppProfile.MONOLITH}:
+    if profile in {AppProfile.INTEGRATION, AppProfile.MONOLITH, AppProfile.CANONICAL_8095}:
         mount_integration_routers(app)
     if profile in {AppProfile.CONTROL_PLANE, AppProfile.MONOLITH}:
         mount_appolon_routers(app)
@@ -167,5 +170,23 @@ def create_app(
     # (same envelope plus the auth-denial metric); installed last so they win.
     appolon_routes.install_error_handlers(app)
     assert_unique_routes(app)
+    if profile is AppProfile.CANONICAL_8095:
+        # The deployed :8095 process is a strict composition boundary.  It may
+        # expose canonical and compatibility integration routes, but never the
+        # monolith-only legacy/direct-provider surfaces.
+        from app.router_registry import route_operations
+
+        deployed = set(route_operations(app))
+        forbidden = {
+            (method, path)
+            for router in LEGACY_MONOLITH_ONLY_ROUTERS
+            for route in router.routes
+            for path in [getattr(route, "path", None)]
+            for method in (getattr(route, "methods", None) or ())
+            if path is not None
+        }
+        leaked = sorted(deployed & forbidden)
+        if leaked:
+            raise RuntimeError(f"canonical :8095 composition leaked legacy routes: {leaked}")
     appolon_routes.install_canonical_openapi(app)
     return app

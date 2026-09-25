@@ -624,13 +624,13 @@ operations:
 - domain: platform
   method: GET
   path: /platform/v1/adapters
-  canonical_operation_id: list_adapters_platform_v1_adapters_get
+  canonical_operation_id: adapters_platform_v1_adapters_get
   implementation_file: registered FastAPI runtime
   runtime_state: IMPLEMENTED
 - domain: platform
   method: GET
   path: /platform/v1/adapters/{adapter_id}
-  canonical_operation_id: get_adapter_platform_v1_adapters__adapter_id__get
+  canonical_operation_id: adapter_platform_v1_adapters__adapter_id__get
   implementation_file: registered FastAPI runtime
   runtime_state: IMPLEMENTED
 - domain: platform

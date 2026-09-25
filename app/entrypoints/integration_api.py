@@ -14,7 +14,7 @@ from app.entrypoints.runtime import run_api
 
 SERVICE = SERVICE_INTEGRATION_API
 
-app = create_app(profile=AppProfile.INTEGRATION, service=SERVICE)
+app = create_app(profile=AppProfile.CANONICAL_8095, service=SERVICE)
 
 
 if __name__ == "__main__":

@@ -26,7 +26,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.api_inputs import optional_header, required_header
 from app.commands import API_OPERATION_STATES, CommandCapabilityDisabled, CommandEnvelope, CommandNotFound, CommandOperation, OperationEvent, redact_metadata
-from app.platform.kernel import SCOPE_COMMAND, SCOPE_COMMAND_READ, SCOPE_COMMAND_REPLAY
+from app.platform.kernel import CapabilityUnknown, SCOPE_COMMAND, SCOPE_COMMAND_READ, SCOPE_COMMAND_REPLAY
 from app.platform.principal import KernelPrincipal, authenticate
 from app.platform.resilience import ReplayMode
 from app.security import AuthorizationError, RequestValidationError
@@ -340,6 +340,8 @@ async def submit_command(body: KernelCommandRequest, request: Request) -> JSONRe
     if body.target is not None and body.target != policy.target:
         raise CommandCapabilityDisabled("command target does not own the command type")
     if body.capability is not None and body.capability != policy.capability:
+        if body.capability not in runtime.commands.policies.capabilities:
+            raise CapabilityUnknown("command capability is not registered")
         raise CommandCapabilityDisabled("command capability does not match the owning policy")
     command = body.envelope(target=policy.target, capability=policy.capability)
     # Authentication-derived facts are never trusted from the body.
@@ -484,6 +486,41 @@ async def replay_operation(operation_id: UUID, body: ReplayRequest, request: Req
         operation_correlation_id=operation.correlation_id,
         location=f"/platform/v1/operations/{operation.command_id}",
     )
+
+
+# ----------------------------------------------------------------------
+# GET /platform/v1/adapters[/\{adapter_id\}]
+# ----------------------------------------------------------------------
+@router.get("/adapters")
+async def adapters(request: Request) -> JSONResponse:
+    await authenticate(request, required_scope=SCOPE_COMMAND_READ)
+    _, platform = _runtime(request)
+    body = await platform.adapter_readback()
+    correlation_id = _request_correlation(request)
+    return JSONResponse(status_code=200, content=body, headers={**_response_headers(correlation_id=correlation_id), "Cache-Control": "no-store"})
+
+
+@router.get("/adapters/{adapter_id}")
+async def adapter(request: Request, adapter_id: str) -> JSONResponse:
+    await authenticate(request, required_scope=SCOPE_COMMAND_READ)
+    _, platform = _runtime(request)
+    body = await platform.adapter_readback()
+    if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", adapter_id):
+        raise RequestValidationError("invalid adapter id")
+    rows = [row for row in body.get("adapters", []) if row.get("adapter_id") == adapter_id]
+    if not rows:
+        correlation_id = _request_correlation(request)
+        return JSONResponse(status_code=404, content={"error": {"code": "adapter_not_found", "message": "Adapter not found", "correlation_id": correlation_id, "retryable": False, "details": {}}}, headers=_response_headers(correlation_id=correlation_id))
+    selected = rows[0]
+    selected_capabilities = {
+        name: state for name, state in body.get("capabilities", {}).items()
+        if name in selected.get("capabilities", [])
+    }
+    correlation_id = _request_correlation(request)
+    detail = {key: value for key, value in body.items() if key != "adapters"}
+    detail["adapter"] = selected
+    detail["capabilities"] = selected_capabilities
+    return JSONResponse(status_code=200, content=detail, headers={**_response_headers(correlation_id=correlation_id), "Cache-Control": "no-store"})
 
 
 # ----------------------------------------------------------------------

@@ -4,7 +4,9 @@ from uuid import UUID
 
 from fastapi.testclient import TestClient
 
+from app.application import AppProfile
 from app.core.config import settings
+from app.router_registry import LEGACY_MONOLITH_ONLY_ROUTERS
 from app.entrypoints import (
     event_gateway,
     extension_allocator,
@@ -311,3 +313,19 @@ def test_worker_has_internal_operational_endpoints():
         assert readiness.json()["queue"] == "test.queue.v1"
         assert health.headers["Cache-Control"] == "no-store"
         assert health.headers["X-Correlation-ID"]
+
+
+def test_integration_entrypoint_uses_canonical_8095_composition():
+    assert integration_api.app.state.profile is AppProfile.CANONICAL_8095
+    paths = route_paths(integration_api.app)
+    assert "/platform/v1/commands" in paths
+    assert any(path.startswith("/v2/automation") for path in paths)
+    assert "/healthz" in paths and "/readyz" in paths
+    # Legacy monolith-only control aliases must never become part of :8095.
+    legacy_paths = {
+        route.path
+        for router in LEGACY_MONOLITH_ONLY_ROUTERS
+        for route in router.routes
+        if hasattr(route, "path")
+    }
+    assert paths.isdisjoint(legacy_paths)
