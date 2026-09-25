@@ -9,6 +9,7 @@ provider readback.
 from __future__ import annotations
 
 from typing import Any, Mapping
+from urllib.parse import quote
 
 import httpx
 
@@ -92,6 +93,7 @@ class WhatsAppProviderAdapter(BaseAdapter):
         payload = dict(command.payload)
         recipient = payload.get("recipient")
         message = payload.get("message")
+        campaign_id = payload.get("campaign_id")
         if not isinstance(recipient, str) or not recipient.strip():
             return AdapterResult(
                 Outcome.REJECTED,
@@ -104,19 +106,29 @@ class WhatsAppProviderAdapter(BaseAdapter):
                 error_class=ErrorClass.NON_RETRYABLE,
                 safe_error_code="message_required",
             )
+        if not isinstance(campaign_id, str) or not campaign_id.strip():
+            return AdapterResult(
+                Outcome.REJECTED,
+                error_class=ErrorClass.NON_RETRYABLE,
+                safe_error_code="campaign_id_required",
+            )
 
         instance_id = payload.get("instance_id")
         if not isinstance(instance_id, str) or not instance_id.strip():
             instance_id = self.default_instance_id
 
+        business_context = dict(payload.get("business_context") or {})
+        business_context.setdefault("campaign_id", campaign_id.strip())
         body: dict[str, Any] = {
             "command_id": str(command.command_id),
+            "tenant_id": command.tenant_id,
             "correlation_id": command.correlation_id,
             "idempotency_key": command.idempotency_key,
+            "campaign_id": campaign_id.strip(),
             "provider": self.provider,
             "recipient": recipient.strip(),
             "message": dict(message),
-            "business_context": dict(payload.get("business_context") or {}),
+            "business_context": business_context,
         }
         if instance_id:
             body["instance_id"] = instance_id
@@ -124,6 +136,8 @@ class WhatsAppProviderAdapter(BaseAdapter):
         headers = {
             **context.outbound_headers(),
             "Authorization": f"Bearer {self.service_token}",
+            "X-Tenant-ID": command.tenant_id,
+            "X-Command-ID": str(command.command_id),
             "Idempotency-Key": command.idempotency_key,
             "Content-Type": "application/json",
         }
@@ -203,10 +217,12 @@ class WhatsAppProviderAdapter(BaseAdapter):
         headers = {
             **context.outbound_headers(),
             "Authorization": f"Bearer {self.service_token}",
+            "X-Tenant-ID": operation.tenant_id,
+            "X-Command-ID": str(operation.command_id),
         }
         try:
             response = await context.http.get(
-                f"{self.base_url}/internal/v1/whatsapp/transport/messages/{provider_id}",
+                f"{self.base_url}/internal/v1/whatsapp/transport/messages/{quote(provider_id, safe='')}",
                 headers=headers,
                 timeout=context.timeout_seconds,
             )
