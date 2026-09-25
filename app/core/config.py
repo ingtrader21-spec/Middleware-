@@ -745,6 +745,18 @@ class Settings(BaseSettings):
     environment: str = "preproduction"
     publisher_hmac_keys_file: str = ""
     publisher_canary_enabled: bool = False
+    # PAS-57 bounded provider-canary controller: disabled by default and
+    # synthetic/no-effect only (there is no live provider execution path).
+    provider_canary_controller_enabled: bool = False
+    provider_canary_kill_switch_engaged: bool = False
+    provider_canary_allowed_tenant_ids: str = ""
+    provider_canary_allowed_targets: str = ""
+    provider_canary_max_attempts: int = 1
+    provider_canary_max_rate_per_minute: int = 1
+    provider_canary_max_destinations: int = 1
+    provider_canary_max_duration_seconds: int = 900
+    provider_canary_max_spend_minor_units: int = 0
+    provider_canary_kill_switch_readback_max_age_seconds: int = 900
     breero_ingress_enabled: bool = False
     breero_odoo_delivery_enabled: bool = False
     breero_hmac_identities_file: str = ""
@@ -1748,6 +1760,7 @@ class Settings(BaseSettings):
                 raise ValueError("production Postly secrets and endpoint are required")
             self.postiz_api_key
             self.postly_webhook_verification_secret
+        self._validate_provider_canary_controller()
         if (
             self.social_automatic_provider_failover_enabled
             or self.social_automatic_dual_publish_enabled
@@ -1773,6 +1786,64 @@ class Settings(BaseSettings):
                 raise ValueError(
                     "broad-event activation requires bounded explicit scope"
                 )
+
+    def _validate_provider_canary_controller(self) -> None:
+        caps = {
+            "PROVIDER_CANARY_MAX_ATTEMPTS": (self.provider_canary_max_attempts, 1, 10),
+            "PROVIDER_CANARY_MAX_RATE_PER_MINUTE": (
+                self.provider_canary_max_rate_per_minute,
+                1,
+                10,
+            ),
+            "PROVIDER_CANARY_MAX_DESTINATIONS": (
+                self.provider_canary_max_destinations,
+                1,
+                5,
+            ),
+            "PROVIDER_CANARY_MAX_DURATION_SECONDS": (
+                self.provider_canary_max_duration_seconds,
+                60,
+                3600,
+            ),
+            "PROVIDER_CANARY_MAX_SPEND_MINOR_UNITS": (
+                self.provider_canary_max_spend_minor_units,
+                0,
+                0,
+            ),
+            "PROVIDER_CANARY_KILL_SWITCH_READBACK_MAX_AGE_SECONDS": (
+                self.provider_canary_kill_switch_readback_max_age_seconds,
+                60,
+                3600,
+            ),
+        }
+        for name, (value, low, high) in caps.items():
+            if not low <= value <= high:
+                raise ValueError(f"{name} must be between {low} and {high}")
+        if not self.provider_canary_controller_enabled:
+            return
+        if self.app_env == "production":
+            raise ValueError(
+                "the synthetic provider-canary controller is forbidden in production"
+            )
+        from app.provider_canary import TARGET_CHANNELS
+
+        tenants = {
+            item.strip()
+            for item in self.provider_canary_allowed_tenant_ids.split(",")
+            if item.strip()
+        }
+        targets = {
+            item.strip()
+            for item in self.provider_canary_allowed_targets.split(",")
+            if item.strip()
+        }
+        if not tenants or not targets:
+            raise ValueError(
+                "the provider-canary controller requires explicit tenant and "
+                "target allowlists"
+            )
+        if not targets <= TARGET_CHANNELS.keys():
+            raise ValueError("PROVIDER_CANARY_ALLOWED_TARGETS names an unknown target")
 
     @property
     def broad_event_pipeline_enabled(self) -> bool:
