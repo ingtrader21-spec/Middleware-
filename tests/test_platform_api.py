@@ -13,11 +13,13 @@ from uuid import uuid4
 import jwt
 import pytest
 from fastapi.testclient import TestClient
+from pydantic import ValidationError
 
 from app.application import AppProfile, create_app
 from app.commands import CommandService, MemoryCommandStore
 from app.core.config import Settings
 from app.core.runtime import RuntimeContainer
+from app.platform.api import ReconciliationResolveRequest
 from app.platform.memory import MemoryExecutionBus
 from app.platform.runtime import build_platform_runtime, command_policies
 from app.replay import MemoryReplayGuard
@@ -375,3 +377,13 @@ def test_reconciliation_resolution_is_idempotent_and_content_bound(stack: Stack)
         )
         assert conflict.status_code == 409
         assert conflict.json()["error"]["code"] == "command_conflict"
+
+
+def test_reconciliation_resolution_rejects_oversized_evidence() -> None:
+    with pytest.raises(ValidationError, match="16 KiB"):
+        ReconciliationResolveRequest(
+            expected_version=1,
+            matched=True,
+            reason="provider readback matched",
+            evidence={"blob": "x" * 17_000},
+        )
