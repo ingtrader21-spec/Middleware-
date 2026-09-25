@@ -1957,6 +1957,7 @@ class CallbackDelivery(Base):
         ForeignKey("callback_record.id", ondelete="RESTRICT"),
         nullable=False,
     )
+    tenant_id: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
     callback_version: Mapped[int] = mapped_column(Integer, nullable=False)
     channel: Mapped[str] = mapped_column(String(16), nullable=False)
     stage: Mapped[str] = mapped_column(String(32), nullable=False)
@@ -2086,6 +2087,7 @@ class AgentProvisioningStep(Base):
         nullable=False,
         index=True,
     )
+    tenant_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     system: Mapped[str] = mapped_column(String(32), nullable=False)
     operation: Mapped[str] = mapped_column(String(64), nullable=False)
     attempt: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
@@ -2121,6 +2123,7 @@ class AgentProvisioningAudit(Base):
         nullable=False,
         index=True,
     )
+    tenant_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     from_state: Mapped[str] = mapped_column(String(24), nullable=False)
     to_state: Mapped[str] = mapped_column(String(24), nullable=False)
     action: Mapped[str] = mapped_column(String(32), nullable=False)
