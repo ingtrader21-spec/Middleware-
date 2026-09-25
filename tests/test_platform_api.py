@@ -323,3 +323,43 @@ def test_chaos_a_persistence_failure_before_acceptance_is_never_a_202(stack: Sta
         assert response.status_code == 503
         assert response.json()["error"]["retryable"] is True
         assert stack.store._outbox == [] and stack.store._commands == {}
+
+
+def test_mutation_command_binding_fails_before_operation_lookup(stack: Stack) -> None:
+    with TestClient(stack.app) as client:
+        unknown_operation = str(uuid4())
+        mismatched_command = str(uuid4())
+        cancel = client.post(
+            f"/platform/v1/operations/{unknown_operation}/cancel",
+            json={"expected_version": 1, "reason": "invalid binding"},
+            headers={
+                "Authorization": f"Bearer {token()}",
+                "X-Command-ID": mismatched_command,
+                "X-Correlation-ID": "unknown-operation-correlation",
+                "Idempotency-Key": "cancel-bind-0001",
+            },
+        )
+        assert cancel.status_code == 400
+        assert "X-Command-ID does not match operation_id" in cancel.json()["error"]["message"]
+
+        operator = token(
+            scope="platform.command platform.command.read platform.command.replay",
+            roles=("platform-operator",),
+        )
+        replay = client.post(
+            f"/platform/v1/operations/{unknown_operation}/replay",
+            json={
+                "mode": "REEXECUTE",
+                "expected_version": 1,
+                "reason": "invalid binding",
+                "new_idempotency_key": "replay-new-0001",
+            },
+            headers={
+                "Authorization": f"Bearer {operator}",
+                "X-Command-ID": mismatched_command,
+                "X-Correlation-ID": "unknown-operation-correlation",
+                "Idempotency-Key": "replay-bind-0001",
+            },
+        )
+        assert replay.status_code == 400
+        assert "X-Command-ID does not match operation_id" in replay.json()["error"]["message"]
