@@ -10,7 +10,7 @@ x-middleware-canary-runtime: &middleware-canary-runtime
     APP_VERSION: ${MIDDLEWARE_APP_VERSION:?immutable application version required}
     APP_SOURCE_SHA: ${MIDDLEWARE_SOURCE_SHA:?exact protected source SHA required}
     IMAGE_DIGEST: ${MIDDLEWARE_IMAGE_DIGEST:?exact signed image digest required}
-    SCHEMA_HEAD: 0067_service_catalog_monitoring_state
+    SCHEMA_HEAD: 0069_campaign_recycling_delivery_events
     BUILD_TIME: ${MIDDLEWARE_BUILD_TIME:?signed build timestamp required}
     RELEASE_ID: ${MIDDLEWARE_RELEASE_ID:?signed release identifier required}
     CONFIGURATION_CHECKSUM: ${MIDDLEWARE_CONFIGURATION_CHECKSUM:?sanitized configuration checksum required}

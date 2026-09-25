@@ -1,0 +1,210 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.codestra.co/campaign-recycling/lifecycle.v1.schema.json",
+  "title": "Cross-channel lead lifecycle transition v1",
+  "description": "One append-only transition of a lead's cross-channel marketing lifecycle. This is NOT call/dialing eligibility: dialing identity and eligibility states remain owned by docs/operations/campaign-registry/lead-eligibility.md, and no lifecycle state authorizes dialing or any provider effect. Contract only; no runtime handler, table, or migration exists in MCR-A.",
+  "x-codestra-contract": {
+    "mission": "MCR-A",
+    "runtime_status": "contract_only",
+    "system_of_record": "leads",
+    "separate_from": {
+      "contract": "docs/operations/campaign-registry/lead-eligibility.md",
+      "identity_states": ["ID_ASSIGNED", "VALIDATION_PENDING", "VALIDATED", "DUPLICATE_REVIEW", "REJECTED", "ARCHIVED"],
+      "dialing_states": ["NOT_ELIGIBLE", "ELIGIBILITY_PENDING", "ELIGIBLE", "ACTIVE", "PAUSED", "DO_NOT_CALL", "CONSENT_REVOKED", "CLOSED"],
+      "rule": "Lifecycle ELIGIBLE never implies dialing ELIGIBLE. Voice touches additionally require the dialing state ELIGIBLE from the referenced contract; any other dialing state blocks voice with reason DIALING_NOT_ELIGIBLE."
+    }
+  },
+  "x-lifecycle": {
+    "states": ["NEW", "VALIDATED", "ELIGIBLE", "ACTIVE_CYCLE", "ENGAGED", "COOLING", "REACTIVATION", "CONVERTED", "SUPPRESSED"],
+    "initial": "NEW",
+    "transitions": {
+      "NEW": ["VALIDATED", "SUPPRESSED"],
+      "VALIDATED": ["ELIGIBLE", "SUPPRESSED"],
+      "ELIGIBLE": ["ACTIVE_CYCLE", "CONVERTED", "SUPPRESSED"],
+      "ACTIVE_CYCLE": ["ENGAGED", "COOLING", "CONVERTED", "SUPPRESSED"],
+      "ENGAGED": ["ACTIVE_CYCLE", "COOLING", "CONVERTED", "SUPPRESSED"],
+      "COOLING": ["REACTIVATION", "CONVERTED", "SUPPRESSED"],
+      "REACTIVATION": ["ACTIVE_CYCLE", "ENGAGED", "COOLING", "CONVERTED", "SUPPRESSED"],
+      "CONVERTED": ["SUPPRESSED"],
+      "SUPPRESSED": []
+    },
+    "engine_contactable": ["ELIGIBLE", "ACTIVE_CYCLE", "ENGAGED", "REACTIVATION"],
+    "outreach_terminal": ["CONVERTED", "SUPPRESSED"],
+    "absorbing": ["SUPPRESSED"],
+    "terminal_semantics": {
+      "CONVERTED": "Outreach-terminal. The engine never plans another automated touch; the lead is owned by Odoo human sales. The only legal exit is SUPPRESSED, because suppression always applies.",
+      "SUPPRESSED": "Absorbing. Lead-global suppression (scope=global). No transition out exists in v1; lifting a suppression is not part of this contract and would require a separate reviewed contract version."
+    },
+    "transition_reasons": {
+      "VALIDATED": ["VALIDATION_PASSED"],
+      "ELIGIBLE": ["ELIGIBILITY_ESTABLISHED"],
+      "ACTIVE_CYCLE": ["CYCLE_STARTED", "ENGAGED_SEQUENCE_CONTINUED", "REACTIVATION_TOUCH_ISSUED"],
+      "ENGAGED": ["STRONG_ENGAGEMENT_RECORDED"],
+      "COOLING": ["CYCLE_EXHAUSTED_UNENGAGED", "REACTIVATION_EXHAUSTED_UNENGAGED"],
+      "REACTIVATION": ["COOLING_ELAPSED"],
+      "CONVERTED": ["CONVERSION_RECORDED"],
+      "SUPPRESSED": ["GLOBAL_SUPPRESSION_APPLIED"]
+    },
+    "channel_suppression_rule": "Channel-scoped or campaign-scoped suppression never moves the lead lifecycle to SUPPRESSED; it is recorded in channel-health.v1 and blocks only its scope. Only a scope=global suppression produces the SUPPRESSED lifecycle state."
+  },
+  "$defs": {
+    "LifecycleState": {
+      "type": "string",
+      "enum": ["NEW", "VALIDATED", "ELIGIBLE", "ACTIVE_CYCLE", "ENGAGED", "COOLING", "REACTIVATION", "CONVERTED", "SUPPRESSED"]
+    },
+    "TransitionReason": {
+      "type": "string",
+      "enum": [
+        "LEAD_REGISTERED",
+        "VALIDATION_PASSED",
+        "ELIGIBILITY_ESTABLISHED",
+        "CYCLE_STARTED",
+        "ENGAGED_SEQUENCE_CONTINUED",
+        "REACTIVATION_TOUCH_ISSUED",
+        "STRONG_ENGAGEMENT_RECORDED",
+        "CYCLE_EXHAUSTED_UNENGAGED",
+        "REACTIVATION_EXHAUSTED_UNENGAGED",
+        "COOLING_ELAPSED",
+        "CONVERSION_RECORDED",
+        "GLOBAL_SUPPRESSION_APPLIED"
+      ]
+    },
+    "LeadId": {
+      "description": "Immutable campaign-scoped lead public ID issued by app/core/campaign_identity.py (format_identity, identity_type LEAD).",
+      "type": "string",
+      "pattern": "^[1-9][0-9]*00-L-[0-9]{8}$"
+    },
+    "TenantId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "CorrelationId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "Sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  },
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "transition_id",
+    "tenant_id",
+    "lead_id",
+    "from_state",
+    "to_state",
+    "reason_code",
+    "source",
+    "lifecycle_version",
+    "occurred_at",
+    "recorded_at",
+    "correlation_id",
+    "evidence_hash"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "transition_id": {"type": "string", "format": "uuid"},
+    "tenant_id": {"$ref": "#/$defs/TenantId"},
+    "lead_id": {"$ref": "#/$defs/LeadId"},
+    "from_state": {
+      "description": "null only for the initial registration transition into NEW.",
+      "anyOf": [{"$ref": "#/$defs/LifecycleState"}, {"type": "null"}]
+    },
+    "to_state": {"$ref": "#/$defs/LifecycleState"},
+    "reason_code": {"$ref": "#/$defs/TransitionReason"},
+    "source": {
+      "type": "string",
+      "enum": ["leads", "middleware_policy", "delivery_event", "odoo_conversion", "operator"]
+    },
+    "lifecycle_version": {
+      "description": "Monotonic optimistic-concurrency version; a writer must present the prior version and loses with 409 on mismatch.",
+      "type": "integer",
+      "minimum": 1
+    },
+    "occurred_at": {"type": "string", "format": "date-time"},
+    "recorded_at": {"type": "string", "format": "date-time"},
+    "correlation_id": {"$ref": "#/$defs/CorrelationId"},
+    "causation_id": {"anyOf": [{"$ref": "#/$defs/CorrelationId"}, {"type": "null"}]},
+    "evidence_hash": {"$ref": "#/$defs/Sha256"},
+    "evidence_ref": {"type": ["string", "null"], "maxLength": 500}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"from_state": {"type": "null"}}, "required": ["from_state"]},
+      "then": {"properties": {"to_state": {"const": "NEW"}, "reason_code": {"const": "LEAD_REGISTERED"}, "lifecycle_version": {"const": 1}}}
+    },
+    {
+      "if": {"properties": {"from_state": {"const": "NEW"}}, "required": ["from_state"]},
+      "then": {"properties": {"to_state": {"enum": ["VALIDATED", "SUPPRESSED"]}}}
+    },
+    {
+      "if": {"properties": {"from_state": {"const": "VALIDATED"}}, "required": ["from_state"]},
+      "then": {"properties": {"to_state": {"enum": ["ELIGIBLE", "SUPPRESSED"]}}}
+    },
+    {
+      "if": {"properties": {"from_state": {"const": "ELIGIBLE"}}, "required": ["from_state"]},
+      "then": {"properties": {"to_state": {"enum": ["ACTIVE_CYCLE", "CONVERTED", "SUPPRESSED"]}}}
+    },
+    {
+      "if": {"properties": {"from_state": {"const": "ACTIVE_CYCLE"}}, "required": ["from_state"]},
+      "then": {"properties": {"to_state": {"enum": ["ENGAGED", "COOLING", "CONVERTED", "SUPPRESSED"]}}}
+    },
+    {
+      "if": {"properties": {"from_state": {"const": "ENGAGED"}}, "required": ["from_state"]},
+      "then": {"properties": {"to_state": {"enum": ["ACTIVE_CYCLE", "COOLING", "CONVERTED", "SUPPRESSED"]}}}
+    },
+    {
+      "if": {"properties": {"from_state": {"const": "COOLING"}}, "required": ["from_state"]},
+      "then": {"properties": {"to_state": {"enum": ["REACTIVATION", "CONVERTED", "SUPPRESSED"]}}}
+    },
+    {
+      "if": {"properties": {"from_state": {"const": "REACTIVATION"}}, "required": ["from_state"]},
+      "then": {"properties": {"to_state": {"enum": ["ACTIVE_CYCLE", "ENGAGED", "COOLING", "CONVERTED", "SUPPRESSED"]}}}
+    },
+    {
+      "if": {"properties": {"from_state": {"const": "CONVERTED"}}, "required": ["from_state"]},
+      "then": {"properties": {"to_state": {"enum": ["SUPPRESSED"]}}}
+    },
+    {
+      "if": {"properties": {"from_state": {"const": "SUPPRESSED"}}, "required": ["from_state"]},
+      "then": false
+    },
+    {
+      "if": {"properties": {"to_state": {"const": "VALIDATED"}}, "required": ["to_state"]},
+      "then": {"properties": {"reason_code": {"enum": ["VALIDATION_PASSED"]}}}
+    },
+    {
+      "if": {"properties": {"to_state": {"const": "ELIGIBLE"}}, "required": ["to_state"]},
+      "then": {"properties": {"reason_code": {"enum": ["ELIGIBILITY_ESTABLISHED"]}}}
+    },
+    {
+      "if": {"properties": {"to_state": {"const": "ACTIVE_CYCLE"}}, "required": ["to_state"]},
+      "then": {"properties": {"reason_code": {"enum": ["CYCLE_STARTED", "ENGAGED_SEQUENCE_CONTINUED", "REACTIVATION_TOUCH_ISSUED"]}}}
+    },
+    {
+      "if": {"properties": {"to_state": {"const": "ENGAGED"}}, "required": ["to_state"]},
+      "then": {"properties": {"reason_code": {"enum": ["STRONG_ENGAGEMENT_RECORDED"]}}}
+    },
+    {
+      "if": {"properties": {"to_state": {"const": "COOLING"}}, "required": ["to_state"]},
+      "then": {"properties": {"reason_code": {"enum": ["CYCLE_EXHAUSTED_UNENGAGED", "REACTIVATION_EXHAUSTED_UNENGAGED"]}}}
+    },
+    {
+      "if": {"properties": {"to_state": {"const": "REACTIVATION"}}, "required": ["to_state"]},
+      "then": {"properties": {"reason_code": {"enum": ["COOLING_ELAPSED"]}}}
+    },
+    {
+      "if": {"properties": {"to_state": {"const": "CONVERTED"}}, "required": ["to_state"]},
+      "then": {"properties": {"reason_code": {"enum": ["CONVERSION_RECORDED"]}}}
+    },
+    {
+      "if": {"properties": {"to_state": {"const": "SUPPRESSED"}}, "required": ["to_state"]},
+      "then": {"properties": {"reason_code": {"enum": ["GLOBAL_SUPPRESSION_APPLIED"]}}}
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+groups:
+  - name: codestra-mcr
+    rules:
+      - alert: MCRDeadLetterEvidenceUnavailable
+        expr: codestra_mcr_dead_letter_evidence_available == 0 or absent(codestra_mcr_dead_letter_evidence_available)
+        for: 5m
+        labels: {severity: critical, owner: integration-operations, component: campaign-recycling}
+        annotations: {summary: "MCR durable dead-letter evidence unavailable; activation blocked", runbook: "docs/operations/mcr-observability.md"}
+      - alert: MCRProjectionLagHigh
+        expr: histogram_quantile(0.99, sum by (le) (rate(codestra_mcr_projection_lag_seconds_bucket[15m]))) > 300
+        for: 10m
+        labels: {severity: warning, owner: integration-operations, component: campaign-recycling}
+        annotations: {summary: "MCR receive-to-commit p99 exceeds five minutes", runbook: "docs/operations/mcr-observability.md"}
+      - alert: MCRProjectionIncomplete
+        expr: sum(increase(codestra_mcr_delivery_total{outcome=~"partial|failed|rejected"}[5m])) > 0
+        for: 5m
+        labels: {severity: warning, owner: integration-operations, component: campaign-recycling}
+        annotations: {summary: "MCR projection failed, rejected evidence, or remains partial", runbook: "docs/operations/mcr-observability.md"}
+      - alert: MCRReplaySpike
+        expr: sum(increase(codestra_mcr_replays_total[15m])) > 100
+        for: 10m
+        labels: {severity: warning, owner: integration-operations, component: campaign-recycling}
+        annotations: {summary: "MCR replay volume exceeds review threshold", runbook: "docs/operations/mcr-observability.md"}
+      - alert: MCRReadbackUnavailable
+        expr: sum(increase(codestra_mcr_readback_total{outcome="unavailable"}[5m])) > 0
+        for: 5m
+        labels: {severity: warning, owner: integration-operations, component: campaign-recycling}
+        annotations: {summary: "MCR scoped reconciliation evidence cannot be read", runbook: "docs/operations/mcr-observability.md"}
+      - alert: MCRDeliveryNegativeSignal
+        expr: sum by (channel) (increase(codestra_mcr_delivery_health_total{event_type=~"hard_bounce|complaint"}[15m])) > 0
+        for: 5m
+        labels: {severity: warning, owner: integration-operations, component: campaign-recycling}
+        annotations: {summary: "MCR completed negative delivery signals require health/suppression review", runbook: "docs/operations/mcr-observability.md"}

@@ -19,9 +19,16 @@ ALEMBIC_CATALOG_MIGRATIONS = {
     "campaign": "0058_campaign_design.py",
     "monitoring": "0059_integrated_monitoring.py",
 }
+MCR_CATALOG_MIGRATIONS = (
+    "0068_campaign_recycling_core.py",
+    "0069_campaign_recycling_delivery_events.py",
+)
 SQL_GLOB = "[0-9][0-9][0-9][0-9]_*.sql"
 TABLE_RE = re.compile(
     r"\bCREATE\s+TABLE\s+IF\s+NOT\s+EXISTS\s+(middleware_[a-z0-9_]+)\s*\(", re.I
+)
+MCR_TABLE_RE = re.compile(
+    r"\bCREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(mcr_[a-z0-9_]+)\s*\(", re.I
 )
 
 # Exclude physical OIDs, owners, row data, statistics and sequence *values*.
@@ -166,6 +173,20 @@ def monitoring_tables(root: Path) -> tuple[str, ...]:
     return alembic_tables(root, "monitoring")
 
 
+def mcr_tables(root: Path) -> tuple[str, ...]:
+    """Derive MCR tables from the source-locked 0068/0069 Alembic migrations."""
+    names: set[str] = set()
+    for filename in MCR_CATALOG_MIGRATIONS:
+        path = root / "migrations" / "versions" / filename
+        if not path.is_file() or path.is_symlink():
+            raise SchemaDriftError("MCR schema source migration is missing")
+        source = path.read_text(encoding="utf-8")
+        names.update(name.lower() for name in MCR_TABLE_RE.findall(source))
+    if not names:
+        raise SchemaDriftError("MCR schema has no managed tables")
+    return tuple(sorted(names))
+
+
 def managed_tables(root: Path) -> tuple[str, ...]:
     """Discover names from numbered SQL and the declared Alembic catalog surface."""
     names: set[str] = set()
@@ -180,6 +201,7 @@ def managed_tables(root: Path) -> tuple[str, ...]:
         raise SchemaDriftError("SQL schema has no managed tables")
     names.update(campaign_tables(root))
     names.update(monitoring_tables(root))
+    names.update(mcr_tables(root))
     return tuple(sorted(names))
 
 
