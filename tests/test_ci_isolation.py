@@ -12,9 +12,12 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def isolated():
     return {
+        "CI_POSTGRES_PORT": "5432",
+        "CI_REDIS_PORT": "6379",
         "DATABASE_URL": "postgresql+asyncpg://ci:synthetic@127.0.0.1:5432/middleware_rehearsal",
         "TEST_DATABASE_URL": "postgresql+asyncpg://ci:synthetic@127.0.0.1:5432/middleware_rehearsal",
-        "REDIS_URL": "redis://127.0.0.1:6379/15", **{name: "false" for name in FLAGS},
+        "REDIS_URL": "redis://127.0.0.1:6379/15",
+        **{name: "false" for name in FLAGS},
     }
 
 
@@ -23,7 +26,10 @@ def test_validated_isolation_cli():
     assert result.returncode == 0
 
 
-@pytest.mark.parametrize("name", [*FLAGS, "DATABASE_URL", "TEST_DATABASE_URL", "REDIS_URL"])
+@pytest.mark.parametrize(
+    "name",
+    [*FLAGS, "CI_POSTGRES_PORT", "CI_REDIS_PORT", "DATABASE_URL", "TEST_DATABASE_URL", "REDIS_URL"],
+)
 def test_missing_guard_variable_fails_closed(name):
     environ = isolated()
     environ.pop(name)
@@ -71,3 +77,27 @@ def test_manifest_gate_runs_after_locked_dependencies_and_before_pytest():
     assert install < validate < tests
     assert "scripts/project_ci.sh" in bootstrap
     assert "python3 scripts/validate_codestra_manifest.py" not in bootstrap
+
+
+def test_dynamic_runner_ports_remain_isolated():
+    environ = isolated()
+    environ["CI_POSTGRES_PORT"] = "32783"
+    environ["CI_REDIS_PORT"] = "32784"
+    environ["DATABASE_URL"] = "postgresql+asyncpg://ci:synthetic@127.0.0.1:32783/middleware_rehearsal"
+    environ["TEST_DATABASE_URL"] = "postgresql+asyncpg://ci:synthetic@127.0.0.1:32783/middleware_rehearsal"
+    environ["REDIS_URL"] = "redis://127.0.0.1:32784/15"
+    validate(environ)
+
+
+def test_project_ci_uses_job_local_runner_temp_venv():
+    source = (ROOT / "scripts/project_ci.sh").read_text()
+    assert "RUNNER_TEMP" in source
+    assert "GITHUB_RUN_ID" in source
+    assert "GITHUB_JOB" in source
+    assert 'python3 -m venv "${VENV_DIR}"' in source
+
+
+def test_container_image_verifier_uses_runner_temp_not_default_tmp():
+    source = (ROOT / "scripts/verify_container_image.sh").read_text()
+    assert "RUNNER_TEMP" in source
+    assert "middleware-image-verify.XXXXXX" in source

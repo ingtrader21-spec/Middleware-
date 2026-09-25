@@ -158,7 +158,7 @@ EXPECTED_CHECK_WORKFLOWS = {
     },
 }
 ORCHESTRATOR_CONTRACT_WORKFLOW_SHA256 = (
-    "5e968a824d9738ac8237dfd677bae1091aaecfe73f3f98d0c6c63f07a503968f"
+    "b639ed5e5022b70939315c681fb7725531ba5cd8442934eb497ce5aeeb36f98a"
 )
 EXPECTED_CHECK_WORKFLOW_SHA256 = {
     "appolon1908-hue/Infustruction-repo": {
@@ -221,7 +221,7 @@ KEYCLOAK_PRODUCTION_VALIDATOR_SHA256 = (
     "83d2fce102104543b871530f11115f20"
 )
 MIDDLEWARE_PRODUCTION_VALIDATOR_SHA256 = (
-    "a1465bae96147306479902915e23d3b25c15dfbacc7835b15c05045c2cbf64fe"
+    "5ef5fee63f22ed7c9f4c5f65f0f7a90693cc71828d48e239e907402efe3d1742"
 )
 BACKEND_PRODUCTION_VALIDATOR_SHA256 = (
     "6006bbc7850ce7666de926b6cad2585b"
@@ -294,8 +294,8 @@ EXPECTED_CHECK_WORKFLOW_EXECUTABLE_SHA256 = {
                 "238dfe4a262eaf5fa2c79403f147d4d6"
             ),
             "scripts/verify_container_image.sh": (
-                "86550c26b32862fefaf2cefdefa2db1e"
-            "73abcb702d28536816f9093df47c5ccd"
+                "9f98cb4e801b9310ea9d7f538b5ea6d8"
+            "aa5e1ad370c4f7f9630d5ccab9da90db"
             ),
         },
     },
@@ -381,8 +381,8 @@ EXPECTED_REQUIRED_CHECK_SOURCE_CLOSURE_SHA256 = {
         "fcdd0d5c3832479b10deda8c6a6afca6"
     ),
     "ingtrader21-spec/Middleware-": (
-        "690697cc5a3ee37218b95be930bf488b4d"
-        "e1c0b561dd63c2a249568e35ed26a8"
+        "241ea2eb5a88e35f801a5546e7b3ba0d50"
+        "49ae7efdec85cc9150bbe86612c19b"
     ),
     "appolon1908-hue/codestra": (
         "4e3ea69c3ec2a4bd6e4b50395672f44d"

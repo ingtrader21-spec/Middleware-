@@ -129,8 +129,11 @@ class FakeCrmBridge:
             elif name == "create_task":  # {task_id, profile_id, status}
                 body = {"task_id": 9, "profile_id": args[0], "status": "scheduled"}
                 self.children.setdefault("tasks", []).append({"task_id": 9, "profile_id": args[0], **args[1]})
-            elif name == "update_task":  # {task_id, summary}: no parent in the answer
-                body = {"task_id": args[0], "summary": args[1].get("summary")}
+            elif name == "update_task":  # {task_id, profile_id, summary}: parent is required for deterministic readback
+                for row in self.children.get("tasks", []):
+                    if row["task_id"] == args[0]:
+                        row.update(args[1])
+                body = {"task_id": args[0], "profile_id": 5, "summary": args[1].get("summary")}
             elif name == "complete_task":  # the activity is unlinked once completed
                 self.children["tasks"] = [row for row in self.children.get("tasks", []) if row["task_id"] != args[0]]
                 body = {"task_id": args[0], "profile_id": 5, "status": "completed"}
@@ -414,11 +417,14 @@ async def test_odoo_notes_and_tasks_read_back_through_the_parent_profile_list() 
     assert created_task.provider_operation_id == "task_id:9@profile_id:5"
     assert (await adapter.readback(operation(task, provider_operation_id=created_task.provider_operation_id), context(task))).status is ReadbackStatus.MATCHED
 
-    # task.update carries no parent at all today: explicit UNSUPPORTED, never a silent completion
+    # task.update now returns the parent profile, so the adapter persists it
+    # with the provider reference and deterministic list readback can complete.
     task_update = envelope(SUBJECTS[-1], command_type="crm.task.update.v1", payload={"task_id": 9, "record": {"summary": "call back today"}})
-    assert (await adapter.execute(task_update, context(task_update))).provider_operation_id == "task_id:9"
-    unsupported = await adapter.readback(operation(task_update, provider_operation_id="task_id:9"), context(task_update))
-    assert unsupported.status is ReadbackStatus.UNSUPPORTED and unsupported.safe_error_code == "crm_parent_profile_unknown"
+    updated_task = await adapter.execute(task_update, context(task_update))
+    assert updated_task.provider_operation_id == "task_id:9@profile_id:5"
+    updated_readback = await adapter.readback(operation(task_update, provider_operation_id=updated_task.provider_operation_id), context(task_update))
+    assert updated_readback.status is ReadbackStatus.MATCHED
+    assert updated_readback.evidence == {"task_id": "9", "profile_id": "5", "listed": True}
 
     # complete: the bridge takes the (empty) feedback record; readback = the activity is gone
     complete = envelope(SUBJECTS[-1], command_type="crm.task.complete.v1", payload={"task_id": 9, "record": {}})
