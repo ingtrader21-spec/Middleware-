@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import time
 from datetime import UTC, datetime, timedelta
-from urllib.parse import urlsplit
 from uuid import uuid4
 
 import httpx
@@ -15,6 +14,7 @@ from app.core.config import settings
 from app.core.n8n_runtime import (
     ExecutionStatus,
     canonical_bytes,
+    dispatch_target_posture,
     load_secret,
     retry_delay,
     retryable,
@@ -134,25 +134,18 @@ async def dispatch_one(
     if registry is None or execution.tenant_id not in registry.tenant_scope:
         await _fail(session, execution, "REGISTRY_DENIED", False)
         return False
-    target = urlsplit(settings.n8n_runtime_base_url)
-    approved_staging_hosts = {
-        "webhook",
-        "n8n-webhook-staging",
-        "n8n-runtime-test-double",
-    }
-    target_is_allowed = (target.scheme == "https" and bool(target.hostname)) or (
-        settings.n8n_runtime_environment == "staging"
-        and target.scheme == "http"
-        and target.hostname in approved_staging_hosts
+    posture = dispatch_target_posture(
+        settings.n8n_runtime_base_url, settings.n8n_runtime_environment
     )
-    if (
-        not target_is_allowed
-        or target.username
-        or target.password
-        or target.query
-        or target.fragment
-    ):
-        await _fail(session, execution, "TARGET_NOT_PRIVATE_HTTPS", False)
+    if not posture["allowed"]:
+        await _fail(
+            session,
+            execution,
+            "LEGACY_PORT_8080"
+            if posture["legacy_8080"]
+            else "TARGET_NOT_PRIVATE_HTTPS",
+            False,
+        )
         return False
     url = settings.n8n_runtime_base_url.rstrip("/") + registry.webhook_path
     envelope = {
