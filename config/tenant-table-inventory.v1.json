@@ -1,0 +1,1186 @@
+{
+  "authority": "migration-derived-reviewed-snapshot",
+  "generated_from": "migrations/**/*.sql + migrations/**/*.py",
+  "schema_version": "1.0",
+  "tables": [
+    {
+      "family": "telephony",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/versions/0048_agent_call_realtime.py",
+      "table": "agent_call_event",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "telephony",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/versions/0048_agent_call_realtime.py",
+      "table": "agent_call_state",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "provisioning",
+      "ownership": "tenant_owned_inherited",
+      "parent_table": "agent_provisioning_request",
+      "remediation": "add explicit tenant_id and tenant-matching parent constraint",
+      "source": "migrations/versions/0060_agent_provisioning.py",
+      "table": "agent_provisioning_audit",
+      "tenant_representation": "parent_join"
+    },
+    {
+      "family": "provisioning",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/versions/0060_agent_provisioning.py",
+      "table": "agent_provisioning_request",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "provisioning",
+      "ownership": "tenant_owned_inherited",
+      "parent_table": "agent_provisioning_request",
+      "remediation": "add explicit tenant_id and tenant-matching parent constraint",
+      "source": "migrations/versions/0060_agent_provisioning.py",
+      "table": "agent_provisioning_step",
+      "tenant_representation": "parent_join"
+    },
+    {
+      "family": "ai",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0030_ai_job_platform.py",
+      "table": "ai_conversations",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "ai",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0030_ai_job_platform.py",
+      "table": "ai_generation_jobs",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "ai",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0031_ai_orchestration_v1.py",
+      "table": "ai_job_approvals",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "ai",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0030_ai_job_platform.py",
+      "table": "ai_job_attempts",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "ai",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0030_ai_job_platform.py",
+      "table": "ai_job_chunks",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "ai",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0031_ai_orchestration_v1.py",
+      "table": "ai_job_dead_letters",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "ai",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0031_ai_orchestration_v1.py",
+      "table": "ai_job_events",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "ai",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0031_ai_orchestration_v1.py",
+      "table": "ai_job_results",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "ai",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0030_ai_job_platform.py",
+      "table": "ai_messages",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "ai",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0030_ai_job_platform.py",
+      "table": "ai_service_nonces",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "ai",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0031_ai_orchestration_v1.py",
+      "table": "ai_tenant_quotas",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "ai",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0031_ai_orchestration_v1.py",
+      "table": "ai_usage_ledger",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "ai",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0030_ai_job_platform.py",
+      "table": "ai_worker_heartbeats",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "ai",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0031_ai_orchestration_v1.py",
+      "table": "ai_worker_registrations",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "breero",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0044_breero_integration.py",
+      "table": "breero_event_receipt",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "breero",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0044_breero_integration.py",
+      "table": "breero_integration_audit",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "breero",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0044_breero_integration.py",
+      "table": "breero_odoo_outbox",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "breero",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0044_breero_integration.py",
+      "table": "breero_reconciliation_run",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "breero",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0044_breero_integration.py",
+      "table": "breero_replay_nonce",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "telephony",
+      "ownership": "tenant_owned_inherited",
+      "parent_table": "callback_record",
+      "remediation": "add explicit tenant_id and tenant-matching parent constraint",
+      "source": "migrations/versions/0051_callback_management.py",
+      "table": "callback_delivery",
+      "tenant_representation": "parent_join"
+    },
+    {
+      "family": "telephony",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/versions/0051_callback_management.py",
+      "table": "callback_event",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "telephony",
+      "ownership": "tenant_owned_inherited",
+      "parent_table": "callback_record",
+      "remediation": "add explicit tenant_id and tenant-matching parent constraint",
+      "source": "migrations/versions/0052_callback_rls_hardening.py",
+      "table": "callback_popup_ack",
+      "tenant_representation": "parent_join"
+    },
+    {
+      "family": "telephony",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/versions/0051_callback_management.py",
+      "table": "callback_record",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "legacy",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0033_event_model_compatibility.py",
+      "table": "event_model_bridge",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "legacy",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0003_phase1_compat.py",
+      "table": "idempotency_record",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "legacy",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0003_phase1_compat.py",
+      "table": "integration_delivery",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "communications",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/versions/0056_klyrow_delivery_event_inbox.py",
+      "table": "klyrow_delivery_analytics",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "communications",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/versions/0056_klyrow_delivery_event_inbox.py",
+      "table": "klyrow_delivery_event_inbox",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "communications",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/versions/0055_klyrow_mail_inbound.py",
+      "table": "klyrow_mail_inbound",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "automation",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0028_lead_automation_platform_v1.py",
+      "table": "lead_automation_audit",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "automation",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0028_lead_automation_platform_v1.py",
+      "table": "lead_automation_bindings",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "automation",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0028_lead_automation_platform_v1.py",
+      "table": "lead_automation_delivery_attempts",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "automation",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0028_lead_automation_platform_v1.py",
+      "table": "lead_automation_event_payloads",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "automation",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0028_lead_automation_platform_v1.py",
+      "table": "lead_automation_events",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "automation",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0028_lead_automation_platform_v1.py",
+      "table": "lead_automation_odoo_acknowledgements",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "automation",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0028_lead_automation_platform_v1.py",
+      "table": "lead_automation_outbox",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "automation",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0028_lead_automation_platform_v1.py",
+      "table": "lead_automation_policies",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "automation",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0028_lead_automation_platform_v1.py",
+      "table": "lead_automation_policy_versions",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "automation",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0028_lead_automation_platform_v1.py",
+      "table": "lead_automation_quarantine",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "automation",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0028_lead_automation_platform_v1.py",
+      "table": "lead_automation_reconciliation_runs",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "automation",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0028_lead_automation_platform_v1.py",
+      "table": "lead_automation_results",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "website",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0032_website_gateway_registry.py",
+      "table": "managed_webhook_attempt",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "website",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0032_website_gateway_registry.py",
+      "table": "managed_webhook_delivery",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "website",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0032_website_gateway_registry.py",
+      "table": "managed_webhook_subscription",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "automation",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/automation/0001_automation_v2.sql",
+      "table": "middleware_automation_approvals",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "automation",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/automation/0001_automation_v2.sql",
+      "table": "middleware_automation_audit",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "automation",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/automation/0001_automation_v2.sql",
+      "table": "middleware_automation_dead_letters",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "automation",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/automation/0001_automation_v2.sql",
+      "table": "middleware_automation_dispatch_outbox",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "automation",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/automation/0001_automation_v2.sql",
+      "table": "middleware_automation_job_steps",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "automation",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/automation/0001_automation_v2.sql",
+      "table": "middleware_automation_jobs",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "automation",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/automation/0001_automation_v2.sql",
+      "table": "middleware_automation_reconciliation_runs",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "automation",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/automation/0001_automation_v2.sql",
+      "table": "middleware_automation_replay_requests",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "automation",
+      "ownership": "global",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/automation/0001_automation_v2.sql",
+      "table": "middleware_automation_schema_migrations",
+      "tenant_representation": "not_applicable"
+    },
+    {
+      "family": "command",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/0002_command_ledger.sql",
+      "table": "middleware_command_attempts",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "command",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/0002_command_ledger.sql",
+      "table": "middleware_command_audit",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "command",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/0002_command_ledger.sql",
+      "table": "middleware_commands",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "communications",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/0008_durable_communications.sql",
+      "table": "middleware_communication_cancellations",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "communications",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/0008_durable_communications.sql",
+      "table": "middleware_communication_events",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "communications",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/0008_durable_communications.sql",
+      "table": "middleware_communication_idempotency",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "communications",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/0008_durable_communications.sql",
+      "table": "middleware_communication_messages",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "communications",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/0008_durable_communications.sql",
+      "table": "middleware_communication_provider_events",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "communications",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/0008_durable_communications.sql",
+      "table": "middleware_communication_suppressions",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "control",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/0005_durable_control_api.sql",
+      "table": "middleware_control_audit",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "control",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/0005_durable_control_api.sql",
+      "table": "middleware_control_mutations",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "event",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/0003_immutable_event_ledger.sql",
+      "table": "middleware_event_ledger",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "inbox",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/0001_runtime.sql",
+      "table": "middleware_inbox",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "monitoring",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/0009_observability_incidents.sql",
+      "table": "middleware_observability_incident_audit",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "monitoring",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/0009_observability_incidents.sql",
+      "table": "middleware_observability_incident_events",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "monitoring",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/0009_observability_incidents.sql",
+      "table": "middleware_observability_incident_mutations",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "monitoring",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/0009_observability_incidents.sql",
+      "table": "middleware_observability_incidents",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "monitoring",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/0009_observability_incidents.sql",
+      "table": "middleware_observability_notification_intents",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "operation",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/0004_operation_control.sql",
+      "table": "middleware_operation_mutations",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "outbox",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/0001_runtime.sql",
+      "table": "middleware_outbox",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "outbox",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/0006_outbox_attempt_events.sql",
+      "table": "middleware_outbox_attempt_events",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "telephony",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/0010_realtime_gateway.sql",
+      "table": "middleware_realtime_events",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "telephony",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/0010_realtime_gateway.sql",
+      "table": "middleware_realtime_tickets",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "reconciliation",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/0001_runtime.sql",
+      "table": "middleware_reconciliation_audit",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "legacy",
+      "ownership": "global",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/0001_runtime.sql",
+      "table": "middleware_schema_migrations",
+      "tenant_representation": "not_applicable"
+    },
+    {
+      "family": "service_catalog",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0057_platform_service_catalog.py",
+      "table": "platform_provisioning_audit",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "service_catalog",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0057_platform_service_catalog.py",
+      "table": "platform_provisioning_requests",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "service_catalog",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0057_platform_service_catalog.py",
+      "table": "platform_service_environments",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "service_catalog",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0067_service_catalog_monitoring_state.py",
+      "table": "platform_service_monitoring_audit",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "service_catalog",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0057_platform_service_catalog.py",
+      "table": "platform_services",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "recordings",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0028_recording_api.py",
+      "table": "recording_objects",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "recordings",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0028_recording_api.py",
+      "table": "recording_outbox",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "recordings",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0028_recording_api.py",
+      "table": "recording_playback_audit",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "recordings",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0028_recording_api.py",
+      "table": "recording_retention_policies",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "recordings",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0028_recording_api.py",
+      "table": "recording_state_audit",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "recordings",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0028_recording_api.py",
+      "table": "recording_upload_reservations",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "recordings",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0028_recording_api.py",
+      "table": "recordings",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "social",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/versions/0036_social_publishing_foundation.py",
+      "table": "social_accounts",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "social",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0030_social_postly_control_plane.py",
+      "table": "social_approval",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "social",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/versions/0036_social_publishing_foundation.py",
+      "table": "social_audit_events",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "social",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0030_social_postly_control_plane.py",
+      "table": "social_audit_record",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "social",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/versions/0036_social_publishing_foundation.py",
+      "table": "social_campaigns",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "social",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0030_social_postly_control_plane.py",
+      "table": "social_content_job",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "social",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0030_social_postly_control_plane.py",
+      "table": "social_content_version",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "social",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0030_social_postly_control_plane.py",
+      "table": "social_dead_letter",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "social",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0030_social_postly_control_plane.py",
+      "table": "social_delivery_attempt",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "social",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0030_social_postly_control_plane.py",
+      "table": "social_idempotency_claim",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "social",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/versions/0037_social_staging_runtime.py",
+      "table": "social_idempotency_records",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "social",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/versions/0036_social_publishing_foundation.py",
+      "table": "social_media_assets",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "social",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0039_social_n8n_delivery_runtime.py",
+      "table": "social_n8n_delivery_attempts",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "social",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0039_social_n8n_delivery_runtime.py",
+      "table": "social_n8n_delivery_execution",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "social",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0039_social_n8n_delivery_runtime.py",
+      "table": "social_n8n_ingress_events",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "social",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0039_social_n8n_delivery_runtime.py",
+      "table": "social_poll_checkpoints",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "social",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0039_social_n8n_delivery_runtime.py",
+      "table": "social_poll_observations",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "social",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0036_social_publishing_foundation.py",
+      "table": "social_post_accounts",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "social",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/versions/0036_social_publishing_foundation.py",
+      "table": "social_posts",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "social",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0031_social_provider_callbacks.py",
+      "table": "social_provider_callback",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "social",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/versions/0036_social_publishing_foundation.py",
+      "table": "social_provider_events",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "social",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0036_social_publishing_foundation.py",
+      "table": "social_providers",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "social",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0030_social_postly_control_plane.py",
+      "table": "social_publication",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "social",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0036_social_publishing_foundation.py",
+      "table": "social_publish_attempts",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "social",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/versions/0036_social_publishing_foundation.py",
+      "table": "social_publish_jobs",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "social",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0030_social_postly_control_plane.py",
+      "table": "social_reconciliation_lease",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "social",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0036_social_publishing_foundation.py",
+      "table": "social_webhook_events",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "communications",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/versions/0061_telnexa_delivery_events.py",
+      "table": "telnexa_delivery_analytics",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "communications",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
+      "source": "migrations/versions/0061_telnexa_delivery_events.py",
+      "table": "telnexa_delivery_event_inbox",
+      "tenant_representation": "tenant_id_not_null"
+    },
+    {
+      "family": "ai",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0033_tts_job_runtime.py",
+      "table": "tts_generation_jobs",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "website",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0032_website_gateway_registry.py",
+      "table": "website_audit_record",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "website",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0032_website_gateway_registry.py",
+      "table": "website_delivery",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "website",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0032_website_gateway_registry.py",
+      "table": "website_rate_limit_bucket",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "website",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0032_website_gateway_registry.py",
+      "table": "website_site",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "website",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0032_website_gateway_registry.py",
+      "table": "website_site_credential",
+      "tenant_representation": "none_explicit"
+    },
+    {
+      "family": "website",
+      "ownership": "review_required",
+      "parent_table": null,
+      "remediation": "classify tenant ownership before adding RLS or tenant columns",
+      "source": "migrations/versions/0032_website_gateway_registry.py",
+      "table": "website_submission",
+      "tenant_representation": "none_explicit"
+    }
+  ]
+}

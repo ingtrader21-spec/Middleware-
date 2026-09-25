@@ -1,13 +1,40 @@
 from pathlib import Path
 
 from app.platform.tenant_inventory import (
+    INVENTORY_RELATIVE_PATH,
+    inventory_by_table,
+    inventory_document,
+    load_inventory_snapshot,
     remediation_list,
     scan_tenant_inventory,
     validate_inventory,
+    validate_snapshot_matches_migrations,
+    write_inventory_snapshot,
 )
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def _write_minimal_core_inventory_fixture(root: Path) -> Path:
+    (root / "migrations").mkdir(parents=True)
+    (root / "config").mkdir()
+    migration = root / "migrations" / "0001.sql"
+    migration.write_text(
+        "\n".join(
+            [
+                "CREATE TABLE middleware_commands (tenant_id text NOT NULL, command_id text);",
+                "CREATE TABLE middleware_command_attempts (tenant_id text NOT NULL, id bigint);",
+                "CREATE TABLE middleware_command_audit (tenant_id text NOT NULL, id bigint);",
+                "CREATE TABLE middleware_inbox (tenant_id text NOT NULL, event_id text);",
+                "CREATE TABLE middleware_outbox (tenant_id text NOT NULL, id bigint);",
+                "CREATE TABLE middleware_event_ledger (tenant_id text NOT NULL, id bigint);",
+                "CREATE TABLE middleware_reconciliation_audit (tenant_id text NOT NULL, id bigint);",
+            ]
+        )
+        + "\n"
+    )
+    return migration
 
 
 def test_inventory_covers_current_durable_migrations_without_duplicates():
@@ -74,3 +101,68 @@ def test_remediation_list_includes_inherited_and_unclassified_tables():
     assert "agent_provisioning_step" in items
     assert "callback_delivery" in items
     assert "lead_automation_events" in items
+
+
+def test_reviewed_snapshot_matches_current_migrations_exactly():
+    records = validate_inventory(ROOT)
+    snapshot = load_inventory_snapshot(ROOT)
+    assert snapshot == records
+    assert inventory_document(records)["tables"]
+
+
+def test_programmatic_inventory_handoff_is_stable():
+    records = inventory_by_table(ROOT)
+    assert records["middleware_commands"].ownership == "tenant_owned"
+    assert records["callback_delivery"].ownership == "tenant_owned_inherited"
+    assert records["middleware_schema_migrations"].ownership == "global"
+
+
+def test_new_durable_table_requires_explicit_snapshot_review(tmp_path):
+    migration = _write_minimal_core_inventory_fixture(tmp_path)
+    write_inventory_snapshot(tmp_path)
+
+    migration.write_text(
+        migration.read_text()
+        + "CREATE TABLE brand_new_durable_table (id bigint PRIMARY KEY);\n"
+    )
+    try:
+        validate_inventory(tmp_path)
+    except ValueError as exc:
+        assert "new tables=brand_new_durable_table" in str(exc)
+    else:
+        raise AssertionError("new durable table must require snapshot review")
+
+def test_removed_or_reclassified_table_requires_snapshot_review(tmp_path):
+    migration = _write_minimal_core_inventory_fixture(tmp_path)
+    write_inventory_snapshot(tmp_path)
+
+    migration.write_text(
+        migration.read_text().replace(
+            "middleware_commands (tenant_id text NOT NULL",
+            "middleware_commands (tenant_id text",
+        )
+    )
+    try:
+        validate_inventory(tmp_path)
+    except ValueError as exc:
+        assert (
+            "tenant-owned table is not fail-closed" in str(exc)
+            or "reclassified tables=middleware_commands" in str(exc)
+        )
+    else:
+        raise AssertionError("tenant representation drift must fail closed")
+
+def test_snapshot_schema_rejects_duplicate_entries(tmp_path):
+    _write_minimal_core_inventory_fixture(tmp_path)
+    path = write_inventory_snapshot(tmp_path)
+    import json
+
+    payload = json.loads(path.read_text())
+    payload["tables"].append(dict(payload["tables"][0]))
+    path.write_text(json.dumps(payload))
+    try:
+        load_inventory_snapshot(tmp_path)
+    except ValueError as exc:
+        assert "duplicate table" in str(exc)
+    else:
+        raise AssertionError("duplicate reviewed inventory row must fail")

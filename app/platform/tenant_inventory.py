@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import argparse
+import json
 import re
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Iterable
 
@@ -38,6 +40,9 @@ _GLOBAL_TABLES = {
     "middleware_schema_migrations",
     "middleware_automation_schema_migrations",
 }
+
+INVENTORY_RELATIVE_PATH = Path("config/tenant-table-inventory.v1.json")
+INVENTORY_SCHEMA_VERSION = "1.0"
 
 
 def _family(table: str) -> str:
@@ -159,7 +164,11 @@ def remediation_list(
     return tuple(record for record in records if record.remediation)
 
 
-def validate_inventory(repo_root: str | Path) -> tuple[TenantTableRecord, ...]:
+def validate_inventory(
+    repo_root: str | Path,
+    *,
+    require_snapshot: bool = True,
+) -> tuple[TenantTableRecord, ...]:
     records = scan_tenant_inventory(repo_root)
     if not records:
         raise ValueError("tenant inventory is empty")
@@ -192,4 +201,182 @@ def validate_inventory(repo_root: str | Path) -> tuple[TenantTableRecord, ...]:
                     f"inherited tenant parent missing for {record.table}"
                 )
 
+    if require_snapshot:
+        validate_snapshot_matches_migrations(repo_root, records)
     return records
+
+
+def inventory_document(records: Iterable[TenantTableRecord]) -> dict[str, object]:
+    rows = [asdict(record) for record in sorted(records, key=lambda item: item.table)]
+    return {
+        "schema_version": INVENTORY_SCHEMA_VERSION,
+        "authority": "migration-derived-reviewed-snapshot",
+        "generated_from": "migrations/**/*.sql + migrations/**/*.py",
+        "tables": rows,
+    }
+
+
+def write_inventory_snapshot(
+    repo_root: str | Path,
+    *,
+    destination: str | Path | None = None,
+) -> Path:
+    root = Path(repo_root)
+    records = validate_inventory(root, require_snapshot=False)
+    path = Path(destination) if destination else root / INVENTORY_RELATIVE_PATH
+    if not path.is_absolute():
+        path = root / path
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = inventory_document(records)
+    path.write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return path
+
+
+def load_inventory_snapshot(
+    repo_root: str | Path,
+) -> tuple[TenantTableRecord, ...]:
+    root = Path(repo_root)
+    path = root / INVENTORY_RELATIVE_PATH
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(f"cannot load reviewed tenant inventory snapshot: {exc}") from exc
+
+    if not isinstance(payload, dict):
+        raise ValueError("tenant inventory snapshot root must be an object")
+    if payload.get("schema_version") != INVENTORY_SCHEMA_VERSION:
+        raise ValueError("tenant inventory snapshot schema_version mismatch")
+    if payload.get("authority") != "migration-derived-reviewed-snapshot":
+        raise ValueError("tenant inventory snapshot authority mismatch")
+    rows = payload.get("tables")
+    if not isinstance(rows, list):
+        raise ValueError("tenant inventory snapshot tables must be an array")
+
+    records: list[TenantTableRecord] = []
+    seen: set[str] = set()
+    expected_keys = {
+        "table",
+        "family",
+        "ownership",
+        "tenant_representation",
+        "source",
+        "remediation",
+        "parent_table",
+    }
+    for index, row in enumerate(rows):
+        if not isinstance(row, dict) or set(row) != expected_keys:
+            raise ValueError(
+                f"tenant inventory snapshot tables[{index}] shape is invalid"
+            )
+        table = row.get("table")
+        if not isinstance(table, str) or not table:
+            raise ValueError(
+                f"tenant inventory snapshot tables[{index}] table is invalid"
+            )
+        if table in seen:
+            raise ValueError(f"duplicate table in tenant inventory snapshot: {table}")
+        seen.add(table)
+        records.append(TenantTableRecord(**row))
+
+    return tuple(sorted(records, key=lambda item: item.table))
+
+
+def validate_snapshot_matches_migrations(
+    repo_root: str | Path,
+    records: Iterable[TenantTableRecord] | None = None,
+) -> tuple[TenantTableRecord, ...]:
+    root = Path(repo_root)
+    actual = tuple(records) if records is not None else scan_tenant_inventory(root)
+    reviewed = load_inventory_snapshot(root)
+    if actual == reviewed:
+        return actual
+
+    actual_by_table = {record.table: record for record in actual}
+    reviewed_by_table = {record.table: record for record in reviewed}
+    added = sorted(actual_by_table.keys() - reviewed_by_table.keys())
+    removed = sorted(reviewed_by_table.keys() - actual_by_table.keys())
+    changed = sorted(
+        table
+        for table in actual_by_table.keys() & reviewed_by_table.keys()
+        if actual_by_table[table] != reviewed_by_table[table]
+    )
+    details: list[str] = []
+    if added:
+        details.append("new tables=" + ",".join(added))
+    if removed:
+        details.append("removed tables=" + ",".join(removed))
+    if changed:
+        details.append("reclassified tables=" + ",".join(changed))
+    raise ValueError(
+        "tenant inventory drift; regenerate and review "
+        f"{INVENTORY_RELATIVE_PATH.as_posix()}: " + "; ".join(details)
+    )
+
+
+def inventory_by_table(
+    repo_root: str | Path,
+) -> dict[str, TenantTableRecord]:
+    return {
+        record.table: record
+        for record in validate_inventory(repo_root, require_snapshot=True)
+    }
+
+
+def _parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="Validate or regenerate the reviewed Middleware tenant-table inventory."
+    )
+    parser.add_argument("--repo-root", type=Path, default=Path.cwd())
+    parser.add_argument(
+        "--write",
+        action="store_true",
+        help="Regenerate the reviewed snapshot from current migration sources.",
+    )
+    return parser
+
+
+def main() -> int:
+    args = _parser().parse_args()
+    try:
+        if args.write:
+            path = write_inventory_snapshot(args.repo_root)
+            records = load_inventory_snapshot(args.repo_root)
+            print(
+                json.dumps(
+                    {
+                        "status": "WROTE",
+                        "path": str(path),
+                        "tables": len(records),
+                        "remediations": len(remediation_list(records)),
+                    },
+                    sort_keys=True,
+                )
+            )
+            return 0
+        records = validate_inventory(args.repo_root, require_snapshot=True)
+    except ValueError as exc:
+        print(json.dumps({"status": "FAIL", "error": str(exc)}, sort_keys=True))
+        return 2
+
+    counts: dict[str, int] = {}
+    for record in records:
+        counts[record.ownership] = counts.get(record.ownership, 0) + 1
+    print(
+        json.dumps(
+            {
+                "status": "PASS",
+                "tables": len(records),
+                "ownership_counts": counts,
+                "remediations": len(remediation_list(records)),
+            },
+            sort_keys=True,
+        )
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
