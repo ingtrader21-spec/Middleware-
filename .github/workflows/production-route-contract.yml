@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   signed-runtime-contract:
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, Linux, X64, middleware-ci]
     timeout-minutes: 15
     env:
       IMAGE: ghcr.io/appolon1908-hue/codestra-middleware@sha256:83e6fd7d6e824a6259b574f0aacbbf08dc58f4419caf0193344d61e5717d5d63
