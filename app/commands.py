@@ -424,7 +424,7 @@ class CommandStore(Protocol):
     async def list_operations(self, tenant_id: str, *, limit: int, position: tuple[datetime, UUID] | None = None, state: str | None = None, command_type: str | None = None) -> list[CommandOperation]: ...
     async def list_events(self, tenant_id: str, command_id: UUID, *, limit: int, position: tuple[datetime, int] | None = None) -> list[OperationEvent]: ...
     async def list_attempts(self, tenant_id: str, command_id: UUID, *, limit: int, position: tuple[int, int] | None = None) -> list[OperationAttempt]: ...
-    async def mutate_operation(self, tenant_id: str, command_id: UUID, *, action: Literal["cancel", "reconcile", "retry"], actor_id: str, idempotency_key: str, expected_version: int, reason: str) -> CommandOperation: ...
+    async def mutate_operation(self, tenant_id: str, command_id: UUID, *, action: Literal["cancel", "reconcile", "retry"], actor_id: str, idempotency_key: str, expected_version: int, reason: str, mutation_correlation_id: str | None = None) -> CommandOperation: ...
 
     async def ready(self) -> bool:
         ...
@@ -455,6 +455,7 @@ class CommandStore(Protocol):
         evidence: Mapping[str, Any],
         idempotency_key: str,
         expected_version: int,
+        mutation_correlation_id: str | None = None,
     ) -> CommandOperation:
         ...
 
@@ -572,6 +573,7 @@ class MemoryCommandStore:
         evidence: Mapping[str, Any],
         idempotency_key: str,
         expected_version: int,
+        mutation_correlation_id: str | None = None,
     ) -> CommandOperation:
         key = (tenant_id, command_id)
         entry = self._commands.get(key)
@@ -588,6 +590,7 @@ class MemoryCommandStore:
                     "reason": reason,
                     "provider_operation_id": provider_operation_id,
                     "evidence_sha256": evidence_digest,
+                    "mutation_correlation_id": mutation_correlation_id,
                 },
                 sort_keys=True,
                 separators=(",", ":"),
@@ -627,7 +630,7 @@ class MemoryCommandStore:
         self._commands[key] = (digest, updated)
         self._idempotency[(tenant_id, updated.idempotency_key)] = (digest, updated)
         events = self._events[key]
-        events.append(OperationEvent(event_id=len(events) + 1, operation_id=command_id, previous_state="reconciliation_required", new_state=updated.state, actor_id=actor_id, reason=reason[:2048], safe_metadata={"provider_operation_id": provider_operation_id, "readback_evidence_sha256": evidence_digest, "reconciliation_status": "matched" if matched else "mismatch"}, created_at=now))
+        events.append(OperationEvent(event_id=len(events) + 1, operation_id=command_id, previous_state="reconciliation_required", new_state=updated.state, actor_id=actor_id, reason=reason[:2048], safe_metadata={"provider_operation_id": provider_operation_id, "readback_evidence_sha256": evidence_digest, "reconciliation_status": "matched" if matched else "mismatch", "mutation_correlation_id": mutation_correlation_id}, created_at=now))
         attempts = self._attempts[key]
         if attempts:
             attempts[-1] = attempts[-1].model_copy(update={"state": updated.state, "provider_operation_id": provider_operation_id or attempts[-1].provider_operation_id, "safe_error_code": None if matched else "provider_readback_mismatch", "finished_at": now})
@@ -671,12 +674,12 @@ class MemoryCommandStore:
             ]
         return rows[:limit]
 
-    async def mutate_operation(self, tenant_id: str, command_id: UUID, *, action: Literal["cancel", "reconcile", "retry"], actor_id: str, idempotency_key: str, expected_version: int, reason: str) -> CommandOperation:
+    async def mutate_operation(self, tenant_id: str, command_id: UUID, *, action: Literal["cancel", "reconcile", "retry"], actor_id: str, idempotency_key: str, expected_version: int, reason: str, mutation_correlation_id: str | None = None) -> CommandOperation:
         key = (tenant_id, command_id)
         entry = self._commands.get(key)
         if entry is None:
             raise CommandNotFound("command operation was not found")
-        request_digest = hashlib.sha256(json.dumps({"expected_version": expected_version, "reason": reason}, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+        request_digest = hashlib.sha256(json.dumps({"expected_version": expected_version, "reason": reason, "mutation_correlation_id": mutation_correlation_id}, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
         mutation_key = (tenant_id, command_id, action, actor_id, idempotency_key)
         replay = self._mutations.get(mutation_key)
         if replay:
@@ -740,7 +743,7 @@ class MemoryCommandStore:
         updated = operation.model_copy(update={**updates, "resource_version": operation.resource_version + 1, "updated_at": now})
         self._commands[key] = (digest, updated)
         events = self._events[key]
-        events.append(OperationEvent(event_id=len(events) + 1, operation_id=command_id, previous_state=operation.state, new_state=updated.state, actor_id=actor_id, reason=reason, safe_metadata={"action": action, "resource_version": updated.resource_version}, created_at=now))
+        events.append(OperationEvent(event_id=len(events) + 1, operation_id=command_id, previous_state=operation.state, new_state=updated.state, actor_id=actor_id, reason=reason, safe_metadata={"action": action, "resource_version": updated.resource_version, "mutation_correlation_id": mutation_correlation_id}, created_at=now))
         self._mutations[mutation_key] = (request_digest, updated)
         return updated
 
@@ -1149,8 +1152,8 @@ class PostgresCommandStore:
             )
         return [OperationAttempt(attempt_id=row["id"], operation_id=row["command_id"], attempt_number=row["attempt_number"], state=row["state"], provider_operation_id=row["provider_operation_id"], safe_error_code=row["error_code"], started_at=row["started_at"], finished_at=row["finished_at"]) for row in rows]
 
-    async def mutate_operation(self, tenant_id: str, command_id: UUID, *, action: Literal["cancel", "reconcile", "retry"], actor_id: str, idempotency_key: str, expected_version: int, reason: str) -> CommandOperation:
-        request_digest = hashlib.sha256(json.dumps({"expected_version": expected_version, "reason": reason}, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    async def mutate_operation(self, tenant_id: str, command_id: UUID, *, action: Literal["cancel", "reconcile", "retry"], actor_id: str, idempotency_key: str, expected_version: int, reason: str, mutation_correlation_id: str | None = None) -> CommandOperation:
+        request_digest = hashlib.sha256(json.dumps({"expected_version": expected_version, "reason": reason, "mutation_correlation_id": mutation_correlation_id}, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
         async with self.pool.acquire() as conn:
             async with conn.transaction():
                 current = await conn.fetchrow("SELECT * FROM middleware_commands WHERE tenant_id=$1 AND command_id=$2 FOR UPDATE", tenant_id, str(command_id))
@@ -1229,7 +1232,7 @@ class PostgresCommandStore:
                         VALUES ($1,$2,$3,$4,$5::jsonb,$6) ON CONFLICT DO NOTHING""", tenant_id, str(command_id), retry_destination or TEMPORAL_COMMAND_DESTINATION, current["command_type"], json.dumps(retry_envelope), work_key)
                 assert row is not None
                 await conn.execute("""INSERT INTO middleware_command_audit (tenant_id, command_id, previous_state, new_state, actor_id, reason, metadata)
-                    VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb)""", tenant_id, str(command_id), previous, new_state, actor_id, reason, json.dumps({"action": action, "resource_version": row["resource_version"]}))
+                    VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb)""", tenant_id, str(command_id), previous, new_state, actor_id, reason, json.dumps({"action": action, "resource_version": row["resource_version"], "mutation_correlation_id": mutation_correlation_id}))
                 operation = self._operation(row)
                 payload = operation.model_dump(mode="json")
                 payload["state"] = operation.state
@@ -1490,6 +1493,7 @@ class PostgresCommandStore:
         evidence: Mapping[str, Any],
         idempotency_key: str,
         expected_version: int,
+        mutation_correlation_id: str | None = None,
     ) -> CommandOperation:
         """Close (or keep parked) an operation awaiting reconciliation.
 
@@ -1509,6 +1513,7 @@ class PostgresCommandStore:
                     "reason": safe_reason,
                     "provider_operation_id": provider_operation_id,
                     "evidence_sha256": evidence_digest,
+                    "mutation_correlation_id": mutation_correlation_id,
                 },
                 sort_keys=True,
                 separators=(",", ":"),
@@ -1605,6 +1610,7 @@ class PostgresCommandStore:
                             "provider_operation_id": provider_operation_id,
                             "readback_evidence_sha256": evidence_digest,
                             "reconciliation_status": "matched" if matched else "mismatch",
+                            "mutation_correlation_id": mutation_correlation_id,
                         },
                         separators=(",", ":"),
                         sort_keys=True,

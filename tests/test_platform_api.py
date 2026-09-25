@@ -219,6 +219,8 @@ def test_cancel_uses_optimistic_concurrency_and_idempotency(stack: Stack) -> Non
         assert cancelled.json()["cancelled_at"] is not None
         replay = client.post(f"/platform/v1/operations/{body['command_id']}/cancel", json={"expected_version": 1, "reason": "operator request"}, headers=auth)
         assert replay.status_code == 200
+        timeline = client.get(f"/platform/v1/operations/{body['command_id']}/timeline", headers={"Authorization": f"Bearer {token()}"}).json()
+        assert timeline["items"][-1]["safe_metadata"]["mutation_correlation_id"] == "cancel-corr"
         stale = client.post(f"/platform/v1/operations/{body['command_id']}/cancel", json={"expected_version": 1, "reason": "again"}, headers={**auth, "Idempotency-Key": "cancel-key-0002"})
         assert stale.status_code == 409
         assert client.post(f"/platform/v1/operations/{body['command_id']}/cancel", json={"expected_version": 2, "reason": "x"}, headers={**auth, "Authorization": f"Bearer {token(scope='platform.command.read')}"}).status_code == 401
@@ -240,6 +242,7 @@ def test_replay_requires_replay_scope_and_operator_role(stack: Stack) -> None:
         reexecuted = client.post(f"/platform/v1/operations/{body['command_id']}/replay", json={"mode": "REEXECUTE", "expected_version": 1, "reason": "r", "new_idempotency_key": "idem-new-0000001"}, headers={**base, "Authorization": f"Bearer {operator}"})
         assert reexecuted.status_code == 202
         assert reexecuted.json()["operation_id"] != body["command_id"]
+        assert reexecuted.json()["correlation_id"] == "replay-corr"
         assert reexecuted.headers["Location"].startswith("/platform/v1/operations/")
         bad_mode = client.post(f"/platform/v1/operations/{body['command_id']}/replay", json={"mode": "AGAIN", "expected_version": 1, "reason": "r"}, headers={**base, "Authorization": f"Bearer {operator}"})
         assert bad_mode.status_code == 400  # canonical control-plane envelope for schema violations
@@ -359,6 +362,8 @@ def test_reconciliation_resolution_is_idempotent_and_content_bound(stack: Stack)
         )
         assert first.status_code == 200, first.text
         assert first.json()["state"] == "COMPLETED"
+        events = asyncio.run(stack.store.list_events(TENANT, command_id, limit=100))
+        assert events[-1].safe_metadata["mutation_correlation_id"] == "resolve-corr"
         first_version = first.json()["resource_version"]
 
         replay = client.post(

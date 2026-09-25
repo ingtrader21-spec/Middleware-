@@ -400,7 +400,7 @@ async def cancel_operation(operation_id: UUID, body: CancelRequest, request: Req
     principal = await authenticate(request, required_scope=SCOPE_COMMAND)
     runtime, platform = _runtime(request)
     tenant_id = _tenant_for_read(request, principal)
-    required_header(request, "X-Correlation-ID", minimum=1, maximum=180)
+    mutation_correlation_id = required_header(request, "X-Correlation-ID", minimum=1, maximum=180)
     idempotency_key = required_header(request, "Idempotency-Key", minimum=8, maximum=180)
     operation = await platform.kernel.cancel(
         tenant_id,
@@ -409,6 +409,7 @@ async def cancel_operation(operation_id: UUID, body: CancelRequest, request: Req
         idempotency_key=idempotency_key,
         expected_version=body.expected_version,
         reason=body.reason,
+        mutation_correlation_id=mutation_correlation_id,
     )
     return _respond(200, _status(operation), correlation_id=operation.correlation_id)
 
@@ -421,7 +422,7 @@ async def replay_operation(operation_id: UUID, body: ReplayRequest, request: Req
     principal = await authenticate(request, required_scope=SCOPE_COMMAND_REPLAY)
     runtime, platform = _runtime(request)
     tenant_id = _tenant_for_read(request, principal)
-    required_header(request, "X-Correlation-ID", minimum=1, maximum=180)
+    mutation_correlation_id = required_header(request, "X-Correlation-ID", minimum=1, maximum=180)
     idempotency_key = required_header(request, "Idempotency-Key", minimum=8, maximum=180)
     operation = await platform.kernel.replay(
         tenant_id,
@@ -432,6 +433,7 @@ async def replay_operation(operation_id: UUID, body: ReplayRequest, request: Req
         expected_version=body.expected_version,
         reason=body.reason,
         new_idempotency_key=body.new_idempotency_key,
+        mutation_correlation_id=mutation_correlation_id,
     )
     return _respond(
         202,
@@ -535,7 +537,7 @@ async def replay_dead_letter(operation_id: UUID, body: ReplayRequest, request: R
     original = await platform.kernel.get(tenant_id, operation_id)
     if original.state != "dead_lettered":
         raise CommandNotFound("dead-letter operation was not found")
-    required_header(request, "X-Correlation-ID", minimum=1, maximum=180)
+    mutation_correlation_id = required_header(request, "X-Correlation-ID", minimum=1, maximum=180)
     idempotency_key = required_header(request, "Idempotency-Key", minimum=8, maximum=180)
     operation = await platform.kernel.replay(
         tenant_id,
@@ -546,6 +548,7 @@ async def replay_dead_letter(operation_id: UUID, body: ReplayRequest, request: R
         expected_version=body.expected_version,
         reason=body.reason,
         new_idempotency_key=body.new_idempotency_key,
+        mutation_correlation_id=mutation_correlation_id,
     )
     return _respond(202, _status(operation), correlation_id=operation.correlation_id, location=f"/platform/v1/operations/{operation.command_id}")
 
@@ -580,7 +583,7 @@ async def request_reconciliation_readback(operation_id: UUID, body: Reconciliati
     principal = await authenticate(request, required_scope=SCOPE_COMMAND_REPLAY)
     _runtime_container, platform = _runtime(request)
     tenant_id = _tenant_for_read(request, principal)
-    required_header(request, "X-Correlation-ID", minimum=1, maximum=180)
+    mutation_correlation_id = required_header(request, "X-Correlation-ID", minimum=1, maximum=180)
     idempotency_key = required_header(request, "Idempotency-Key", minimum=8, maximum=180)
     operation = await platform.kernel.replay(
         tenant_id,
@@ -590,6 +593,7 @@ async def request_reconciliation_readback(operation_id: UUID, body: Reconciliati
         idempotency_key=idempotency_key,
         expected_version=body.expected_version,
         reason=body.reason,
+        mutation_correlation_id=mutation_correlation_id,
     )
     return _respond(202, _status(operation), correlation_id=operation.correlation_id)
 
@@ -602,7 +606,7 @@ async def resolve_reconciliation(operation_id: UUID, body: ReconciliationResolve
         raise ReplayNotAllowed("reconciliation resolution requires the platform-operator role")
     runtime, platform = _runtime(request)
     tenant_id = _tenant_for_read(request, principal)
-    required_header(request, "X-Correlation-ID", minimum=1, maximum=180)
+    mutation_correlation_id = required_header(request, "X-Correlation-ID", minimum=1, maximum=180)
     idempotency_key = required_header(
         request, "Idempotency-Key", minimum=8, maximum=180
     )
@@ -618,6 +622,7 @@ async def resolve_reconciliation(operation_id: UUID, body: ReconciliationResolve
         evidence=body.evidence,
         idempotency_key=idempotency_key,
         expected_version=body.expected_version,
+        mutation_correlation_id=mutation_correlation_id,
     )
     return _respond(200, _status(operation), correlation_id=operation.correlation_id)
 
