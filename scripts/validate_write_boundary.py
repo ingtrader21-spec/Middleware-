@@ -15,6 +15,7 @@ MUTATION_SCHEMA_PATH = ROOT / "contracts" / "mutation-command.schema.json"
 HTTP_CONVENTIONS_PATH = ROOT / "contracts" / "http-conventions.md"
 BOUNDARY_DOC_PATH = ROOT / "docs" / "WRITE-BOUNDARY-AND-OWNERSHIP.md"
 THIS_FILE = Path(__file__).resolve()
+HARDENING_VALIDATOR = ROOT / "scripts/validate_write_boundary_hardening.py"
 
 UUID_PATTERN = (
     r"^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-"
@@ -409,7 +410,7 @@ def iter_repository_text_files(errors: list[str]) -> Iterator[tuple[Path, str]]:
         relative = path.relative_to(ROOT)
         if any(part in EXCLUDED_SCAN_PARTS for part in relative.parts):
             continue
-        if path.resolve() == THIS_FILE:
+        if path.resolve() in {THIS_FILE, HARDENING_VALIDATOR.resolve()}:
             continue
         if path.suffix.lower() in BINARY_SUFFIXES:
             continue
@@ -432,9 +433,32 @@ def iter_repository_text_files(errors: list[str]) -> Iterator[tuple[Path, str]]:
         yield path, text
 
 
+def _odoo_credential_match_is_negative_guard(lines: list[str], index: int) -> bool:
+    line = lines[index].strip()
+    anchored = (
+        (line.startswith("'^(") and line.endswith(")$'"))
+        or (line.startswith('"^(') and line.endswith(')$"'))
+    )
+    if not anchored:
+        return False
+    previous = lines[index - 1] if index > 0 else ""
+    return "grep -Eq" in previous or "grep -E" in previous
+
+
+def contains_forbidden_odoo_credential_reference(text: str) -> bool:
+    lines = text.splitlines()
+    for index, line in enumerate(lines):
+        if not ODOO_DATABASE_CREDENTIAL_RE.search(line):
+            continue
+        if _odoo_credential_match_is_negative_guard(lines, index):
+            continue
+        return True
+    return False
+
+
 def validate_no_odoo_database_credentials(errors: list[str]) -> None:
     for path, text in iter_repository_text_files(errors):
-        if ODOO_DATABASE_CREDENTIAL_RE.search(text):
+        if contains_forbidden_odoo_credential_reference(text):
             errors.append(
                 "direct Odoo database credential reference is forbidden: "
                 f"{path.relative_to(ROOT)}"
@@ -521,6 +545,15 @@ def validate_n8n_exports(policy: dict[str, Any] | None, errors: list[str]) -> No
 def validate_guard_self_tests(errors: list[str]) -> None:
     if ODOO_DATABASE_CREDENTIAL_RE.search("ODOO_DATABASE_URL=postgresql://example") is None:
         errors.append("Odoo credential scanner self-test failed")
+    if not contains_forbidden_odoo_credential_reference(
+        "ODOO_DATABASE_URL=postgresql://example"
+    ):
+        errors.append("Odoo credential reference negative self-test failed")
+    if contains_forbidden_odoo_credential_reference(
+        "env | cut -d= -f1 | grep -Eq \\" + chr(10)
+        + "'^(AWS_SECRET_ACCESS_KEY|ODOO_DATABASE_PASSWORD)$'"
+    ):
+        errors.append("Odoo credential deny-pattern positive self-test failed")
     if n8n_http_url_error(
         "https://odoo.example.invalid/web/dataset/call_kw",
         REQUIRED_N8N_PATH_PREFIXES,
