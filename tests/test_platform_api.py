@@ -91,7 +91,13 @@ def command_body(**updates: Any) -> dict[str, Any]:
 
 
 def headers(body: dict[str, Any], *, bearer: str | None = None, **extra: str) -> dict[str, str]:
-    value = {"Authorization": f"Bearer {bearer or token()}", "X-Correlation-ID": body["correlation_id"], "Idempotency-Key": body["idempotency_key"], "Content-Type": "application/json"}
+    value = {
+        "Authorization": f"Bearer {bearer or token()}",
+        "X-Command-ID": body["command_id"],
+        "X-Correlation-ID": body["correlation_id"],
+        "Idempotency-Key": body["idempotency_key"],
+        "Content-Type": "application/json",
+    }
     value.update(extra)
     return value
 
@@ -126,6 +132,8 @@ def test_header_and_body_bindings_are_enforced(stack: Stack) -> None:
         assert mismatch.status_code == 400
         mismatch = client.post("/platform/v1/commands", json=body, headers={**headers(body), "X-Correlation-ID": "other"})
         assert mismatch.status_code == 400
+        mismatch = client.post("/platform/v1/commands", json=body, headers={**headers(body), "X-Command-ID": str(uuid4())})
+        assert mismatch.status_code == 400
         missing = client.post("/platform/v1/commands", json=body, headers={"Authorization": headers(body)["Authorization"]})
         assert missing.status_code == 400
         tenant_header = client.post("/platform/v1/commands", json=body, headers={**headers(body), "X-Tenant-ID": "tenant-b"})
@@ -143,6 +151,9 @@ def test_submission_is_accepted_asynchronously_and_replayed_exactly(stack: Stack
         assert response.status_code == 202
         assert response.headers["Location"] == f"/platform/v1/operations/{body['command_id']}"
         assert response.headers["X-Correlation-ID"] == body["correlation_id"]
+        assert response.headers["X-Command-ID"] == body["command_id"]
+        assert response.headers["Cache-Control"] == "no-store"
+        assert response.headers["X-Content-Type-Options"] == "nosniff"
         accepted = response.json()
         assert accepted == {"operation_id": body["command_id"], "command_id": body["command_id"], "state": "RECEIVED", "correlation_id": body["correlation_id"], "duplicate": False}
         assert stack.test_syn.provider_effects == 0
@@ -179,6 +190,10 @@ def test_operation_read_is_tenant_scoped_and_redacted(stack: Stack) -> None:
         assert read.status_code == 200
         status = read.json()
         assert status["state"] == "RECEIVED" and status["resource_version"] == 1
+        assert read.headers["X-Command-ID"] == body["command_id"]
+        assert read.headers["X-Correlation-ID"] == body["correlation_id"]
+        assert read.headers["Cache-Control"] == "no-store"
+        assert read.headers["X-Content-Type-Options"] == "nosniff"
         assert "payload" not in status and "readback_evidence" not in status and "last_error" not in status
         assert client.get(f"/platform/v1/operations/{body['command_id']}", headers={"Authorization": f"Bearer {token(tenants=('tenant-b',))}"}).status_code == 404
         assert client.get(f"/platform/v1/operations/{body['command_id']}", headers={"Authorization": f"Bearer {token(scope='platform.command')}"}).status_code == 401
@@ -211,7 +226,18 @@ def test_timeline_is_append_only_and_monotonic_after_execution(stack: Stack) -> 
 def test_cancel_uses_optimistic_concurrency_and_idempotency(stack: Stack) -> None:
     with TestClient(stack.app) as client:
         _, body = submit(client)
-        auth = {"Authorization": f"Bearer {token()}", "X-Correlation-ID": "cancel-corr", "Idempotency-Key": "cancel-key-0001"}
+        auth = {
+            "Authorization": f"Bearer {token()}",
+            "X-Command-ID": body["command_id"],
+            "X-Correlation-ID": body["correlation_id"],
+            "Idempotency-Key": "cancel-key-0001",
+        }
+        mismatch = client.post(
+            f"/platform/v1/operations/{body['command_id']}/cancel",
+            json={"expected_version": 1, "reason": "operator request"},
+            headers={**auth, "X-Correlation-ID": "wrong-correlation", "Idempotency-Key": "cancel-key-bad01"},
+        )
+        assert mismatch.status_code == 400
         cancelled = client.post(f"/platform/v1/operations/{body['command_id']}/cancel", json={"expected_version": 1, "reason": "operator request"}, headers=auth)
         assert cancelled.status_code == 200 and cancelled.json()["state"] == "CANCELLED" and cancelled.json()["resource_version"] == 2
         assert cancelled.json()["cancelled_at"] is not None
@@ -229,7 +255,11 @@ def test_replay_requires_replay_scope_and_operator_role(stack: Stack) -> None:
         import asyncio
 
         asyncio.run(stack.bus.run_once())
-        base = {"X-Correlation-ID": "replay-corr", "Idempotency-Key": "replay-key-0001"}
+        base = {
+            "X-Command-ID": body["command_id"],
+            "X-Correlation-ID": body["correlation_id"],
+            "Idempotency-Key": "replay-key-0001",
+        }
         no_scope = client.post(f"/platform/v1/operations/{body['command_id']}/replay", json={"mode": "REEXECUTE", "expected_version": 1, "reason": "r", "new_idempotency_key": "idem-new-0000001"}, headers={**base, "Authorization": f"Bearer {token()}"})
         assert no_scope.status_code == 401
         no_role = client.post(f"/platform/v1/operations/{body['command_id']}/replay", json={"mode": "REEXECUTE", "expected_version": 1, "reason": "r", "new_idempotency_key": "idem-new-0000001"}, headers={**base, "Authorization": f"Bearer {token(scope='platform.command platform.command.read platform.command.replay')}"})
@@ -246,8 +276,14 @@ def test_replay_requires_replay_scope_and_operator_role(stack: Stack) -> None:
 def test_kernel_describe_is_authenticated_and_secret_free(stack: Stack) -> None:
     with TestClient(stack.app) as client:
         assert client.get("/platform/v1/kernel/describe").status_code == 401
-        described = client.get("/platform/v1/kernel/describe", headers={"Authorization": f"Bearer {token()}"})
+        described = client.get(
+            "/platform/v1/kernel/describe",
+            headers={"Authorization": f"Bearer {token()}", "X-Correlation-ID": "describe-corr"},
+        )
         assert described.status_code == 200
+        assert described.headers["X-Correlation-ID"] == "describe-corr"
+        assert described.headers["Cache-Control"] == "no-store"
+        assert described.headers["X-Content-Type-Options"] == "nosniff"
         body = described.json()
         assert body["canonical_service"] == "middleware-integration-api" and body["canonical_port"] == 8095
         assert body["runtime_schema_version"] == 11
