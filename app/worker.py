@@ -11,6 +11,7 @@ from .storage import DEFAULT_MAX_OUTBOX_ATTEMPTS, OutboxRecord, PostgresOutboxSt
 
 
 Handler = Callable[[OutboxRecord], Awaitable[None]]
+EffectGate = Callable[[OutboxRecord], Awaitable[bool] | bool]
 log = logging.getLogger(__name__)
 
 
@@ -49,6 +50,7 @@ class OutboxWorker:
         lease_seconds: float = 60.0,
         handler_timeout_seconds: float = 45.0,
         max_attempts: int = DEFAULT_MAX_OUTBOX_ATTEMPTS,
+        effect_gate: EffectGate | None = None,
     ) -> None:
         if poll_seconds <= 0:
             raise ValueError("poll_seconds must be positive")
@@ -64,6 +66,7 @@ class OutboxWorker:
         self.lease_seconds = lease_seconds
         self.handler_timeout_seconds = handler_timeout_seconds
         self.max_attempts = max_attempts
+        self.effect_gate = effect_gate
         self.worker_id = f"{socket.gethostname()}:{os.getpid()}:{uuid.uuid4().hex[:8]}"
 
     async def _heartbeat_active_dispatch(
@@ -110,6 +113,15 @@ class OutboxWorker:
                 error=f"no handler registered for destination {record.destination}",
                 max_attempts=self.max_attempts,
             )
+            return True
+
+        # External effects fail closed unless the runtime supplies its authoritative gate.
+        allowed = False
+        if self.effect_gate is not None:
+            decision = self.effect_gate(record)
+            allowed = await decision if isinstance(decision, Awaitable) else decision
+        if not allowed:
+            await self.store.fail(record.id, worker_id=self.worker_id, error="effect gate denied dispatch", max_attempts=self.max_attempts)
             return True
 
         # This final pre-provider transaction refreshes the lease from database
