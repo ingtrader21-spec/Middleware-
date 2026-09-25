@@ -11,6 +11,7 @@ from datetime import UTC, datetime
 from enum import StrEnum
 from pathlib import Path
 from typing import Any, Literal
+from urllib.parse import urlsplit
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -35,6 +36,12 @@ TERMINAL_STATUSES = {
     ExecutionStatus.TIMED_OUT,
 }
 RETRYABLE_HTTP = {408, 429, 502, 503, 504}
+# The retired pre-canonical Middleware/n8n listener. No dispatch or callback
+# target may resolve to it, in any environment, even as a fallback.
+LEGACY_RUNTIME_PORT = 8080
+APPROVED_STAGING_HTTP_HOSTS = frozenset(
+    {"webhook", "n8n-webhook-staging", "n8n-runtime-test-double"}
+)
 NON_RETRYABLE_HTTP = {400, 401, 403, 404, 409, 422}
 
 
@@ -194,6 +201,53 @@ def verify_fresh(timestamp: str, ttl_seconds: int = 300) -> None:
         raise ValueError("invalid runtime timestamp") from exc
     if abs(int(time.time()) - parsed) > ttl_seconds:
         raise ValueError("expired runtime timestamp")
+
+
+def dispatch_target_posture(base_url: str, environment: str) -> dict[str, Any]:
+    """Secret-free verdict on the configured n8n dispatch target.
+
+    ``allowed`` is the single decision the dispatcher enforces; the rest is the
+    API-visible evidence (scheme and port only, never credentials or paths).
+    """
+    try:
+        target = urlsplit(base_url)
+        port = target.port or {"https": 443, "http": 80}.get(target.scheme)
+    except ValueError:
+        return {
+            "configured": bool(base_url),
+            "scheme": None,
+            "port": None,
+            "legacy_8080": False,
+            "allowed": False,
+            "reason": "TARGET_UNPARSEABLE",
+        }
+    legacy = port == LEGACY_RUNTIME_PORT
+    private = (target.scheme == "https" and bool(target.hostname)) or (
+        environment == "staging"
+        and target.scheme == "http"
+        and target.hostname in APPROVED_STAGING_HTTP_HOSTS
+    )
+    reason = None
+    if not base_url:
+        reason = "TARGET_NOT_CONFIGURED"
+    elif legacy:
+        reason = "LEGACY_PORT_8080"
+    elif (
+        not private
+        or target.username
+        or target.password
+        or target.query
+        or target.fragment
+    ):
+        reason = "TARGET_NOT_PRIVATE_HTTPS"
+    return {
+        "configured": bool(base_url),
+        "scheme": target.scheme or None,
+        "port": port,
+        "legacy_8080": legacy,
+        "allowed": reason is None,
+        "reason": reason,
+    }
 
 
 def retry_delay(attempt: int, base: float = 1.0, cap: float = 60.0) -> float:

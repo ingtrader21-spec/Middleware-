@@ -9,17 +9,19 @@ from typing import Annotated, Any
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
-from sqlalchemy import select, text
+from sqlalchemy import func, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.n8n_runtime import (
+    TERMINAL_STATUSES,
     DispatchRequest,
     ExecutionStatus,
     ResultContract,
     SocialEventEnvelope,
     canonical_bytes,
+    dispatch_target_posture,
     load_secret,
     sha256,
     verify_fresh,
@@ -46,6 +48,19 @@ from app.social.metrics import (
 )
 
 router = APIRouter(prefix="/api/v1/n8n-runtime", tags=["n8n-runtime"])
+
+# Identity of this serving process. A restart yields a new instance id while
+# every durable execution, result and audit row must read back unchanged; the
+# TEST_SYN failure-path certification relies on exactly that contrast.
+PROCESS_INSTANCE_ID = str(uuid4())
+PROCESS_STARTED_AT = datetime.now(UTC)
+
+
+def _process_identity() -> dict[str, Any]:
+    return {
+        "process_instance_id": PROCESS_INSTANCE_ID,
+        "started_at": PROCESS_STARTED_AT.isoformat(),
+    }
 
 
 def _safe_execution(
@@ -157,6 +172,164 @@ async def execution_status(
     return _safe_execution(execution)
 
 
+@router.get("/process")
+async def runtime_process() -> dict[str, Any]:
+    """Secret-free runtime identity and dispatch-target posture."""
+    return {
+        "schema_version": "codestra.n8n.runtime-process.v1",
+        **_process_identity(),
+        "environment": settings.environment,
+        "runtime_environment": settings.n8n_runtime_environment,
+        "runtime_enabled": settings.n8n_runtime_enabled,
+        "dispatch_target": dispatch_target_posture(
+            settings.n8n_runtime_base_url, settings.n8n_runtime_environment
+        ),
+    }
+
+
+def certification_evidence(
+    execution: N8nRuntimeExecution,
+    results: list[N8nRuntimeResult],
+    audits: list[AuditEvent],
+    accepted_nonces: int,
+    odoo_deliveries: list[OdooResultDelivery],
+) -> dict[str, Any]:
+    """Durable, redacted evidence for one execution's command/result lifecycle.
+
+    Payloads and result bodies are never echoed; only hashes, statuses,
+    identifiers and the continuity/reconciliation verdicts derived from them.
+    """
+    ordered = sorted(
+        results, key=lambda r: (r.occurred_at, r.persisted_at or r.occurred_at)
+    )
+    correlation_ids = {execution.correlation_id}
+    correlation_ids.update(str(r.result_json.get("correlation_id")) for r in ordered)
+    correlation_ids.update(a.correlation_id for a in audits)
+    bound = all(
+        r.result_json.get("execution_id") == str(execution.execution_id)
+        and r.result_json.get("tenant_id") == execution.tenant_id
+        and r.tenant_id == execution.tenant_id
+        and r.workflow_code == execution.workflow_code
+        for r in ordered
+    )
+    if not ordered:
+        reconciliation = (
+            "terminal_without_result"
+            if execution.status in TERMINAL_STATUSES
+            else "awaiting_result"
+        )
+    elif ordered[-1].status == execution.status:
+        reconciliation = "reconciled"
+    else:
+        reconciliation = "divergent"
+    return {
+        "schema_version": "codestra.n8n.execution-evidence.v1",
+        "execution": {
+            **_safe_execution(execution),
+            "event_type": execution.event_type,
+            "causation_id": execution.causation_id,
+            "trace_id": execution.trace_id,
+            "payload_hash": execution.payload_hash,
+            "attempt_count": execution.attempt_count,
+            "failure_class": execution.failure_class,
+            "last_error_code": execution.last_error_code,
+            "created_at": execution.created_at.isoformat()
+            if execution.created_at
+            else None,
+            "completed_at": execution.completed_at.isoformat()
+            if execution.completed_at
+            else None,
+        },
+        "results": [
+            {
+                "result_id": str(r.result_id),
+                "status": r.status,
+                "result_hash": r.result_hash,
+                "occurred_at": r.occurred_at.isoformat(),
+            }
+            for r in ordered
+        ],
+        "audit": [
+            {
+                "action": a.action,
+                "decision": a.decision,
+                "correlation_id": a.correlation_id,
+            }
+            for a in sorted(audits, key=lambda a: (a.created_at is None, a.created_at))
+        ],
+        "accepted_callback_nonces": accepted_nonces,
+        "odoo_result_deliveries": [
+            {"status": d.status, "request_hash": d.request_hash}
+            for d in odoo_deliveries
+        ],
+        "checks": {
+            "correlation_continuous": len(correlation_ids) == 1,
+            "result_binding_intact": bound,
+            "result_hashes_unique": len({r.result_hash for r in ordered})
+            == len(ordered),
+            "reconciliation": reconciliation,
+            "synthetic_odoo_binding": is_test_syn_odoo_execution(execution),
+            "odoo_result_deliveries": len(odoo_deliveries),
+        },
+        "process": _process_identity(),
+    }
+
+
+@router.get("/executions/{execution_id}/evidence")
+async def execution_evidence(
+    execution_id: UUID,
+    tenant_id: str,
+    db: Annotated[AsyncSession, Depends(get_session)],
+) -> dict[str, Any]:
+    execution = await db.get(N8nRuntimeExecution, execution_id)
+    if execution is None or execution.tenant_id != tenant_id:
+        raise HTTPException(404, "execution not found")
+    results = list(
+        (
+            await db.scalars(
+                select(N8nRuntimeResult).where(
+                    N8nRuntimeResult.execution_id == execution.execution_id
+                )
+            )
+        ).all()
+    )
+    result_ids = [r.result_id for r in results]
+    subjects = [str(execution.execution_id), *(str(i) for i in result_ids)]
+    audits = list(
+        (
+            await db.scalars(
+                select(AuditEvent)
+                .where(
+                    AuditEvent.subject.in_(subjects),
+                    AuditEvent.action.like("n8n.runtime.%"),
+                )
+                .limit(200)
+            )
+        ).all()
+    )
+    accepted_nonces = await db.scalar(
+        select(func.count())
+        .select_from(N8nRuntimeNonce)
+        .where(N8nRuntimeNonce.execution_id == execution.execution_id)
+    )
+    deliveries = (
+        list(
+            (
+                await db.scalars(
+                    select(OdooResultDelivery).where(
+                        OdooResultDelivery.runtime_result_id.in_(result_ids)
+                    )
+                )
+            ).all()
+        )
+        if result_ids
+        else []
+    )
+    return certification_evidence(
+        execution, results, audits, int(accepted_nonces or 0), deliveries
+    )
+
+
 @router.post("/social-authorize", status_code=202)
 async def authorize_social_ingress(
     request: Request,
@@ -245,14 +418,18 @@ async def authorize_social_ingress(
         )
     )
     existing = (
-        await db.execute(
-            text(
-                "SELECT body_hash FROM social_n8n_ingress_events "
-                "WHERE event_id=:event"
-            ),
-            {"event": social.event_id},
+        (
+            await db.execute(
+                text(
+                    "SELECT body_hash FROM social_n8n_ingress_events "
+                    "WHERE event_id=:event"
+                ),
+                {"event": social.event_id},
+            )
         )
-    ).mappings().first()
+        .mappings()
+        .first()
+    )
     if existing is not None:
         if existing["body_hash"] != body_hash:
             await db.rollback()
