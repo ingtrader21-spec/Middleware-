@@ -60,7 +60,10 @@ def parse_env_file(path: str | Path) -> dict[str, str]:
         key, sep, value = line.partition("=")
         if not sep or not key.strip():
             raise NoEffectRehearsalError(f"invalid env line: {raw!r}")
-        values[key.strip()] = value.strip()
+        key = key.strip()
+        if key in values:
+            raise NoEffectRehearsalError(f"duplicate env key: {key}")
+        values[key] = value.strip()
     return values
 
 
