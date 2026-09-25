@@ -84,7 +84,7 @@ def token(settings: Settings, **overrides: Any) -> str:
     if algorithm == "none":
         return jwt.encode(claims, key=None, algorithm="none")  # type: ignore[arg-type]
     if algorithm == "HS256":
-        return jwt.encode(claims, "shared-secret", algorithm="HS256")
+        return jwt.encode(claims, "shared-secret-key-material-32-bytes-minimum", algorithm="HS256")
     return jwt.encode(claims, key, algorithm=algorithm)
 
 
