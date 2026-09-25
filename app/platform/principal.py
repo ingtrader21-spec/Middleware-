@@ -164,3 +164,59 @@ async def authenticate(request: Request, *, required_scope: str) -> KernelPrinci
         required_scope=required_scope,
     )
     return principal_from_claims(claims, caller, environment=request.app.state.runtime.settings.app_env)
+
+@dataclass(frozen=True)
+class RequestSecurityContext:
+    principal: KernelPrincipal
+    tenant_id: str
+    request_id: str
+    correlation_id: str
+    causation_id: str | None
+    environment: str
+    source: str = "http"
+
+@dataclass(frozen=True)
+class AuthorizationDecision:
+    allowed: bool
+    decision_code: str
+    principal_id: str
+    tenant_id: str
+    resource: str
+    action: str
+    required_scopes: tuple[str, ...]
+    matched_policy: str | None = None
+    effect_class: str = "read"
+
+ROLE_PERMISSIONS = {
+    "platform_admin": frozenset({"*"}),
+    "integration_administrator": frozenset({"connector.*", "command.*", "reconcile.*"}),
+    "tenant_admin": frozenset({"command.*", "automation.*", "provisioning.*", "connector.read"}),
+    "campaign_supervisor": frozenset({"command.create", "command.read", "automation.execute"}),
+    "agent": frozenset({"command.create", "command.read"}),
+    "service_client": frozenset({"command.create", "command.read"}),
+    "read_only_auditor": frozenset({"command.read", "connector.read", "service.read"}),
+    "automation_service": frozenset({"automation.*", "command.create", "command.read"}),
+    "provisioning_service": frozenset({"provisioning.*", "command.create", "command.read"}),
+}
+
+def authorize(principal: KernelPrincipal, *, action: str, resource: str, tenant_id: str,
+              required_scopes: tuple[str, ...] = (), campaign_id: str | None = None,
+              effect_class: str = "read", environment: str = "production") -> AuthorizationDecision:
+    """Canonical default-deny resource/effect authorization decision."""
+    args=(principal.principal_id, tenant_id, resource, action, required_scopes)
+    if not principal.authorized_for(tenant_id):
+        return AuthorizationDecision(False, "TENANT_MISMATCH", *args, effect_class=effect_class)
+    if required_scopes and not set(required_scopes).issubset(principal.scopes):
+        return AuthorizationDecision(False, "SCOPE_REQUIRED", *args, effect_class=effect_class)
+    if campaign_id and principal.campaigns and campaign_id not in principal.campaigns:
+        return AuthorizationDecision(False, "CAMPAIGN_FORBIDDEN", *args, effect_class=effect_class)
+    permissions=set().union(*(ROLE_PERMISSIONS.get(role, frozenset()) for role in principal.roles))
+    allowed="*" in permissions or action in permissions or any(p.endswith(".*") and action.startswith(p[:-1]) for p in permissions)
+    # Exact verified scope is itself an explicit policy grant for the matching
+    # API action; roles can grant additional resource permissions but never
+    # replace signature/issuer/audience/scope verification.
+    if required_scopes and set(required_scopes).issubset(principal.scopes):
+        allowed=True
+    if effect_class != "read" and environment == "production" and "platform.production.effects" not in principal.scopes:
+        return AuthorizationDecision(False, "ENVIRONMENT_NOT_AUTHORIZED", *args, effect_class=effect_class)
+    return AuthorizationDecision(allowed, "ALLOW" if allowed else "AUTHORIZATION_DENIED", *args, "role_scope_policy" if allowed else None, effect_class)

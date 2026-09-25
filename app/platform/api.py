@@ -27,7 +27,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from app.api_inputs import optional_header, required_header
 from app.commands import API_OPERATION_STATES, CommandCapabilityDisabled, CommandEnvelope, CommandNotFound, CommandOperation, OperationEvent, redact_metadata
 from app.platform.kernel import CapabilityUnknown, SCOPE_COMMAND, SCOPE_COMMAND_READ, SCOPE_COMMAND_REPLAY
-from app.platform.principal import KernelPrincipal, authenticate
+from app.platform.principal import KernelPrincipal, authorize, authenticate
 from app.platform.resilience import ReplayMode
 from app.security import AuthorizationError, RequestValidationError
 from app.storage import RUNTIME_SCHEMA_VERSION, StorageError
@@ -344,9 +344,22 @@ async def submit_command(body: KernelCommandRequest, request: Request) -> JSONRe
             raise CapabilityUnknown("command capability is not registered")
         raise CommandCapabilityDisabled("command capability does not match the owning policy")
     command = body.envelope(target=policy.target, capability=policy.capability)
-    # Authentication-derived facts are never trusted from the body.
-    if not principal.authorized_for(command.tenant_id):
-        raise AuthorizationError("token is not authorized for the command tenant")
+    # Authentication-derived facts are never trusted from the body.  The same
+    # central decision model is used before the command becomes durable.
+    decision = authorize(
+        principal,
+        action="command.create",
+        resource=f"command:{command.command_type}",
+        tenant_id=command.tenant_id,
+        required_scopes=(SCOPE_COMMAND,),
+        # Effect authorization is enforced by the kernel/effect gate after
+        # capability policy evaluation so disabled providers retain the stable
+        # safety_denied/policy_denied API contract.
+        effect_class="read",
+        environment=platform.settings.app_env,
+    )
+    if not decision.allowed:
+        raise AuthorizationError(decision.decision_code)
     tenant_header = optional_header(request, "X-Tenant-ID", minimum=1, maximum=128)
     if tenant_header is not None and tenant_header != command.tenant_id:
         raise RequestValidationError("X-Tenant-ID does not match command tenant")
