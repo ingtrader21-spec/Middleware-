@@ -26,7 +26,7 @@ Middleware image. Its `release` job is authorized as an exact narrow mutation in
 generation; it runs only for a successful `Middleware CI` on protected `main`
 of this repository (or a manual dispatch on `main`), refuses any source that is
 not the current protected head, and proves that the published image carries
-exactly one Alembic head, `0067_service_catalog_monitoring_state`. Every other
+exactly one Alembic head, `0069_agent_provisioning_rls`. Every other
 workflow that names the image repository, publishes an image or signs anything
 carries one bounded role in `scripts/release_authority.py`
 (`SUPPORTING_WORKFLOW_ROLES`), enforced by `tests/test_release_authority.py`:

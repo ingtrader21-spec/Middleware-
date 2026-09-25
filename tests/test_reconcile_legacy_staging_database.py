@@ -18,7 +18,7 @@ def test_reconciliation_contract_is_pinned_to_exact_lineages():
     assert module.LEGACY_SOURCE_SHA == "b29db772ed82c0d2f1adfdb8e6da58d4baa77524"
     assert module.LEGACY_HEAD == "0058_odoo_delivery_sources"
     assert module.SHARED_HEAD == "0056_klyrow_delivery_events"
-    assert module.TARGET_HEAD == "0067_service_catalog_monitoring_state"
+    assert module.TARGET_HEAD == "0069_agent_provisioning_rls"
     assert module.LEGACY_ENDPOINT_ID == "55000000-0000-4000-8000-000000000021"
     assert module.CANONICAL_ENDPOINT_ID == "66000000-0000-4000-8000-000000000012"
 
