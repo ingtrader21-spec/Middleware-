@@ -116,6 +116,35 @@ def test_tls_files_are_readable_and_private(tmp_path: Path) -> None:
         )
 
 
+def test_production_compose_profile_does_not_invent_verify_full(monkeypatch) -> None:
+    from types import SimpleNamespace
+
+    captured: dict[str, object] = {}
+
+    def fake_create_async_engine(url, **kwargs):
+        captured["url"] = url
+        captured.update(kwargs)
+        return object()
+
+    monkeypatch.setattr(db_session, "create_async_engine", fake_create_async_engine)
+    config = SimpleNamespace(
+        app_env="production",
+        runtime_profile_id="codestra-middleware-production-compose-v1",
+        database_url=(
+            "postgresql://appolon_middleware_api:secret@codestra-postgres-1:5432/"
+            "codestra_middleware_appolon"
+        ),
+        database_command_timeout_seconds=30,
+        database_pool_size=5,
+        database_max_overflow=5,
+        database_pool_timeout_seconds=30,
+        database_pool_recycle_seconds=300,
+    )
+    result = db_session._build_engine(config)
+    assert result is not None
+    assert captured["connect_args"]["dsn"] == config.database_url
+
+
 def test_process_engine_uses_credential_free_sqlalchemy_url(monkeypatch) -> None:
     captured: dict[str, object] = {}
 

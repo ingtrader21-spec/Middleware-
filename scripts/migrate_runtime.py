@@ -16,6 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from app.core.config import ConfigurationError, runtime_database_sslmode  # noqa: E402
 from app.db.connection import (  # noqa: E402
     DatabaseConnectionError,
     asyncpg_connection_kwargs,
@@ -39,7 +40,16 @@ class MigrationError(RuntimeError):
 
 
 def _secure_environment() -> bool:
-    return os.environ.get("APP_ENV", "").strip().lower() in {"staging", "production"}
+    environment = os.environ.get("APP_ENV", "").strip().lower()
+    if environment not in {"staging", "production"}:
+        return False
+    profile_id = os.environ.get("RUNTIME_PROFILE_ID", "").strip()
+    if not profile_id:
+        return True
+    try:
+        return runtime_database_sslmode(profile_id) == "verify-full"
+    except ConfigurationError as exc:
+        raise MigrationError(str(exc)) from None
 
 
 def _authority(

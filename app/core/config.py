@@ -162,6 +162,21 @@ def _runtime_profiles() -> dict[str, dict[str, object]]:
     return profiles
 
 
+def runtime_database_sslmode(profile_id: str | None) -> str | None:
+    """Return the database sslmode declared by a registered runtime profile."""
+
+    if not profile_id:
+        return None
+    profile = _runtime_profiles().get(profile_id)
+    if profile is None:
+        raise ConfigurationError("RUNTIME_PROFILE_ID must select a registered runtime profile")
+    database = profile.get("database")
+    if not isinstance(database, dict):
+        raise ConfigurationError("runtime profile database contract is invalid")
+    value = database.get("sslmode")
+    return str(value) if value else None
+
+
 # ``Settings.from_env(mapping)`` reads exactly the given mapping instead of
 # ``os.environ``; the mapping is installed here for the duration of the build.
 _ENV_OVERRIDE: contextvars.ContextVar[Mapping[str, str] | None] = contextvars.ContextVar(

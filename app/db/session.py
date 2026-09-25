@@ -22,19 +22,23 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
-from app.core.config import Settings, settings
+from app.core.config import Settings, runtime_database_sslmode, settings
 from app.db.connection import build_database_connection_authority
 
 
 def _build_engine(config: Settings, database_url: str | None = None) -> AsyncEngine:
     environment = getattr(config, "app_env", "test")
     runtime_profile = getattr(config, "runtime_profile_id", None)
+    profile_sslmode = runtime_database_sslmode(runtime_profile)
+    requires_verify_full = (
+        environment in {"staging", "production"} and profile_sslmode == "verify-full"
+    )
     authority = build_database_connection_authority(
         database_url or config.database_url,
         command_timeout_seconds=config.database_command_timeout_seconds,
         application_name="codestra-middleware/" + (runtime_profile or environment),
-        secure_environment=environment in {"staging", "production"},
-        validate_tls_files=environment in {"staging", "production"},
+        secure_environment=requires_verify_full,
+        validate_tls_files=requires_verify_full,
     )
     return create_async_engine(
         authority.sqlalchemy_url,
