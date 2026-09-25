@@ -145,24 +145,25 @@ async def _persist(
     request_hash = hashlib.sha256(body).hexdigest()
     scope = f"provider-webhook:{provider}"
     correlation_id = original_event_id
-    await db.execute(
-        text("SELECT pg_advisory_xact_lock(hashtextextended(:value, 0))"),
-        {"value": f"{scope}:{key_hash}"},
-    )
-    existing = await db.scalar(
-        select(IdempotencyRecord).where(
-            IdempotencyRecord.scope == scope,
-            IdempotencyRecord.key_hash == key_hash,
+    try:
+        await db.execute(
+            text("SELECT pg_advisory_xact_lock(hashtextextended(:value, 0))"),
+            {"value": f"{scope}:{key_hash}"},
         )
-    )
-    if existing:
-        if existing.request_hash != request_hash:
-            await db.rollback()
-            raise HTTPException(409, "idempotency key conflict")
-        await db.commit()
-        return dict(existing.response)
+        existing = await db.scalar(
+            select(IdempotencyRecord).where(
+                IdempotencyRecord.scope == scope,
+                IdempotencyRecord.key_hash == key_hash,
+            )
+        )
+        if existing:
+            if existing.request_hash != request_hash:
+                await db.rollback()
+                raise HTTPException(409, "idempotency key conflict")
+            await db.commit()
+            return dict(existing.response)
 
-    incoming = IntegrationEvent(
+        incoming = IntegrationEvent(
         idempotency_key=key_hash,
         event_type=event_type,
         schema_version="1.0",
@@ -174,9 +175,9 @@ async def _persist(
         payload_hash=request_hash,
         state="accepted",
     )
-    db.add(incoming)
-    await db.flush()
-    db.add(
+        db.add(incoming)
+        await db.flush()
+            db.add(
         IntegrationDelivery(
             event_id=incoming.id,
             target="odoo",
@@ -185,8 +186,8 @@ async def _persist(
             result_json=odoo_intent,
         )
     )
-    if write_enabled:
-        db.add(
+        if write_enabled:
+            db.add(
             OdooResultDelivery(
                 integration_event_id=incoming.id,
                 originating_outbox_public_id=original_event_id,
@@ -195,7 +196,7 @@ async def _persist(
                 standard_result_json=odoo_intent,
             )
         )
-    db.add(
+            db.add(
         OutboxEvent(
             topic=event_type,
             payload={
@@ -208,13 +209,13 @@ async def _persist(
             status="pending",
         )
     )
-    result = {
+        result = {
         "accepted": True,
         "event_id": original_event_id,
         "duplicate": False,
         "odoo_write": "pending" if write_enabled else "disabled",
     }
-    db.add(
+            db.add(
         IdempotencyRecord(
             scope=scope,
             key_hash=key_hash,
@@ -225,7 +226,7 @@ async def _persist(
             expires_at=datetime.now(timezone.utc) + timedelta(days=30),
         )
     )
-    db.add(
+            db.add(
         AuditEvent(
             action=f"{provider}.webhook.accepted",
             subject=original_event_id,
@@ -234,12 +235,13 @@ async def _persist(
             redacted_payload={"event_type": event_type},
         )
     )
-    try:
         await db.commit()
+        return result
+    except HTTPException:
+        raise
     except Exception as exc:
         await db.rollback()
         raise HTTPException(503, "durable persistence unavailable") from exc
-    return result
 
 
 @router.post("/vicidial/call-result/")
