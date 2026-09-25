@@ -1,0 +1,26 @@
+{
+  "schema_version": "1.0",
+  "mission": "MCR-L",
+  "environment": "staging",
+  "status": "not_executed",
+  "activation_blocked": true,
+  "provider_effects_enabled": false,
+  "production_mutation_performed": false,
+  "deployment_revision": null,
+  "observed_at": null,
+  "checks": {
+    "private_scrape_auth": "not_executed",
+    "redaction": "not_executed",
+    "connector_readback": "not_executed",
+    "reconciliation": "not_executed",
+    "dead_letter_authority": "not_executed",
+    "duplicate_and_partial_replay": "not_executed",
+    "alert_evaluation": "not_executed",
+    "rollback_metrics_loss": "not_executed"
+  },
+  "blockers": [
+    "No staging execution in this workspace session",
+    "Durable MCR dead-letter authority unavailable",
+    "No scheduled tenant-scoped readback collector certified"
+  ]
+}

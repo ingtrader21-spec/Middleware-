@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.codestra.co/campaign-recycling/delivery-readback.v1.schema.json",
+  "title": "Private tenant-scoped MCR delivery readback",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "ready": {
+      "type": "boolean"
+    },
+    "pending": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "partial": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "oldest_seconds": {
+      "type": "number",
+      "minimum": 0
+    },
+    "dead_letter": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "sampled_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "reasons": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "PROJECTION_EVIDENCE_STALE_OR_MISSING",
+          "DEAD_LETTER_EVIDENCE_UNAVAILABLE",
+          "DEAD_LETTER_PRESENT",
+          "PARTIAL_PROJECTION",
+          "PROJECTION_LAG_EXCEEDED"
+        ]
+      }
+    },
+    "provider_effects_enabled": {
+      "const": false
+    }
+  },
+  "required": [
+    "ready",
+    "pending",
+    "partial",
+    "oldest_seconds",
+    "dead_letter",
+    "sampled_at",
+    "reasons",
+    "provider_effects_enabled"
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "ready": {
+            "const": true
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "dead_letter": {
+            "const": 0
+          },
+          "partial": {
+            "const": 0
+          },
+          "oldest_seconds": {
+            "maximum": 300
+          },
+          "sampled_at": {
+            "type": "string"
+          },
+          "reasons": {
+            "maxItems": 0
+          }
+        }
+      }
+    }
+  ]
+}

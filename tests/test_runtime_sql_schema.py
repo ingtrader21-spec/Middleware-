@@ -199,6 +199,15 @@ def test_checked_contract_covers_source_and_exact_migration_history():
         "monitoring_events",
     }
     assert set(schema.monitoring_tables(ROOT)).issubset(contract)
+    assert set(schema.mcr_tables(ROOT)) == {
+        "mcr_channel_health",
+        "mcr_delivery_events",
+        "mcr_exposures",
+        "mcr_lead_lifecycle_current",
+        "mcr_lead_lifecycle_events",
+        "mcr_suppressions",
+    }
+    assert set(schema.mcr_tables(ROOT)).issubset(contract)
 
 
 @pytest.mark.parametrize("namespace", ["campaign", "monitoring"])
@@ -218,6 +227,20 @@ def test_alembic_namespace_rejects_unproved_tables(tmp_path, namespace, declarat
     path.write_text(declaration)
     with pytest.raises(schema.SchemaDriftError):
         schema.alembic_tables(tmp_path, namespace)
+
+
+def test_mcr_baseline_covers_exact_source_ddl():
+    evidence = json.loads(
+        (ROOT / "docs/production/evidence/mcr-schema-0069-baseline.json").read_text()
+    )
+    contract = json.loads((ROOT / schema.CONTRACT_PATH).read_text())
+    rows = {row["table_name"]: row for row in evidence["rows"]}
+    assert set(rows) == set(schema.mcr_tables(ROOT))
+    for name, row in rows.items():
+        assert (
+            schema.structure_digest(json.loads(row["structure"]))
+            == contract["tables"][name]
+        )
 
 
 def test_monitoring_baseline_covers_exact_source_ddl():

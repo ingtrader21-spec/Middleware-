@@ -1,0 +1,54 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "MCR private observability/readback contract",
+    "version": "1.0.0",
+    "description": "Contract-only readback HTTP binding; no route registered. In-process tenant-scoped store readback is implemented. No provider effects or public metrics."
+  },
+  "x-runtime-route-enabled": false,
+  "x-public": false,
+  "security": [
+    {
+      "monitoringBearer": []
+    }
+  ],
+  "paths": {
+    "/internal/mcr/delivery-readback": {
+      "get": {
+        "operationId": "readMcrDeliveryProjection",
+        "description": "Tenant scope derives only from verified principal. Reject absent/mismatched tenant scope. Unknown or stale evidence remains not ready. No arbitrary tenant query parameter.",
+        "responses": {
+          "200": {
+            "description": "Fail-closed projection evidence; ready may be false",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./delivery-readback.v1.schema.json"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid identity"
+          },
+          "403": {
+            "description": "Monitoring scope or tenant denied"
+          },
+          "503": {
+            "description": "Projection evidence unavailable"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "monitoringBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Require monitoring-readonly identity and mcr.delivery.read scope plus a verified tenant binding on private ingress."
+      }
+    }
+  }
+}

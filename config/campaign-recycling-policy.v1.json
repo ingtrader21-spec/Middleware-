@@ -1,0 +1,422 @@
+{
+  "schema_version": "1.0",
+  "policy_id": "campaign-recycling-policy",
+  "policy_version": "mcr-policy-1.0.0",
+  "mission": "MCR-A",
+  "runtime_status": "contract_only",
+  "production": {
+    "authorized": false,
+    "lock_decision": "NO_GO",
+    "live_effects_enabled": false,
+    "provider_calls_enabled": false,
+    "execute_enabled": false
+  },
+  "fail_closed": {
+    "null_parameter_result": "POLICY_NOT_CONFIGURED",
+    "unknown_profile_result": "POLICY_NOT_CONFIGURED",
+    "missing_or_conflicting_evidence_result": "EVIDENCE_STALE_OR_CONFLICTING",
+    "code_defaults_allowed": false,
+    "rule": "The engine reads every parameter from the active profile of this file. A null, missing, or out-of-range value fails closed for the whole decision; no value may be substituted from code."
+  },
+  "suppression": {
+    "overrides_eligibility": true,
+    "scope_precedence": [
+      "global",
+      "channel",
+      "campaign",
+      "campaign_channel"
+    ],
+    "reason_precedence": [
+      "legal_hold",
+      "data_subject_request",
+      "do_not_contact_request",
+      "complaint",
+      "unsubscribe",
+      "consent_revoked",
+      "dialing_do_not_call",
+      "operator_block"
+    ],
+    "positive_signal_can_lift": false,
+    "release_operation_defined": false
+  },
+  "channels": [
+    "email",
+    "sms",
+    "whatsapp",
+    "voice"
+  ],
+  "channel_execution": {
+    "email": {
+      "execution": "command_outbox",
+      "command_type": "email.message.send.v1",
+      "adapter": "klyrow-email",
+      "capability": "EMAIL_DELIVERY",
+      "provider_key": "klyrow",
+      "production_gate": "app/email_production_control.py"
+    },
+    "sms": {
+      "execution": "command_outbox",
+      "command_type": "sms.message.submit.v1",
+      "adapter": "telnexa-sms",
+      "capability": "SMS_DELIVERY",
+      "provider_key": "telnexa",
+      "production_gate": null
+    },
+    "voice": {
+      "execution": "not_supported_in_v1",
+      "command_type": null,
+      "adapter": null,
+      "capability": "PRODUCTION_DIALING",
+      "provider_key": null,
+      "production_gate": "docs/operations/campaign-registry/lead-eligibility.md",
+      "required_dialing_state": "ELIGIBLE"
+    },
+    "whatsapp": {
+      "execution": "blocked_pending_dependency",
+      "command_type": "whatsapp.message.send.v1",
+      "adapter": "evolution-whatsapp",
+      "capability": "WHATSAPP_DELIVERY",
+      "provider_key": "evolution",
+      "production_gate": null,
+      "dependency": {
+        "kind": "github_pr",
+        "url": "https://github.com/ingtrader21-spec/Middleware-/pull/316",
+        "observed_head": "a59818e032bc63a4562785f5dfdfcc3b6c84c989",
+        "required_state": "merged_exact_head_green"
+      }
+    }
+  },
+  "sender_identity": {
+    "selection": "policy_governed",
+    "binding": "campaign_version",
+    "source_of_truth": "channel_specific",
+    "production_authorization": "approvedDomains and approvedSenders in app/email_production_control.py",
+    "domain_registry": "config/postal-domain-registry.json",
+    "require_brand_or_campaign_owned": true,
+    "rotation_for_deliverability_evasion": false,
+    "per_touch_rotation": false,
+    "lookalike_or_throwaway_domains": false,
+    "audit_fields": [
+      "decision_id",
+      "sender_identity_id",
+      "campaign_id",
+      "campaign_version",
+      "policy_version"
+    ],
+    "require_channel_verified_identity": true,
+    "channel_authority": {
+      "email": {
+        "business_authority": "klyrow",
+        "identity_type": "authenticated_email_sender",
+        "transport_authority": "klyrow"
+      },
+      "sms": {
+        "business_authority": "klyrow",
+        "identity_type": "approved_sms_sender",
+        "transport_authority": "telnexa"
+      },
+      "whatsapp": {
+        "business_authority": "whatsapp",
+        "identity_type": "approved_whatsapp_business_sender",
+        "transport_authority": "evolution"
+      },
+      "voice": {
+        "business_authority": "odoo",
+        "identity_type": "approved_caller_identity",
+        "transport_authority": "vicidial",
+        "runtime_status": "not_supported_in_v1"
+      }
+    }
+  },
+  "decision": {
+    "reason_code_precedence": [
+      "POLICY_NOT_CONFIGURED",
+      "PRODUCTION_NOT_AUTHORIZED",
+      "KILL_SWITCH_OPEN",
+      "EVIDENCE_STALE_OR_CONFLICTING",
+      "SUPPRESSED_GLOBAL",
+      "SUPPRESSED_CHANNEL",
+      "SUPPRESSED_CAMPAIGN",
+      "SUPPRESSED_CAMPAIGN_CHANNEL",
+      "LIFECYCLE_TERMINAL",
+      "LIFECYCLE_NOT_CONTACTABLE",
+      "CONSENT_MISSING",
+      "DIALING_NOT_ELIGIBLE",
+      "CHANNEL_HEALTH_BLOCKED",
+      "CHANNEL_HEALTH_UNKNOWN",
+      "CHANNEL_HEALTH_POLICY_GATED",
+      "CHANNEL_HEALTH_DEFERRED",
+      "CAMPAIGN_NOT_ACTIVE",
+      "CAMPAIGN_VERSION_NOT_APPROVED",
+      "SENDER_IDENTITY_NOT_AUTHORIZED",
+      "SENDER_IDENTITY_UNAVAILABLE",
+      "CHANNEL_EXECUTION_NOT_SUPPORTED",
+      "DUPLICATE_TOUCH",
+      "COOLING_PERIOD_ACTIVE",
+      "REACTIVATION_LIMIT_REACHED",
+      "LIFETIME_EXPOSURE_CAP_REACHED",
+      "RECENT_WINDOW_CAP_REACHED",
+      "CHANNEL_CAP_REACHED",
+      "CAMPAIGN_COOLDOWN_ACTIVE",
+      "CAMPAIGN_VERSION_EXHAUSTED",
+      "NO_CANDIDATE",
+      "ELIGIBLE"
+    ],
+    "candidate_order": "campaign priority from the approved campaign version, then campaign_id, then campaign_version, then channel in the order of the channels list",
+    "max_candidates_disclosed": 200
+  },
+  "parameters": {
+    "definitions": {
+      "channel_caps": {
+        "description": "Global per-channel contact cap across all campaigns for one lead.",
+        "per_channel": true,
+        "fields": {
+          "max_touches": {
+            "type": "integer",
+            "minimum": 1,
+            "unit": "touches"
+          },
+          "window_seconds": {
+            "type": "integer",
+            "minimum": 1,
+            "unit": "seconds"
+          }
+        }
+      },
+      "campaign": {
+        "description": "Per-campaign cooldown and per-version touch budget.",
+        "fields": {
+          "cooldown_seconds": {
+            "type": "integer",
+            "minimum": 1,
+            "unit": "seconds"
+          },
+          "max_touches_per_version": {
+            "type": "integer",
+            "minimum": 1,
+            "unit": "touches"
+          }
+        }
+      },
+      "exposure": {
+        "description": "Lifetime and recent-window exposure controls across the exposure ledger.",
+        "fields": {
+          "max_lifetime_all_campaigns": {
+            "type": "integer",
+            "minimum": 1,
+            "unit": "exposures"
+          },
+          "max_lifetime_per_campaign": {
+            "type": "integer",
+            "minimum": 1,
+            "unit": "exposures"
+          },
+          "recent_window_seconds": {
+            "type": "integer",
+            "minimum": 1,
+            "unit": "seconds"
+          },
+          "max_recent_all_campaigns": {
+            "type": "integer",
+            "minimum": 1,
+            "unit": "exposures"
+          }
+        }
+      },
+      "cooling": {
+        "description": "Entry into COOLING and its minimum duration.",
+        "fields": {
+          "enter_after_unengaged_touches": {
+            "type": "integer",
+            "minimum": 1,
+            "unit": "touches"
+          },
+          "min_cooling_seconds": {
+            "type": "integer",
+            "minimum": 1,
+            "unit": "seconds"
+          }
+        }
+      },
+      "reactivation": {
+        "description": "REACTIVATION limits. A reactivation cycle always uses a different campaign version than the cycle that cooled.",
+        "fields": {
+          "max_cycles": {
+            "type": "integer",
+            "minimum": 0,
+            "unit": "cycles"
+          },
+          "requires_distinct_campaign_version": {
+            "type": "boolean",
+            "const": true
+          }
+        }
+      },
+      "channel_health": {
+        "description": "Soft-bounce handling and possible-state gating.",
+        "fields": {
+          "soft_bounce_retry_after_seconds": {
+            "type": "integer",
+            "minimum": 1,
+            "unit": "seconds"
+          },
+          "soft_bounce_escalation_count": {
+            "type": "integer",
+            "minimum": 1,
+            "unit": "consecutive_soft_bounces"
+          },
+          "possible_is_contactable": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "profiles": {
+      "test": {
+        "applies_to": "synthetic TEST_SYN tenants in unit and contract tests only",
+        "tenant_binding": [
+          "TEST_SYN_TENANT",
+          "TEST_SYN",
+          "TEST_SYN"
+        ],
+        "values": {
+          "channel_caps": {
+            "email": {
+              "max_touches": 3,
+              "window_seconds": 604800
+            },
+            "sms": {
+              "max_touches": 2,
+              "window_seconds": 604800
+            },
+            "whatsapp": {
+              "max_touches": 2,
+              "window_seconds": 604800
+            },
+            "voice": {
+              "max_touches": 2,
+              "window_seconds": 604800
+            }
+          },
+          "campaign": {
+            "cooldown_seconds": 172800,
+            "max_touches_per_version": 4
+          },
+          "exposure": {
+            "max_lifetime_all_campaigns": 40,
+            "max_lifetime_per_campaign": 8,
+            "recent_window_seconds": 2592000,
+            "max_recent_all_campaigns": 10
+          },
+          "cooling": {
+            "enter_after_unengaged_touches": 4,
+            "min_cooling_seconds": 5184000
+          },
+          "reactivation": {
+            "max_cycles": 2,
+            "requires_distinct_campaign_version": true
+          },
+          "channel_health": {
+            "soft_bounce_retry_after_seconds": 86400,
+            "soft_bounce_escalation_count": 3,
+            "possible_is_contactable": false
+          }
+        }
+      },
+      "staging": {
+        "applies_to": "staging tenants; unconfigured until a reviewed policy change supplies values",
+        "tenant_binding": null,
+        "values": {
+          "channel_caps": {
+            "email": {
+              "max_touches": null,
+              "window_seconds": null
+            },
+            "sms": {
+              "max_touches": null,
+              "window_seconds": null
+            },
+            "whatsapp": {
+              "max_touches": null,
+              "window_seconds": null
+            },
+            "voice": {
+              "max_touches": null,
+              "window_seconds": null
+            }
+          },
+          "campaign": {
+            "cooldown_seconds": null,
+            "max_touches_per_version": null
+          },
+          "exposure": {
+            "max_lifetime_all_campaigns": null,
+            "max_lifetime_per_campaign": null,
+            "recent_window_seconds": null,
+            "max_recent_all_campaigns": null
+          },
+          "cooling": {
+            "enter_after_unengaged_touches": null,
+            "min_cooling_seconds": null
+          },
+          "reactivation": {
+            "max_cycles": null,
+            "requires_distinct_campaign_version": null
+          },
+          "channel_health": {
+            "soft_bounce_retry_after_seconds": null,
+            "soft_bounce_escalation_count": null,
+            "possible_is_contactable": null
+          }
+        }
+      },
+      "production": {
+        "applies_to": "production tenants; unconfigured and unauthorized in MCR-A",
+        "tenant_binding": null,
+        "values": {
+          "channel_caps": {
+            "email": {
+              "max_touches": null,
+              "window_seconds": null
+            },
+            "sms": {
+              "max_touches": null,
+              "window_seconds": null
+            },
+            "whatsapp": {
+              "max_touches": null,
+              "window_seconds": null
+            },
+            "voice": {
+              "max_touches": null,
+              "window_seconds": null
+            }
+          },
+          "campaign": {
+            "cooldown_seconds": null,
+            "max_touches_per_version": null
+          },
+          "exposure": {
+            "max_lifetime_all_campaigns": null,
+            "max_lifetime_per_campaign": null,
+            "recent_window_seconds": null,
+            "max_recent_all_campaigns": null
+          },
+          "cooling": {
+            "enter_after_unengaged_touches": null,
+            "min_cooling_seconds": null
+          },
+          "reactivation": {
+            "max_cycles": null,
+            "requires_distinct_campaign_version": null
+          },
+          "channel_health": {
+            "soft_bounce_retry_after_seconds": null,
+            "soft_bounce_escalation_count": null,
+            "possible_is_contactable": null
+          }
+        }
+      }
+    }
+  }
+}
