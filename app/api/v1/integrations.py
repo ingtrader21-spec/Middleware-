@@ -11,7 +11,7 @@ from uuid import uuid4
 
 import httpx
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -567,7 +567,13 @@ async def n8n_result(
         result = AutomationResult.model_validate(body)
         claims = _authenticate_n8n(authorization, "n8n.results.submit")
         return await _accept_standard_result(result, claims, idempotency_key, db)
-    CallbackResult.model_validate(body)
+    try:
+        CallbackResult.model_validate(body)
+    except ValidationError as error:
+        raise HTTPException(
+            status_code=422,
+            detail=error.errors(include_url=False),
+        ) from error
     raise HTTPException(410, "legacy unauthenticated callbacks are retired")
 
 
