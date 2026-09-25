@@ -1,13 +1,64 @@
 from __future__ import annotations
 
 import hashlib
+from functools import lru_cache
 import json
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, Literal, Mapping, Sequence
+from uuid import NAMESPACE_URL, UUID, uuid4, uuid5
+
+import asyncpg
+from jsonschema import Draft202012Validator
+from referencing import Registry, Resource
+
+from app.commands import (
+    CommandEnvelope,
+    CommandOperation,
+    CommandService,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
+
+
+@lru_cache(maxsize=1)
+def _delivery_validator() -> Draft202012Validator:
+    # Resolve only the frozen local schema resources; never fetch remote schemas.
+    schemas = [
+        json.loads(path.read_text(encoding="utf-8"))
+        for path in (ROOT / "contracts/campaign-recycling").glob("*.schema.json")
+    ]
+    registry = Registry().with_resources(
+        (schema["$id"], Resource.from_contents(schema)) for schema in schemas
+    )
+    schema = next(item for item in schemas if item["$id"].endswith(
+        "/delivery-event.v1.schema.json"
+    ))
+    return Draft202012Validator(
+        schema, registry=registry, format_checker=Draft202012Validator.FORMAT_CHECKER
+    )
+
+
+@lru_cache(maxsize=1)
+def _next_action_validator() -> Draft202012Validator:
+    """Validate durable decision evidence against the frozen MCR-A schema."""
+    schemas = [
+        json.loads(path.read_text(encoding="utf-8"))
+        for path in (ROOT / "contracts/campaign-recycling").glob("*.schema.json")
+    ]
+    registry = Registry().with_resources(
+        (schema["$id"], Resource.from_contents(schema)) for schema in schemas
+    )
+    schema = next(
+        item for item in schemas
+        if item["$id"].endswith("/next-action.v1.schema.json")
+    )
+    return Draft202012Validator(
+        schema,
+        registry=registry,
+        format_checker=Draft202012Validator.FORMAT_CHECKER,
+    )
 
 LifecycleState = Literal[
     "NEW", "VALIDATED", "ELIGIBLE", "ACTIVE_CYCLE", "ENGAGED",
@@ -20,6 +71,94 @@ CONTACTABLE_LIFECYCLE = frozenset(
 )
 TERMINAL_LIFECYCLE = frozenset({"CONVERTED", "SUPPRESSED"})
 CHANNEL_ORDER = {"email": 0, "sms": 1, "whatsapp": 2, "voice": 3}
+CHANNEL_HEALTH_STATES = frozenset(
+    {
+        "unknown",
+        "valid",
+        "possible",
+        "soft_bounce",
+        "hard_bounce",
+        "complained",
+        "unsubscribed",
+        "suppressed",
+        "invalid",
+    }
+)
+SUPPRESSION_REQUIRED_HEALTH = frozenset({"complained", "unsubscribed", "suppressed"})
+
+DELIVERY_EVENT_TYPES = frozenset(
+    {
+        "accepted",
+        "queued",
+        "dispatched",
+        "delivered",
+        "deferred",
+        "soft_bounce",
+        "hard_bounce",
+        "complaint",
+        "unsubscribe",
+        "open",
+        "read",
+        "click",
+        "reply",
+        "conversion",
+    }
+)
+TRANSPORT_EVENT_STATUS = {
+    "accepted": "accepted",
+    "queued": "queued",
+    "dispatched": "dispatched",
+    "delivered": "delivered",
+    "deferred": "indeterminate",
+}
+TRANSPORT_STATUS_RANK = {
+    "reserved": 0,
+    "accepted": 1,
+    "queued": 2,
+    "dispatched": 3,
+    "indeterminate": 4,
+    "delivered": 5,
+    "failed": 100,
+    "cancelled": 100,
+    "suppressed": 100,
+    "expired": 100,
+}
+TRANSPORT_TERMINAL = frozenset(
+    {"delivered", "failed", "cancelled", "suppressed", "expired"}
+)
+ENGAGEMENT_RANK = {
+    "none": 0,
+    "open": 1,
+    "read": 2,
+    "click": 3,
+    "reply": 4,
+    "conversion": 5,
+}
+NEGATIVE_RANK = {
+    "none": 0,
+    "soft_bounce": 1,
+    "hard_bounce": 2,
+    "unsubscribe": 3,
+    "complaint": 4,
+}
+HEALTH_EVENT_STATE = {
+    "delivered": ("valid", "DELIVERY_CONFIRMED"),
+    "soft_bounce": ("soft_bounce", "SOFT_BOUNCE"),
+    "hard_bounce": ("hard_bounce", "HARD_BOUNCE"),
+    "complaint": ("complained", "COMPLAINT"),
+    "unsubscribe": ("unsubscribed", "UNSUBSCRIBE"),
+}
+HEALTH_SEVERITY = {
+    "unknown": 0,
+    "possible": 0,
+    "valid": 1,
+    "soft_bounce": 2,
+    "invalid": 3,
+    "hard_bounce": 3,
+    "unsubscribed": 4,
+    "complained": 5,
+    "suppressed": 6,
+}
 
 REASON_PRECEDENCE = (
     "POLICY_NOT_CONFIGURED",
@@ -55,6 +194,14 @@ REASON_PRECEDENCE = (
     "ELIGIBLE",
 )
 REASON_INDEX = {reason: index for index, reason in enumerate(REASON_PRECEDENCE)}
+SUPPRESSION_IDEMPOTENCY_SCOPE = "mcr:suppression_record:v1"
+# SuppressionRequest restricts scope=global to these sources; each maps onto
+# the lifecycle.v1 transition source that owns the SUPPRESSED transition.
+GLOBAL_SUPPRESSION_LIFECYCLE_SOURCE = {
+    "operator": "operator",
+    "data_subject_request": "operator",
+    "leads_authority": "leads",
+}
 TEMPORAL_REASONS = frozenset(
     {
         "CHANNEL_HEALTH_DEFERRED",
@@ -65,6 +212,71 @@ TEMPORAL_REASONS = frozenset(
     }
 )
 
+LEGAL_TRANSITIONS: dict[str | None, frozenset[str]] = {
+    None: frozenset({"NEW"}),
+    "NEW": frozenset({"VALIDATED", "SUPPRESSED"}),
+    "VALIDATED": frozenset({"ELIGIBLE", "SUPPRESSED"}),
+    "ELIGIBLE": frozenset({"ACTIVE_CYCLE", "CONVERTED", "SUPPRESSED"}),
+    "ACTIVE_CYCLE": frozenset({"ENGAGED", "COOLING", "CONVERTED", "SUPPRESSED"}),
+    "ENGAGED": frozenset({"ACTIVE_CYCLE", "COOLING", "CONVERTED", "SUPPRESSED"}),
+    "COOLING": frozenset({"REACTIVATION", "CONVERTED", "SUPPRESSED"}),
+    "REACTIVATION": frozenset(
+        {"ACTIVE_CYCLE", "ENGAGED", "COOLING", "CONVERTED", "SUPPRESSED"}
+    ),
+    "CONVERTED": frozenset({"SUPPRESSED"}),
+    "SUPPRESSED": frozenset(),
+}
+
+
+HEALTH_UPDATE_PREDICATE = """
+WHERE
+                      EXCLUDED.occurred_at > mcr_channel_health.occurred_at
+                      OR (
+                        EXCLUDED.occurred_at = mcr_channel_health.occurred_at
+                        AND CASE EXCLUDED.state
+                          WHEN 'suppressed' THEN 6
+                          WHEN 'complained' THEN 5
+                          WHEN 'unsubscribed' THEN 4
+                          WHEN 'hard_bounce' THEN 3
+                          WHEN 'invalid' THEN 3
+                          WHEN 'soft_bounce' THEN 2
+                          WHEN 'valid' THEN 1
+                          ELSE 0
+                        END >= CASE mcr_channel_health.state
+                          WHEN 'suppressed' THEN 6
+                          WHEN 'complained' THEN 5
+                          WHEN 'unsubscribed' THEN 4
+                          WHEN 'hard_bounce' THEN 3
+                          WHEN 'invalid' THEN 3
+                          WHEN 'soft_bounce' THEN 2
+                          WHEN 'valid' THEN 1
+                          ELSE 0
+                        END
+                      )
+                      OR (
+                        EXCLUDED.occurred_at < mcr_channel_health.occurred_at
+                        AND CASE EXCLUDED.state
+                          WHEN 'suppressed' THEN 6
+                          WHEN 'complained' THEN 5
+                          WHEN 'unsubscribed' THEN 4
+                          WHEN 'hard_bounce' THEN 3
+                          WHEN 'invalid' THEN 3
+                          WHEN 'soft_bounce' THEN 2
+                          WHEN 'valid' THEN 1
+                          ELSE 0
+                        END > CASE mcr_channel_health.state
+                          WHEN 'suppressed' THEN 6
+                          WHEN 'complained' THEN 5
+                          WHEN 'unsubscribed' THEN 4
+                          WHEN 'hard_bounce' THEN 3
+                          WHEN 'invalid' THEN 3
+                          WHEN 'soft_bounce' THEN 2
+                          WHEN 'valid' THEN 1
+                          ELSE 0
+                        END
+                      )
+"""
+
 class CampaignRecyclingError(RuntimeError):
     pass
 
@@ -74,6 +286,18 @@ class CampaignRecyclingConflict(CampaignRecyclingError):
 
 
 class CampaignRecyclingPolicyError(CampaignRecyclingError):
+    pass
+
+
+class CampaignRecyclingLifecycleConflict(CampaignRecyclingConflict):
+    """Illegal transition or lost optimistic lifecycle version race."""
+
+
+class CampaignRecyclingIdempotencyConflict(CampaignRecyclingConflict):
+    """An Idempotency-Key was reused for a different canonical request."""
+
+
+class CampaignRecyclingNotFound(CampaignRecyclingError):
     pass
 
 
@@ -176,6 +400,7 @@ class PolicyProfile:
     configured: bool
     production_authorized: bool
     channel_execution: Mapping[str, Mapping[str, Any]]
+    max_candidates_disclosed: int
 
     @classmethod
     def load(cls, profile: str, *, root: Path = ROOT) -> "PolicyProfile":
@@ -189,12 +414,22 @@ class PolicyProfile:
             raise CampaignRecyclingPolicyError(f"unknown policy profile {profile}")
         values = profiles[profile]["values"]
         configured = all(value is not None for value in _leaf_values(values))
+        max_candidates_disclosed = raw["decision"]["max_candidates_disclosed"]
+        if (
+            not isinstance(max_candidates_disclosed, int)
+            or isinstance(max_candidates_disclosed, bool)
+            or max_candidates_disclosed < 1
+        ):
+            raise CampaignRecyclingPolicyError(
+                "decision.max_candidates_disclosed must be a positive integer"
+            )
         return cls(
             policy_version=raw["policy_version"],
             values=values,
             configured=configured,
             production_authorized=raw["production"]["authorized"] is True,
             channel_execution=raw["channel_execution"],
+            max_candidates_disclosed=max_candidates_disclosed,
         )
 
 
@@ -213,6 +448,10 @@ class CampaignRecyclingEngine:
         evidence_stale_or_conflicting: bool = False,
     ) -> NextActionDecision:
         now = _utc(now or datetime.now(UTC))
+        if len(candidates) > self.policy.max_candidates_disclosed:
+            raise CampaignRecyclingPolicyError(
+                "candidate set exceeds decision.max_candidates_disclosed"
+            )
         ordered = sorted(
             candidates,
             key=lambda item: (
@@ -223,9 +462,24 @@ class CampaignRecyclingEngine:
                 item.touch_index,
             ),
         )
+        decision_inputs = _decision_input_payload(
+            self.policy,
+            snapshot,
+            ordered,
+            mode=mode,
+            kill_switch_open=kill_switch_open,
+            evidence_stale_or_conflicting=evidence_stale_or_conflicting,
+        )
         if not ordered:
             return self._decision(
-                snapshot, (), None, ("NO_CANDIDATE",), None, mode, now
+                snapshot,
+                (),
+                None,
+                ("NO_CANDIDATE",),
+                None,
+                mode,
+                now,
+                decision_inputs,
             )
 
         evaluated: list[CandidateDecision] = []
@@ -281,6 +535,7 @@ class CampaignRecyclingEngine:
                 None,
                 mode,
                 now,
+                decision_inputs,
             )
 
         aggregate = _sort_reasons(
@@ -300,6 +555,7 @@ class CampaignRecyclingEngine:
             min(temporal_times) if temporal_times else None,
             mode,
             now,
+            decision_inputs,
         )
 
     def _candidate_reasons(
@@ -376,18 +632,16 @@ class CampaignRecyclingEngine:
             "hard_bounce", "complained", "unsubscribed", "suppressed", "invalid"
         }:
             reasons.append("CHANNEL_HEALTH_BLOCKED")
-        elif health.state == "possible" and not self._value(
-            "channel_health", "possible_is_contactable", default=False
+        elif (
+            health.state == "possible"
+            and self.policy.configured
+            and not self._value("channel_health", "possible_is_contactable")
         ):
             reasons.append("CHANNEL_HEALTH_POLICY_GATED")
-        elif health.state == "soft_bounce":
+        elif health.state == "soft_bounce" and self.policy.configured:
             retry_at = _utc(health.occurred_at) + timedelta(
                 seconds=int(
-                    self._value(
-                        "channel_health",
-                        "soft_bounce_retry_after_seconds",
-                        default=0,
-                    )
+                    self._value("channel_health", "soft_bounce_retry_after_seconds")
                 )
             )
             if retry_at > now:
@@ -424,89 +678,87 @@ class CampaignRecyclingEngine:
             reasons.append("COOLING_PERIOD_ACTIVE")
             temporal_until.append(_utc(snapshot.cooling_until))
 
-        max_cycles = self._value("reactivation", "max_cycles", default=0)
-        if (
-            snapshot.lifecycle_state == "REACTIVATION"
-            and snapshot.reactivation_cycles >= int(max_cycles)
-        ):
-            reasons.append("REACTIVATION_LIMIT_REACHED")
-        if (
-            snapshot.lifecycle_state == "REACTIVATION"
-            and self._value(
-                "reactivation", "requires_distinct_campaign_version", default=True
-            )
-            and any(
-                exposure.campaign_id == candidate.campaign_id
-                and exposure.campaign_version == candidate.campaign_version
-                for exposure in snapshot.exposures
-            )
-        ):
-            reasons.append("CAMPAIGN_VERSION_EXHAUSTED")
-
-        exposure_cfg = self.policy.values.get("exposure", {})
-        max_lifetime = int(exposure_cfg.get("max_lifetime_all_campaigns") or 0)
-        if max_lifetime and len(snapshot.exposures) >= max_lifetime:
-            reasons.append("LIFETIME_EXPOSURE_CAP_REACHED")
         same_campaign = [
             exposure
             for exposure in snapshot.exposures
             if exposure.campaign_id == candidate.campaign_id
         ]
-        max_campaign_lifetime = int(
-            exposure_cfg.get("max_lifetime_per_campaign") or 0
-        )
-        if max_campaign_lifetime and len(same_campaign) >= max_campaign_lifetime:
-            reasons.append("LIFETIME_EXPOSURE_CAP_REACHED")
+        if self.policy.configured:
+            max_cycles = self._value("reactivation", "max_cycles")
+            if (
+                snapshot.lifecycle_state == "REACTIVATION"
+                and snapshot.reactivation_cycles >= int(max_cycles)
+            ):
+                reasons.append("REACTIVATION_LIMIT_REACHED")
+            if (
+                snapshot.lifecycle_state == "REACTIVATION"
+                and self._value(
+                    "reactivation", "requires_distinct_campaign_version"
+                )
+                and any(
+                    exposure.campaign_id == candidate.campaign_id
+                    and exposure.campaign_version == candidate.campaign_version
+                    for exposure in snapshot.exposures
+                )
+            ):
+                reasons.append("CAMPAIGN_VERSION_EXHAUSTED")
 
-        recent_window = int(exposure_cfg.get("recent_window_seconds") or 0)
-        recent_cutoff = now - timedelta(seconds=recent_window)
-        recent = [
-            exposure
-            for exposure in snapshot.exposures
-            if recent_window and _utc(exposure.reserved_at) > recent_cutoff
-        ]
-        max_recent = int(exposure_cfg.get("max_recent_all_campaigns") or 0)
-        if max_recent and len(recent) >= max_recent:
-            reasons.append("RECENT_WINDOW_CAP_REACHED")
-            temporal_until.append(_cap_release_at(recent, max_recent, recent_window))
+            exposure_cfg = self.policy.values["exposure"]
+            max_lifetime = int(exposure_cfg["max_lifetime_all_campaigns"])
+            if len(snapshot.exposures) >= max_lifetime:
+                reasons.append("LIFETIME_EXPOSURE_CAP_REACHED")
+            max_campaign_lifetime = int(exposure_cfg["max_lifetime_per_campaign"])
+            if len(same_campaign) >= max_campaign_lifetime:
+                reasons.append("LIFETIME_EXPOSURE_CAP_REACHED")
 
-        channel_cfg = self.policy.values.get("channel_caps", {}).get(
-            candidate.channel, {}
-        )
-        channel_window = int(channel_cfg.get("window_seconds") or 0)
-        channel_cutoff = now - timedelta(seconds=channel_window)
-        channel_recent = [
-            exposure
-            for exposure in snapshot.exposures
-            if channel_window
-            and exposure.channel == candidate.channel
-            and _utc(exposure.reserved_at) > channel_cutoff
-        ]
-        max_channel = int(channel_cfg.get("max_touches") or 0)
-        if max_channel and len(channel_recent) >= max_channel:
-            reasons.append("CHANNEL_CAP_REACHED")
-            temporal_until.append(
-                _cap_release_at(channel_recent, max_channel, channel_window)
+            recent_window = int(exposure_cfg["recent_window_seconds"])
+            recent_cutoff = now - timedelta(seconds=recent_window)
+            recent = [
+                exposure
+                for exposure in snapshot.exposures
+                if _utc(exposure.reserved_at) > recent_cutoff
+            ]
+            max_recent = int(exposure_cfg["max_recent_all_campaigns"])
+            if len(recent) >= max_recent:
+                reasons.append("RECENT_WINDOW_CAP_REACHED")
+                temporal_until.append(
+                    _cap_release_at(recent, max_recent, recent_window)
+                )
+
+            channel_cfg = self.policy.values["channel_caps"][candidate.channel]
+            channel_window = int(channel_cfg["window_seconds"])
+            channel_cutoff = now - timedelta(seconds=channel_window)
+            channel_recent = [
+                exposure
+                for exposure in snapshot.exposures
+                if exposure.channel == candidate.channel
+                and _utc(exposure.reserved_at) > channel_cutoff
+            ]
+            max_channel = int(channel_cfg["max_touches"])
+            if len(channel_recent) >= max_channel:
+                reasons.append("CHANNEL_CAP_REACHED")
+                temporal_until.append(
+                    _cap_release_at(channel_recent, max_channel, channel_window)
+                )
+
+            campaign_cfg = self.policy.values["campaign"]
+            cooldown = int(campaign_cfg["cooldown_seconds"])
+            if same_campaign:
+                latest = max(_utc(e.reserved_at) for e in same_campaign)
+                cooldown_until = latest + timedelta(seconds=cooldown)
+                if cooldown_until > now:
+                    reasons.append("CAMPAIGN_COOLDOWN_ACTIVE")
+                    temporal_until.append(cooldown_until)
+
+            version_count = sum(
+                1
+                for exposure in snapshot.exposures
+                if exposure.campaign_id == candidate.campaign_id
+                and exposure.campaign_version == candidate.campaign_version
             )
-
-        campaign_cfg = self.policy.values.get("campaign", {})
-        cooldown = int(campaign_cfg.get("cooldown_seconds") or 0)
-        if same_campaign and cooldown:
-            latest = max(_utc(e.reserved_at) for e in same_campaign)
-            cooldown_until = latest + timedelta(seconds=cooldown)
-            if cooldown_until > now:
-                reasons.append("CAMPAIGN_COOLDOWN_ACTIVE")
-                temporal_until.append(cooldown_until)
-
-        version_count = sum(
-            1
-            for exposure in snapshot.exposures
-            if exposure.campaign_id == candidate.campaign_id
-            and exposure.campaign_version == candidate.campaign_version
-        )
-        max_per_version = int(campaign_cfg.get("max_touches_per_version") or 0)
-        if max_per_version and version_count >= max_per_version:
-            reasons.append("CAMPAIGN_VERSION_EXHAUSTED")
+            max_per_version = int(campaign_cfg["max_touches_per_version"])
+            if version_count >= max_per_version:
+                reasons.append("CAMPAIGN_VERSION_EXHAUSTED")
 
         ordered = _sort_reasons(reasons)
         next_at = max(temporal_until) if temporal_until else None
@@ -514,9 +766,13 @@ class CampaignRecyclingEngine:
             next_at = None
         return ordered, next_at
 
-    def _value(self, section: str, key: str, *, default: Any) -> Any:
+    def _value(self, section: str, key: str) -> Any:
         value = self.policy.values.get(section, {}).get(key)
-        return default if value is None else value
+        if value is None:
+            raise CampaignRecyclingPolicyError(
+                f"policy value {section}.{key} is not configured"
+            )
+        return value
 
     def _decision(
         self,
@@ -527,22 +783,24 @@ class CampaignRecyclingEngine:
         next_eligible_at: datetime | None,
         mode: str,
         evaluated_at: datetime,
+        decision_inputs: Mapping[str, Any],
     ) -> NextActionDecision:
-        body = {
+        output = {
             "tenant_id": snapshot.tenant_id,
             "lead_id": snapshot.lead_id,
+            "lifecycle_state": snapshot.lifecycle_state,
             "lifecycle_version": snapshot.lifecycle_version,
             "mode": mode,
             "policy_version": self.policy.policy_version,
+            "eligible": selected is not None,
             "selected": _candidate_payload(selected),
+            "next_eligible_at": _utc(next_eligible_at).isoformat()
+            if next_eligible_at is not None
+            else None,
             "reason_codes": list(reasons),
             "candidates": [_candidate_payload(item) for item in candidates],
         }
-        digest = hashlib.sha256(
-            json.dumps(
-                body, sort_keys=True, separators=(",", ":"), default=str
-            ).encode()
-        ).hexdigest()
+        digest = canonical_digest({"inputs": decision_inputs, "outputs": output})
         return NextActionDecision(
             eligible=selected is not None,
             selected=selected,
@@ -553,6 +811,1284 @@ class CampaignRecyclingEngine:
             decision_hash=digest,
         )
 
+
+@dataclass
+class PostgresCampaignRecyclingStore:
+    pool: asyncpg.Pool
+
+    async def record_decision(
+        self,
+        *,
+        tenant_id: str,
+        lead_id: str,
+        idempotency_key: str,
+        request_hash: str,
+        document: Mapping[str, Any],
+    ) -> tuple[dict[str, Any], bool]:
+        """Persist one frozen next-action decision, replaying exact requests safely."""
+        payload = dict(document)
+        if not _next_action_validator().is_valid(payload):
+            raise CampaignRecyclingConflict(
+                "decision document violates the frozen next-action contract"
+            )
+        if payload.get("tenant_id") != tenant_id or payload.get("lead_id") != lead_id:
+            raise CampaignRecyclingConflict("decision tenant/lead binding mismatch")
+        if (
+            not isinstance(request_hash, str)
+            or len(request_hash) != 64
+            or any(ch not in "0123456789abcdef" for ch in request_hash)
+        ):
+            raise CampaignRecyclingConflict("decision request_hash must be sha256 hex")
+        response_hash = canonical_digest(payload)
+        decision_id = UUID(str(payload["decision_id"]))
+        evaluated_at = _coerce_event_datetime(payload["evaluated_at"])
+        next_eligible_at = (
+            _coerce_event_datetime(payload["next_eligible_at"])
+            if payload.get("next_eligible_at") is not None
+            else None
+        )
+        async with self.pool.acquire() as conn:
+            async with conn.transaction():
+                existing = await conn.fetchrow(
+                    """
+                    SELECT request_hash, decision_json
+                    FROM mcr_decisions
+                    WHERE tenant_id=$1 AND idempotency_key=$2
+                    """,
+                    tenant_id,
+                    idempotency_key,
+                )
+                if existing is not None:
+                    if str(existing["request_hash"]) != request_hash:
+                        raise CampaignRecyclingIdempotencyConflict(
+                            "decision idempotency key was reused with a different request"
+                        )
+                    return dict(existing["decision_json"]), True
+                await conn.execute(
+                    """
+                    INSERT INTO mcr_decisions (
+                      record_id, tenant_id, decision_id, lead_id,
+                      idempotency_key, request_hash, response_hash,
+                      decision_hash, policy_version, lifecycle_state, mode,
+                      eligible, next_eligible_at, correlation_id, evaluated_at,
+                      decision_json
+                    )
+                    VALUES (
+                      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16
+                    )
+                    """,
+                    uuid4(),
+                    tenant_id,
+                    decision_id,
+                    lead_id,
+                    idempotency_key,
+                    request_hash,
+                    response_hash,
+                    payload["decision_hash"],
+                    payload["policy_version"],
+                    payload["lifecycle_state"],
+                    payload["mode"],
+                    bool(payload["eligible"]),
+                    next_eligible_at,
+                    payload["correlation_id"],
+                    evaluated_at,
+                    payload,
+                )
+        return payload, False
+
+    async def latest_decision(
+        self, *, tenant_id: str, lead_id: str
+    ) -> dict[str, Any] | None:
+        """Return the newest durable decision for exactly one tenant/lead."""
+        async with self.pool.acquire() as conn:
+            row = await conn.fetchrow(
+                """
+                SELECT decision_json
+                FROM mcr_decisions
+                WHERE tenant_id=$1 AND lead_id=$2
+                ORDER BY evaluated_at DESC, created_at DESC
+                LIMIT 1
+                """,
+                tenant_id,
+                lead_id,
+            )
+        return dict(row["decision_json"]) if row is not None else None
+
+    async def transition_lifecycle(
+        self,
+        *,
+        tenant_id: str,
+        lead_id: str,
+        from_state: str | None,
+        to_state: str,
+        reason_code: str,
+        source: str,
+        correlation_id: str,
+        evidence_hash: str,
+        evidence_ref: str | None = None,
+        occurred_at: datetime | None = None,
+    ) -> int:
+        occurred_at = _utc(occurred_at or datetime.now(UTC))
+        async with self.pool.acquire() as conn:
+            async with conn.transaction():
+                return await _transition_lifecycle_on_connection(
+                    conn,
+                    tenant_id=tenant_id,
+                    lead_id=lead_id,
+                    expected_from=from_state,
+                    to_state=to_state,
+                    reason_code=reason_code,
+                    source=source,
+                    correlation_id=correlation_id,
+                    evidence_hash=evidence_hash,
+                    evidence_ref=evidence_ref,
+                    occurred_at=occurred_at,
+                )
+
+    async def record_channel_health(
+        self,
+        *,
+        tenant_id: str,
+        lead_id: str,
+        channel: Channel,
+        address_ref: str,
+        state: str,
+        source: str,
+        reason_code: str,
+        occurred_at: datetime,
+        evidence_hash: str,
+        correlation_id: str,
+        suppression_id: UUID | None = None,
+        suppression_scope: str | None = None,
+        suppression_reason: str | None = None,
+        suppression_requested_by: str | None = None,
+        campaign_id: str | None = None,
+    ) -> int:
+        if state not in CHANNEL_HEALTH_STATES:
+            raise CampaignRecyclingConflict(f"unknown channel-health state {state}")
+        if channel not in CHANNEL_ORDER:
+            raise CampaignRecyclingConflict(f"unknown campaign channel {channel}")
+        if state in SUPPRESSION_REQUIRED_HEALTH and not all(
+            (suppression_id, suppression_scope, suppression_reason, suppression_requested_by)
+        ):
+            raise CampaignRecyclingConflict(
+                f"channel-health state {state} requires an atomic suppression record"
+            )
+        if state in {"complained", "unsubscribed"}:
+            expected_reason = "complaint" if state == "complained" else "unsubscribe"
+            if suppression_scope != "channel" or suppression_reason != expected_reason:
+                raise CampaignRecyclingConflict(
+                    f"{state} delivery evidence requires channel-scoped {expected_reason} suppression"
+                )
+        occurred_at = _utc(occurred_at)
+        async with self.pool.acquire() as conn:
+            async with conn.transaction():
+                current = await conn.fetchrow(
+                    """
+                    SELECT state, health_version
+                    FROM mcr_channel_health
+                    WHERE tenant_id=$1 AND lead_id=$2 AND channel=$3 AND address_ref=$4
+                    FOR UPDATE
+                    """,
+                    tenant_id,
+                    lead_id,
+                    channel,
+                    address_ref,
+                )
+                version = int(current["health_version"]) + 1 if current else 1
+                previous_state = current["state"] if current else None
+                committed = await conn.fetchrow(
+                    f"""
+                    INSERT INTO mcr_channel_health
+                      (tenant_id,lead_id,channel,address_ref,state,previous_state,
+                       source,reason_code,occurred_at,recorded_at,evidence_hash,
+                       health_version,correlation_id,updated_at)
+                    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,now(),$10,$11,$12,now())
+                    ON CONFLICT (tenant_id,lead_id,channel,address_ref)
+                    DO UPDATE SET
+                      state=EXCLUDED.state,
+                      previous_state=mcr_channel_health.state,
+                      source=EXCLUDED.source,
+                      reason_code=EXCLUDED.reason_code,
+                      occurred_at=EXCLUDED.occurred_at,
+                      recorded_at=now(),
+                      evidence_hash=EXCLUDED.evidence_hash,
+                      health_version=mcr_channel_health.health_version + 1,
+                      correlation_id=EXCLUDED.correlation_id,
+                      updated_at=now()
+                    {HEALTH_UPDATE_PREDICATE}
+                    RETURNING health_version
+                    """,
+                    tenant_id,
+                    lead_id,
+                    channel,
+                    address_ref,
+                    state,
+                    previous_state,
+                    source,
+                    reason_code,
+                    occurred_at,
+                    evidence_hash,
+                    version,
+                    correlation_id,
+                )
+                if committed is None:
+                    # A stale/weaker signal is a no-op, not a failed delivery.
+                    committed = await conn.fetchrow(
+                        """SELECT health_version FROM mcr_channel_health
+                        WHERE tenant_id=$1 AND lead_id=$2 AND channel=$3 AND address_ref=$4""",
+                        tenant_id, lead_id, channel, address_ref,
+                    )
+                if committed is None:
+                    raise CampaignRecyclingConflict(
+                        "channel-health upsert returned no committed version"
+                    )
+                if state in SUPPRESSION_REQUIRED_HEALTH:
+                    assert suppression_id is not None
+                    assert suppression_scope is not None
+                    assert suppression_reason is not None
+                    assert suppression_requested_by is not None
+                    await conn.execute(
+                        """
+                        INSERT INTO mcr_suppressions
+                          (tenant_id,suppression_id,lead_id,scope,channel,campaign_id,
+                           reason,source,occurred_at,evidence_hash,requested_by)
+                        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+                        ON CONFLICT (tenant_id,suppression_id) DO NOTHING
+                        """,
+                        tenant_id,
+                        suppression_id,
+                        lead_id,
+                        suppression_scope,
+                        channel if suppression_scope in {"channel", "campaign_channel"} else None,
+                        campaign_id,
+                        suppression_reason,
+                        source,
+                        occurred_at,
+                        evidence_hash,
+                        suppression_requested_by,
+                    )
+                return int(committed["health_version"])
+
+    async def add_suppression(
+        self,
+        *,
+        tenant_id: str,
+        suppression_id: UUID,
+        lead_id: str,
+        scope: str,
+        reason: str,
+        source: str,
+        occurred_at: datetime,
+        evidence_hash: str,
+        requested_by: str,
+        channel: str | None = None,
+        campaign_id: str | None = None,
+    ) -> bool:
+        async with self.pool.acquire() as conn:
+            row = await conn.fetchrow(
+                """
+                INSERT INTO mcr_suppressions
+                  (tenant_id,suppression_id,lead_id,scope,channel,campaign_id,reason,
+                   source,occurred_at,evidence_hash,requested_by)
+                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+                ON CONFLICT (tenant_id,suppression_id) DO NOTHING
+                RETURNING suppression_id
+                """,
+                tenant_id,
+                suppression_id,
+                lead_id,
+                scope,
+                channel,
+                campaign_id,
+                reason,
+                source,
+                _utc(occurred_at),
+                evidence_hash,
+                requested_by,
+            )
+        return row is not None
+
+    async def apply_delivery_event(
+        self,
+        event: Mapping[str, Any],
+        *,
+        policy: PolicyProfile,
+        address_ref: str | None = None,
+    ) -> dict[str, Any]:
+        errors = sorted(_delivery_validator().iter_errors(dict(event)), key=str)
+        if errors:
+            raise CampaignRecyclingConflict(
+                f"invalid normalized delivery event: {errors[0].message}"
+            )
+        event_type = str(event["event_type"])
+        source = str(event["source"])
+        tenant_id = str(event["tenant_id"])
+        lead_id = str(event["lead_id"])
+        channel = str(event["channel"])
+        if event_type not in DELIVERY_EVENT_TYPES:
+            raise CampaignRecyclingConflict(
+                f"unknown normalized delivery event type {event_type}"
+            )
+        if channel not in CHANNEL_ORDER:
+            raise CampaignRecyclingConflict(f"unknown delivery channel {channel}")
+        if source == "klyrow" and channel != "email":
+            raise CampaignRecyclingConflict("Klyrow normalized events must be email")
+        if source == "telnexa" and channel != "sms":
+            raise CampaignRecyclingConflict("Telnexa normalized events must be sms")
+        if source == "evolution" and channel != "whatsapp":
+            raise CampaignRecyclingConflict(
+                "Evolution normalized events must be whatsapp"
+            )
+
+        event_id = str(event["event_id"])
+        correlation_id = str(event["correlation_id"])
+        payload_hash = str(event["payload_hash"])
+        if len(payload_hash) != 64 or any(
+            char not in "0123456789abcdef" for char in payload_hash
+        ):
+            raise CampaignRecyclingConflict(
+                "delivery event payload_hash must be lowercase sha256"
+            )
+        occurred_at = _coerce_event_datetime(event["occurred_at"])
+        received_at = _coerce_event_datetime(event["received_at"])
+        campaign_id = event.get("campaign_id")
+        campaign_version = event.get("campaign_version")
+        exposure_key = event.get("exposure_idempotency_key")
+        message_id = event.get("message_id")
+        provider_message_id = event.get("provider_message_id")
+        origin = event.get("origin")
+        origin_inbox: str | None = None
+        origin_event_id: str | None = None
+        if origin is not None:
+            if not isinstance(origin, Mapping):
+                raise CampaignRecyclingConflict("delivery event origin must be an object")
+            origin_inbox = str(origin.get("inbox") or "")
+            origin_event_id = str(origin.get("inbox_event_id") or "")
+            if not origin_inbox or not origin_event_id:
+                raise CampaignRecyclingConflict(
+                    "delivery event origin requires inbox and inbox_event_id"
+                )
+        normalized_json = json.dumps(
+            dict(event),
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+            default=_json_default,
+        )
+        health_effect = HEALTH_EVENT_STATE.get(event_type)
+        if health_effect is not None and not address_ref:
+            raise CampaignRecyclingConflict(
+                f"delivery event {event_type} requires an opaque address_ref"
+            )
+
+        notes: list[str] = []
+        async with self.pool.acquire() as conn:
+            async with conn.transaction():
+                inserted = await conn.fetchrow(
+                    """
+                    INSERT INTO mcr_delivery_events (
+                      tenant_id,source,event_id,event_type,lead_id,channel,campaign_id,
+                      campaign_version,exposure_idempotency_key,address_ref,provider,
+                      message_id,provider_message_id,correlation_id,causation_id,
+                      payload_hash,occurred_at,received_at,origin_inbox,origin_event_id,
+                      normalized_event,projection_state
+                    ) VALUES (
+                      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,
+                      $16,$17,$18,$19,$20,$21::jsonb,'pending'
+                    )
+                    ON CONFLICT DO NOTHING
+                    RETURNING id, projection_state
+                    """,
+                    tenant_id,
+                    source,
+                    event_id,
+                    event_type,
+                    lead_id,
+                    channel,
+                    campaign_id,
+                    campaign_version,
+                    exposure_key,
+                    address_ref,
+                    event.get("provider"),
+                    message_id,
+                    provider_message_id,
+                    correlation_id,
+                    event.get("causation_id"),
+                    payload_hash,
+                    occurred_at,
+                    received_at,
+                    origin_inbox,
+                    origin_event_id,
+                    normalized_json,
+                )
+                if inserted is None:
+                    existing = await conn.fetchrow(
+                        """
+                        SELECT id, source, event_id, payload_hash, origin_inbox,
+                               origin_event_id, projection_state
+                        FROM mcr_delivery_events
+                        WHERE tenant_id=$1
+                          AND (
+                            (source=$2 AND event_id=$3)
+                            OR (
+                              $4::text IS NOT NULL
+                              AND origin_inbox=$4
+                              AND origin_event_id=$5
+                            )
+                          )
+                        ORDER BY id
+                        LIMIT 1
+                        FOR UPDATE
+                        """,
+                        tenant_id,
+                        source,
+                        event_id,
+                        origin_inbox,
+                        origin_event_id,
+                    )
+                    if existing is None:
+                        raise CampaignRecyclingConflict(
+                            "delivery event conflict could not be reconciled"
+                        )
+                    if (
+                        existing["source"] != source
+                        or existing["event_id"] != event_id
+                        or existing["payload_hash"] != payload_hash
+                        or existing["origin_inbox"] != origin_inbox
+                        or existing["origin_event_id"] != origin_event_id
+                    ):
+                        raise CampaignRecyclingConflict(
+                            "delivery event identity was reused with different evidence"
+                        )
+                    event_row_id = int(existing["id"])
+                    if existing["projection_state"] == "applied":
+                        return {
+                            "event_id": event_id,
+                            "duplicate": True,
+                            "projection_state": "applied",
+                            "projection_note": None,
+                        }
+                else:
+                    event_row_id = int(inserted["id"])
+
+                exposure = None
+                if exposure_key is not None:
+                    exposure = await conn.fetchrow(
+                        """
+                        SELECT exposure_id, lead_id, campaign_id, campaign_version,
+                               channel, status, engagement_outcome, negative_outcome,
+                               message_id, provider_message_id, status_at,
+                               engagement_outcome_at, negative_outcome_at, ledger_version
+                        FROM mcr_exposures
+                        WHERE tenant_id=$1 AND idempotency_key=$2
+                        FOR UPDATE
+                        """,
+                        tenant_id,
+                        str(exposure_key),
+                    )
+                    if exposure is None:
+                        notes.append("exposure_not_found")
+                    else:
+                        if exposure["lead_id"] != lead_id or exposure["channel"] != channel:
+                            raise CampaignRecyclingConflict(
+                                "delivery event does not match exposure lead/channel"
+                            )
+                        if (
+                            campaign_id is not None
+                            and exposure["campaign_id"] != campaign_id
+                        ):
+                            raise CampaignRecyclingConflict(
+                                "delivery event campaign_id does not match exposure"
+                            )
+                        if (
+                            campaign_version is not None
+                            and int(exposure["campaign_version"])
+                            != int(campaign_version)
+                        ):
+                            raise CampaignRecyclingConflict(
+                                "delivery event campaign_version does not match exposure"
+                            )
+                        if (
+                            message_id is not None
+                            and exposure["message_id"] is not None
+                            and str(exposure["message_id"]) != str(message_id)
+                        ):
+                            raise CampaignRecyclingConflict(
+                                "delivery event message_id conflicts with exposure"
+                            )
+                        if (
+                            provider_message_id is not None
+                            and exposure["provider_message_id"] is not None
+                            and str(exposure["provider_message_id"])
+                            != str(provider_message_id)
+                        ):
+                            raise CampaignRecyclingConflict(
+                                "delivery event provider_message_id conflicts with exposure"
+                            )
+                        status = str(exposure["status"])
+                        new_status = status
+                        mapped_status = TRANSPORT_EVENT_STATUS.get(event_type)
+                        if (
+                            mapped_status is not None
+                            and status not in TRANSPORT_TERMINAL
+                            and TRANSPORT_STATUS_RANK[mapped_status]
+                            > TRANSPORT_STATUS_RANK.get(status, -1)
+                        ):
+                            new_status = mapped_status
+
+                        engagement = str(exposure["engagement_outcome"])
+                        new_engagement = engagement
+                        if (
+                            event_type in ENGAGEMENT_RANK
+                            and ENGAGEMENT_RANK[event_type]
+                            > ENGAGEMENT_RANK.get(engagement, -1)
+                        ):
+                            new_engagement = event_type
+
+                        negative = str(exposure["negative_outcome"])
+                        new_negative = negative
+                        if (
+                            event_type in NEGATIVE_RANK
+                            and NEGATIVE_RANK[event_type]
+                            > NEGATIVE_RANK.get(negative, -1)
+                        ):
+                            new_negative = event_type
+
+                        status_changed = new_status != status
+                        engagement_changed = new_engagement != engagement
+                        negative_changed = new_negative != negative
+                        await conn.execute(
+                            """
+                            UPDATE mcr_exposures
+                            SET status=$3,
+                                engagement_outcome=$4,
+                                negative_outcome=$5,
+                                message_id=COALESCE(message_id,$6),
+                                provider_message_id=COALESCE(provider_message_id,$7),
+                                dispatched_at=CASE
+                                  WHEN $8='dispatched' THEN COALESCE(dispatched_at,$9)
+                                  ELSE dispatched_at END,
+                                accepted_at=CASE
+                                  WHEN $8='accepted' THEN COALESCE(accepted_at,$9)
+                                  ELSE accepted_at END,
+                                delivered_at=CASE
+                                  WHEN $8='delivered' THEN COALESCE(delivered_at,$9)
+                                  ELSE delivered_at END,
+                                status_at=CASE WHEN $10 THEN $9 ELSE status_at END,
+                                engagement_outcome_at=CASE
+                                  WHEN $11 THEN $9 ELSE engagement_outcome_at END,
+                                negative_outcome_at=CASE
+                                  WHEN $12 THEN $9 ELSE negative_outcome_at END,
+                                updated_at=now(),
+                                ledger_version=ledger_version + CASE
+                                  WHEN $10 OR $11 OR $12 OR
+                                       (message_id IS NULL AND $6 IS NOT NULL) OR
+                                       (provider_message_id IS NULL AND $7 IS NOT NULL)
+                                  THEN 1 ELSE 0 END
+                            WHERE tenant_id=$1 AND exposure_id=$2
+                            """,
+                            tenant_id,
+                            exposure["exposure_id"],
+                            new_status,
+                            new_engagement,
+                            new_negative,
+                            message_id,
+                            provider_message_id,
+                            event_type,
+                            occurred_at,
+                            status_changed,
+                            engagement_changed,
+                            negative_changed,
+                        )
+                elif event_type not in {"unsubscribe", "conversion"}:
+                    notes.append("exposure_identity_missing")
+
+                if health_effect is not None:
+                    target_health, health_reason = health_effect
+                    assert address_ref is not None
+                    current_health = await conn.fetchrow(
+                        """
+                        SELECT state, health_version, occurred_at
+                        FROM mcr_channel_health
+                        WHERE tenant_id=$1 AND lead_id=$2 AND channel=$3
+                          AND address_ref=$4
+                        FOR UPDATE
+                        """,
+                        tenant_id,
+                        lead_id,
+                        channel,
+                        address_ref,
+                    )
+                    if event_type == "soft_bounce":
+                        escalation_count = policy.values.get(
+                            "channel_health", {}
+                        ).get("soft_bounce_escalation_count")
+                        if escalation_count is None:
+                            notes.append("soft_bounce_escalation_not_configured")
+                        else:
+                            # Consecutive soft bounces for this address since the
+                            # last confirmed delivery, including this event.
+                            streak = await conn.fetchrow(
+                                """
+                                SELECT count(*) AS soft_bounce_count
+                                FROM mcr_delivery_events
+                                WHERE tenant_id=$1 AND lead_id=$2 AND channel=$3
+                                  AND address_ref=$4 AND event_type='soft_bounce'
+                                  AND occurred_at > COALESCE(
+                                    (SELECT max(occurred_at)
+                                     FROM mcr_delivery_events
+                                     WHERE tenant_id=$1 AND lead_id=$2
+                                       AND channel=$3 AND address_ref=$4
+                                       AND event_type='delivered'),
+                                    '-infinity'::timestamptz
+                                  )
+                                """,
+                                tenant_id,
+                                lead_id,
+                                channel,
+                                address_ref,
+                            )
+                            if streak is None:
+                                raise CampaignRecyclingConflict(
+                                    "soft-bounce streak could not be read"
+                                )
+                            if int(streak["soft_bounce_count"]) >= int(
+                                escalation_count
+                            ):
+                                target_health = "hard_bounce"
+                                health_reason = "SOFT_BOUNCE_ESCALATED"
+                    health_source = {
+                        "klyrow": "klyrow_delivery_event",
+                        "telnexa": "telnexa_delivery_event",
+                        "evolution": "evolution_delivery_event",
+                    }.get(source, "leads_authority")
+                    await conn.execute(
+                        f"""
+                        INSERT INTO mcr_channel_health (
+                          tenant_id,lead_id,channel,address_ref,state,previous_state,
+                          source,reason_code,occurred_at,recorded_at,evidence_hash,
+                          health_version,correlation_id,updated_at
+                        ) VALUES (
+                          $1,$2,$3,$4,$5,$6,$7,$8,$9,now(),$10,1,$11,now()
+                        )
+                        ON CONFLICT (tenant_id,lead_id,channel,address_ref)
+                        DO UPDATE SET
+                          state=EXCLUDED.state,
+                          previous_state=mcr_channel_health.state,
+                          source=EXCLUDED.source,
+                          reason_code=EXCLUDED.reason_code,
+                          occurred_at=EXCLUDED.occurred_at,
+                          recorded_at=now(),
+                          evidence_hash=EXCLUDED.evidence_hash,
+                          health_version=mcr_channel_health.health_version + 1,
+                          correlation_id=EXCLUDED.correlation_id,
+                          updated_at=now()
+                    {HEALTH_UPDATE_PREDICATE}
+                        """,
+                        tenant_id,
+                        lead_id,
+                        channel,
+                        address_ref,
+                        target_health,
+                        current_health["state"]
+                        if current_health is not None
+                        else None,
+                        health_source,
+                        health_reason,
+                        occurred_at,
+                        payload_hash,
+                        correlation_id,
+                    )
+                    if event_type in {"complaint", "unsubscribe"}:
+                        suppression_id = uuid5(
+                            NAMESPACE_URL,
+                            (
+                                f"mcr:{tenant_id}:{source}:{event_id}:"
+                                f"suppression:{channel}"
+                            ),
+                        )
+                        await conn.execute(
+                            """
+                            INSERT INTO mcr_suppressions (
+                              tenant_id,suppression_id,lead_id,scope,channel,campaign_id,
+                              reason,source,occurred_at,evidence_hash,requested_by
+                            ) VALUES (
+                              $1,$2,$3,'channel',$4,NULL,$5,$6,$7,$8,$9
+                            )
+                            ON CONFLICT (tenant_id,suppression_id) DO NOTHING
+                            """,
+                            tenant_id,
+                            suppression_id,
+                            lead_id,
+                            channel,
+                            event_type,
+                            source,
+                            occurred_at,
+                            payload_hash,
+                            f"delivery-event:{source}",
+                        )
+
+                lifecycle_target: str | None = None
+                lifecycle_reason: str | None = None
+                automated = bool(event.get("automated_suspected", False))
+                if event_type in {"click", "reply"} and not (
+                    event_type == "click" and automated
+                ):
+                    lifecycle_target = "ENGAGED"
+                    lifecycle_reason = "STRONG_ENGAGEMENT_RECORDED"
+                elif event_type == "conversion":
+                    lifecycle_target = "CONVERTED"
+                    lifecycle_reason = "CONVERSION_RECORDED"
+
+                if lifecycle_target is not None and lifecycle_reason is not None:
+                    current = await conn.fetchrow(
+                        """
+                        SELECT state, version
+                        FROM mcr_lead_lifecycle_current
+                        WHERE tenant_id=$1 AND lead_id=$2
+                        FOR UPDATE
+                        """,
+                        tenant_id,
+                        lead_id,
+                    )
+                    if current is None:
+                        notes.append("lifecycle_state_missing")
+                    else:
+                        current_state = str(current["state"])
+                        if (
+                            lifecycle_target == "ENGAGED"
+                            and current_state == "ELIGIBLE"
+                        ):
+                            await _transition_lifecycle_on_connection(
+                                conn,
+                                tenant_id=tenant_id,
+                                lead_id=lead_id,
+                                expected_from="ELIGIBLE",
+                                to_state="ACTIVE_CYCLE",
+                                reason_code="CYCLE_STARTED",
+                                source="delivery_event",
+                                correlation_id=correlation_id,
+                                evidence_hash=payload_hash,
+                                evidence_ref=f"delivery:{source}:{event_id}",
+                                occurred_at=occurred_at,
+                            )
+                            current_state = "ACTIVE_CYCLE"
+                        if lifecycle_target in LEGAL_TRANSITIONS.get(
+                            current_state, frozenset()
+                        ):
+                            await _transition_lifecycle_on_connection(
+                                conn,
+                                tenant_id=tenant_id,
+                                lead_id=lead_id,
+                                expected_from=current_state,
+                                to_state=lifecycle_target,
+                                reason_code=lifecycle_reason,
+                                source=(
+                                    "odoo_conversion"
+                                    if event_type == "conversion" and source == "odoo"
+                                    else "delivery_event"
+                                ),
+                                correlation_id=correlation_id,
+                                evidence_hash=payload_hash,
+                                evidence_ref=f"delivery:{source}:{event_id}",
+                                occurred_at=occurred_at,
+                            )
+                        elif current_state not in {
+                            lifecycle_target,
+                            "CONVERTED",
+                            "SUPPRESSED",
+                        }:
+                            notes.append(
+                                f"lifecycle_transition_not_applicable:"
+                                f"{current_state}->{lifecycle_target}"
+                            )
+
+                projection_state = "partial" if notes else "applied"
+                projection_note = ";".join(notes) if notes else None
+                await conn.execute(
+                    """
+                    UPDATE mcr_delivery_events
+                    SET projection_state=$2,
+                        projection_note=$3,
+                        projected_at=now()
+                    WHERE id=$1
+                    """,
+                    event_row_id,
+                    projection_state,
+                    projection_note,
+                )
+                return {
+                    "event_id": event_id,
+                    # An identical replay of a partial projection completes it
+                    # monotonically; the caller still observes a duplicate.
+                    "duplicate": inserted is None,
+                    "projection_state": projection_state,
+                    "projection_note": projection_note,
+                }
+
+    async def record_suppression_request(
+        self,
+        *,
+        tenant_id: str,
+        idempotency_key: str,
+        request: Mapping[str, Any],
+        correlation_id: str,
+    ) -> dict[str, Any]:
+        """Record one contract-valid SuppressionRequest additively.
+
+        Idempotency evidence reuses the Alembic ``idempotency_record`` table
+        (unique scope/key_hash, canonical request digest, stored response); the
+        key hash binds the exact tenant. A scope=global suppression and its
+        lifecycle SUPPRESSED transition commit in one transaction; narrower
+        scopes never change lifecycle state. SUPPRESSED stays absorbing.
+        """
+        scope = str(request["scope"])
+        lead_id = str(request["lead_id"])
+        source = str(request["source"])
+        lifecycle_source = GLOBAL_SUPPRESSION_LIFECYCLE_SOURCE.get(source)
+        if scope == "global" and lifecycle_source is None:
+            raise CampaignRecyclingConflict(
+                "global suppression source has no lifecycle authority"
+            )
+        evidence_hash = str(request["evidence"]["evidence_hash"])
+        occurred_at = _coerce_event_datetime(request["occurred_at"])
+        request_hash = canonical_digest(dict(request))
+        key_hash = canonical_digest(
+            {"tenant_id": tenant_id, "idempotency_key": idempotency_key}
+        )
+        suppression_id = uuid5(NAMESPACE_URL, f"mcr:suppression_record:{key_hash}")
+        async with self.pool.acquire() as conn:
+            async with conn.transaction():
+                await conn.execute(
+                    "SELECT pg_advisory_xact_lock($1)",
+                    int.from_bytes(bytes.fromhex(key_hash)[:8], "big", signed=True),
+                )
+                prior = await conn.fetchrow(
+                    """
+                    SELECT request_hash, response
+                    FROM idempotency_record
+                    WHERE scope=$1 AND key_hash=$2
+                    """,
+                    SUPPRESSION_IDEMPOTENCY_SCOPE,
+                    key_hash,
+                )
+                if prior is not None:
+                    if prior["request_hash"] != request_hash:
+                        raise CampaignRecyclingIdempotencyConflict(
+                            "Idempotency-Key was reused for a different suppression"
+                        )
+                    response = prior["response"]
+                    if isinstance(response, str):
+                        response = json.loads(response)
+                    return {**response, "duplicate": True}
+                current = await conn.fetchrow(
+                    """
+                    SELECT state
+                    FROM mcr_lead_lifecycle_current
+                    WHERE tenant_id=$1 AND lead_id=$2
+                    FOR UPDATE
+                    """,
+                    tenant_id,
+                    lead_id,
+                )
+                if current is None:
+                    raise CampaignRecyclingNotFound("lead lifecycle not found")
+                recorded = await conn.fetchrow(
+                    """
+                    INSERT INTO mcr_suppressions
+                      (tenant_id,suppression_id,lead_id,scope,channel,campaign_id,reason,
+                       source,occurred_at,evidence_hash,requested_by)
+                    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+                    ON CONFLICT (tenant_id,suppression_id) DO NOTHING
+                    RETURNING created_at
+                    """,
+                    tenant_id,
+                    suppression_id,
+                    lead_id,
+                    scope,
+                    request.get("channel"),
+                    request.get("campaign_id"),
+                    str(request["reason"]),
+                    source,
+                    occurred_at,
+                    evidence_hash,
+                    str(request["requested_by"]),
+                )
+                if recorded is None:
+                    # Both rows commit together; a suppression without its
+                    # idempotency evidence is never silently re-acknowledged.
+                    raise CampaignRecyclingIdempotencyConflict(
+                        "suppression identity exists without idempotency evidence"
+                    )
+                if scope == "global" and current["state"] != "SUPPRESSED":
+                    assert lifecycle_source is not None
+                    await _transition_lifecycle_on_connection(
+                        conn,
+                        tenant_id=tenant_id,
+                        lead_id=lead_id,
+                        expected_from=str(current["state"]),
+                        to_state="SUPPRESSED",
+                        reason_code="GLOBAL_SUPPRESSION_APPLIED",
+                        source=lifecycle_source,
+                        correlation_id=correlation_id,
+                        evidence_hash=evidence_hash,
+                        evidence_ref=f"suppression:{suppression_id}",
+                        occurred_at=occurred_at,
+                    )
+                response = {
+                    "suppression_id": str(suppression_id),
+                    "duplicate": False,
+                    "scope": scope,
+                    "effective_at": _utc(recorded["created_at"]).isoformat(),
+                }
+                await conn.execute(
+                    """
+                    INSERT INTO idempotency_record
+                      (id,scope,key_hash,request_hash,response,status_code)
+                    VALUES ($1,$2,$3,$4,$5::jsonb,201)
+                    """,
+                    uuid4(),
+                    SUPPRESSION_IDEMPOTENCY_SCOPE,
+                    key_hash,
+                    request_hash,
+                    json.dumps(response, separators=(",", ":"), sort_keys=True),
+                )
+                return response
+
+    async def journey(
+        self,
+        *,
+        tenant_id: str,
+        lead_id: str,
+        limit: int = 100,
+    ) -> dict[str, Any]:
+        if limit < 1 or limit > 200:
+            raise CampaignRecyclingConflict("journey limit must be between 1 and 200")
+        async with self.pool.acquire() as conn:
+            current = await conn.fetchrow(
+                """
+                SELECT tenant_id, lead_id, state, version, updated_at
+                FROM mcr_lead_lifecycle_current
+                WHERE tenant_id=$1 AND lead_id=$2
+                """,
+                tenant_id,
+                lead_id,
+            )
+            lifecycle = await conn.fetch(
+                """
+                SELECT event_id, transition_id, version, from_state, to_state, reason_code, source,
+                       occurred_at, recorded_at, correlation_id, evidence_hash,
+                       evidence_ref
+                FROM mcr_lead_lifecycle_events
+                WHERE tenant_id=$1 AND lead_id=$2
+                ORDER BY version DESC
+                LIMIT $3
+                """,
+                tenant_id,
+                lead_id,
+                limit,
+            )
+            health = await conn.fetch(
+                """
+                SELECT channel, address_ref, state, previous_state, source,
+                       reason_code, occurred_at, recorded_at, evidence_hash,
+                       health_version, correlation_id, updated_at
+                FROM mcr_channel_health
+                WHERE tenant_id=$1 AND lead_id=$2
+                ORDER BY channel, address_ref
+                """,
+                tenant_id,
+                lead_id,
+            )
+            suppressions = await conn.fetch(
+                """
+                SELECT suppression_id, scope, channel, campaign_id, reason, source,
+                       occurred_at, evidence_hash, requested_by, created_at
+                FROM mcr_suppressions
+                WHERE tenant_id=$1 AND lead_id=$2
+                ORDER BY occurred_at, suppression_id
+                """,
+                tenant_id,
+                lead_id,
+            )
+            exposures = await conn.fetch(
+                """
+                SELECT exposure_id, campaign_id, campaign_version, channel, touch_index,
+                       idempotency_key, command_id, correlation_id, decision_id, policy_version,
+                       sender_identity_id, status, engagement_outcome, negative_outcome,
+                       message_id, provider_message_id, reserved_at, dispatched_at,
+                       accepted_at, delivered_at, status_at, engagement_outcome_at,
+                       negative_outcome_at, updated_at, ledger_version
+                FROM mcr_exposures
+                WHERE tenant_id=$1 AND lead_id=$2
+                ORDER BY reserved_at DESC, exposure_id
+                LIMIT $3
+                """,
+                tenant_id,
+                lead_id,
+                limit,
+            )
+        return {
+            "tenant_id": tenant_id,
+            "lead_id": lead_id,
+            "current": dict(current) if current is not None else None,
+            "lifecycle": [dict(row) for row in reversed(lifecycle)],
+            "channel_health": [dict(row) for row in health],
+            "suppressions": [dict(row) for row in suppressions],
+            "exposures": [dict(row) for row in reversed(exposures)],
+            "truncated": len(lifecycle) == limit or len(exposures) == limit,
+        }
+
+    async def load_snapshot(
+        self,
+        *,
+        tenant_id: str,
+        lead_id: str,
+        address_refs: Mapping[Channel, str],
+        policy: PolicyProfile,
+    ) -> LeadSnapshot:
+        max_lifetime = int(
+            policy.values.get("exposure", {}).get("max_lifetime_all_campaigns") or 0
+        )
+        exposure_limit = max(1, max_lifetime + 1 if max_lifetime else 1)
+        async with self.pool.acquire() as conn:
+            current = await conn.fetchrow(
+                """
+                SELECT state, version, updated_at
+                FROM mcr_lead_lifecycle_current
+                WHERE tenant_id=$1 AND lead_id=$2
+                """,
+                tenant_id,
+                lead_id,
+            )
+            if current is None:
+                raise CampaignRecyclingConflict("lead lifecycle state does not exist")
+
+            health_rows = []
+            for channel, address_ref in address_refs.items():
+                if channel not in CHANNEL_ORDER:
+                    raise CampaignRecyclingConflict(f"unknown campaign channel {channel}")
+                row = await conn.fetchrow(
+                    """
+                    SELECT channel, address_ref, state, occurred_at
+                    FROM mcr_channel_health
+                    WHERE tenant_id=$1 AND lead_id=$2 AND channel=$3 AND address_ref=$4
+                    """,
+                    tenant_id,
+                    lead_id,
+                    channel,
+                    address_ref,
+                )
+                if row is not None:
+                    health_rows.append(row)
+
+            suppression_rows = await conn.fetch(
+                """
+                SELECT suppression_id, scope, channel, campaign_id, reason, occurred_at
+                FROM mcr_suppressions
+                WHERE tenant_id=$1 AND lead_id=$2
+                ORDER BY occurred_at, suppression_id
+                """,
+                tenant_id,
+                lead_id,
+            )
+            exposure_rows = await conn.fetch(
+                """
+                SELECT campaign_id, campaign_version, channel, touch_index, status,
+                       reserved_at, engagement_outcome, negative_outcome
+                FROM mcr_exposures
+                WHERE tenant_id=$1 AND lead_id=$2
+                ORDER BY reserved_at DESC, exposure_id
+                LIMIT $3
+                """,
+                tenant_id,
+                lead_id,
+                exposure_limit,
+            )
+            lifecycle_rows = await conn.fetch(
+                """
+                SELECT to_state, occurred_at
+                FROM mcr_lead_lifecycle_events
+                WHERE tenant_id=$1 AND lead_id=$2
+                  AND to_state IN ('COOLING','REACTIVATION')
+                ORDER BY version
+                """,
+                tenant_id,
+                lead_id,
+            )
+
+        health_by_channel: dict[Channel, ChannelHealth] = {}
+        for row in health_rows:
+            channel = row["channel"]
+            health_by_channel[channel] = ChannelHealth(
+                state=row["state"],
+                occurred_at=_utc(row["occurred_at"]),
+                address_ref=row["address_ref"],
+            )
+
+        suppressions = tuple(
+            Suppression(
+                scope=row["scope"],
+                reason=row["reason"],
+                occurred_at=_utc(row["occurred_at"]),
+                suppression_id=str(row["suppression_id"]),
+                channel=row["channel"],
+                campaign_id=row["campaign_id"],
+            )
+            for row in suppression_rows
+        )
+        exposures = tuple(
+            Exposure(
+                campaign_id=row["campaign_id"],
+                campaign_version=int(row["campaign_version"]),
+                channel=row["channel"],
+                touch_index=int(row["touch_index"]),
+                status=row["status"],
+                reserved_at=_utc(row["reserved_at"]),
+                engagement_outcome=row["engagement_outcome"],
+                negative_outcome=row["negative_outcome"],
+            )
+            for row in exposure_rows
+        )
+
+        cooling_until: datetime | None = None
+        reactivation_cycles = 0
+        for row in lifecycle_rows:
+            if row["to_state"] == "COOLING":
+                seconds = int(
+                    policy.values.get("cooling", {}).get("min_cooling_seconds") or 0
+                )
+                cooling_until = _utc(row["occurred_at"]) + timedelta(seconds=seconds)
+            elif row["to_state"] == "REACTIVATION":
+                reactivation_cycles += 1
+
+        return LeadSnapshot(
+            tenant_id=tenant_id,
+            lead_id=lead_id,
+            lifecycle_state=current["state"],
+            lifecycle_version=int(current["version"]),
+            channel_health=health_by_channel,
+            suppressions=suppressions,
+            exposures=exposures,
+            cooling_until=cooling_until,
+            reactivation_cycles=reactivation_cycles,
+        )
+
+    async def reserve_exposure_and_command(
+        self,
+        *,
+        tenant_id: str,
+        lead_id: str,
+        campaign_id: str,
+        campaign_version: int,
+        channel: Channel,
+        touch_index: int,
+        exposure_id: UUID,
+        decision_id: UUID,
+        policy_version: str,
+        sender_identity_id: UUID | None,
+        idempotency_key: str,
+        command: CommandEnvelope,
+        command_service: CommandService,
+        authenticated_subject: str,
+        authenticated_client_id: str,
+        reserved_at: datetime | None = None,
+    ) -> tuple[bool, CommandOperation | None]:
+        # MCR-C has no certified execution authority. A plan, caller-supplied
+        # decision UUID, or generic command capability cannot authorize a send.
+        # Keep this boundary closed even if an unrelated command policy enables
+        # an adapter. Future activation requires a reviewed execution-evidence
+        # contract and atomic fresh policy revalidation, not a config toggle.
+        raise CampaignRecyclingConflict(
+            "PRODUCTION_NOT_AUTHORIZED: MCR execution evidence boundary is not certified"
+        )
+
+
+async def _transition_lifecycle_on_connection(
+    conn: asyncpg.Connection,
+    *,
+    tenant_id: str,
+    lead_id: str,
+    expected_from: str | None,
+    to_state: str,
+    reason_code: str,
+    source: str,
+    correlation_id: str,
+    evidence_hash: str,
+    evidence_ref: str | None,
+    occurred_at: datetime,
+) -> int:
+    if to_state not in LEGAL_TRANSITIONS.get(expected_from, frozenset()):
+        raise CampaignRecyclingLifecycleConflict(
+            f"illegal lifecycle transition {expected_from!r}->{to_state!r}"
+        )
+    current = await conn.fetchrow(
+        """
+        SELECT state, version
+        FROM mcr_lead_lifecycle_current
+        WHERE tenant_id=$1 AND lead_id=$2
+        FOR UPDATE
+        """,
+        tenant_id,
+        lead_id,
+    )
+    actual_from = current["state"] if current else None
+    if actual_from != expected_from:
+        raise CampaignRecyclingLifecycleConflict(
+            f"lifecycle version conflict: expected {expected_from!r}, current {actual_from!r}"
+        )
+    version = int(current["version"]) + 1 if current else 1
+    if current is None:
+        await conn.execute(
+            """
+            INSERT INTO mcr_lead_lifecycle_current
+              (tenant_id,lead_id,state,version,updated_at)
+            VALUES ($1,$2,$3,$4,$5)
+            """,
+            tenant_id,
+            lead_id,
+            to_state,
+            version,
+            occurred_at,
+        )
+    else:
+        result = await conn.execute(
+            """
+            UPDATE mcr_lead_lifecycle_current
+            SET state=$3, version=$4, updated_at=$5
+            WHERE tenant_id=$1 AND lead_id=$2 AND version=$6
+            """,
+            tenant_id,
+            lead_id,
+            to_state,
+            version,
+            occurred_at,
+            int(current["version"]),
+        )
+        if result != "UPDATE 1":
+            raise CampaignRecyclingLifecycleConflict("lifecycle optimistic update lost")
+    await conn.execute(
+        """
+        INSERT INTO mcr_lead_lifecycle_events
+          (transition_id,tenant_id,lead_id,version,from_state,to_state,reason_code,source,
+           occurred_at,recorded_at,correlation_id,evidence_hash,evidence_ref)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,now(),$10,$11,$12)
+        """,
+        uuid4(),
+        tenant_id,
+        lead_id,
+        version,
+        expected_from,
+        to_state,
+        reason_code,
+        source,
+        occurred_at,
+        correlation_id,
+        evidence_hash,
+        evidence_ref,
+    )
+    return version
 
 
 def _leaf_values(value: Any) -> list[Any]:
@@ -581,6 +2117,228 @@ def _sort_reasons(reasons: Sequence[str] | Any) -> tuple[str, ...]:
             ),
         )
     )
+
+
+def _coerce_event_datetime(value: Any) -> datetime:
+    if isinstance(value, datetime):
+        return _utc(value)
+    if not isinstance(value, str) or not value.strip():
+        raise CampaignRecyclingConflict("delivery event timestamp must be ISO-8601")
+    text = value.strip()
+    if text.endswith("Z"):
+        text = text[:-1] + "+00:00"
+    try:
+        parsed = datetime.fromisoformat(text)
+    except ValueError as exc:
+        raise CampaignRecyclingConflict(
+            "delivery event timestamp must be ISO-8601"
+        ) from exc
+    return _utc(parsed)
+
+
+def canonical_digest(value: Any) -> str:
+    return hashlib.sha256(
+        json.dumps(value, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+
+
+def delivery_event_payload_hash(event: Mapping[str, Any]) -> str:
+    """delivery-event.v1 payload_hash: canonical JSON without received_at.
+
+    payload_hash itself is necessarily excluded from its own digest.
+    """
+    return canonical_digest(
+        {k: v for k, v in event.items() if k not in {"received_at", "payload_hash"}}
+    )
+
+
+def _decision_input_payload(
+    policy: PolicyProfile,
+    snapshot: LeadSnapshot,
+    candidates: Sequence[Candidate],
+    *,
+    mode: str,
+    kill_switch_open: bool,
+    evidence_stale_or_conflicting: bool,
+) -> dict[str, Any]:
+    """Canonical material inputs for stale-plan detection.
+
+    evaluated_at is intentionally excluded by contract. Collections whose
+    ordering is not semantically meaningful are normalized before hashing.
+    """
+
+    suppressions = sorted(
+        (
+            {
+                "scope": item.scope,
+                "reason": item.reason,
+                "occurred_at": _utc(item.occurred_at).isoformat(),
+                "suppression_id": item.suppression_id,
+                "channel": item.channel,
+                "campaign_id": item.campaign_id,
+            }
+            for item in snapshot.suppressions
+        ),
+        key=lambda item: (
+            item["scope"],
+            item["reason"],
+            item["occurred_at"],
+            item["suppression_id"],
+            item["channel"] or "",
+            item["campaign_id"] or "",
+        ),
+    )
+    exposures = sorted(
+        (
+            {
+                "campaign_id": item.campaign_id,
+                "campaign_version": item.campaign_version,
+                "channel": item.channel,
+                "touch_index": item.touch_index,
+                "status": item.status,
+                "reserved_at": _utc(item.reserved_at).isoformat(),
+                "engagement_outcome": item.engagement_outcome,
+                "negative_outcome": item.negative_outcome,
+            }
+            for item in snapshot.exposures
+        ),
+        key=lambda item: (
+            item["campaign_id"],
+            item["campaign_version"],
+            item["channel"],
+            item["touch_index"],
+            item["reserved_at"],
+            item["status"],
+        ),
+    )
+    return {
+        "policy": {
+            "policy_version": policy.policy_version,
+            "configured": policy.configured,
+            "production_authorized": policy.production_authorized,
+            "values": policy.values,
+            "channel_execution": policy.channel_execution,
+        },
+        "snapshot": {
+            "tenant_id": snapshot.tenant_id,
+            "lead_id": snapshot.lead_id,
+            "lifecycle_state": snapshot.lifecycle_state,
+            "lifecycle_version": snapshot.lifecycle_version,
+            "channel_health": {
+                channel: {
+                    "state": health.state,
+                    "occurred_at": _utc(health.occurred_at).isoformat(),
+                    "address_ref": health.address_ref,
+                }
+                for channel, health in sorted(snapshot.channel_health.items())
+            },
+            "suppressions": suppressions,
+            "exposures": exposures,
+            "cooling_until": _utc(snapshot.cooling_until).isoformat()
+            if snapshot.cooling_until is not None
+            else None,
+            "reactivation_cycles": snapshot.reactivation_cycles,
+        },
+        "candidates": [
+            {
+                "campaign_id": item.campaign_id,
+                "campaign_version": item.campaign_version,
+                "channel": item.channel,
+                "priority": item.priority,
+                "touch_index": item.touch_index,
+                "sender_identity_id": item.sender_identity_id,
+                "active": item.active,
+                "version_approved": item.version_approved,
+                "consent_granted": item.consent_granted,
+                "sender_authorized": item.sender_authorized,
+                "dialing_eligible": item.dialing_eligible,
+            }
+            for item in candidates
+        ],
+        "mode": mode,
+        "kill_switch_open": kill_switch_open,
+        "evidence_stale_or_conflicting": evidence_stale_or_conflicting,
+    }
+
+
+def exposure_idempotency_key(
+    snapshot: LeadSnapshot, selected: CandidateDecision
+) -> str:
+    natural_key = {
+        "tenant_id": snapshot.tenant_id,
+        "lead_id": snapshot.lead_id,
+        "campaign_id": selected.campaign_id,
+        "campaign_version": selected.campaign_version,
+        "channel": selected.channel,
+        "touch_index": selected.touch_index,
+    }
+    return "mcr1:" + canonical_digest(natural_key)
+
+
+def next_action_document(
+    decision: NextActionDecision,
+    snapshot: LeadSnapshot,
+    *,
+    mode: Literal["plan", "read", "execute"],
+    evaluated_at: datetime,
+    correlation_id: str,
+    candidates_redacted: bool = False,
+) -> dict[str, Any]:
+    """Serialize a pure decision into the frozen next-action.v1 shape."""
+
+    selected = decision.selected
+    selected_payload = None
+    if selected is not None:
+        selected_payload = {
+            "campaign_id": selected.campaign_id,
+            "campaign_version": selected.campaign_version,
+            "channel": selected.channel,
+            "sender_identity_id": selected.sender_identity_id,
+            "touch_index": selected.touch_index,
+            "exposure_idempotency_key": exposure_idempotency_key(snapshot, selected),
+        }
+    candidates = []
+    if not candidates_redacted:
+        candidates = [
+            {
+                "campaign_id": item.campaign_id,
+                "campaign_version": item.campaign_version,
+                "channel": item.channel,
+                "disposition": item.disposition,
+                "reason_codes": list(item.reason_codes),
+            }
+            for item in decision.candidates
+        ]
+    return {
+        "schema_version": "1.0",
+        "decision_id": str(uuid5(NAMESPACE_URL, f"mcr:decision:{decision.decision_hash}")),
+        "tenant_id": snapshot.tenant_id,
+        "lead_id": snapshot.lead_id,
+        "mode": mode,
+        "dry_run": mode in {"plan", "read"},
+        "provider_effects": "none",
+        "evaluated_at": _utc(evaluated_at).isoformat(),
+        "policy_version": decision.policy_version,
+        "lifecycle_state": snapshot.lifecycle_state,
+        "eligible": decision.eligible,
+        "selected": selected_payload,
+        "next_eligible_at": _utc(decision.next_eligible_at).isoformat()
+        if decision.next_eligible_at is not None
+        else None,
+        "reason_codes": list(decision.reason_codes),
+        "candidates": candidates,
+        "candidates_redacted": candidates_redacted,
+        "decision_hash": decision.decision_hash,
+        "correlation_id": correlation_id,
+    }
+
+
+def _json_default(value: Any) -> str:
+    if isinstance(value, datetime):
+        return _utc(value).isoformat()
+    if isinstance(value, UUID):
+        return str(value)
+    raise TypeError(f"not JSON serializable: {type(value).__name__}")
 
 
 def _utc(value: datetime) -> datetime:

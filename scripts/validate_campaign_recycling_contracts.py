@@ -150,48 +150,6 @@ RUNTIME_SCAN_GLOBS = (
     "contracts/platform/middleware-openapi.generated.json",
 )
 
-PURE_DOMAIN_MODULE = Path("app/core/campaign_recycling.py")
-PURE_DOMAIN_FORBIDDEN_IMPORT_ROOTS = {
-    "asyncpg",
-    "sqlalchemy",
-    "fastapi",
-    "redis",
-    "requests",
-    "httpx",
-    "alembic",
-}
-PURE_DOMAIN_FORBIDDEN_TEXT = (
-    "APIRouter",
-    "FastAPI",
-    "Postgres",
-    "CommandEnvelope",
-    "CommandService",
-    "CommandOperation",
-    "provider_message_id",
-    "klyrow_delivery_event",
-    "/platform/",
-    "migrations/",
-)
-
-
-def _pure_domain_module_is_safe(path: Path) -> bool:
-    """Allow the C1 deterministic module without permitting runtime activation."""
-    text = path.read_text(encoding="utf-8", errors="ignore")
-    if any(marker in text for marker in PURE_DOMAIN_FORBIDDEN_TEXT):
-        return False
-    tree = ast.parse(text)
-    for node in ast.walk(tree):
-        if isinstance(node, ast.AsyncFunctionDef):
-            return False
-        if isinstance(node, ast.Import):
-            if any(alias.name.split(".", 1)[0] in PURE_DOMAIN_FORBIDDEN_IMPORT_ROOTS for alias in node.names):
-                return False
-        if isinstance(node, ast.ImportFrom):
-            root = (node.module or "").split(".", 1)[0]
-            if root in PURE_DOMAIN_FORBIDDEN_IMPORT_ROOTS or (node.module or "").startswith("app.api"):
-                return False
-    return True
-
 
 def load_artifacts(root: Path = ROOT) -> dict[str, Any]:
     artifacts: dict[str, Any] = {
@@ -1133,20 +1091,43 @@ def check_documentation(artifacts: dict[str, Any], errors: list[str]) -> None:
 def check_no_runtime_activation(
     artifacts: dict[str, Any], errors: list[str], root: Path
 ) -> None:
+    allowed_runtime_files: set[str] = set()
+    marker_path = root / "config/campaign-recycling-runtime.v1.json"
+    if marker_path.is_file():
+        try:
+            runtime = json.loads(marker_path.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as exc:
+            errors.append(f"runtime: invalid milestone marker: {exc}")
+            runtime = {}
+        if runtime:
+            if runtime.get("milestone") != "MCR-10":
+                errors.append("runtime: milestone marker must be MCR-10")
+            if runtime.get("contract_sha") != "b3f44dd4b8ad8976f10394051d2f13cc17443155":
+                errors.append("runtime: milestone marker must pin the frozen MCR-A SHA")
+            if runtime.get("implementation_enabled") is not True:
+                errors.append("runtime: Milestone 10 implementation must be explicit")
+            for flag in (
+                "routes_registered",
+                "production_authorized",
+                "provider_effects_enabled",
+            ):
+                if runtime.get(flag) is not False:
+                    errors.append(f"runtime: {flag} must remain false")
+            allowed = runtime.get("allowed_runtime_files", [])
+            if not isinstance(allowed, list) or not all(
+                isinstance(item, str) and item for item in allowed
+            ):
+                errors.append("runtime: allowed_runtime_files must be a string list")
+            else:
+                allowed_runtime_files = set(allowed)
     for pattern in RUNTIME_SCAN_GLOBS:
         for path in sorted(root.glob(pattern)):
             if not path.is_file():
                 continue
-            relative = path.relative_to(root)
-            if relative == PURE_DOMAIN_MODULE:
-                if not _pure_domain_module_is_safe(path):
-                    errors.append(
-                        "runtime: app/core/campaign_recycling.py violates the pure-domain boundary"
-                    )
-                continue
             text = path.read_text(encoding="utf-8", errors="ignore")
             hits = [marker for marker in RUNTIME_MARKERS if marker in text]
-            if hits:
+            relative = path.relative_to(root).as_posix()
+            if hits and relative not in allowed_runtime_files:
                 errors.append(
                     f"runtime: {relative} references MCR-A surface {hits}"
                 )
