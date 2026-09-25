@@ -199,6 +199,15 @@ def test_checked_contract_covers_source_and_exact_migration_history():
         "monitoring_events",
     }
     assert set(schema.monitoring_tables(ROOT)).issubset(contract)
+    assert set(schema.mcr_tables(ROOT)) == {
+        "mcr_channel_health",
+        "mcr_delivery_events",
+        "mcr_exposures",
+        "mcr_lead_lifecycle_current",
+        "mcr_lead_lifecycle_events",
+        "mcr_suppressions",
+    }
+    assert set(schema.mcr_tables(ROOT)).issubset(contract)
 
 
 @pytest.mark.parametrize("namespace", ["campaign", "monitoring"])
