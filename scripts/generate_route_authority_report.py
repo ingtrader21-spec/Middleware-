@@ -88,6 +88,9 @@ READ_ONLY_POSTS = (
     r"/search$",
     r"/context/select$",
     r"/audit$",
+    # The no-effect rehearsal runs in an in-memory sandbox; the live ledger,
+    # outbox and providers are never written (app.platform.rehearsal).
+    r"^/platform/v1/rehearsals/no-effect$",
 )
 
 

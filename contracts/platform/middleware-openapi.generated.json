@@ -5144,6 +5144,181 @@
         "title": "ReconciliationResolution",
         "type": "object"
       },
+      "RehearsalCheckResult": {
+        "additionalProperties": false,
+        "properties": {
+          "detail": {
+            "title": "Detail",
+            "type": "object"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pass",
+              "fail",
+              "skipped"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "status",
+          "detail"
+        ],
+        "title": "RehearsalCheckResult",
+        "type": "object"
+      },
+      "RehearsalReport": {
+        "additionalProperties": false,
+        "properties": {
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/RehearsalCheckResult"
+            },
+            "title": "Checks",
+            "type": "array"
+          },
+          "correlation_id": {
+            "title": "Correlation Id",
+            "type": "string"
+          },
+          "environment": {
+            "title": "Environment",
+            "type": "string"
+          },
+          "failed_checks": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Failed Checks",
+            "type": "array"
+          },
+          "finished_at": {
+            "format": "date-time",
+            "title": "Finished At",
+            "type": "string"
+          },
+          "identity": {
+            "title": "Identity",
+            "type": "object"
+          },
+          "provider_effects": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Effects"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "rehearsal_id": {
+            "format": "uuid",
+            "title": "Rehearsal Id",
+            "type": "string"
+          },
+          "rehearsal_version": {
+            "title": "Rehearsal Version",
+            "type": "string"
+          },
+          "report_sha256": {
+            "title": "Report Sha256",
+            "type": "string"
+          },
+          "requested_by": {
+            "title": "Requested By",
+            "type": "string"
+          },
+          "service_id": {
+            "title": "Service Id",
+            "type": "string"
+          },
+          "started_at": {
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          },
+          "verdict": {
+            "enum": [
+              "PASS",
+              "FAIL"
+            ],
+            "title": "Verdict",
+            "type": "string"
+          }
+        },
+        "required": [
+          "rehearsal_id",
+          "rehearsal_version",
+          "requested_by",
+          "correlation_id",
+          "reason",
+          "started_at",
+          "finished_at",
+          "environment",
+          "service_id",
+          "identity",
+          "verdict",
+          "failed_checks",
+          "provider_effects",
+          "checks",
+          "report_sha256"
+        ],
+        "title": "RehearsalReport",
+        "type": "object"
+      },
+      "RehearsalRunRequest": {
+        "additionalProperties": false,
+        "description": "Operator request to run the no-effect rehearsal against this process.\n\n``expected_source_sha`` / ``expected_schema_head`` pin the identity the\noperator believes is deployed; a mismatch fails the rehearsal.",
+        "properties": {
+          "expected_schema_head": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9]{4}_[a-z0-9_]{1,120}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Schema Head"
+          },
+          "expected_source_sha": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9a-fA-F]{7,64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Source Sha"
+          },
+          "reason": {
+            "maxLength": 500,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.: -]*$",
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "title": "RehearsalRunRequest",
+        "type": "object"
+      },
       "ReplayRequest": {
         "additionalProperties": false,
         "properties": {
@@ -20750,6 +20925,210 @@
         "summary": "Get Queue Metrics",
         "tags": [
           "queues"
+        ]
+      }
+    },
+    "/platform/v1/rehearsals/no-effect": {
+      "post": {
+        "operationId": "run_no_effect_rehearsal_platform_v1_rehearsals_no_effect_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RehearsalRunRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RehearsalReport"
+                }
+              }
+            },
+            "description": "Exact replay of an existing rehearsal"
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RehearsalReport"
+                }
+              }
+            },
+            "description": "Rehearsal ran; the verdict is in the report"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "correlation_id": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "object"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "retryable": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "correlation_id",
+                        "retryable",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Invalid canonical request"
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "403": {
+            "description": "Scope or tenant denied"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Version, state, or idempotency conflict"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Required durable dependency unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Run No Effect Rehearsal",
+        "tags": [
+          "platform-command-kernel"
+        ]
+      }
+    },
+    "/platform/v1/rehearsals/{rehearsal_id}": {
+      "get": {
+        "operationId": "get_no_effect_rehearsal_platform_v1_rehearsals__rehearsal_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "rehearsal_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Rehearsal Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RehearsalReport"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "correlation_id": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "object"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "retryable": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "correlation_id",
+                        "retryable",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Invalid canonical request"
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "403": {
+            "description": "Scope or tenant denied"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Version, state, or idempotency conflict"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Required durable dependency unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get No Effect Rehearsal",
+        "tags": [
+          "platform-command-kernel"
         ]
       }
     },

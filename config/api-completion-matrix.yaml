@@ -934,6 +934,18 @@ operations:
   implementation_file: registered FastAPI runtime
   runtime_state: IMPLEMENTED
 - domain: platform
+  method: POST
+  path: /platform/v1/rehearsals/no-effect
+  canonical_operation_id: run_no_effect_rehearsal_platform_v1_rehearsals_no_effect_post
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: platform
+  method: GET
+  path: /platform/v1/rehearsals/{rehearsal_id}
+  canonical_operation_id: get_no_effect_rehearsal_platform_v1_rehearsals__rehearsal_id__get
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: platform
   method: GET
   path: /platform/v1/repositories
   canonical_operation_id: repositories_platform_v1_repositories_get

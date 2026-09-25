@@ -2679,6 +2679,78 @@
       "upstream": "middleware-integration-api:8095"
     },
     {
+      "operation_id": "run_no_effect_rehearsal_platform_v1_rehearsals_no_effect_post",
+      "method": "POST",
+      "path": "/platform/v1/rehearsals/no-effect",
+      "classification": "shared_edge",
+      "calling_client": "platform-command-client",
+      "audience": "middleware-api",
+      "scope": "platform.command.replay",
+      "auth": "service-or-user-jwt",
+      "request_schema": "#/components/schemas/RehearsalRunRequest",
+      "response_schema": "#/components/schemas/RehearsalReport",
+      "idempotency": {
+        "required": true,
+        "carrier": "Idempotency-Key",
+        "replay": "return-original"
+      },
+      "correlation_fields": [
+        "X-Correlation-ID",
+        "body.correlation_id"
+      ],
+      "echo_fields": [
+        "X-Correlation-ID",
+        "body.correlation_id"
+      ],
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        429,
+        503
+      ],
+      "owner": "middleware",
+      "upstream": "middleware-integration-api:8095"
+    },
+    {
+      "operation_id": "get_no_effect_rehearsal_platform_v1_rehearsals__rehearsal_id__get",
+      "method": "GET",
+      "path": "/platform/v1/rehearsals/{rehearsal_id}",
+      "classification": "shared_edge",
+      "calling_client": "platform-command-client",
+      "audience": "middleware-api",
+      "scope": "platform.command.read",
+      "auth": "service-or-user-jwt",
+      "request_schema": "none",
+      "response_schema": "#/components/schemas/RehearsalReport",
+      "idempotency": {
+        "required": false,
+        "carrier": "none",
+        "replay": "safe-read"
+      },
+      "correlation_fields": [
+        "X-Correlation-ID",
+        "body.correlation_id"
+      ],
+      "echo_fields": [
+        "X-Correlation-ID",
+        "body.correlation_id"
+      ],
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        429,
+        503
+      ],
+      "owner": "middleware",
+      "upstream": "middleware-integration-api:8095"
+    },
+    {
       "operation_id": "repositories_platform_v1_repositories_get",
       "method": "GET",
       "path": "/platform/v1/repositories",

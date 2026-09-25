@@ -21,7 +21,7 @@ Adapter set per environment (fail closed):
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Iterable
 
 import asyncpg
@@ -34,6 +34,7 @@ from app.platform.bus import AdapterDispatch, BusSettings
 from app.platform.kernel import CommandKernel, DenialAuditSink, MemoryDenialAuditSink
 from app.platform.metrics import KernelMetrics
 from app.platform.reconciler import Reconciler, ReconciliationSource
+from app.platform.rehearsal import RehearsalLedger
 from app.platform.registry import AdapterRegistry, AdapterRegistryError
 from app.platform.safety import SafetyGate
 
@@ -73,6 +74,8 @@ class PlatformRuntime:
     reconciler: Reconciler | None
     denials: DenialAuditSink
     registry_error: str | None = None
+    # Process-local read-back of the no-effect rehearsals run by this process.
+    rehearsals: RehearsalLedger = field(default_factory=RehearsalLedger)
 
     async def registry_ready(self) -> bool:
         return self.registry_error is None and self.registry.validated
