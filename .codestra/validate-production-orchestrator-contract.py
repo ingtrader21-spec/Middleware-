@@ -1614,7 +1614,8 @@ def wrapped_executable_index(tokens: list[str], start: int) -> int | None:
         "time": {"--format", "--output", "-f", "-o"},
     }
     index = start
-    while index < len(tokens):wrapper = executable_name(tokens[index])
+    while index < len(tokens):
+        wrapper = executable_name(tokens[index])
         if wrapper not in no_value_options:
             return index
         index += 1
@@ -6402,7 +6403,8 @@ def validate_release_validator_operations(source: str) -> None:
 
     def require_safe_defaults(node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
         defaults = [*node.args.defaults, *node.args.kw_defaults]
-        require(not any(
+        require(
+            not any(
                 value is not None and expression_has_restricted_callable(value)
                 for value in defaults
             ),
@@ -7908,7 +7910,8 @@ jobs:
         (
             "GitHub GraphQL mutation",
             "await github.graphql('mutation { createDeployment(input: {}) { id } }')",
-        ),(
+        ),
+        (
             "aliased GitHub request",
             "const write = github.request; "
             "await write('POST /repos/{owner}/{repo}/deployments')",
