@@ -8,10 +8,16 @@ printf '==> Validating the canonical calling-contract pin\n'
 python3 scripts/validate_calling_contract_pin.py
 python3 scripts/validate_calling_contract_pin.py --self-test
 
-python3 -m venv .venv-ci
-trap 'rm -rf .venv-ci' EXIT
+if [[ -n "${RUNNER_TEMP:-}" ]]; then
+  VENV_DIR="${RUNNER_TEMP}/middleware-project-ci-${GITHUB_RUN_ID:-local}-${GITHUB_JOB:-job}"
+else
+  VENV_DIR="${ROOT_DIR}/.venv-ci"
+fi
+rm -rf -- "${VENV_DIR}"
+python3 -m venv "${VENV_DIR}"
+trap 'rm -rf -- "${VENV_DIR}"' EXIT
 
-. .venv-ci/bin/activate
+. "${VENV_DIR}/bin/activate"
 python -m pip install --disable-pip-version-check --no-input --quiet --upgrade pip
 python -m pip install --disable-pip-version-check --no-input --quiet \
   --require-hashes -r requirements-test.txt
