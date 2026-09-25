@@ -107,7 +107,15 @@ class Stack:
         assert self.platform.registry_error is None, self.platform.registry_error
         self.platform.dispatch.worker_id = worker_id
         self.outbox = PostgresOutboxStore(pool)
-        self.worker = OutboxWorker(self.outbox, {ADAPTER_COMMAND_DESTINATION: self.platform.dispatch}, poll_seconds=0.01, lease_seconds=60.0, handler_timeout_seconds=45.0, max_attempts=3)
+        self.worker = OutboxWorker(
+            self.outbox,
+            {ADAPTER_COMMAND_DESTINATION: self.platform.dispatch},
+            effect_gate=lambda record: record.destination == ADAPTER_COMMAND_DESTINATION,
+            poll_seconds=0.01,
+            lease_seconds=60.0,
+            handler_timeout_seconds=45.0,
+            max_attempts=3,
+        )
         self.worker.worker_id = worker_id
 
     @property

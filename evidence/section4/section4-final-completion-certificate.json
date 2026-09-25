@@ -1,0 +1,61 @@
+{
+  "branch": "impl/mw-section4-final-api-8095-20260925",
+  "certified_at": "2026-09-25T21:18:29.717791+00:00",
+  "mission": "Mission 4-FINAL \u2014 Complete Canonical Integration API :8095",
+  "postgres": {
+    "database": "middleware_test_section4",
+    "disposable_loopback_port": 55432,
+    "engine": "PostgreSQL 18.6",
+    "existing_system_postgres_modified": false,
+    "public_tables": 34,
+    "required_tables_present": [
+      "middleware_commands",
+      "middleware_outbox",
+      "middleware_automation_jobs",
+      "middleware_control_mutations"
+    ]
+  },
+  "redis": {
+    "disposable_db": 15,
+    "system_db0_modified": false
+  },
+  "review_fix": {
+    "finding": "OutboxWorker fail-closed effect gate had not been wired by the production worker or PostgreSQL synthetic integration stack.",
+    "resolution": "Kept OutboxWorker fail-closed by default, added explicit per-destination runtime effect gate in workers/run_outbox.py, and explicit safe TEST_SYN/NATS gates in integration fixtures."
+  },
+  "safety": {
+    "canonical_checkout_touched": false,
+    "canonical_port": 8095,
+    "legacy_middleware_8080_canonical": false,
+    "live_provider_effects_executed": 0,
+    "production_effects_enabled": false
+  },
+  "schema_version": "1.1",
+  "source_sha_before_certificate": "7dbed17a475078ab1c0259a15965e22993185610",
+  "status": "COMPLETE_LOCAL_CERTIFIED_WITH_POSTGRES",
+  "verification": {
+    "combined_tests": {
+      "failed": 0,
+      "passed": 332,
+      "warnings": 38
+    },
+    "direct_effect_bypasses": 0,
+    "openapi_routes": 352,
+    "postgres_redis_integration": {
+      "failed": 0,
+      "passed": 41
+    },
+    "postman_newman_last_verified": {
+      "assertion_failures": 0,
+      "assertions": 22,
+      "request_failures": 0,
+      "requests": 11
+    },
+    "postman_openapi_digest": "d57e7d5099a3e0055b915e699a616d26f0a19f811ff3fc46bb1614ffbe9b3ebc",
+    "route_authority_operations": 350,
+    "worker_effect_gate_tests": {
+      "failed": 0,
+      "passed": 9
+    }
+  }
+}

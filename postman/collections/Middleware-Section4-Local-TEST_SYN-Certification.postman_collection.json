@@ -1,0 +1,553 @@
+{
+  "info": {
+    "_postman_id": "middleware-section4-local-certification",
+    "name": "Middleware Section 4 - Local TEST_SYN Certification",
+    "description": "Local-only, synthetic certification for canonical Middleware :8095. No external provider effects.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01 Health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/health",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "health"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('health 200',()=>pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 Readiness",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/ready",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "ready"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('readiness responds without 5xx',()=>pm.expect(pm.response.code).to.be.below(500));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 Accept TEST_SYN command",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearer_token}}",
+            "type": "text"
+          },
+          {
+            "key": "X-Tenant-ID",
+            "value": "{{tenant_id}}",
+            "type": "text"
+          },
+          {
+            "key": "X-Request-Id",
+            "value": "{{request_id}}",
+            "type": "text"
+          },
+          {
+            "key": "X-Correlation-ID",
+            "value": "{{correlation_id}}",
+            "type": "text"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{idempotency_key}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/platform/v1/commands",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "platform",
+            "v1",
+            "commands"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"command_id\": \"{{command_id}}\",\n  \"command_type\": \"test.syn.execute.v1\",\n  \"command_version\": \"1.0\",\n  \"target\": \"test-syn\",\n  \"tenant_id\": \"{{tenant_id}}\",\n  \"requested_by\": \"user-1\",\n  \"correlation_id\": \"{{correlation_id}}\",\n  \"idempotency_key\": \"{{idempotency_key}}\",\n  \"capability\": \"TEST_SYN_EXECUTE\",\n  \"payload\": {\n    \"probe\": true,\n    \"certification\": \"section4-postman-local\"\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('accepted 202',()=>pm.response.to.have.status(202));",
+              "const b=pm.response.json(); pm.test('command id stable',()=>pm.expect(b.command_id).to.eql(pm.environment.get('command_id')));",
+              "pm.test('request id returned',()=>pm.expect(pm.response.headers.get('X-Request-Id')).to.be.ok);",
+              "pm.test('correlation returned',()=>pm.expect(pm.response.headers.get('X-Correlation-Id')).to.eql(pm.environment.get('correlation_id')));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 Exact idempotent replay",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearer_token}}",
+            "type": "text"
+          },
+          {
+            "key": "X-Tenant-ID",
+            "value": "{{tenant_id}}",
+            "type": "text"
+          },
+          {
+            "key": "X-Request-Id",
+            "value": "{{request_id}}",
+            "type": "text"
+          },
+          {
+            "key": "X-Correlation-ID",
+            "value": "{{correlation_id}}",
+            "type": "text"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{idempotency_key}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/platform/v1/commands",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "platform",
+            "v1",
+            "commands"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"command_id\": \"{{command_id}}\",\n  \"command_type\": \"test.syn.execute.v1\",\n  \"command_version\": \"1.0\",\n  \"target\": \"test-syn\",\n  \"tenant_id\": \"{{tenant_id}}\",\n  \"requested_by\": \"user-1\",\n  \"correlation_id\": \"{{correlation_id}}\",\n  \"idempotency_key\": \"{{idempotency_key}}\",\n  \"capability\": \"TEST_SYN_EXECUTE\",\n  \"payload\": {\n    \"probe\": true,\n    \"certification\": \"section4-postman-local\"\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('replay 200',()=>pm.response.to.have.status(200));",
+              "pm.test('duplicate true',()=>pm.expect(pm.response.json().duplicate).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 Read command",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearer_token}}",
+            "type": "text"
+          },
+          {
+            "key": "X-Tenant-ID",
+            "value": "{{tenant_id}}",
+            "type": "text"
+          },
+          {
+            "key": "X-Request-Id",
+            "value": "{{request_id}}",
+            "type": "text"
+          },
+          {
+            "key": "X-Command-ID",
+            "value": "{{command_id}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/platform/v1/commands/{{command_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "platform",
+            "v1",
+            "commands",
+            "{{command_id}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('command read 200',()=>pm.response.to.have.status(200));",
+              "pm.test('tenant bound',()=>pm.expect(pm.response.json().tenant_id).to.eql(pm.environment.get('tenant_id')));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 Command history",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearer_token}}",
+            "type": "text"
+          },
+          {
+            "key": "X-Tenant-ID",
+            "value": "{{tenant_id}}",
+            "type": "text"
+          },
+          {
+            "key": "X-Request-Id",
+            "value": "{{request_id}}",
+            "type": "text"
+          },
+          {
+            "key": "X-Command-ID",
+            "value": "{{command_id}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/platform/v1/commands/{{command_id}}/history",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "platform",
+            "v1",
+            "commands",
+            "{{command_id}}",
+            "history"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('history 200',()=>pm.response.to.have.status(200));",
+              "pm.test('history bounded',()=>pm.expect(pm.response.json().items.length).to.be.below(201));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 Command result",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearer_token}}",
+            "type": "text"
+          },
+          {
+            "key": "X-Tenant-ID",
+            "value": "{{tenant_id}}",
+            "type": "text"
+          },
+          {
+            "key": "X-Request-Id",
+            "value": "{{request_id}}",
+            "type": "text"
+          },
+          {
+            "key": "X-Command-ID",
+            "value": "{{command_id}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/platform/v1/commands/{{command_id}}/result",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "platform",
+            "v1",
+            "commands",
+            "{{command_id}}",
+            "result"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('result read 200',()=>pm.response.to.have.status(200));",
+              "pm.test('result state known',()=>pm.expect(['pending','available','failed','partial','unknown']).to.include(pm.response.json().state));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 Connector catalog",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearer_token}}",
+            "type": "text"
+          },
+          {
+            "key": "X-Tenant-ID",
+            "value": "{{tenant_id}}",
+            "type": "text"
+          },
+          {
+            "key": "X-Request-Id",
+            "value": "{{request_id}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/platform/v1/connectors",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "platform",
+            "v1",
+            "connectors"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('connectors 200',()=>pm.response.to.have.status(200));",
+              "const ids=pm.response.json().items.map(x=>x.connector_id); pm.test('test-syn registered',()=>pm.expect(ids).to.include('test-syn'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 TEST_SYN connector",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearer_token}}",
+            "type": "text"
+          },
+          {
+            "key": "X-Tenant-ID",
+            "value": "{{tenant_id}}",
+            "type": "text"
+          },
+          {
+            "key": "X-Request-Id",
+            "value": "{{request_id}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/platform/v1/connectors/test-syn",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "platform",
+            "v1",
+            "connectors",
+            "test-syn"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('connector detail 200',()=>pm.response.to.have.status(200));",
+              "pm.test('adapter is test-syn',()=>pm.expect(pm.response.json().adapter_id).to.eql('test-syn'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 TEST_SYN capabilities",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearer_token}}",
+            "type": "text"
+          },
+          {
+            "key": "X-Tenant-ID",
+            "value": "{{tenant_id}}",
+            "type": "text"
+          },
+          {
+            "key": "X-Request-Id",
+            "value": "{{request_id}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/platform/v1/connectors/test-syn/capabilities",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "platform",
+            "v1",
+            "connectors",
+            "test-syn",
+            "capabilities"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('capability 200',()=>pm.response.to.have.status(200));",
+              "pm.test('TEST_SYN capability',()=>pm.expect(pm.response.json().capabilities).to.include('TEST_SYN_EXECUTE'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "11 TEST_SYN health",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearer_token}}",
+            "type": "text"
+          },
+          {
+            "key": "X-Tenant-ID",
+            "value": "{{tenant_id}}",
+            "type": "text"
+          },
+          {
+            "key": "X-Request-Id",
+            "value": "{{request_id}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/platform/v1/connectors/test-syn/health",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "platform",
+            "v1",
+            "connectors",
+            "test-syn",
+            "health"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('health 200',()=>pm.response.to.have.status(200));",
+              "pm.test('normalized health',()=>pm.expect(['healthy','degraded','unavailable','disabled','unknown']).to.include(pm.response.json().status));"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -101,6 +101,10 @@ class AutomationConflict(AutomationError):
     status_code = 409
 
 
+class AutomationCancellationUnsupported(AutomationConflict):
+    code = "automation_cancel_unsupported"
+
+
 class AutomationCapabilityDisabled(AutomationAuthorizationDenied):
     code = "capability_disabled"
 
@@ -2541,6 +2545,78 @@ async def read_automation_job(job_id: UUID, request: Request) -> JSONResponse:
     job = await service.store.get_job(tenant_id, job_id)
     _authorize_family(service, claims, "automation.job.read", job.workflow_family)
     return _json_response(job, correlation_id=correlation_id)
+
+
+def _execution_status(job: AutomationJob) -> dict[str, Any]:
+    terminal = job.state in {"COMPLETED", "FAILED_TERMINAL", "DEAD_LETTER", "CANCELLED"}
+    unknown = job.state == "DEAD_LETTER"
+    return {
+        "execution_id": str(job.job_id),
+        "command_id": None,
+        "workflow": job.workflow_key,
+        "state": job.state,
+        "result_available": terminal and not unknown,
+        "result_code": job.result_code,
+        "error_code": job.error_code,
+        "provider_execution_reference": str(job.execution_id) if job.execution_id else None,
+        "reconciliation_state": "required" if unknown else "not_required",
+        "created_at": job.created_at.isoformat(),
+        "updated_at": job.updated_at.isoformat(),
+        "correlation_id": job.correlation_id,
+    }
+
+
+@v2_router.get("/executions/{job_id}")
+async def read_automation_execution(job_id: UUID, request: Request) -> JSONResponse:
+    tenant_id, correlation_id = _read_headers(request)
+    service = _automation(request)
+    claims, _, _ = await _authorized(request, service, "automation.job.read")
+    job = await service.store.get_job(tenant_id, job_id)
+    _authorize_family(service, claims, "automation.job.read", job.workflow_family)
+    return JSONResponse(
+        status_code=200,
+        content=_execution_status(job),
+        headers={"X-Correlation-ID": correlation_id},
+    )
+
+
+@v2_router.get("/executions/{job_id}/result")
+async def read_automation_execution_result(job_id: UUID, request: Request) -> JSONResponse:
+    tenant_id, correlation_id = _read_headers(request)
+    service = _automation(request)
+    claims, _, _ = await _authorized(request, service, "automation.job.read")
+    job = await service.store.get_job(tenant_id, job_id)
+    _authorize_family(service, claims, "automation.job.read", job.workflow_family)
+    status = _execution_status(job)
+    if job.state in {"PENDING", "DISPATCHING", "CLAIMED", "RUNNING", "WAITING_APPROVAL", "WAITING_TIMER", "WAITING_COMMAND", "RETRY_SCHEDULED"}:
+        status["result_state"] = "pending"
+    elif job.state == "COMPLETED":
+        status["result_state"] = "success"
+    elif job.state == "CANCELLED":
+        status["result_state"] = "cancelled"
+    elif job.state == "DEAD_LETTER":
+        status["result_state"] = "unknown"
+    else:
+        status["result_state"] = "failure"
+    return JSONResponse(
+        status_code=200,
+        content=status,
+        headers={"X-Correlation-ID": correlation_id},
+    )
+
+
+@v2_router.post("/executions/{job_id}/cancel")
+async def cancel_automation_execution(job_id: UUID, request: Request) -> JSONResponse:
+    tenant_id, _ = _read_headers(request)
+    service = _automation(request)
+    claims, _, _ = await _authorized(request, service, "automation.job.read")
+    job = await service.store.get_job(tenant_id, job_id)
+    _authorize_family(service, claims, "automation.job.read", job.workflow_family)
+    if job.state in {"COMPLETED", "FAILED_TERMINAL", "DEAD_LETTER", "CANCELLED"}:
+        raise AutomationConflict("terminal automation execution cannot be cancelled")
+    raise AutomationCancellationUnsupported(
+        "automation cancellation is not supported by the current connector/runtime capability"
+    )
 
 
 @v2_router.post("/jobs/{job_id}/heartbeat")

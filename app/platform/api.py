@@ -15,22 +15,29 @@ Scopes: ``platform.command`` (submit, cancel), ``platform.command.read``
 
 from __future__ import annotations
 
+import json
 import re
 from datetime import datetime
 from typing import Any, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Query, Request
+from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api_inputs import optional_header, required_header
+from app.db.session import get_session
 from app.commands import API_OPERATION_STATES, CommandCapabilityDisabled, CommandEnvelope, CommandNotFound, CommandOperation, OperationEvent, redact_metadata
+from app.platform.adapter import AdapterContext
 from app.platform.kernel import SCOPE_COMMAND, SCOPE_COMMAND_READ, SCOPE_COMMAND_REPLAY
 from app.platform.principal import KernelPrincipal, authenticate
 from app.platform.resilience import ReplayMode
 from app.security import AuthorizationError, RequestValidationError
 from app.storage import RUNTIME_SCHEMA_VERSION, StorageError
+from app.workers.dead_letter import get_dead_letter, list_dead_letters, redrive_dead_letter
+from app.workers.reconciliation import get_reconciliation_status, reconcile_internal_outbox
 
 router = APIRouter(prefix="/platform/v1", tags=["platform-command-kernel"])
 
@@ -408,6 +415,436 @@ async def replay_operation(operation_id: UUID, body: ReplayRequest, request: Req
         correlation_id=operation.correlation_id,
         location=f"/platform/v1/operations/{operation.command_id}",
     )
+
+
+
+class RetryRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    expected_version: int = Field(ge=1)
+    reason: str = Field(min_length=1, max_length=500, pattern=r"^[A-Za-z0-9][A-Za-z0-9_.: -]*$")
+    new_idempotency_key: str | None = Field(default=None, min_length=8, max_length=180)
+
+
+class CommandResultView(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    command_id: UUID
+    state: Literal["pending", "available", "failed", "partial", "unknown"]
+    result_available: bool
+    correlation_id: str
+    provider_operation_id: str | None = None
+    safe_result: dict[str, Any] | None = None
+    reconciliation_required: bool = False
+    error_code: str | None = None
+
+
+def _bind_command_header(request: Request, command_id: UUID) -> None:
+    header = optional_header(request, "X-Command-ID", minimum=1, maximum=180)
+    if header is not None and header != str(command_id):
+        raise RequestValidationError("X-Command-ID does not match path command identity")
+
+
+def _result_view(operation: CommandOperation) -> CommandResultView:
+    state = API_OPERATION_STATES.get(operation.state, operation.state)
+    evidence = redact_metadata(operation.readback_evidence or {})
+    if state in {"succeeded", "completed"}:
+        result_state: Literal["pending", "available", "failed", "partial", "unknown"] = "available"
+    elif state in {"failed", "dead_lettered", "cancelled"}:
+        result_state = "failed"
+    elif state == "reconciliation_required":
+        result_state = "unknown"
+    elif evidence:
+        result_state = "partial"
+    else:
+        result_state = "pending"
+    return CommandResultView(
+        command_id=operation.command_id,
+        state=result_state,
+        result_available=bool(evidence) or result_state == "available",
+        correlation_id=operation.correlation_id,
+        provider_operation_id=operation.provider_operation_id,
+        safe_result=evidence or None,
+        reconciliation_required=state == "reconciliation_required",
+        error_code=_error_code(operation),
+    )
+
+
+@router.get("/commands/{command_id}", response_model=OperationStatus)
+async def get_command(command_id: UUID, request: Request) -> JSONResponse:
+    _bind_command_header(request, command_id)
+    return await get_operation(command_id, request)
+
+
+@router.get("/commands/{command_id}/history", response_model=Timeline)
+async def get_command_history(command_id: UUID, request: Request) -> JSONResponse:
+    _bind_command_header(request, command_id)
+    return await get_timeline(command_id, request)
+
+
+@router.get("/commands/{command_id}/result", response_model=CommandResultView)
+async def get_command_result(command_id: UUID, request: Request) -> JSONResponse:
+    _bind_command_header(request, command_id)
+    principal = await authenticate(request, required_scope=SCOPE_COMMAND_READ)
+    _, platform = _runtime(request)
+    tenant_id = _tenant_for_read(request, principal)
+    operation = await platform.kernel.get(tenant_id, command_id)
+    return _respond(200, _result_view(operation), correlation_id=operation.correlation_id)
+
+
+@router.post("/commands/{command_id}/cancel", response_model=OperationStatus)
+async def cancel_command(command_id: UUID, body: CancelRequest, request: Request) -> JSONResponse:
+    _bind_command_header(request, command_id)
+    return await cancel_operation(command_id, body, request)
+
+
+@router.post("/commands/{command_id}/replay", response_model=OperationStatus, status_code=202)
+async def replay_command(command_id: UUID, body: ReplayRequest, request: Request) -> JSONResponse:
+    _bind_command_header(request, command_id)
+    return await replay_operation(command_id, body, request)
+
+
+@router.post("/commands/{command_id}/retry", response_model=OperationStatus, status_code=202)
+async def retry_command(command_id: UUID, body: RetryRequest, request: Request) -> JSONResponse:
+    _bind_command_header(request, command_id)
+    principal = await authenticate(request, required_scope=SCOPE_COMMAND_REPLAY)
+    _, platform = _runtime(request)
+    tenant_id = _tenant_for_read(request, principal)
+    idempotency_key = required_header(request, "Idempotency-Key", minimum=8, maximum=180)
+    operation = await platform.kernel.replay(
+        tenant_id,
+        command_id,
+        principal=principal,
+        mode=ReplayMode.REPROCESS,
+        idempotency_key=idempotency_key,
+        expected_version=body.expected_version,
+        reason=body.reason,
+        new_idempotency_key=body.new_idempotency_key,
+    )
+    return _respond(
+        202,
+        _status(operation),
+        correlation_id=operation.correlation_id,
+        location=f"/platform/v1/commands/{operation.command_id}",
+    )
+
+
+
+@router.get("/commands")
+async def list_commands(
+    request: Request,
+    limit: int = Query(default=50, ge=1, le=200),
+    status: str | None = Query(default=None, max_length=64),
+    operation: str | None = Query(default=None, max_length=180),
+) -> JSONResponse:
+    principal = await authenticate(request, required_scope=SCOPE_COMMAND_READ)
+    runtime, _ = _runtime(request)
+    tenant_id = _tenant_for_read(request, principal)
+    rows = await runtime.commands.list_operations(
+        tenant_id,
+        limit=limit,
+        state=status,
+        command_type=operation,
+    )
+    items = [_status(row).model_dump(mode="json") for row in rows]
+    return JSONResponse(
+        status_code=200,
+        content={
+            "items": items,
+            "limit": limit,
+            "count": len(items),
+            "request_id": getattr(request.state, "request_id", None),
+            "correlation_id": getattr(request.state, "correlation_id", None),
+        },
+    )
+
+
+
+class DeadLetterRedriveRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    reason: str = Field(min_length=3, max_length=500, pattern=r"^[A-Za-z0-9][A-Za-z0-9_.: -]*$")
+
+
+class ReconciliationScanRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    limit: int = Field(default=100, ge=1, le=1000)
+    dry_run: Literal[True] = True
+
+
+def _require_operator(principal: KernelPrincipal) -> None:
+    if "platform-operator" not in principal.roles:
+        raise AuthorizationError("platform-operator role is required")
+
+
+@router.get("/dead-letters")
+async def canonical_dead_letters(
+    request: Request,
+    limit: int = Query(default=50, ge=1, le=100),
+    db: AsyncSession = Depends(get_session),
+) -> JSONResponse:
+    principal = await authenticate(request, required_scope=SCOPE_COMMAND_READ)
+    tenant_id = _tenant_for_read(request, principal)
+    items = await list_dead_letters(db, limit, tenant_id=tenant_id)
+    return JSONResponse(
+        status_code=200,
+        content={
+            "items": jsonable_encoder(items),
+            "count": len(items),
+            "limit": limit,
+            "tenant_id": tenant_id,
+        },
+    )
+
+
+@router.get("/dead-letters/{item_id}")
+async def canonical_dead_letter(
+    item_id: UUID,
+    request: Request,
+    db: AsyncSession = Depends(get_session),
+) -> JSONResponse:
+    principal = await authenticate(request, required_scope=SCOPE_COMMAND_READ)
+    tenant_id = _tenant_for_read(request, principal)
+    item = await get_dead_letter(db, item_id, tenant_id=tenant_id)
+    if item is None:
+        raise CommandNotFound("dead letter not found")
+    return JSONResponse(status_code=200, content=jsonable_encoder(item))
+
+
+@router.post("/dead-letters/{item_id}/redrive", status_code=202)
+async def canonical_redrive_dead_letter(
+    item_id: UUID,
+    body: DeadLetterRedriveRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_session),
+) -> JSONResponse:
+    principal = await authenticate(request, required_scope=SCOPE_COMMAND_REPLAY)
+    _require_operator(principal)
+    tenant_id = _tenant_for_read(request, principal)
+    required_header(request, "Idempotency-Key", minimum=8, maximum=180)
+    result = await redrive_dead_letter(db, item_id, tenant_id=tenant_id)
+    if result is None:
+        raise CommandNotFound("dead letter not found or not redriveable")
+    return JSONResponse(
+        status_code=202,
+        content={
+            **result,
+            "status": "pending",
+            "tenant_id": tenant_id,
+            "reason": body.reason,
+        },
+        headers={"Location": f"/platform/v1/dead-letters/{item_id}"},
+    )
+
+
+@router.post("/reconciliation/scan", status_code=202)
+async def canonical_reconciliation_scan(
+    body: ReconciliationScanRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_session),
+) -> JSONResponse:
+    principal = await authenticate(request, required_scope=SCOPE_COMMAND_REPLAY)
+    _require_operator(principal)
+    tenant_id = _tenant_for_read(request, principal)
+    result = await reconcile_internal_outbox(db, body.limit, tenant_id=tenant_id)
+    return JSONResponse(
+        status_code=202,
+        content=jsonable_encoder(result),
+        headers={"Location": f"/platform/v1/reconciliation/{result['reconciliation_id']}"},
+    )
+
+
+@router.get("/reconciliation/{run_id}")
+async def canonical_reconciliation_status(
+    run_id: UUID,
+    request: Request,
+    db: AsyncSession = Depends(get_session),
+) -> JSONResponse:
+    principal = await authenticate(request, required_scope=SCOPE_COMMAND_READ)
+    tenant_id = _tenant_for_read(request, principal)
+    result = await get_reconciliation_status(db, run_id, tenant_id=tenant_id)
+    if result is None:
+        raise CommandNotFound("reconciliation run not found")
+    return JSONResponse(
+        status_code=200,
+        content=jsonable_encoder(result),
+    )
+
+
+class ConnectorOperationRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    command_id: UUID
+
+
+async def _connector_operation(
+    connector_id: str,
+    body: ConnectorOperationRequest,
+    request: Request,
+    *,
+    operation: Literal["readback", "reconcile"],
+) -> JSONResponse:
+    principal = await authenticate(request, required_scope=SCOPE_COMMAND_READ)
+    runtime, platform = _runtime(request)
+    tenant_id = _tenant_for_read(request, principal)
+    command = await runtime.commands.get(tenant_id, body.command_id)
+    envelope = await runtime.commands.load_envelope(tenant_id, body.command_id)
+    ownership = platform.registry.ownership(command.command_type)
+    if ownership is None:
+        raise CommandCapabilityDisabled("command has no connector owner")
+    row = _connector_row(platform, connector_id)
+    if row is None or row["adapter_id"] != ownership.adapter_id:
+        raise CommandNotFound("connector not found")
+    adapter = platform.registry.adapter(ownership.adapter_id)
+    advertised = platform.registry.advertised(ownership.adapter_id)
+    if operation == "readback" and not advertised.supports_readback:
+        raise CommandCapabilityDisabled("connector readback is unsupported")
+    attempt = await runtime.commands.latest_attempt(tenant_id, body.command_id)
+    context = AdapterContext(
+        tenant_id=tenant_id,
+        command_id=str(body.command_id),
+        correlation_id=command.correlation_id,
+        attempt=attempt,
+        timeout_seconds=platform.dispatch.timeout_for(ownership),
+        environment=platform.settings.app_env,
+        deployment_sha=platform.settings.source_sha,
+        http=runtime.http,
+        trace_context=_trace(request),
+        test_syn=command.target == "test-syn",
+        payload=envelope.payload,
+    )
+    result = (
+        await adapter.readback(command, context)
+        if operation == "readback"
+        else await adapter.reconcile(command, context)
+    )
+    return JSONResponse(
+        status_code=200,
+        content={
+            "connector_id": connector_id,
+            "command_id": str(body.command_id),
+            "operation": operation,
+            "status": result.status.value,
+            "provider_operation_id": result.provider_operation_id,
+            "evidence": redact_metadata(dict(result.evidence)),
+            "error_code": result.safe_error_code,
+            "correlation_id": command.correlation_id,
+        },
+        headers={"X-Correlation-ID": command.correlation_id},
+    )
+
+
+@router.post("/connectors/{connector_id}/readback")
+async def connector_readback(
+    connector_id: str,
+    body: ConnectorOperationRequest,
+    request: Request,
+) -> JSONResponse:
+    return await _connector_operation(connector_id, body, request, operation="readback")
+
+
+@router.post("/connectors/{connector_id}/reconcile")
+async def connector_reconcile(
+    connector_id: str,
+    body: ConnectorOperationRequest,
+    request: Request,
+) -> JSONResponse:
+    return await _connector_operation(connector_id, body, request, operation="reconcile")
+
+
+def _connector_row(platform: Any, connector_id: str) -> dict[str, Any] | None:
+    for row in platform.registry.describe():
+        if connector_id == row["adapter_id"] or connector_id in row["connector_ids"]:
+            enabled = row["adapter_id"] in platform.registry.enabled_adapter_ids()
+            return {
+                "connector_id": connector_id,
+                "adapter_id": row["adapter_id"],
+                "version": row["version"],
+                "provider": row["provider_family"],
+                "capabilities": row["capabilities"],
+                "command_prefixes": row["command_prefixes"],
+                "supports_readback": row["supports_readback"],
+                "supports_cancel": row["supports_cancel"],
+                "supports_status": row["supports_status"],
+                "safe_reexecution": row["safe_reexecution"],
+                "external_effect": row["external_effect"],
+                "enabled": enabled,
+            }
+    return None
+
+
+@router.get("/connectors")
+async def list_connectors(request: Request) -> JSONResponse:
+    await authenticate(request, required_scope=SCOPE_COMMAND_READ)
+    _, platform = _runtime(request)
+    rows = []
+    for described in platform.registry.describe():
+        for connector_id in described["connector_ids"]:
+            row = _connector_row(platform, connector_id)
+            if row is not None:
+                rows.append(row)
+    return JSONResponse(status_code=200, content={"items": rows, "limit": len(rows)})
+
+
+@router.get("/connectors/{connector_id}")
+async def get_connector(connector_id: str, request: Request) -> JSONResponse:
+    await authenticate(request, required_scope=SCOPE_COMMAND_READ)
+    _, platform = _runtime(request)
+    row = _connector_row(platform, connector_id)
+    if row is None:
+        raise CommandNotFound("connector not found")
+    return JSONResponse(status_code=200, content=row)
+
+
+@router.get("/connectors/{connector_id}/capabilities")
+async def get_connector_capabilities(connector_id: str, request: Request) -> JSONResponse:
+    row_response = await get_connector(connector_id, request)
+    row = json.loads(row_response.body)
+    return JSONResponse(
+        status_code=200,
+        content={
+            "connector_id": connector_id,
+            "capabilities": row["capabilities"],
+            "supports_readback": row["supports_readback"],
+            "supports_cancel": row["supports_cancel"],
+            "supports_status": row["supports_status"],
+            "enabled": row["enabled"],
+        },
+    )
+
+
+@router.get("/connectors/{connector_id}/health")
+async def get_connector_health(connector_id: str, request: Request) -> JSONResponse:
+    principal = await authenticate(request, required_scope=SCOPE_COMMAND_READ)
+    runtime, platform = _runtime(request)
+    tenant_id = _tenant_for_read(request, principal)
+    row = _connector_row(platform, connector_id)
+    if row is None:
+        raise CommandNotFound("connector not found")
+    context = AdapterContext(
+        tenant_id=tenant_id,
+        command_id="connector-health",
+        correlation_id=getattr(request.state, "correlation_id", None) or str(UUID(int=0)),
+        attempt=0,
+        timeout_seconds=2.0,
+        environment=request.app.state.settings.app_env,
+        deployment_sha=request.app.state.settings.source_sha,
+        http=runtime.http,
+        trace_context=_trace(request),
+        test_syn=False,
+    )
+    readiness = await platform.registry.readiness(context)
+    status = readiness.get(row["adapter_id"])
+    content = {
+        "connector_id": connector_id,
+        "status": "healthy" if status and status.ready else ("unavailable" if status else "unknown"),
+        "detail": status.detail if status else "",
+        "enabled": row["enabled"],
+    }
+    if not row["enabled"]:
+        content["status"] = "disabled"
+    return JSONResponse(status_code=200, content=content)
 
 
 # ----------------------------------------------------------------------

@@ -60,6 +60,9 @@ EXPECTED_OPERATION_IDS = frozenset(
     {
         "POST /v2/automation/jobs/claim",
         "GET /v2/automation/jobs/{job_id}",
+        "GET /v2/automation/executions/{job_id}",
+        "GET /v2/automation/executions/{job_id}/result",
+        "POST /v2/automation/executions/{job_id}/cancel",
         "POST /v2/automation/jobs/{job_id}/heartbeat",
         "POST /v2/automation/jobs/{job_id}/steps",
         "POST /v2/automation/jobs/{job_id}/complete",

@@ -161,7 +161,7 @@ def test_policy_safety_and_capability_denials_are_403_with_the_error_envelope(st
         assert denied.status_code == 403
         envelope = denied.json()["error"]
         assert envelope["code"] == "policy_denied"  # middleware-api has no crm authority
-        assert set(envelope) == {"code", "message", "correlation_id", "retryable", "details"}
+        assert set(envelope) == {"code", "message", "request_id", "correlation_id", "retryable", "details"}
         assert envelope["correlation_id"] == body["correlation_id"]
         odoo = client.post("/platform/v1/commands", json=body, headers=headers(body, bearer=token(azp="odoo-integration")))
         assert odoo.status_code == 403 and odoo.json()["error"]["code"] == "safety_denied"
@@ -282,3 +282,93 @@ def test_chaos_a_persistence_failure_before_acceptance_is_never_a_202(stack: Sta
         assert response.status_code == 503
         assert response.json()["error"]["retryable"] is True
         assert stack.store._outbox == [] and stack.store._commands == {}
+
+
+def test_canonical_command_aliases_and_request_id_binding(stack: Stack) -> None:
+    with TestClient(stack.app) as client:
+        created, body = submit(client)
+        command_id = body["command_id"]
+        read_headers = {
+            "Authorization": f"Bearer {token()}",
+            "X-Request-Id": "req-platform-001",
+            "X-Command-Id": command_id,
+        }
+        read = client.get(f"/platform/v1/commands/{command_id}", headers=read_headers)
+        assert read.status_code == 200
+        assert read.headers["X-Request-Id"] == "req-platform-001"
+        assert read.json()["command_id"] == command_id
+
+        listed = client.get(
+            "/platform/v1/commands?limit=10",
+            headers={"Authorization": f"Bearer {token()}", "X-Tenant-ID": TENANT},
+        )
+        assert listed.status_code == 200
+        assert listed.json()["count"] == 1
+        assert listed.json()["items"][0]["command_id"] == command_id
+
+        history = client.get(
+            f"/platform/v1/commands/{command_id}/history",
+            headers={"Authorization": f"Bearer {token()}", "X-Command-Id": command_id},
+        )
+        assert history.status_code == 200
+        assert history.json()["operation_id"] == command_id
+
+        result = client.get(
+            f"/platform/v1/commands/{command_id}/result",
+            headers={"Authorization": f"Bearer {token()}", "X-Command-Id": command_id},
+        )
+        assert result.status_code == 200
+        assert result.json()["state"] == "pending"
+
+        mismatch = client.get(
+            f"/platform/v1/commands/{command_id}",
+            headers={"Authorization": f"Bearer {token()}", "X-Command-Id": str(uuid4())},
+        )
+        assert mismatch.status_code == 400
+        assert mismatch.json()["error"]["request_id"]
+
+
+def test_canonical_connector_catalog_reads_runtime_registry(stack: Stack) -> None:
+    with TestClient(stack.app) as client:
+        auth = {"Authorization": f"Bearer {token()}", "X-Tenant-ID": TENANT}
+        listed = client.get("/platform/v1/connectors", headers=auth)
+        assert listed.status_code == 200
+        ids = {item["connector_id"] for item in listed.json()["items"]}
+        assert "test-syn" in ids
+        detail = client.get("/platform/v1/connectors/test-syn", headers=auth)
+        assert detail.status_code == 200
+        assert detail.json()["adapter_id"] == "test-syn"
+        capabilities = client.get("/platform/v1/connectors/test-syn/capabilities", headers=auth)
+        assert capabilities.status_code == 200
+        assert "TEST_SYN_EXECUTE" in capabilities.json()["capabilities"]
+        health = client.get("/platform/v1/connectors/test-syn/health", headers=auth)
+        assert health.status_code == 200
+        assert health.json()["status"] in {"healthy", "disabled", "unavailable"}
+        assert client.get("/platform/v1/connectors/not-real", headers=auth).status_code == 404
+
+
+def test_platform_mutations_require_json_and_request_id_is_regenerated(stack: Stack) -> None:
+    with TestClient(stack.app) as client:
+        body = command_body()
+        invalid_content_type = client.post(
+            "/platform/v1/commands",
+            content="{}",
+            headers={
+                "Authorization": f"Bearer {token()}",
+                "X-Correlation-ID": body["correlation_id"],
+                "Idempotency-Key": body["idempotency_key"],
+                "Content-Type": "text/plain",
+            },
+        )
+        assert invalid_content_type.status_code == 415
+        error = invalid_content_type.json()["error"]
+        assert error["code"] == "INVALID_CONTENT_TYPE"
+        assert invalid_content_type.headers["X-Request-Id"] == error["request_id"]
+
+        response, _ = submit(
+            client,
+            body,
+            **{"X-Request-Id": "contains spaces and is invalid"},
+        )
+        assert response.status_code == 202
+        assert response.headers["X-Request-Id"] != "contains spaces and is invalid"

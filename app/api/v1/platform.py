@@ -212,10 +212,41 @@ async def create_service(body: ServiceCreate, db: AsyncSession = Depends(get_ses
     return {"service_id": body.service_id, "state": "registered", "monitoring_state": "registered", "catalog_id": str(service_uuid)}
 
 
+def _normalized_service_status(row: dict[str, Any]) -> str:
+    state = str(row.get("state") or "").lower()
+    monitoring = str(row.get("monitoring_state") or "").lower()
+    if state in {"disabled", "decommissioned"}:
+        return "disabled"
+    if monitoring in {"unavailable", "failed", "down"}:
+        return "unavailable"
+    if monitoring in {"drifted", "degraded", "stale"}:
+        return "degraded"
+    if monitoring in {"certified", "synced", "healthy"} and state not in {"disabled", "decommissioned"}:
+        return "healthy"
+    return "unknown"
+
+
+def _service_view(row: Any) -> dict[str, Any]:
+    value = dict(row)
+    value.pop("id", None)
+    value["status"] = _normalized_service_status(value)
+    value["health_endpoint"] = value.get("readiness_path") or value.get("health_path")
+    value["metrics_endpoint"] = value.get("metrics_path")
+    value["openapi_endpoint"] = value.get("openapi_path")
+    value["deployment_sha"] = value.get("observed_git_sha") or value.get("expected_git_sha")
+    # Secret references are governed pointers only; they never contain the
+    # secret value and remain available to monitoring/certification readback.
+    return value
+
+
 @router.get("/services", dependencies=[Depends(require_platform_scope("platform.services.read"))])
 async def list_services(db: AsyncSession = Depends(get_session)):
-    rows = (await db.execute(text("SELECT service_id,owner,tenant_mode,service_type,repository,environments,dependencies,data_classification,slo_profile,alert_profile,state,monitoring_state,last_observed_at,last_certified_at,updated_at FROM platform_services ORDER BY service_id"))).mappings().all()
-    return {"items": [dict(row) for row in rows]}
+    rows = (await db.execute(text("""SELECT service_id,owner,tenant_mode,service_type,repository,environments,
+        health_path,readiness_path,metrics_path,openapi_path,dependencies,data_classification,
+        slo_profile,alert_profile,state,monitoring_state,expected_git_sha,observed_git_sha,
+        last_observed_at,last_certified_at,updated_at
+        FROM platform_services ORDER BY service_id"""))).mappings().all()
+    return {"items": [_service_view(row) for row in rows]}
 
 
 @router.get("/services/{service_id}", dependencies=[Depends(require_platform_scope("platform.services.read"))])
@@ -223,9 +254,7 @@ async def get_service(service_id: str, db: AsyncSession = Depends(get_session)):
     row = (await db.execute(text("SELECT * FROM platform_services WHERE service_id=:id"), {"id": service_id})).mappings().one_or_none()
     if row is None:
         raise HTTPException(404, "service not found")
-    result = dict(row)
-    result.pop("id", None)
-    return result
+    return _service_view(row)
 
 
 @router.patch("/services/{service_id}")

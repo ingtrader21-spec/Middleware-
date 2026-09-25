@@ -64,7 +64,7 @@ class JsonFormatter(logging.Formatter):
             "message": record.getMessage(),
             "service": os.getenv("SERVICE_NAME", "codestra-middleware"),
         }
-        for name in ("correlation_id", "gateway_request_id", "queue", "result"):
+        for name in ("request_id", "correlation_id", "gateway_request_id", "queue", "result"):
             field = getattr(record, name, None)
             if field is not None:
                 value[name] = str(field)

@@ -45,7 +45,38 @@ from app.observability import MiddlewareObservability, safe_correlation_id, safe
 logger = logging.getLogger("codestra.runtime")
 
 CORRELATION_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
+REQUEST_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
 MAX_RATE_IDENTITIES = 4096
+
+
+def _canonical_guard_error(
+    *,
+    status_code: int,
+    code: str,
+    message: str,
+    request_id: str,
+    correlation_id: str,
+    headers: dict[str, str] | None = None,
+) -> JSONResponse:
+    response_headers = {
+        "X-Request-Id": request_id,
+        "X-Correlation-ID": correlation_id,
+        **(headers or {}),
+    }
+    return JSONResponse(
+        {
+            "error": {
+                "code": code,
+                "message": message,
+                "request_id": request_id,
+                "correlation_id": correlation_id,
+                "details": {},
+            }
+        },
+        status_code=status_code,
+        headers=response_headers,
+    )
+
 
 # Routes whose handler verifies an HMAC signature or a service JWT itself.
 SIGNED_WEBHOOK_PATHS = frozenset(
@@ -216,6 +247,11 @@ class RequestGuard:
     async def __call__(self, request: Request, call_next):
         settings = self.settings
         path = request.url.path
+        correlation_id = safe_correlation_id(request.headers.get("X-Correlation-ID")) or str(uuid4())
+        request_id_header = request.headers.get("X-Request-Id", "").strip()
+        request_id = request_id_header if REQUEST_ID_RE.fullmatch(request_id_header) else str(uuid4())
+        canonical_api = path.startswith("/platform/v1/") or path.startswith("/v2/automation/")
+
         # Control-plane handlers validate Content-Length and body size with
         # the canonical error envelope (read_limited_body); every other route
         # is bounded here.
@@ -225,11 +261,27 @@ class RequestGuard:
             try:
                 content_length = int(request.headers.get("content-length", "0") or 0)
             except ValueError:
+                if canonical_api:
+                    return _canonical_guard_error(
+                        status_code=400,
+                        code="INVALID_CONTENT_LENGTH",
+                        message="Content-Length is invalid",
+                        request_id=request_id,
+                        correlation_id=correlation_id,
+                    )
                 return JSONResponse({"detail": "invalid content length"}, status_code=400)
             if content_length < 0:
+                if canonical_api:
+                    return _canonical_guard_error(
+                        status_code=400,
+                        code="INVALID_CONTENT_LENGTH",
+                        message="Content-Length is invalid",
+                        request_id=request_id,
+                        correlation_id=correlation_id,
+                    )
                 return JSONResponse({"detail": "invalid content length"}, status_code=400)
 
-        correlation_id = safe_correlation_id(request.headers.get("X-Correlation-ID")) or str(uuid4())
+        request.state.request_id = request_id
         request.state.correlation_id = correlation_id
         client_correlation = request.headers.get("x-correlation-id", "").strip()
         request.state.client_correlation_id = (
@@ -240,6 +292,17 @@ class RequestGuard:
             gateway_request_id if CORRELATION_RE.fullmatch(gateway_request_id) else None
         )
         request.state.traceparent = safe_traceparent(request.headers.get("traceparent"))
+
+        if request.method in {"POST", "PUT", "PATCH"} and canonical_api:
+            content_type = request.headers.get("content-type", "").split(";", 1)[0].strip().lower()
+            if content_type != "application/json":
+                return _canonical_guard_error(
+                    status_code=415,
+                    code="INVALID_CONTENT_TYPE",
+                    message="application/json is required",
+                    request_id=request_id,
+                    correlation_id=correlation_id,
+                )
 
         if request.method == "POST" and path.startswith("/api/v1/sales/"):
             content_type = request.headers.get("content-type", "").split(";", 1)[0].strip().lower()
@@ -264,6 +327,14 @@ class RequestGuard:
                 status_code=413,
             )
         if content_length > settings.request_max_bytes:
+            if canonical_api:
+                return _canonical_guard_error(
+                    status_code=413,
+                    code="REQUEST_TOO_LARGE",
+                    message="request exceeds the configured body limit",
+                    request_id=request_id,
+                    correlation_id=correlation_id,
+                )
             return JSONResponse({"detail": "request too large"}, status_code=413)
 
         if self.is_signed_write(request.method, path) and self.rate_limited(request):
@@ -312,6 +383,7 @@ class RequestGuard:
                     traceparent=request.state.traceparent,
                     intake_context=getattr(request.state, "intake_metrics", None),
                 )
+        response.headers["X-Request-Id"] = request_id
         response.headers["X-Correlation-ID"] = correlation_id
         response.headers["Cache-Control"] = "no-store"
         # A valid client traceparent is echoed, an invalid one is dropped, and
@@ -323,6 +395,7 @@ class RequestGuard:
         logger.info(
             "request_complete",
             extra={
+                "request_id": request_id,
                 "correlation_id": correlation_id,
                 "gateway_request_id": request.state.gateway_request_id,
                 "result": f"{request.method} {path} {status_code}",
