@@ -131,6 +131,62 @@ async def test_readback_requires_delivered_or_read_for_match() -> None:
     assert result.status is ReadbackStatus.UNAVAILABLE
 
 
+
+@pytest.mark.asyncio
+async def test_readback_encodes_provider_id_as_one_path_segment() -> None:
+    cmd = command()
+    provider_id = "wamid/unsafe?part#fragment"
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.raw_path == (
+            b"/internal/v1/whatsapp/transport/messages/"
+            b"wamid%2Funsafe%3Fpart%23fragment"
+        )
+        assert request.headers["authorization"] == "Bearer test-service-token"
+        assert request.headers["x-correlation-id"] == cmd.correlation_id
+        return httpx.Response(
+            200,
+            json={
+                "provider_message_id": provider_id,
+                "provider": "evolution",
+                "state": "DELIVERED",
+            },
+        )
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        adapter = WhatsAppProviderAdapter(settings())
+        result = await adapter.readback(
+            operation(cmd, provider_id),
+            context(cmd, client),
+        )
+
+    assert result.status is ReadbackStatus.MATCHED
+
+
+@pytest.mark.asyncio
+async def test_readback_rejects_provider_message_identity_mismatch() -> None:
+    cmd = command()
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "provider_message_id": "wamid.other",
+                "provider": "evolution",
+                "state": "DELIVERED",
+            },
+        )
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        adapter = WhatsAppProviderAdapter(settings())
+        result = await adapter.readback(
+            operation(cmd, "wamid.expected"),
+            context(cmd, client),
+        )
+
+    assert result.status is ReadbackStatus.MISMATCH
+    assert result.safe_error_code == "provider_message_id_mismatch"
+
 def test_provider_adapter_is_registered_only_when_configured() -> None:
     configured = provider_adapters(settings(), http=None)
     assert "evolution-whatsapp" in {adapter.adapter_id for adapter in configured}
