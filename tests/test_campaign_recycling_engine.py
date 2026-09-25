@@ -10,7 +10,11 @@ from app.core.campaign_recycling import (
     LeadSnapshot,
     PolicyProfile,
     Suppression,
+    canonical_digest,
+    delivery_event_payload_hash,
+    next_action_document,
 )
+from app.core.campaign_recycling_contract import validator as mcr_contract_validator
 
 NOW = datetime(2026, 9, 24, 16, 0, tzinfo=UTC)
 SENDER = "00000000-0000-4000-8000-000000000111"
@@ -102,6 +106,111 @@ def test_hash_is_stable_for_same_inputs() -> None:
     first = engine().evaluate(snapshot(), [candidate()], now=NOW)
     second = engine().evaluate(snapshot(), [candidate()], now=NOW + timedelta(hours=1))
     assert first.decision_hash == second.decision_hash
+
+
+def test_hash_changes_when_material_inputs_change_even_if_decision_does_not() -> None:
+    base = engine().evaluate(snapshot(), [candidate(priority=10)], now=NOW)
+    changed_priority = engine().evaluate(snapshot(), [candidate(priority=20)], now=NOW)
+    changed_health_evidence = engine().evaluate(
+        snapshot(channel_health={
+            "email": ChannelHealth("valid", NOW - timedelta(days=2)),
+            "sms": ChannelHealth("valid", NOW - timedelta(days=1)),
+            "whatsapp": ChannelHealth("valid", NOW - timedelta(days=1)),
+            "voice": ChannelHealth("valid", NOW - timedelta(days=1)),
+        }),
+        [candidate(priority=10)],
+        now=NOW,
+    )
+    assert base.eligible and changed_priority.eligible and changed_health_evidence.eligible
+    assert base.reason_codes == changed_priority.reason_codes == changed_health_evidence.reason_codes
+    assert base.decision_hash != changed_priority.decision_hash
+    assert base.decision_hash != changed_health_evidence.decision_hash
+
+
+def test_no_candidate_is_explicitly_blocked() -> None:
+    result = engine().evaluate(snapshot(), [], now=NOW)
+    assert result.eligible is False
+    assert result.selected is None
+    assert result.reason_codes == ("NO_CANDIDATE",)
+    assert result.next_eligible_at is None
+
+
+def test_lifetime_exposure_cap_is_enforced() -> None:
+    exposures = tuple(
+        Exposure(
+            campaign_id=f"klyrow:cmp-{index}",
+            campaign_version=1,
+            channel="email",
+            touch_index=1,
+            status="delivered",
+            reserved_at=NOW - timedelta(days=60 + index),
+        )
+        for index in range(40)
+    )
+    result = engine().evaluate(snapshot(exposures=exposures), [candidate()], now=NOW)
+    assert result.eligible is False
+    assert "LIFETIME_EXPOSURE_CAP_REACHED" in result.reason_codes
+
+
+def test_unconfigured_policy_fails_closed_without_applying_code_defaults() -> None:
+    result = engine("production").evaluate(
+        snapshot(
+            lifecycle_state="REACTIVATION",
+            channel_health={"email": ChannelHealth("possible", NOW - timedelta(days=1))},
+            reactivation_cycles=999,
+        ),
+        [candidate()],
+        now=NOW,
+    )
+    assert result.eligible is False
+    assert result.reason_codes[0] == "POLICY_NOT_CONFIGURED"
+    assert "CHANNEL_HEALTH_POLICY_GATED" not in result.reason_codes
+    assert "REACTIVATION_LIMIT_REACHED" not in result.reason_codes
+    assert "CAMPAIGN_VERSION_EXHAUSTED" not in result.reason_codes
+
+
+def test_next_action_document_matches_frozen_contract() -> None:
+    lead = snapshot()
+    decision = engine().evaluate(lead, [candidate()], now=NOW)
+    document = next_action_document(
+        decision,
+        lead,
+        mode="plan",
+        evaluated_at=NOW,
+        correlation_id="corr-mcr-contract-1",
+    )
+    assert mcr_contract_validator(
+        "./next-action.v1.schema.json"
+    ).is_valid(document), list(
+        mcr_contract_validator("./next-action.v1.schema.json").iter_errors(document)
+    )
+    assert document["provider_effects"] == "none"
+    assert document["dry_run"] is True
+    assert document["selected"]["exposure_idempotency_key"].startswith("mcr1:")
+    assert document["decision_hash"] == decision.decision_hash
+
+
+def test_next_action_document_redacts_candidates_without_changing_decision() -> None:
+    lead = snapshot()
+    decision = engine().evaluate(
+        lead,
+        [
+            candidate(campaign_id="klyrow:cmp-a", priority=1),
+            candidate(campaign_id="klyrow:cmp-b", priority=2),
+        ],
+        now=NOW,
+    )
+    document = next_action_document(
+        decision,
+        lead,
+        mode="read",
+        evaluated_at=NOW,
+        correlation_id="corr-mcr-contract-2",
+        candidates_redacted=True,
+    )
+    assert document["candidates_redacted"] is True
+    assert document["candidates"] == []
+    assert mcr_contract_validator("./next-action.v1.schema.json").is_valid(document)
 
 
 def test_global_suppression_precedes_channel_suppression() -> None:
