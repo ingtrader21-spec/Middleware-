@@ -53,3 +53,48 @@ def test_non_test_syn_tenant_is_rejected(tmp_path) -> None:
 
     with pytest.raises(StagingCertificationError, match="TEST_SYN only"):
         validate_staging_preflight(tmp_path)
+
+
+def test_effect_flag_enablement_is_rejected(tmp_path) -> None:
+    _copy_fixture(tmp_path)
+    path = tmp_path / "config" / "environments" / "staging.runtime.env.example"
+    text = path.read_text(encoding="utf-8")
+    path.write_text(text.replace("SMS_DELIVERY_ENABLED=false", "SMS_DELIVERY_ENABLED=true"), encoding="utf-8")
+    with pytest.raises(StagingCertificationError, match="SMS_DELIVERY_ENABLED"):
+        validate_staging_preflight(tmp_path)
+
+
+def test_direct_effect_bypass_is_rejected(tmp_path) -> None:
+    _copy_fixture(tmp_path)
+    path = tmp_path / "config" / "route-authority-report.v1.json"
+    routes = json.loads(path.read_text(encoding="utf-8"))
+    routes["summary"]["DIRECT_EFFECT_BYPASSES"] = 1
+    path.write_text(json.dumps(routes), encoding="utf-8")
+    with pytest.raises(StagingCertificationError, match="direct effect bypasses"):
+        validate_staging_preflight(tmp_path)
+
+
+def test_wrong_integration_service_is_rejected(tmp_path) -> None:
+    _copy_fixture(tmp_path)
+    path = tmp_path / "config" / "route-authority-report.v1.json"
+    routes = json.loads(path.read_text(encoding="utf-8"))
+    routes["service"] = "legacy-middleware"
+    path.write_text(json.dumps(routes), encoding="utf-8")
+    with pytest.raises(StagingCertificationError, match="service mismatch"):
+        validate_staging_preflight(tmp_path)
+
+
+def test_certifier_must_keep_legacy_8080_rejection(tmp_path) -> None:
+    _copy_fixture(tmp_path)
+    path = tmp_path / "scripts" / "certify_test_syn.py"
+    path.write_text(path.read_text(encoding="utf-8").replace("legacy port 8080", "legacy port"), encoding="utf-8")
+    with pytest.raises(StagingCertificationError, match="reject legacy port 8080"):
+        validate_staging_preflight(tmp_path)
+
+
+def test_duplicate_staging_env_keys_are_rejected(tmp_path) -> None:
+    _copy_fixture(tmp_path)
+    path = tmp_path / "config" / "environments" / "staging.runtime.env.example"
+    path.write_text(path.read_text(encoding="utf-8") + "\nAPP_ENV=staging\n", encoding="utf-8")
+    with pytest.raises(StagingCertificationError, match="duplicate env key: APP_ENV"):
+        validate_staging_preflight(tmp_path)

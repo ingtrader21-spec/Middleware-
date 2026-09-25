@@ -56,9 +56,12 @@ def _load_env(path: Path) -> dict[str, str]:
         if not line or line.startswith("#"):
             continue
         key, sep, value = line.partition("=")
-        if not sep:
+        key = key.strip()
+        if not sep or not key:
             raise StagingCertificationError(f"invalid env line: {raw!r}")
-        values[key] = value
+        if key in values:
+            raise StagingCertificationError(f"duplicate env key: {key}")
+        values[key] = value.strip()
     return values
 
 
