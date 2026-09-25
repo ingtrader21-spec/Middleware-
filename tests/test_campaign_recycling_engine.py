@@ -842,6 +842,38 @@ async def test_delivery_event_rejects_unknown_source() -> None:
 
 
 @pytest.mark.asyncio
+async def test_vicidial_delivery_event_is_voice_call_state_only() -> None:
+    store = PostgresCampaignRecyclingStore(FakePool(FakeConn()))
+    with pytest.raises(CampaignRecyclingConflict, match="invalid normalized delivery event"):
+        await store.apply_delivery_event(
+            delivery_event(
+                source="vicidial",
+                channel="email",
+                event_type="hard_bounce",
+                origin=None,
+            ),
+            policy=PolicyProfile.load("test"),
+            address_ref="addr-email-1",
+        )
+
+
+@pytest.mark.asyncio
+async def test_odoo_delivery_event_is_conversion_truth_only() -> None:
+    store = PostgresCampaignRecyclingStore(FakePool(FakeConn()))
+    with pytest.raises(CampaignRecyclingConflict, match="invalid normalized delivery event"):
+        await store.apply_delivery_event(
+            delivery_event(
+                source="odoo",
+                channel="email",
+                event_type="delivered",
+                origin=None,
+            ),
+            policy=PolicyProfile.load("test"),
+            address_ref="addr-email-1",
+        )
+
+
+@pytest.mark.asyncio
 async def test_delivery_event_health_effect_requires_address_ref() -> None:
     store = PostgresCampaignRecyclingStore(FakePool(FakeConn()))
     with pytest.raises(CampaignRecyclingConflict, match="address_ref"):
