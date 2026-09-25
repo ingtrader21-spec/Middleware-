@@ -18,7 +18,7 @@ from __future__ import annotations
 import re
 from datetime import datetime
 from typing import Any, Literal
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
@@ -265,11 +265,50 @@ def _timeline(operation: CommandOperation, events: list[OperationEvent]) -> list
     return rows
 
 
-def _respond(status_code: int, model: BaseModel, *, correlation_id: str, location: str | None = None) -> JSONResponse:
-    headers = {"X-Correlation-ID": correlation_id}
+def _response_headers(
+    *,
+    correlation_id: str,
+    command_id: UUID | None = None,
+    operation_correlation_id: str | None = None,
+    location: str | None = None,
+) -> dict[str, str]:
+    headers = {
+        "X-Correlation-ID": correlation_id,
+        "Cache-Control": "no-store",
+        "X-Content-Type-Options": "nosniff",
+    }
+    if operation_correlation_id is not None:
+        headers["X-Operation-Correlation-ID"] = operation_correlation_id
+    if command_id is not None:
+        headers["X-Command-ID"] = str(command_id)
     if location:
         headers["Location"] = location
-    return JSONResponse(status_code=status_code, content=model.model_dump(mode="json"), headers=headers)
+    return headers
+
+
+def _respond(
+    status_code: int,
+    model: BaseModel,
+    *,
+    correlation_id: str,
+    command_id: UUID | None = None,
+    operation_correlation_id: str | None = None,
+    location: str | None = None,
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=status_code,
+        content=model.model_dump(mode="json"),
+        headers=_response_headers(
+            correlation_id=correlation_id,
+            command_id=command_id,
+            operation_correlation_id=operation_correlation_id,
+            location=location,
+        ),
+    )
+
+
+def _request_correlation(request: Request) -> str:
+    return optional_header(request, "X-Correlation-ID", minimum=1, maximum=180) or f"request-{uuid4()}"
 
 
 def _trace(request: Request) -> dict[str, str]:
@@ -309,6 +348,9 @@ async def submit_command(body: KernelCommandRequest, request: Request) -> JSONRe
     tenant_header = optional_header(request, "X-Tenant-ID", minimum=1, maximum=128)
     if tenant_header is not None and tenant_header != command.tenant_id:
         raise RequestValidationError("X-Tenant-ID does not match command tenant")
+    command_id_header = optional_header(request, "X-Command-ID", minimum=36, maximum=36)
+    if command_id_header is not None and command_id_header != str(command.command_id):
+        raise RequestValidationError("X-Command-ID does not match command_id")
     correlation_id = required_header(request, "X-Correlation-ID", minimum=1, maximum=180)
     if correlation_id != command.correlation_id:
         raise RequestValidationError("X-Correlation-ID does not match command correlation_id")
@@ -332,6 +374,8 @@ async def submit_command(body: KernelCommandRequest, request: Request) -> JSONRe
         200 if operation.duplicate else 202,
         accepted,
         correlation_id=operation.correlation_id,
+        command_id=operation.command_id,
+        operation_correlation_id=operation.correlation_id,
         location=f"/platform/v1/operations/{operation.command_id}",
     )
 
@@ -345,7 +389,13 @@ async def get_operation(operation_id: UUID, request: Request) -> JSONResponse:
     runtime, platform = _runtime(request)
     tenant_id = _tenant_for_read(request, principal)
     operation = await platform.kernel.get(tenant_id, operation_id)
-    return _respond(200, _status(operation), correlation_id=operation.correlation_id)
+    return _respond(
+        200,
+        _status(operation),
+        correlation_id=_request_correlation(request),
+        command_id=operation.command_id,
+        operation_correlation_id=operation.correlation_id,
+    )
 
 
 # ----------------------------------------------------------------------
@@ -358,7 +408,13 @@ async def get_timeline(operation_id: UUID, request: Request) -> JSONResponse:
     tenant_id = _tenant_for_read(request, principal)
     operation = await platform.kernel.get(tenant_id, operation_id)
     events = await platform.kernel.timeline(tenant_id, operation_id)
-    return _respond(200, Timeline(operation_id=operation_id, items=_timeline(operation, events)), correlation_id=operation.correlation_id)
+    return _respond(
+        200,
+        Timeline(operation_id=operation_id, items=_timeline(operation, events)),
+        correlation_id=_request_correlation(request),
+        command_id=operation.command_id,
+        operation_correlation_id=operation.correlation_id,
+    )
 
 
 # ----------------------------------------------------------------------
@@ -369,7 +425,13 @@ async def cancel_operation(operation_id: UUID, body: CancelRequest, request: Req
     principal = await authenticate(request, required_scope=SCOPE_COMMAND)
     runtime, platform = _runtime(request)
     tenant_id = _tenant_for_read(request, principal)
-    required_header(request, "X-Correlation-ID", minimum=1, maximum=180)
+    command_id_header = optional_header(request, "X-Command-ID", minimum=36, maximum=36)
+    if command_id_header is not None and command_id_header != str(operation_id):
+        raise RequestValidationError("X-Command-ID does not match operation_id")
+    current = await platform.kernel.get(tenant_id, operation_id)
+    correlation_id = required_header(request, "X-Correlation-ID", minimum=1, maximum=180)
+    if correlation_id != current.correlation_id:
+        raise RequestValidationError("X-Correlation-ID does not match operation correlation_id")
     idempotency_key = required_header(request, "Idempotency-Key", minimum=8, maximum=180)
     operation = await platform.kernel.cancel(
         tenant_id,
@@ -379,7 +441,13 @@ async def cancel_operation(operation_id: UUID, body: CancelRequest, request: Req
         expected_version=body.expected_version,
         reason=body.reason,
     )
-    return _respond(200, _status(operation), correlation_id=operation.correlation_id)
+    return _respond(
+        200,
+        _status(operation),
+        correlation_id=correlation_id,
+        command_id=operation.command_id,
+        operation_correlation_id=operation.correlation_id,
+    )
 
 
 # ----------------------------------------------------------------------
@@ -390,7 +458,13 @@ async def replay_operation(operation_id: UUID, body: ReplayRequest, request: Req
     principal = await authenticate(request, required_scope=SCOPE_COMMAND_REPLAY)
     runtime, platform = _runtime(request)
     tenant_id = _tenant_for_read(request, principal)
-    required_header(request, "X-Correlation-ID", minimum=1, maximum=180)
+    command_id_header = optional_header(request, "X-Command-ID", minimum=36, maximum=36)
+    if command_id_header is not None and command_id_header != str(operation_id):
+        raise RequestValidationError("X-Command-ID does not match operation_id")
+    current = await platform.kernel.get(tenant_id, operation_id)
+    correlation_id = required_header(request, "X-Correlation-ID", minimum=1, maximum=180)
+    if correlation_id != current.correlation_id:
+        raise RequestValidationError("X-Correlation-ID does not match operation correlation_id")
     idempotency_key = required_header(request, "Idempotency-Key", minimum=8, maximum=180)
     operation = await platform.kernel.replay(
         tenant_id,
@@ -405,7 +479,9 @@ async def replay_operation(operation_id: UUID, body: ReplayRequest, request: Req
     return _respond(
         202,
         _status(operation),
-        correlation_id=operation.correlation_id,
+        correlation_id=correlation_id,
+        command_id=operation.command_id,
+        operation_correlation_id=operation.correlation_id,
         location=f"/platform/v1/operations/{operation.command_id}",
     )
 
@@ -422,7 +498,12 @@ async def describe_kernel(request: Request) -> JSONResponse:
         contract_digest=_public_contract_digest(),
         command_contract_version=COMMAND_CONTRACT_VERSION,
     )
-    return JSONResponse(status_code=200, content=description)
+    correlation_id = _request_correlation(request)
+    return JSONResponse(
+        status_code=200,
+        content=description,
+        headers=_response_headers(correlation_id=correlation_id),
+    )
 
 
 def _public_contract_digest() -> str | None:
