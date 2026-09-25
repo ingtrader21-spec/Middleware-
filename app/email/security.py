@@ -43,10 +43,11 @@ class TokenValidator:
                         "azp",
                         "scope",
                         "tenant_id",
+                        "jti",
                     ]
                 },
             )
-        except jwt.PyJWTError as exc:
+        except (jwt.PyJWTError, OverflowError, TypeError, ValueError) as exc:
             raise AuthorizationError("invalid_token") from exc
 
         issued_at = claims.get("iat")
@@ -56,10 +57,18 @@ class TokenValidator:
             or isinstance(expires_at, bool)
             or not isinstance(issued_at, (int, float))
             or not isinstance(expires_at, (int, float))
-            or not math.isfinite(float(issued_at))
-            or not math.isfinite(float(expires_at))
-            or float(expires_at) <= float(issued_at)
-            or float(expires_at) - float(issued_at) > 300
+        ):
+            raise AuthorizationError("invalid_token_lifetime")
+        try:
+            issued_value = float(issued_at)
+            expires_value = float(expires_at)
+        except (OverflowError, TypeError, ValueError) as exc:
+            raise AuthorizationError("invalid_token_lifetime") from exc
+        if (
+            not math.isfinite(issued_value)
+            or not math.isfinite(expires_value)
+            or expires_value <= issued_value
+            or expires_value - issued_value > 300
         ):
             raise AuthorizationError("invalid_token_lifetime")
 
@@ -83,8 +92,11 @@ class TokenValidator:
 
         subject = claims.get("sub")
         tenant_id = claims.get("tenant_id")
+        token_id = claims.get("jti")
         if not isinstance(subject, str) or not subject.strip():
             raise AuthorizationError("invalid_subject")
         if not isinstance(tenant_id, str) or not tenant_id.strip() or tenant_id == "*":
             raise AuthorizationError("tenant_required")
+        if not isinstance(token_id, str) or not token_id.strip():
+            raise AuthorizationError("invalid_token_id")
         return Principal(subject, scopes, tenant_id, service, "production")
