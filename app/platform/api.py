@@ -425,10 +425,10 @@ async def cancel_operation(operation_id: UUID, body: CancelRequest, request: Req
     principal = await authenticate(request, required_scope=SCOPE_COMMAND)
     runtime, platform = _runtime(request)
     tenant_id = _tenant_for_read(request, principal)
-    current = await platform.kernel.get(tenant_id, operation_id)
     command_id_header = optional_header(request, "X-Command-ID", minimum=36, maximum=36)
     if command_id_header is not None and command_id_header != str(operation_id):
         raise RequestValidationError("X-Command-ID does not match operation_id")
+    current = await platform.kernel.get(tenant_id, operation_id)
     correlation_id = required_header(request, "X-Correlation-ID", minimum=1, maximum=180)
     if correlation_id != current.correlation_id:
         raise RequestValidationError("X-Correlation-ID does not match operation correlation_id")
@@ -458,10 +458,10 @@ async def replay_operation(operation_id: UUID, body: ReplayRequest, request: Req
     principal = await authenticate(request, required_scope=SCOPE_COMMAND_REPLAY)
     runtime, platform = _runtime(request)
     tenant_id = _tenant_for_read(request, principal)
-    current = await platform.kernel.get(tenant_id, operation_id)
     command_id_header = optional_header(request, "X-Command-ID", minimum=36, maximum=36)
     if command_id_header is not None and command_id_header != str(operation_id):
         raise RequestValidationError("X-Command-ID does not match operation_id")
+    current = await platform.kernel.get(tenant_id, operation_id)
     correlation_id = required_header(request, "X-Correlation-ID", minimum=1, maximum=180)
     if correlation_id != current.correlation_id:
         raise RequestValidationError("X-Correlation-ID does not match operation correlation_id")
