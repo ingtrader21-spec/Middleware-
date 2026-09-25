@@ -37,7 +37,7 @@ STANDARD_RELEASE_VALIDATOR_SECURITY_SHA256 = (
     "8d8f21260babfae5eaedbdd46472b1ec"
 )
 MIDDLEWARE_RELEASE_VALIDATOR_SECURITY_SHA256 = (
-    "63192fd83f7fc19fa624e2bf26d3b2ccc3941042e4e3c941ba378ff50581e565"
+    "d94351f6d39b406bb7fc3a5b9736e72ff987ef374e264c9844099a7551ce4192"
 )
 BACKEND_RELEASE_VALIDATOR_SECURITY_SHA256 = (
     "15dbaa6d571a1d1e72c09ca417cc9419"
@@ -671,8 +671,8 @@ APPROVED_CONTROL_PLANE_WORKFLOW_SHA256: dict[str, dict[str, str]] = {
             "50caaed769389cb30fc725766ea6bed6"
         ),
         ".github/workflows/middleware-ci.yml": (
-            "8cec813feb267b63f4f27807606237dbe"
-            "518f2fb94379062e447a6636fea2f16"
+            "9f4920a63522490f3f1688ec627a8078d"
+            "80427c0b5a0d08acacb80f65afd88ec"
         ),
         ".github/workflows/integration-main-release-authorities.yml": (
             "910acf0149a0b9060544817a71577222a"
@@ -683,13 +683,13 @@ APPROVED_CONTROL_PLANE_WORKFLOW_SHA256: dict[str, dict[str, str]] = {
             "394b93a7ac5290dd684e0ede090d58de"
         ),
         ".github/workflows/python-quality-baseline.yml": (
-            "cb89cb69636dc79a6a03e5df98abeb798"
-            "6a823e30c2d52b1d03980dddac58cca"
+            "35ecd2dac4328dea5615d5939d39e5682"
+            "5794cedf919d80abb92a4272ccf81ca"
         ),
-        ".github/workflows/required-ci.yml": "e4a66dac0fab5ad51e6093067761a14fb489136fdc6871ae73e519ffe898e168",
+        ".github/workflows/required-ci.yml": "ab0ba6578653a904a7fc6b82d4bf64d1efa2b5f96800d5824421f727574a4109",
         ".github/workflows/production-route-contract.yml": (
-            "21595e66413a34de195d914405373b84"
-            "2c8f631d053973910e6b78f63c269c7c"
+            "a12d81e9c8d3d1e14a68f4c9ef7f55e8"
+            "487e09a83578e35bc3f2457bdb76bdb2"
         ),
         ".github/workflows/release-component-ci.yml": (
             "d3d6d5dd03cc9c8b2d0630ef6e1b9f"
@@ -9373,8 +9373,8 @@ APPROVED_NARROW_MUTATION_SHA256: dict[str, dict[str, str]] = {
         # The only external mutation is the required job posting its own exact
         # commit status through checks:write.
         ".github/workflows/required-ci.yml:test": (
-            "4d4e71b5b13e40a1b1b35a3502c7d3d8"
-            "d02f30c8692a398670c0cbb1ed9fc8c0"
+            "61381cb4fc3cc0253a98f2752f35075b"
+            "932e3ba9875b4d0d077f3c932f305d54"
         ),
         # The single forward Middleware production publisher: builds, scans,
         # signs and verifies one immutable image from the exact protected-main
