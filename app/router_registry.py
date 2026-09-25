@@ -227,6 +227,7 @@ def install_domain_error_handler(app: FastAPI) -> None:
     """The canonical error envelope for domain errors (no observability hook)."""
 
     async def domain_error(request: Request, exc: Exception) -> JSONResponse:
+        request_id = getattr(request.state, "request_id", None) or str(uuid4())
         correlation_id = (
             getattr(request.state, "correlation_id", None)
             or request.headers.get("X-Correlation-ID")
@@ -246,12 +247,13 @@ def install_domain_error_handler(app: FastAPI) -> None:
                 "error": {
                     "code": code,
                     "message": message,
+                    "request_id": request_id,
                     "correlation_id": correlation_id,
                     "retryable": retryable,
                     "details": {},
                 }
             },
-            headers={"X-Correlation-ID": correlation_id},
+            headers={"X-Request-Id": request_id, "X-Correlation-ID": correlation_id},
         )
 
     for error_type in (
