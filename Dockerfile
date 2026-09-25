@@ -16,7 +16,7 @@ RUN apk add --no-cache \
       build-base=0.5-r4 \
       bzip2-dev=1.0.8-r6 \
       curl=8.22.0-r0 \
-      expat-dev=2.8.4-r0 \
+      expat-dev=2.8.5-r0 \
       gdbm-dev=1.26-r0 \
       libffi-dev=3.5.2-r1 \
       linux-headers=7.0.0-r1 \
@@ -54,7 +54,7 @@ RUN python -c 'import html.parser,http.cookies,inspect,pyexpat,sys,tarfile; asse
 
 FROM ${PYTHON_BASE} AS verified-python
 USER root
-RUN apk add --no-cache expat=2.8.4-r0
+RUN apk add --no-cache expat=2.8.5-r0
 RUN rm -rf /usr/local/*
 COPY --from=python-builder /usr/local /usr/local
 

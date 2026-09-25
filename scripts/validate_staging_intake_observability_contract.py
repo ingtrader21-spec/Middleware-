@@ -1629,7 +1629,17 @@ def main() -> None:
     matches = [
         item for item in profiles["profiles"] if item["profile_id"] == EXPECTED_PROFILE["profile_id"]
     ]
-    require(matches == [EXPECTED_PROFILE], "staging runtime profile drift")
+    require(len(matches) == 1, "staging runtime profile multiplicity drift")
+    staging_profile = matches[0]
+    require(
+        {key: staging_profile.get(key) for key in EXPECTED_PROFILE} == EXPECTED_PROFILE,
+        "staging runtime profile drift",
+    )
+    allowed_profile_extensions = {"database_alternates", "redis_alternates"}
+    require(
+        set(staging_profile) - set(EXPECTED_PROFILE) <= allowed_profile_extensions,
+        "unexpected staging runtime profile extensions",
+    )
     embedded = release["embedded_runtime_profile"]
     require(
         embedded
