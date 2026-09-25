@@ -10,7 +10,8 @@ import shutil
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
-DEPENDENCIES = tuple("ABCDEFHIJKL")
+from scripts.mcr_dependency_contract import DEPENDENCIES, load_dependency_contract
+
 SHA = re.compile(r"[0-9a-f]{40}\Z")
 SCENARIOS = {
     "api_openapi": (
@@ -118,8 +119,8 @@ def build(source_sha: str, results_xml: Path, output_dir: Path) -> dict[str, obj
 
     manifest = {
         "source_sha": source_sha,
-        "dependency_mode": "integrated-source-closure",
-        "dependencies": {key: source_sha for key in DEPENDENCIES},
+        "dependency_mode": "pinned-cross-repository-handoffs",
+        "dependencies": load_dependency_contract(),
         "scenarios": scenario_manifest,
     }
     (output_dir / "manifest.json").write_text(

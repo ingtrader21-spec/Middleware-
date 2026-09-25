@@ -18,11 +18,12 @@ import zipfile
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
+from scripts.mcr_dependency_contract import DEPENDENCIES, load_dependency_contract
+
 ROOT = Path(__file__).resolve().parents[1]
 REPOSITORY = "ingtrader21-spec/Middleware-"
 BRANCH = "mission/mcr-m-qa-release-20260924"
 WORKFLOW = ".github/workflows/middleware-ci.yml"
-DEPENDENCIES = tuple("ABCDEFHIJKL")
 SCENARIOS = (
     "api_openapi",
     "tenant_isolation",
@@ -50,9 +51,11 @@ def command(*args: str) -> str:
     ).strip()
 
 
-def api(path: str, *, binary: bool = False):
+def api(path: str, *, binary: bool = False, repository: str = REPOSITORY):
+    repositories = {record["repository"] for record in load_dependency_contract().values()}
+    require(repository in repositories, "unapproved repository authority")
     result = subprocess.check_output(
-        ["gh", "api", f"repos/{REPOSITORY}/{path}"],
+        ["gh", "api", f"repos/{repository}/{path}"],
         cwd=ROOT,
         stderr=subprocess.PIPE,
         timeout=60,
@@ -113,16 +116,10 @@ def validate_bundle(data: bytes, source_sha: str) -> dict:
             manifest.get("source_sha") == source_sha, "artifact source SHA mismatch"
         )
         dependencies = manifest.get("dependencies")
+        expected_dependencies = load_dependency_contract()
         require(
-            isinstance(dependencies, dict) and set(dependencies) == set(DEPENDENCIES),
-            "incomplete dependency handoffs",
-        )
-        require(
-            all(
-                isinstance(value, str) and SHA.fullmatch(value)
-                for value in dependencies.values()
-            ),
-            "dependency SHAs must be pinned",
+            dependencies == expected_dependencies,
+            "artifact dependency handoffs do not match the pinned contract",
         )
         scenarios = manifest.get("scenarios")
         require(
@@ -313,17 +310,26 @@ def certify(source_sha: str, run_id: int) -> dict:
     data = api(f"actions/artifacts/{artifact['id']}/zip", binary=True)
     verify_digest(data, artifact.get("digest", ""))
     manifest = validate_bundle(data, source_sha)
-    for dependency, sha in manifest["dependencies"].items():
-        require(
-            command("git", "cat-file", "-t", sha) == "commit",
-            f"{dependency}: SHA is not a commit",
-        )
-        subprocess.run(
-            ["git", "merge-base", "--is-ancestor", sha, source_sha],
-            cwd=ROOT,
-            check=True,
-            capture_output=True,
-        )
+    for dependency, record in manifest["dependencies"].items():
+        repository = record["repository"]
+        sha = record["sha"]
+        if repository == REPOSITORY:
+            require(
+                command("git", "cat-file", "-t", sha) == "commit",
+                f"{dependency}: SHA is not a Middleware commit",
+            )
+            subprocess.run(
+                ["git", "merge-base", "--is-ancestor", sha, source_sha],
+                cwd=ROOT,
+                check=True,
+                capture_output=True,
+            )
+        else:
+            commit = api(f"commits/{sha}", repository=repository)
+            require(
+                commit.get("sha") == sha,
+                f"{dependency}: external dependency SHA is unavailable",
+            )
     # Re-read mutable state after downloading and validating evidence.
     require(
         command("git", "rev-parse", "HEAD") == source_sha

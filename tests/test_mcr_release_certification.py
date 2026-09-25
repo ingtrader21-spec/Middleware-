@@ -1,5 +1,6 @@
 """Rejection tests for the release evidence trust boundary."""
 
+import copy
 import io
 import json
 import zipfile
@@ -20,7 +21,7 @@ def bundle():
     ).encode()
     manifest = {
         "source_sha": SHA,
-        "dependencies": {key: SHA for key in cert.DEPENDENCIES},
+        "dependencies": copy.deepcopy(cert.load_dependency_contract()),
         "scenarios": {
             name: {"test": f"mcr::{name}", "evidence": f"{name}.json"} for name in cases
         },
@@ -91,6 +92,33 @@ def test_incomplete_or_unbound_evidence_is_rejected(mutation):
 def test_no_evidence_is_never_success():
     with pytest.raises(ValueError):
         cert.validate_bundle(archive({}), SHA)
+
+
+def test_cross_repo_dependency_repository_is_pinned():
+    files = bundle()
+    manifest = json.loads(files["manifest.json"])
+    manifest["dependencies"]["J"]["repository"] = cert.REPOSITORY
+    files["manifest.json"] = json.dumps(manifest).encode()
+    with pytest.raises(ValueError, match="pinned contract"):
+        cert.validate_bundle(archive(files), SHA)
+
+
+def test_dependency_sha_is_pinned():
+    files = bundle()
+    manifest = json.loads(files["manifest.json"])
+    manifest["dependencies"]["D"]["sha"] = "b" * 40
+    files["manifest.json"] = json.dumps(manifest).encode()
+    with pytest.raises(ValueError, match="pinned contract"):
+        cert.validate_bundle(archive(files), SHA)
+
+
+def test_dependency_record_fields_are_closed():
+    files = bundle()
+    manifest = json.loads(files["manifest.json"])
+    manifest["dependencies"]["D"]["branch"] = "main"
+    files["manifest.json"] = json.dumps(manifest).encode()
+    with pytest.raises(ValueError, match="pinned contract"):
+        cert.validate_bundle(archive(files), SHA)
 
 
 def test_artifact_digest_mismatch_is_rejected():

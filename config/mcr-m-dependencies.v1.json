@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "dependencies": {
+    "A": {"repository": "ingtrader21-spec/Middleware-", "sha": "0427dcefd2a4a1f27bef21d7e77d59a907b231ce"},
+    "B": {"repository": "ingtrader21-spec/Middleware-", "sha": "1e5a294b0f13ac78e423cddac95e81a8b9fdb458"},
+    "C": {"repository": "ingtrader21-spec/Middleware-", "sha": "03b6c66e3cd1d80a5f13fcf3aab5eee6d00da799"},
+    "D": {"repository": "ingtrader21-spec/klyrow.com", "sha": "12404148240c06cb0754f5cf65035ecbac00aa79"},
+    "E": {"repository": "ingtrader21-spec/Middleware-", "sha": "51f433da2fe238d58f1010938ac2ddf95aac71f9"},
+    "F": {"repository": "ingtrader21-spec/Middleware-", "sha": "f2a1b4b0b2b1624cd1e33746c0b76e1898e4324c"},
+    "H": {"repository": "ingtrader21-spec/Keycloak", "sha": "377b8b9c1555d2507d4f52207290beca4838d051"},
+    "I": {"repository": "ingtrader21-spec/Codestra-OpenBao", "sha": "c98b83dc19d5812875a1d63d1e067f987f2dd2be"},
+    "J": {"repository": "ingtrader21-spec/Kong", "sha": "c80cdfea493c6b9c79d2b2c0a78153dfa14806dc"},
+    "K": {"repository": "ingtrader21-spec/Caddy", "sha": "b14222cad008133be2d9facd6f010270160493cd"},
+    "L": {"repository": "ingtrader21-spec/Middleware-", "sha": "907c0e0b651cbe2496bf75cce607b5a18c197c7c"}
+  }
+}

@@ -35,7 +35,8 @@ def test_builder_output_is_accepted_by_certifier(tmp_path: Path) -> None:
     output = tmp_path / "evidence"
     manifest = builder.build(SHA, results, output)
     assert manifest["source_sha"] == SHA
-    assert set(manifest["dependencies"]) == set(cert.DEPENDENCIES)
+    assert manifest["dependencies"] == cert.load_dependency_contract()
+    assert manifest["dependency_mode"] == "pinned-cross-repository-handoffs"
     assert cert.validate_bundle(archive(output), SHA)["source_sha"] == SHA
 
 
