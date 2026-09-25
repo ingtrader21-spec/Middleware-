@@ -15,6 +15,7 @@ Scopes: ``platform.command`` (submit, cancel), ``platform.command.read``
 
 from __future__ import annotations
 
+import json
 import re
 from datetime import datetime
 from typing import Any, Literal
@@ -170,6 +171,19 @@ class ReconciliationResolveRequest(BaseModel):
     reason: str = Field(min_length=1, max_length=500, pattern=r"^[A-Za-z0-9][A-Za-z0-9_.: -]*$")
     provider_operation_id: str | None = Field(default=None, max_length=256)
     evidence: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("evidence")
+    @classmethod
+    def evidence_is_bounded(cls, value: dict[str, Any]) -> dict[str, Any]:
+        encoded = json.dumps(
+            value,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        ).encode("utf-8")
+        if len(encoded) > 16_384:
+            raise ValueError("reconciliation evidence exceeds 16 KiB")
+        return value
 
 
 # ----------------------------------------------------------------------
