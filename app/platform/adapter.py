@@ -58,9 +58,17 @@ class Outcome(StrEnum):
 
 
 class ReadbackStatus(StrEnum):
+    PENDING = "PENDING"
+    ACCEPTED = "ACCEPTED"
+    RUNNING = "RUNNING"
+    PARTIAL = "PARTIAL"
     MATCHED = "MATCHED"
+    SUCCEEDED = "SUCCEEDED"
+    FAILED = "FAILED"
+    CANCELLED = "CANCELLED"
     MISMATCH = "MISMATCH"
     NOT_FOUND = "NOT_FOUND"
+    UNKNOWN = "UNKNOWN"
     UNAVAILABLE = "UNAVAILABLE"
     UNSUPPORTED = "UNSUPPORTED"
 
@@ -128,12 +136,20 @@ class AdapterResult:
 
 @dataclass(frozen=True)
 class ReadbackResult:
-    """The provider state observed for an operation."""
+    """The provider state observed for an operation, with retry advice only.
+
+    Global retry policy remains owned by Command Core.
+    """
 
     status: ReadbackStatus
     provider_operation_id: str | None = None
     evidence: SafeMapping = field(default_factory=dict)
     safe_error_code: str | None = None
+    retryable: bool | None = None
+    retry_after_seconds: float | None = None
+    backoff_class: str | None = None
+    rate_limit_reset_epoch: float | None = None
+    recommended_action: str | None = None
 
 
 @dataclass(frozen=True)

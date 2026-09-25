@@ -294,7 +294,9 @@ def test_safety_gate_bounds_backlog_and_tenant_rate(test_settings: Settings) -> 
 def test_safety_switch_table_is_well_formed() -> None:
     switches = SafetySwitches.load()
     assert switches.global_kill_switch is False
-    assert all(value is False for value in switches.provider_kill_switches.values())
+    quarantined = {"face-id", "face-liveness", "camera-gateway", "postgresql"}
+    assert all(value is (name in quarantined) for name, value in switches.provider_kill_switches.items())
+    assert quarantined <= switches.provider_kill_switches.keys()
     for name, gate in switches.gates.items():
         if gate.classification == "external_effect":
             assert "production" in gate.environments or "staging" in gate.environments
@@ -729,3 +731,49 @@ def test_test_syn_policy_is_never_registered_in_production(test_settings: Settin
     registry = command_policies(production, CommandPolicyRegistry((CommandPolicy("crm.", "odoo-19", "ODOO_WRITE", True),), {"ODOO_WRITE": False}))
     assert registry.resolve("test.syn.execute.v1") is None
     assert "TEST_SYN_EXECUTE" not in registry.capabilities
+
+
+@pytest.mark.asyncio
+async def test_bus_fails_closed_when_target_connector_is_not_served(harness: Harness) -> None:
+    command = envelope()
+    submitted = await harness.submit(command)
+    adapter = harness.test_syn
+    adapter.connector_ids = ("different-connector",)
+
+    await harness.bus.drain()
+
+    current = await harness.commands.get(TENANT, submitted.operation.command_id)
+    assert current.state == "dead_lettered"
+    assert adapter.provider_effects == 0
+
+
+@pytest.mark.asyncio
+async def test_bus_uses_provider_status_before_readback_for_async_completion(harness: Harness) -> None:
+    command = envelope(payload={"probe": True, "fixture": "success"})
+    submitted = await harness.submit(command)
+
+    await harness.bus.drain()
+
+    current = await harness.commands.get(TENANT, submitted.operation.command_id)
+    assert current.state == "completed"
+    assert current.provider_operation_id is not None
+    assert str(command.command_id) in harness.test_syn.readbacks
+
+
+@pytest.mark.asyncio
+async def test_reconciler_dead_letters_when_connector_mapping_disappears(harness: Harness) -> None:
+    command = envelope(payload={"probe": True, "fixture": "unknown"})
+    submitted = await harness.submit(command)
+    await harness.bus.drain()
+    current = await harness.commands.get(TENANT, submitted.operation.command_id)
+    assert current.state == "reconciliation_required"
+
+    harness.test_syn.connector_ids = ("different-connector",)
+    harness.bus.expire_leases()
+    decision = await harness.reconciler.run_once()
+
+    assert decision is not None
+    assert decision.action == "dead_letter"
+    current = await harness.commands.get(TENANT, submitted.operation.command_id)
+    assert current.state == "dead_lettered"
+    assert harness.test_syn.provider_effects == 1

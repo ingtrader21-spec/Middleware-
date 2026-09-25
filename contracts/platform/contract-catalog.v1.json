@@ -33,5 +33,19 @@
     "publish_only_canonical_envelopes": true,
     "reject_legacy_canonical_shapes": true,
     "wire_projections_are_not_durable_contracts": true
-  }
+  },
+  "service_integrations": [
+    {
+      "api": "contracts/platform/identity-services-adapter.v1.openapi.json",
+      "catalog": "contracts/platform/identity-services.catalog.v1.json",
+      "services": [
+        "face-id",
+        "face-liveness",
+        "camera-gateway",
+        "postgresql"
+      ],
+      "activation": "DENIED_BY_DEFAULT",
+      "authorization": "contracts/platform/face-id-authorization.v1.json"
+    }
+  ]
 }

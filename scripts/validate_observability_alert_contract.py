@@ -158,6 +158,7 @@ CONNECTOR_ID_PATTERN = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*\Z")
 COMMAND_PREFIX_PATTERN = re.compile(r"[a-z0-9]+(?:[.-][a-z0-9]+)*\.\Z")
 CAPABILITY_PATTERN = re.compile(r"[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)*\Z")
 
+
 def fail(message: str) -> Never:
     raise SystemExit(f"OBSERVABILITY_ALERT_CONTRACT=FAIL {message}")
 
@@ -435,6 +436,12 @@ def validate(root: Path = ROOT) -> tuple[int, int]:
     )
     require_exact_record(command, COMMAND_CONTRACT, "alert_command_policy_drifted")
 
+    authority_registry = load_object(root, "config/repository-authorities.v1.json")
+    principal_repositories = {
+        item.get("principal_repository")
+        for item in authority_registry.get("authorities", [])
+        if isinstance(item, dict) and isinstance(item.get("principal_repository"), str)
+    }
     adapter_registry = load_object(root, "config/adapter-registry.v2.json")
     if set(adapter_registry) != {"schema_version", "adapters"}:
         fail("adapter_registry_fields_drifted")
@@ -462,7 +469,7 @@ def validate(root: Path = ROOT) -> tuple[int, int]:
         repository = require_string(
             candidate.get("repository"), f"invalid_adapter_repository:{connector_id}"
         )
-        if re.fullmatch(r"appolon1908-hue/[A-Za-z0-9_.-]+", repository) is None:
+        if repository not in principal_repositories:
             fail(f"invalid_adapter_repository:{connector_id}")
         prefixes = require_string_list(
             candidate.get("command_prefixes"),
