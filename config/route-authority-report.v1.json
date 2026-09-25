@@ -4,14 +4,14 @@
   "listener_port": 8095,
   "profile": "integration",
   "summary": {
-    "operations": 320,
+    "operations": 321,
     "by_classification": {
       "DENIED_LEGACY": 10,
       "DIRECT_INTERNAL_SERVICE": 3,
       "DURABLE_OUTBOX_INTENT": 5,
       "INTERNAL_EVENT_INGRESS": 124,
       "KERNEL_WRAPPER": 15,
-      "READ_ONLY": 163
+      "READ_ONLY": 164
     },
     "DIRECT_EFFECT_BYPASSES": 0,
     "direct_effect_bypasses": [],
@@ -2212,6 +2212,22 @@
       "path": "/internal/v1/database/security/rls",
       "owner": "app.api.internal.database",
       "handler": "rls",
+      "classification": "READ_ONLY",
+      "kernel_delegate": null,
+      "effectful": false,
+      "provider": null,
+      "scope": null,
+      "capability": null,
+      "adapter": null,
+      "deprecation": "active",
+      "justification": null,
+      "source": "derived"
+    },
+    {
+      "method": "GET",
+      "path": "/internal/v1/database/security/roles",
+      "owner": "app.api.internal.database",
+      "handler": "roles",
       "classification": "READ_ONLY",
       "kernel_delegate": null,
       "effectful": false,

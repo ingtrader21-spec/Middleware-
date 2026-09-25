@@ -17,8 +17,28 @@ class _Acquire:
         return False
 
 
+ISOLATED_ROLE = {
+    "role_name": "middleware_runtime",
+    "superuser": False,
+    "bypassrls": False,
+    "createrole": False,
+    "createdb": False,
+    "replication": False,
+    "elevated_role_memberships": 0,
+    "owned_public_tables": 0,
+    "owned_rls_tables_without_force": 0,
+    "forced_rls_tables": 4,
+    "public_schema_create": False,
+}
+
+
 class FakeConn:
+    def __init__(self):
+        self.role = dict(ISOLATED_ROLE)
+
     async def fetchrow(self, query, *args):
+        if "rolbypassrls" in query:
+            return self.role
         if "current_database()" in query and "pg_is_in_recovery" in query:
             return {
                 "database_name": "middleware_staging",
@@ -221,3 +241,53 @@ def test_canonical_registry_owns_private_database_router():
     from app.router_registry import CANONICAL_ROUTERS
 
     assert database_api.router in CANONICAL_ROUTERS
+
+
+def test_role_isolation_reports_isolated_runtime_role(monkeypatch):
+    client, tokens = _client(monkeypatch)
+    body = client.get(
+        "/internal/v1/database/security/roles",
+        headers={"Authorization": "Bearer test"},
+    ).json()
+    assert body["runtime_role_isolated"] is True
+    assert body["rls_bypass_possible"] is False
+    assert body["forced_rls_tables"] == 4
+    assert body["evidence_only"] is True
+    assert tokens.scopes == [database_api.READ_SCOPE]
+
+
+def test_role_isolation_fails_closed_for_migration_owner_role(monkeypatch):
+    """The canary compose shares one DSN between migrate and API containers;
+    that role owns the schema, so it must never report isolation."""
+    client, _tokens = _client(monkeypatch)
+    conn = client.app.state.runtime.pool.conn
+    conn.role.update(
+        owned_public_tables=170,
+        owned_rls_tables_without_force=0,
+        public_schema_create=True,
+    )
+    body = client.get(
+        "/internal/v1/database/security/roles",
+        headers={"Authorization": "Bearer test"},
+    ).json()
+    assert body["runtime_role_isolated"] is False
+    assert body["rls_bypass_possible"] is False
+    conn.role.update(owned_rls_tables_without_force=2)
+    assert client.get(
+        "/internal/v1/database/security/roles",
+        headers={"Authorization": "Bearer test"},
+    ).json()["rls_bypass_possible"] is True
+    for attribute in ("superuser", "bypassrls"):
+        conn.role = dict(ISOLATED_ROLE, **{attribute: True})
+        body = client.get(
+            "/internal/v1/database/security/roles",
+            headers={"Authorization": "Bearer test"},
+        ).json()
+        assert body["runtime_role_isolated"] is False
+        assert body["rls_bypass_possible"] is True
+
+
+def test_role_isolation_query_is_catalog_read_only():
+    query = database_api._ROLE_ISOLATION_QUERY.upper()
+    for verb in ("INSERT", "UPDATE", "DELETE", "ALTER", "CREATE ", "DROP", "GRANT", "SET ROLE"):
+        assert verb not in query.replace("'CREATE'", "")

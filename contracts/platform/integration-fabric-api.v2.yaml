@@ -625,6 +625,46 @@ paths:
           description: Required durable dependency unavailable
       security:
       - bearerAuth: []
+  /internal/v1/database/security/roles:
+    get:
+      tags:
+      - internal-database
+      summary: Roles
+      description: 'Runtime-role isolation evidence (DB-19/DB-20 ROLE_ISOLATION precheck).
+
+
+        A superuser or BYPASSRLS role, a member of one, or the owner of a table
+
+        without FORCE ROW LEVEL SECURITY is not bound by tenant RLS policies; a
+
+        role that owns tables or may CREATE in ``public`` can run DDL. Any of these
+
+        means the runtime shares migration authority and is not isolated.'
+      operationId: roles_internal_v1_database_security_roles_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Response Roles Internal V1 Database Security Roles Get
+        '400':
+          description: Invalid canonical request
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+      security:
+      - bearerAuth: []
   /internal/v1/database/performance:
     get:
       tags:
