@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+import json
 from unittest.mock import AsyncMock
 from uuid import UUID, uuid4
 
@@ -15,6 +16,9 @@ from app.commands import (
 )
 from app.core.campaign_recycling import (
     CampaignRecyclingConflict,
+    CampaignRecyclingIdempotencyConflict,
+    CampaignRecyclingLifecycleConflict,
+    CampaignRecyclingNotFound,
     CampaignRecyclingEngine,
     Candidate,
     ChannelHealth,
@@ -23,6 +27,8 @@ from app.core.campaign_recycling import (
     PolicyProfile,
     PostgresCampaignRecyclingStore,
     Suppression,
+    canonical_digest,
+    delivery_event_payload_hash,
 )
 
 NOW = datetime(2026, 9, 24, 16, 0, tzinfo=UTC)
@@ -1034,3 +1040,222 @@ def test_delivery_event_migration_is_successor_and_fail_closed() -> None:
     assert "EMAIL_DELIVERY" not in source
     assert "SMS_DELIVERY" not in source
     assert "PRODUCTION_DIALING" not in source
+
+
+# --- suppression recording (idempotent, tenant-bound, atomic) -------------------
+
+
+def _suppression_request(**overrides):
+    value = {
+        "schema_version": "1.0",
+        "lead_id": "100-L-00000001",
+        "scope": "global",
+        "channel": None,
+        "campaign_id": None,
+        "reason": "do_not_contact_request",
+        "source": "operator",
+        "occurred_at": NOW.isoformat(),
+        "evidence": {"kind": "operator_change", "evidence_hash": "b" * 64},
+        "requested_by": "operator:synthetic",
+    }
+    value.update(overrides)
+    return value
+
+
+class _CountingConn(FakeConn):
+    def __init__(self):
+        super().__init__()
+        self.transactions = 0
+
+    def transaction(self):
+        self.transactions += 1
+        return super().transaction()
+
+
+async def _record(conn, request=None, tenant="TEST_SYN_TENANT", key="suppress-key-1"):
+    return await PostgresCampaignRecyclingStore(FakePool(conn)).record_suppression_request(
+        tenant_id=tenant,
+        idempotency_key=key,
+        request=request or _suppression_request(),
+        correlation_id="corr-suppress-1",
+    )
+
+
+def _statements(conn):
+    return [" ".join(sql.split()) for _, sql, _ in conn.executed]
+
+
+@pytest.mark.asyncio
+async def test_global_suppression_and_lifecycle_commit_in_one_transaction() -> None:
+    conn = _CountingConn()
+    conn.fetchrow_results = [
+        None,
+        {"state": "ELIGIBLE"},
+        {"created_at": NOW},
+        {"state": "ELIGIBLE", "version": 3},
+    ]
+    result = await _record(conn)
+    assert conn.transactions == 1
+    assert result["duplicate"] is False and result["scope"] == "global"
+    assert result["effective_at"] == NOW.isoformat()
+    statements = _statements(conn)
+    order = [
+        next(i for i, sql in enumerate(statements) if needle in sql)
+        for needle in (
+            "pg_advisory_xact_lock",
+            "FROM idempotency_record",
+            "FROM mcr_lead_lifecycle_current WHERE tenant_id=$1 AND lead_id=$2 FOR UPDATE",
+            "INSERT INTO mcr_suppressions",
+            "UPDATE mcr_lead_lifecycle_current",
+            "INSERT INTO mcr_lead_lifecycle_events",
+            "INSERT INTO idempotency_record",
+        )
+    ]
+    assert order == sorted(order)
+    event = next(args for _, sql, args in conn.executed
+                 if "INSERT INTO mcr_lead_lifecycle_events" in sql)
+    assert event[4:8] == ("ELIGIBLE", "SUPPRESSED", "GLOBAL_SUPPRESSION_APPLIED", "operator")
+    assert event[-1] == f"suppression:{result['suppression_id']}"
+    evidence = next(args for _, sql, args in conn.executed
+                    if "INSERT INTO idempotency_record" in sql)
+    assert evidence[1] == "mcr:suppression_record:v1"
+    assert json.loads(evidence[4]) == result
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"scope": "channel", "channel": "email", "reason": "unsubscribe"},
+        {"scope": "campaign", "campaign_id": "klyrow:cmp-a"},
+        {"scope": "campaign_channel", "channel": "sms", "campaign_id": "klyrow:cmp-a"},
+    ],
+)
+async def test_narrow_suppression_never_changes_lifecycle(overrides) -> None:
+    conn = FakeConn()
+    conn.fetchrow_results = [None, {"state": "ACTIVE_CYCLE"}, {"created_at": NOW}]
+    result = await _record(conn, _suppression_request(**overrides))
+    assert result["scope"] == overrides["scope"]
+    statements = _statements(conn)
+    assert any("INSERT INTO mcr_suppressions" in sql for sql in statements)
+    assert not any("UPDATE mcr_lead_lifecycle_current" in sql for sql in statements)
+    assert not any("INSERT INTO mcr_lead_lifecycle_events" in sql for sql in statements)
+    inserted = next(args for _, sql, args in conn.executed if "INSERT INTO mcr_suppressions" in sql)
+    assert inserted[4:6] == (overrides.get("channel"), overrides.get("campaign_id"))
+
+
+@pytest.mark.asyncio
+async def test_global_suppression_of_suppressed_lead_is_additive_and_absorbing() -> None:
+    conn = FakeConn()
+    conn.fetchrow_results = [None, {"state": "SUPPRESSED"}, {"created_at": NOW}]
+    await _record(conn)
+    statements = _statements(conn)
+    assert any("INSERT INTO mcr_suppressions" in sql for sql in statements)
+    assert not any("mcr_lead_lifecycle_events" in sql for sql in statements)
+
+
+@pytest.mark.asyncio
+async def test_identical_suppression_replay_returns_the_original_ack() -> None:
+    request = _suppression_request()
+    original = {"suppression_id": str(uuid4()), "duplicate": False, "scope": "global",
+                "effective_at": NOW.isoformat()}
+    conn = FakeConn()
+    conn.fetchrow_results = [
+        {"request_hash": canonical_digest(request), "response": json.dumps(original)}
+    ]
+    assert await _record(conn, request) == {**original, "duplicate": True}
+    assert not any("INSERT" in sql or "UPDATE" in sql for sql in _statements(conn))
+
+
+@pytest.mark.asyncio
+async def test_idempotency_key_reuse_with_different_request_is_rejected() -> None:
+    conn = FakeConn()
+    conn.fetchrow_results = [{"request_hash": "0" * 64, "response": "{}"}]
+    with pytest.raises(CampaignRecyclingIdempotencyConflict):
+        await _record(conn)
+    assert not any("INSERT" in sql or "UPDATE" in sql for sql in _statements(conn))
+
+
+@pytest.mark.asyncio
+async def test_suppression_for_unknown_lead_is_not_found_and_writes_nothing() -> None:
+    conn = FakeConn()
+    conn.fetchrow_results = [None, None]
+    with pytest.raises(CampaignRecyclingNotFound):
+        await _record(conn)
+    assert not any("INSERT" in sql for sql in _statements(conn))
+
+
+@pytest.mark.asyncio
+async def test_suppression_identity_without_evidence_fails_closed() -> None:
+    conn = FakeConn()
+    conn.fetchrow_results = [None, {"state": "ELIGIBLE"}, None]
+    with pytest.raises(CampaignRecyclingIdempotencyConflict):
+        await _record(conn)
+    assert not any("idempotency_record (" in sql or "lifecycle_events" in sql
+                   for sql in _statements(conn))
+
+
+@pytest.mark.asyncio
+async def test_idempotency_evidence_is_bound_to_the_exact_tenant() -> None:
+    keys = []
+    for tenant in ("TENANT_A", "TENANT_B"):
+        conn = FakeConn()
+        conn.fetchrow_results = [None, {"state": "ELIGIBLE"}, {"created_at": NOW},
+                                 {"state": "ELIGIBLE", "version": 1}]
+        result = await _record(conn, tenant=tenant)
+        lookup = next(args for _, sql, args in conn.executed if "FROM idempotency_record" in sql)
+        keys.append((lookup[1], result["suppression_id"]))
+        for _, sql, args in conn.executed:
+            if "mcr_" not in sql or not args:
+                continue
+            tenant_index = 1 if "INSERT INTO mcr_lead_lifecycle_events" in sql else 0
+            assert args[tenant_index] == tenant
+    assert keys[0][0] != keys[1][0] and keys[0][1] != keys[1][1]
+
+
+@pytest.mark.asyncio
+async def test_global_suppression_requires_a_lifecycle_authority_source() -> None:
+    conn = FakeConn()
+    with pytest.raises(CampaignRecyclingConflict, match="lifecycle authority"):
+        await _record(conn, _suppression_request(source="klyrow_delivery_event"))
+    assert conn.executed == []
+
+
+@pytest.mark.asyncio
+async def test_lifecycle_conflicts_are_typed() -> None:
+    conn = FakeConn()
+    conn.fetchrow_results = [None, {"state": "ELIGIBLE"}, {"created_at": NOW},
+                             {"state": "COOLING", "version": 4}]
+    with pytest.raises(CampaignRecyclingLifecycleConflict):
+        await _record(conn)
+    assert issubclass(CampaignRecyclingLifecycleConflict, CampaignRecyclingConflict)
+
+
+@pytest.mark.asyncio
+async def test_identical_replay_of_partial_projection_is_a_duplicate() -> None:
+    conn = FakeConn()
+    conn.fetchrow_results = [
+        None,
+        {
+            "id": 7,
+            "source": "klyrow",
+            "event_id": "evt-mcr-00000001",
+            "payload_hash": "e" * 64,
+            "origin_inbox": "klyrow_delivery_event_inbox",
+            "origin_event_id": "raw-1",
+            "projection_state": "partial",
+        },
+        None,
+    ]
+    result = await PostgresCampaignRecyclingStore(FakePool(conn)).apply_delivery_event(
+        delivery_event(), policy=PolicyProfile.load("test")
+    )
+    assert result["duplicate"] is True
+    assert result["projection_state"] == "partial"
+
+
+def test_delivery_payload_hash_excludes_received_at_and_itself() -> None:
+    event = delivery_event()
+    digest = delivery_event_payload_hash(event)
+    assert digest == delivery_event_payload_hash({**event, "received_at": "x", "payload_hash": "y"})
+    assert digest != delivery_event_payload_hash({**event, "event_type": "click"})

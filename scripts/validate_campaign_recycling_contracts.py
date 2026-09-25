@@ -129,6 +129,35 @@ SUPPRESSION_REASON_CODES = {
     "campaign": "SUPPRESSED_CAMPAIGN",
     "campaign_channel": "SUPPRESSED_CAMPAIGN_CHANNEL",
 }
+# The single reviewed runtime transition the milestone marker may declare.
+# MCR-C registers exactly the frozen endpoint set with these fixed
+# dispositions; changing any of them needs a reviewed edit here, not only a
+# marker edit. Production and provider activation stay forbidden in every phase.
+REVIEWED_RUNTIME_PHASE = "MCR-C"
+REVIEWED_ROUTE_DISPOSITIONS = {
+    ("post", "/platform/v1/campaign-engine/plan"): "fail_closed_dependency_unavailable",
+    ("post", "/platform/v1/campaign-engine/execute"): "denied_production_not_authorized",
+    ("get", "/platform/v1/leads/{lead_id}/journey"): "read_only_tenant_bound",
+    ("get", "/platform/v1/leads/{lead_id}/next-action"): "fail_closed_dependency_unavailable",
+    ("get", "/platform/v1/campaigns/{campaign_id}/eligible-leads"): "fail_closed_dependency_unavailable",
+    ("post", "/platform/v1/delivery-events"): "durable_inbox_only",
+    ("post", "/platform/v1/suppressions"): "durable_record_only",
+    ("get", "/platform/v1/campaign-engine/status"): "read_only_frozen_contract_only",
+}
+REVIEWED_RUNTIME_FILES = frozenset(
+    {
+        "app/api/v1/campaign_recycling.py",
+        "app/core/campaign_recycling_contract.py",
+        "app/core/campaign_recycling_readback.py",
+        "app/router_registry.py",
+        "config/route-authority-overrides.v1.json",
+        "config/route-authority-report.v1.json",
+        "contracts/platform/middleware-openapi.generated.json",
+        "deploy/public-api-route-contract.json",
+        "deploy/public-api-route-contract.sha256",
+    }
+)
+GENERATED_OPENAPI = "contracts/platform/middleware-openapi.generated.json"
 # Runtime surfaces that must not gain a handler, route, or table in MCR-A.
 RUNTIME_MARKERS = (
     "campaign-engine",
@@ -1088,6 +1117,80 @@ def check_documentation(artifacts: dict[str, Any], errors: list[str]) -> None:
         errors.append(f"doc: missing required references {missing}")
 
 
+def _check_reviewed_runtime(
+    artifacts: dict[str, Any], runtime: dict[str, Any], errors: list[str], root: Path
+) -> set[str]:
+    """Validate the MCR-C route-registration phase; return its reviewed files."""
+    if runtime.get("phase") != REVIEWED_RUNTIME_PHASE:
+        errors.append(
+            f"runtime: routes may only be registered in phase {REVIEWED_RUNTIME_PHASE}"
+        )
+        return set()
+    reviewed = runtime.get("reviewed_runtime")
+    if not isinstance(reviewed, dict) or set(reviewed) != {"files", "routes"}:
+        errors.append("runtime: reviewed_runtime must declare exactly files and routes")
+        return set()
+    files, routes = reviewed["files"], reviewed["routes"]
+    if not isinstance(files, list) or not all(
+        isinstance(item, str) and item for item in files
+    ):
+        errors.append("runtime: reviewed_runtime.files must be a string list")
+        files = []
+    unreviewed = sorted(set(files) - REVIEWED_RUNTIME_FILES)
+    if unreviewed:
+        errors.append(f"runtime: files outside the reviewed MCR-C set {unreviewed}")
+    declared: dict[tuple[str, str], Any] = {}
+    if not isinstance(routes, list):
+        errors.append("runtime: reviewed_runtime.routes must be a list")
+        routes = []
+    for route in routes:
+        if not isinstance(route, dict) or set(route) != {"method", "path", "disposition"}:
+            errors.append(f"runtime: malformed reviewed route {route!r}")
+            continue
+        key = (str(route["method"]).lower(), str(route["path"]))
+        if key in declared:
+            errors.append(f"runtime: duplicate reviewed route {key}")
+        declared[key] = route["disposition"]
+    if set(declared) != set(REVIEWED_ROUTE_DISPOSITIONS):
+        errors.append(
+            "runtime: reviewed routes must equal the frozen endpoint set; "
+            f"missing={sorted(set(REVIEWED_ROUTE_DISPOSITIONS) - set(declared))} "
+            f"extra={sorted(set(declared) - set(REVIEWED_ROUTE_DISPOSITIONS))}"
+        )
+    for key, disposition in sorted(declared.items()):
+        expected = REVIEWED_ROUTE_DISPOSITIONS.get(key)
+        if expected is not None and disposition != expected:
+            errors.append(
+                f"runtime: {key[0].upper()} {key[1]} disposition must be {expected}"
+            )
+    paths = artifacts["openapi"].get("paths", {})
+    for (method, path), disposition in REVIEWED_ROUTE_DISPOSITIONS.items():
+        effects = paths.get(path, {}).get(method, {}).get("x-codestra-effects")
+        if disposition.startswith("durable_") and effects != disposition:
+            errors.append(f"runtime: {path} disposition must match frozen x-codestra-effects")
+    generated_path = root / GENERATED_OPENAPI
+    if generated_path.is_file():
+        try:
+            generated = json.loads(generated_path.read_text(encoding="utf-8"))
+        except ValueError as exc:
+            errors.append(f"runtime: generated OpenAPI is invalid: {exc}")
+            generated = {}
+        registered = {
+            (method, path)
+            for path, item in generated.get("paths", {}).items()
+            if any(marker in path for marker in RUNTIME_MARKERS)
+            for method in item
+            if method in {"get", "post", "put", "patch", "delete"}
+        }
+        if registered != set(declared):
+            errors.append(
+                "runtime: registered MCR routes must equal the reviewed routes; "
+                f"unreviewed={sorted(registered - set(declared))} "
+                f"unregistered={sorted(set(declared) - registered)}"
+            )
+    return set(files)
+
+
 def check_no_runtime_activation(
     artifacts: dict[str, Any], errors: list[str], root: Path
 ) -> None:
@@ -1106,11 +1209,7 @@ def check_no_runtime_activation(
                 errors.append("runtime: milestone marker must pin the frozen MCR-A SHA")
             if runtime.get("implementation_enabled") is not True:
                 errors.append("runtime: Milestone 10 implementation must be explicit")
-            for flag in (
-                "routes_registered",
-                "production_authorized",
-                "provider_effects_enabled",
-            ):
+            for flag in ("production_authorized", "provider_effects_enabled"):
                 if runtime.get(flag) is not False:
                     errors.append(f"runtime: {flag} must remain false")
             allowed = runtime.get("allowed_runtime_files", [])
@@ -1120,6 +1219,17 @@ def check_no_runtime_activation(
                 errors.append("runtime: allowed_runtime_files must be a string list")
             else:
                 allowed_runtime_files = set(allowed)
+            registered = runtime.get("routes_registered")
+            if registered is True:
+                allowed_runtime_files |= _check_reviewed_runtime(
+                    artifacts, runtime, errors, root
+                )
+            elif registered is not False:
+                errors.append("runtime: routes_registered must be a boolean")
+            elif "reviewed_runtime" in runtime or "phase" in runtime:
+                errors.append(
+                    "runtime: a pre-route marker must not declare a reviewed runtime phase"
+                )
     for pattern in RUNTIME_SCAN_GLOBS:
         for path in sorted(root.glob(pattern)):
             if not path.is_file():

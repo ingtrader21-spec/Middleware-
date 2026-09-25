@@ -173,6 +173,14 @@ REASON_PRECEDENCE = (
     "ELIGIBLE",
 )
 REASON_INDEX = {reason: index for index, reason in enumerate(REASON_PRECEDENCE)}
+SUPPRESSION_IDEMPOTENCY_SCOPE = "mcr:suppression_record:v1"
+# SuppressionRequest restricts scope=global to these sources; each maps onto
+# the lifecycle.v1 transition source that owns the SUPPRESSED transition.
+GLOBAL_SUPPRESSION_LIFECYCLE_SOURCE = {
+    "operator": "operator",
+    "data_subject_request": "operator",
+    "leads_authority": "leads",
+}
 TEMPORAL_REASONS = frozenset(
     {
         "CHANNEL_HEALTH_DEFERRED",
@@ -257,6 +265,18 @@ class CampaignRecyclingConflict(CampaignRecyclingError):
 
 
 class CampaignRecyclingPolicyError(CampaignRecyclingError):
+    pass
+
+
+class CampaignRecyclingLifecycleConflict(CampaignRecyclingConflict):
+    """Illegal transition or lost optimistic lifecycle version race."""
+
+
+class CampaignRecyclingIdempotencyConflict(CampaignRecyclingConflict):
+    """An Idempotency-Key was reused for a different canonical request."""
+
+
+class CampaignRecyclingNotFound(CampaignRecyclingError):
     pass
 
 
@@ -1447,10 +1467,141 @@ class PostgresCampaignRecyclingStore:
                 )
                 return {
                     "event_id": event_id,
-                    "duplicate": False,
+                    # An identical replay of a partial projection completes it
+                    # monotonically; the caller still observes a duplicate.
+                    "duplicate": inserted is None,
                     "projection_state": projection_state,
                     "projection_note": projection_note,
                 }
+
+    async def record_suppression_request(
+        self,
+        *,
+        tenant_id: str,
+        idempotency_key: str,
+        request: Mapping[str, Any],
+        correlation_id: str,
+    ) -> dict[str, Any]:
+        """Record one contract-valid SuppressionRequest additively.
+
+        Idempotency evidence reuses the Alembic ``idempotency_record`` table
+        (unique scope/key_hash, canonical request digest, stored response); the
+        key hash binds the exact tenant. A scope=global suppression and its
+        lifecycle SUPPRESSED transition commit in one transaction; narrower
+        scopes never change lifecycle state. SUPPRESSED stays absorbing.
+        """
+        scope = str(request["scope"])
+        lead_id = str(request["lead_id"])
+        source = str(request["source"])
+        lifecycle_source = GLOBAL_SUPPRESSION_LIFECYCLE_SOURCE.get(source)
+        if scope == "global" and lifecycle_source is None:
+            raise CampaignRecyclingConflict(
+                "global suppression source has no lifecycle authority"
+            )
+        evidence_hash = str(request["evidence"]["evidence_hash"])
+        occurred_at = _coerce_event_datetime(request["occurred_at"])
+        request_hash = canonical_digest(dict(request))
+        key_hash = canonical_digest(
+            {"tenant_id": tenant_id, "idempotency_key": idempotency_key}
+        )
+        suppression_id = uuid5(NAMESPACE_URL, f"mcr:suppression_record:{key_hash}")
+        async with self.pool.acquire() as conn:
+            async with conn.transaction():
+                await conn.execute(
+                    "SELECT pg_advisory_xact_lock($1)",
+                    int.from_bytes(bytes.fromhex(key_hash)[:8], "big", signed=True),
+                )
+                prior = await conn.fetchrow(
+                    """
+                    SELECT request_hash, response
+                    FROM idempotency_record
+                    WHERE scope=$1 AND key_hash=$2
+                    """,
+                    SUPPRESSION_IDEMPOTENCY_SCOPE,
+                    key_hash,
+                )
+                if prior is not None:
+                    if prior["request_hash"] != request_hash:
+                        raise CampaignRecyclingIdempotencyConflict(
+                            "Idempotency-Key was reused for a different suppression"
+                        )
+                    response = prior["response"]
+                    if isinstance(response, str):
+                        response = json.loads(response)
+                    return {**response, "duplicate": True}
+                current = await conn.fetchrow(
+                    """
+                    SELECT state
+                    FROM mcr_lead_lifecycle_current
+                    WHERE tenant_id=$1 AND lead_id=$2
+                    FOR UPDATE
+                    """,
+                    tenant_id,
+                    lead_id,
+                )
+                if current is None:
+                    raise CampaignRecyclingNotFound("lead lifecycle not found")
+                recorded = await conn.fetchrow(
+                    """
+                    INSERT INTO mcr_suppressions
+                      (tenant_id,suppression_id,lead_id,scope,channel,campaign_id,reason,
+                       source,occurred_at,evidence_hash,requested_by)
+                    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+                    ON CONFLICT (tenant_id,suppression_id) DO NOTHING
+                    RETURNING created_at
+                    """,
+                    tenant_id,
+                    suppression_id,
+                    lead_id,
+                    scope,
+                    request.get("channel"),
+                    request.get("campaign_id"),
+                    str(request["reason"]),
+                    source,
+                    occurred_at,
+                    evidence_hash,
+                    str(request["requested_by"]),
+                )
+                if recorded is None:
+                    # Both rows commit together; a suppression without its
+                    # idempotency evidence is never silently re-acknowledged.
+                    raise CampaignRecyclingIdempotencyConflict(
+                        "suppression identity exists without idempotency evidence"
+                    )
+                if scope == "global" and current["state"] != "SUPPRESSED":
+                    assert lifecycle_source is not None
+                    await _transition_lifecycle_on_connection(
+                        conn,
+                        tenant_id=tenant_id,
+                        lead_id=lead_id,
+                        expected_from=str(current["state"]),
+                        to_state="SUPPRESSED",
+                        reason_code="GLOBAL_SUPPRESSION_APPLIED",
+                        source=lifecycle_source,
+                        correlation_id=correlation_id,
+                        evidence_hash=evidence_hash,
+                        evidence_ref=f"suppression:{suppression_id}",
+                        occurred_at=occurred_at,
+                    )
+                response = {
+                    "suppression_id": str(suppression_id),
+                    "duplicate": False,
+                    "scope": scope,
+                    "effective_at": _utc(recorded["created_at"]).isoformat(),
+                }
+                await conn.execute(
+                    """
+                    INSERT INTO idempotency_record
+                      (id,scope,key_hash,request_hash,response,status_code)
+                    VALUES ($1,$2,$3,$4,$5::jsonb,201)
+                    """,
+                    uuid4(),
+                    SUPPRESSION_IDEMPOTENCY_SCOPE,
+                    key_hash,
+                    request_hash,
+                    json.dumps(response, separators=(",", ":"), sort_keys=True),
+                )
+                return response
 
     async def journey(
         self,
@@ -1716,7 +1867,7 @@ async def _transition_lifecycle_on_connection(
     occurred_at: datetime,
 ) -> int:
     if to_state not in LEGAL_TRANSITIONS.get(expected_from, frozenset()):
-        raise CampaignRecyclingConflict(
+        raise CampaignRecyclingLifecycleConflict(
             f"illegal lifecycle transition {expected_from!r}->{to_state!r}"
         )
     current = await conn.fetchrow(
@@ -1731,7 +1882,7 @@ async def _transition_lifecycle_on_connection(
     )
     actual_from = current["state"] if current else None
     if actual_from != expected_from:
-        raise CampaignRecyclingConflict(
+        raise CampaignRecyclingLifecycleConflict(
             f"lifecycle version conflict: expected {expected_from!r}, current {actual_from!r}"
         )
     version = int(current["version"]) + 1 if current else 1
@@ -1763,7 +1914,7 @@ async def _transition_lifecycle_on_connection(
             int(current["version"]),
         )
         if result != "UPDATE 1":
-            raise CampaignRecyclingConflict("lifecycle optimistic update lost")
+            raise CampaignRecyclingLifecycleConflict("lifecycle optimistic update lost")
     await conn.execute(
         """
         INSERT INTO mcr_lead_lifecycle_events
@@ -1830,6 +1981,22 @@ def _coerce_event_datetime(value: Any) -> datetime:
             "delivery event timestamp must be ISO-8601"
         ) from exc
     return _utc(parsed)
+
+
+def canonical_digest(value: Any) -> str:
+    return hashlib.sha256(
+        json.dumps(value, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+
+
+def delivery_event_payload_hash(event: Mapping[str, Any]) -> str:
+    """delivery-event.v1 payload_hash: canonical JSON without received_at.
+
+    payload_hash itself is necessarily excluded from its own digest.
+    """
+    return canonical_digest(
+        {k: v for k, v in event.items() if k not in {"received_at", "payload_hash"}}
+    )
 
 
 def _json_default(value: Any) -> str:

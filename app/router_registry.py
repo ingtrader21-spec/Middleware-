@@ -58,6 +58,7 @@ from app.api.v1.callbacks import router as callbacks_router
 from app.api.v1.calls import router as calls_router
 from app.api.v1.campaign_search import router as campaign_search_router
 from app.api.v1.campaigns import router as campaigns_router
+from app.api.v1.campaign_recycling import router as campaign_recycling_router
 from app.api.v1.commands import router as commands_router
 from app.api.v1.contacts import router as contacts_router
 from app.api.v1.control import legacy_events_router as control_legacy_events_router
@@ -145,6 +146,7 @@ CANONICAL_ROUTERS: tuple[APIRouter, ...] = (
     tickets_router,
     tenants_router,
     campaigns_router,
+    campaign_recycling_router,
     monitoring_router,
     observability_sync_router,
     integrations_router,

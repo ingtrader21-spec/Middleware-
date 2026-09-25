@@ -272,6 +272,7 @@ class Settings(BaseSettings):
     runtime_rebuild_interval_seconds: int = 30
     allow_in_memory_storage: bool = False
     max_request_body_bytes: int = 1_048_576
+    mcr_cursor_signing_key: str = Field(default="", repr=False)
     webhook_max_clock_skew_seconds: int = 300
     webhook_replay_retention_seconds: int = 86_400
     webhook_secret_odoo_integration: str = Field(
