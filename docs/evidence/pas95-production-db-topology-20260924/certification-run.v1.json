@@ -1,0 +1,2456 @@
+{
+  "schema_version": "1.0",
+  "issue": "PAS-95",
+  "gate": "DB-18",
+  "run_id": "4e0b7d089b6e",
+  "started_at": "2026-09-25T01:09:57Z",
+  "completed_at": "2026-09-25T01:11:19Z",
+  "harness": "scripts/certify_production_db_topology.py",
+  "topology_spec": "scripts/production_db_topology/topology.v1.json",
+  "topology_spec_sha256": "9d2337d9f139033da6a2852ad3b8d9024cc2bcebfe36fe6b04016c80863bf5fb",
+  "harness_error": null,
+  "verdict": "FAIL",
+  "area_summary": {
+    "BACKUP": "FAIL",
+    "CHAOS": "BLOCKED",
+    "EFFECTS": "PASS",
+    "MIGRATION_RECEIPTS": "FAIL",
+    "MONITORING": "BLOCKED",
+    "MTLS": "FAIL",
+    "POOL": "FAIL",
+    "PRIVATE_DB_API": "BLOCKED",
+    "RC": "BLOCKED",
+    "RLS": "PASS",
+    "ROLES": "PASS",
+    "SCHEMA_HEAD": "PASS",
+    "SECRET_REFS": "FAIL",
+    "TLS": "FAIL",
+    "TOPOLOGY": "BLOCKED"
+  },
+  "check_counts": {
+    "PASS": 86,
+    "FAIL": 10,
+    "BLOCKED": 9,
+    "INFO": 0
+  },
+  "effects": {
+    "PRODUCTION_DATABASE_MUTATIONS": 0,
+    "PROVIDER_EFFECTS": 0,
+    "PRODUCTION_EFFECTS": 0
+  },
+  "residual": {
+    "containers": 0,
+    "volumes": 0,
+    "networks": 0,
+    "pki_workdir": 0
+  },
+  "host_deviations": [
+    "--security-opt no-new-privileges:true omitted: the snap Docker daemon on this host refuses exec with it (operation not permitted); every other canary hardening flag (read-only, cap-drop ALL, uid 65532, tmpfs /tmp) applied.",
+    "RC image built locally from the exact source with Dockerfile.runtime --target runtime; it is not the signed release artifact."
+  ],
+  "observations": {
+    "docker_endpoint": "unix:///var/run/docker.sock",
+    "release_candidate": {
+      "local_image_id": "sha256:ac3f32190a25e9c456f4d73c3d7bdefd3d4b8abae1db1d72e66f6eeb4c20be0f",
+      "local_tag": "codestra-middleware:pas95-rc-0606b0d",
+      "oci_revision": "0606b0db9ff59802f8da3824d209d2effc13f87d",
+      "oci_source": "https://github.com/ingtrader21-spec/Middleware-",
+      "user": "65532:65532",
+      "architecture": "amd64",
+      "source_sha": "0606b0db9ff59802f8da3824d209d2effc13f87d",
+      "registry_digests": [
+        "codestra-middleware@sha256:ac3f32190a25e9c456f4d73c3d7bdefd3d4b8abae1db1d72e66f6eeb4c20be0f"
+      ],
+      "built_from": "Dockerfile.runtime --target runtime"
+    },
+    "canary_effect_flags": {
+      "ALLOW_IN_MEMORY_STORAGE": "false",
+      "NATS_DISPATCH_MODE": "disabled",
+      "TEMPORAL_WORKER_MODE": "disabled",
+      "OUTBOX_DISPATCH_ENABLED": "false",
+      "SEND_EVENTS": "false",
+      "ENABLE_EXTERNAL_DELIVERY": "false",
+      "LIVE_WRITE": "false",
+      "LIVE_WRITES": "false",
+      "ODOO_WRITE": "false",
+      "KLYROW_EVENT_INGRESS_ENABLED": "false",
+      "KLYROW_ODOO_PROJECTION_ENABLED": "false",
+      "FORM_ODOO_DELIVERY_ENABLED": "false",
+      "CRAWLER_ODOO_DELIVERY_ENABLED": "false",
+      "SCRAPPER_ODOO_DELIVERY_ENABLED": "false",
+      "CALLBACK_DISPATCH": "false",
+      "N8N_DELIVERY_ENABLED": "false",
+      "VICIDIAL_WRITES_ENABLED": "false",
+      "EXTERNAL_DIAL_ENABLED": "false",
+      "PRODUCTION_CALLBACKS_ENABLED": "false",
+      "N8N_PRODUCTION_WORKFLOWS_ENABLED": "false",
+      "PRODUCTION_DIALING": "DISABLED",
+      "SMS_DELIVERY_ENABLED": "false",
+      "EMAIL_DELIVERY_ENABLED": "false",
+      "SOCIAL_DELIVERY_ENABLED": "false",
+      "CRAWLER_EXECUTION_ENABLED": "false",
+      "SCRAPPER_EXECUTION_ENABLED": "false",
+      "CRAWLER_EXTERNAL_CONTACT_ENABLED": "false",
+      "SCRAPPER_EXTERNAL_CONTACT_ENABLED": "false",
+      "LIVE_SMS_DELIVERY": "false",
+      "LIVE_EMAIL_DELIVERY": "false",
+      "UNRESTRICTED_CRAWLING": "false",
+      "LIVE_ADVERTISING_ENABLED": "false",
+      "EXTERNAL_DELIVERY_ENABLED": "false",
+      "SOCIAL_PUBLISHING_ENABLED": "false",
+      "EXTERNAL_MODEL_CALLS_ENABLED": "false",
+      "N8N_EXTERNAL_PROVIDER_WRITES": "false"
+    },
+    "disposable_pki": {
+      "ca": "sha256 Fingerprint=22:C4:D2:89:C1:47:2C:45:B6:6B:5C:69:4D:7C:A1:CC:31:37:F5:4F:CE:98:A6:E6:A7:74:EB:D4:BC:B6:25:6F | subject=CN=pas95-disposable-ca-4e0b7d089b6e | notAfter=Sep 27 01:10:01 2026 GMT",
+      "server": "sha256 Fingerprint=53:06:54:C5:2B:1F:CB:AA:CE:3C:B0:72:C2:36:35:C5:A5:A6:88:0A:58:CC:0D:96:E0:8F:C5:F2:1C:CF:60:09 | subject=CN=postgresql.middleware-production.svc.cluster.local | notAfter=Sep 27 01:10:01 2026 GMT",
+      "client-middleware_migration": "sha256 Fingerprint=15:9B:B4:F9:31:D3:2F:02:FB:EB:C4:07:EE:ED:14:78:89:E8:C6:07:36:86:A2:91:A8:18:C3:F4:D2:1E:92:06 | subject=CN=middleware_migration | notAfter=Sep 27 01:10:01 2026 GMT",
+      "client-middleware_production": "sha256 Fingerprint=49:C0:DF:EC:FD:49:07:C7:B0:B8:14:C4:6A:1D:CE:CA:A7:EC:42:C4:48:13:D4:28:92:DC:98:E6:AC:03:58:AE | subject=CN=middleware_production | notAfter=Sep 27 01:10:01 2026 GMT",
+      "client-middleware_worker": "sha256 Fingerprint=92:A0:64:6D:4A:5D:E6:79:23:09:E8:F2:8B:37:94:EA:C9:1A:99:48:4F:6E:00:20:7D:A4:FF:56:4B:76:51:AF | subject=CN=middleware_worker | notAfter=Sep 27 01:10:01 2026 GMT",
+      "client-middleware_scheduler": "sha256 Fingerprint=02:BD:D1:65:47:42:FF:F7:54:65:8E:F0:B1:96:8A:A2:E2:C5:FE:BA:E9:A0:AA:EE:AE:25:D3:3A:63:32:60:5F | subject=CN=middleware_scheduler | notAfter=Sep 27 01:10:01 2026 GMT",
+      "client-middleware_reconciler": "sha256 Fingerprint=81:D1:0C:25:7F:85:13:A8:F4:C3:89:68:A5:17:91:55:B7:9B:54:A1:22:AE:A8:47:30:CC:0B:E5:D0:20:5F:A5 | subject=CN=middleware_reconciler | notAfter=Sep 27 01:10:02 2026 GMT",
+      "client-middleware_backup": "sha256 Fingerprint=7C:CA:E8:71:62:51:3D:42:3C:28:79:22:EB:03:30:80:54:2C:72:9C:47:0C:23:AD:35:AB:A6:0B:27:BD:DD:EB | subject=CN=middleware_backup | notAfter=Sep 27 01:10:02 2026 GMT",
+      "client-postgres_exporter": "sha256 Fingerprint=0F:42:96:5E:9A:57:A1:82:26:53:25:3C:65:C7:56:0B:97:44:51:47:FC:45:C5:D8:56:EA:05:44:C4:85:C8:10 | subject=CN=postgres_exporter | notAfter=Sep 27 01:10:02 2026 GMT"
+    },
+    "server": {
+      "image": "postgres:17-bookworm",
+      "server_version": "17.11 (Debian 17.11-1.pgdg12+2)",
+      "settings": "hba_file=/etc/pas95-tls/pg_hba.conf,max_connections=100,password_encryption=scram-sha-256,ssl=on,ssl_min_protocol_version=TLSv1.2,superuser_reserved_connections=3"
+    },
+    "roles_after_bootstrap": [
+      "middleware_app:false:false:false:false:false",
+      "middleware_backup:true:false:false:false:false",
+      "middleware_migration:true:false:false:false:false",
+      "middleware_production:true:false:false:false:false",
+      "middleware_reconciler:true:false:false:false:false",
+      "middleware_runtime:false:false:false:false:false",
+      "middleware_scheduler:true:false:false:false:false",
+      "middleware_worker:true:false:false:false:false",
+      "mw_integration_api:false:false:false:false:false",
+      "mw_notification_worker:false:false:false:false:false",
+      "mw_scheduler:false:false:false:false:false",
+      "postgres_exporter:true:false:false:false:false"
+    ],
+    "migration_runs": {
+      "apply_1": {
+        "exit_code": 0,
+        "stdout": [
+          "RUNTIME_MIGRATION_APPLIED=core/0001_runtime.sql",
+          "RUNTIME_MIGRATION_APPLIED=core/0002_command_ledger.sql",
+          "RUNTIME_MIGRATION_APPLIED=core/0003_immutable_event_ledger.sql",
+          "RUNTIME_MIGRATION_APPLIED=core/0004_operation_control.sql",
+          "RUNTIME_MIGRATION_APPLIED=core/0005_durable_control_api.sql",
+          "RUNTIME_MIGRATION_APPLIED=core/0006_outbox_attempt_events.sql",
+          "RUNTIME_MIGRATION_APPLIED=core/0007_authority_compatibility.sql",
+          "RUNTIME_MIGRATION_APPLIED=core/0008_durable_communications.sql",
+          "RUNTIME_MIGRATION_APPLIED=core/0009_observability_incidents.sql",
+          "RUNTIME_MIGRATION_APPLIED=core/0010_realtime_gateway.sql",
+          "RUNTIME_MIGRATION_APPLIED=core/0011_audit_timeline_indexes.sql",
+          "RUNTIME_MIGRATION_APPLIED=automation-v2/0001_automation_v2.sql",
+          "RUNTIME_ALEMBIC_HEAD=0067_service_catalog_monitoring_state",
+          "AUTOMATION_V2_SCHEMA_MIGRATION=PASS",
+          "RUNTIME_SCHEMA_VERIFIED=PASS",
+          "RUNTIME_MIGRATION=PASS",
+          "RUNTIME_MIGRATION_HISTORY=sha256:c06b02314be3bfe8639248421775d9f919c0f62cc1c5c52d85fe59575ba75832"
+        ],
+        "stderr_tail": []
+      },
+      "apply_2_idempotent": {
+        "exit_code": 0,
+        "stdout": [
+          "RUNTIME_MIGRATION_APPLIED=core/0001_runtime.sql",
+          "RUNTIME_MIGRATION_APPLIED=core/0002_command_ledger.sql",
+          "RUNTIME_MIGRATION_APPLIED=core/0003_immutable_event_ledger.sql",
+          "RUNTIME_MIGRATION_APPLIED=core/0004_operation_control.sql",
+          "RUNTIME_MIGRATION_APPLIED=core/0005_durable_control_api.sql",
+          "RUNTIME_MIGRATION_APPLIED=core/0006_outbox_attempt_events.sql",
+          "RUNTIME_MIGRATION_APPLIED=core/0007_authority_compatibility.sql",
+          "RUNTIME_MIGRATION_APPLIED=core/0008_durable_communications.sql",
+          "RUNTIME_MIGRATION_APPLIED=core/0009_observability_incidents.sql",
+          "RUNTIME_MIGRATION_APPLIED=core/0010_realtime_gateway.sql",
+          "RUNTIME_MIGRATION_APPLIED=core/0011_audit_timeline_indexes.sql",
+          "RUNTIME_MIGRATION_APPLIED=automation-v2/0001_automation_v2.sql",
+          "RUNTIME_ALEMBIC_HEAD=0067_service_catalog_monitoring_state",
+          "AUTOMATION_V2_SCHEMA_MIGRATION=PASS",
+          "RUNTIME_SCHEMA_VERIFIED=PASS",
+          "RUNTIME_MIGRATION=PASS",
+          "RUNTIME_MIGRATION_HISTORY=sha256:c06b02314be3bfe8639248421775d9f919c0f62cc1c5c52d85fe59575ba75832"
+        ],
+        "stderr_tail": []
+      },
+      "verify_only": {
+        "exit_code": 0,
+        "stdout": [
+          "RUNTIME_ALEMBIC_HEAD=0067_service_catalog_monitoring_state",
+          "AUTOMATION_V2_SCHEMA_MIGRATION=PASS",
+          "RUNTIME_SCHEMA_VERIFIED=PASS",
+          "RUNTIME_MIGRATION_HISTORY=sha256:c06b02314be3bfe8639248421775d9f919c0f62cc1c5c52d85fe59575ba75832"
+        ],
+        "stderr_tail": []
+      }
+    },
+    "sql_receipts_applied": [
+      "core/0001_runtime.sql",
+      "core/0002_command_ledger.sql",
+      "core/0003_immutable_event_ledger.sql",
+      "core/0004_operation_control.sql",
+      "core/0005_durable_control_api.sql",
+      "core/0006_outbox_attempt_events.sql",
+      "core/0007_authority_compatibility.sql",
+      "core/0008_durable_communications.sql",
+      "core/0009_observability_incidents.sql",
+      "core/0010_realtime_gateway.sql",
+      "core/0011_audit_timeline_indexes.sql",
+      "automation-v2/0001_automation_v2.sql"
+    ],
+    "receipts": {
+      "core": "1,2,3,4,5,6,7,8,9,10,11",
+      "automation": "1",
+      "alembic": "0067_service_catalog_monitoring_state"
+    },
+    "schema_object_owners": "middleware_migration",
+    "migration_grant_roles_effective": "middleware_app,mw_integration_api,mw_notification_worker,mw_scheduler",
+    "migration_as_runtime_role": {
+      "exit_code": 1,
+      "stdout": [],
+      "stderr_tail": [
+        "RUNTIME_MIGRATION=FAIL ERROR_TYPE=InsufficientPrivilegeError"
+      ]
+    },
+    "profile_gate": {
+      "cases": {
+        "compose_as_shipped_no_sslmode": {
+          "accepted": true
+        },
+        "compose_with_verify_full": {
+          "accepted": false,
+          "reason": "DATABASE_URL does not match the locked runtime profile"
+        },
+        "production_plaintext": {
+          "accepted": false,
+          "reason": "DATABASE_URL does not match the locked runtime profile"
+        },
+        "production_process_rewritten_asyncpg_scheme": {
+          "accepted": false,
+          "reason": "DATABASE_URL does not match the locked runtime profile"
+        },
+        "production_verify_full_sslmode_only": {
+          "accepted": true
+        },
+        "production_verify_full_with_ca_and_client_certificate": {
+          "accepted": false,
+          "reason": "DATABASE_URL does not match the locked runtime profile"
+        }
+      },
+      "database_url_file_bound_to_profile_prefix": false,
+      "process_settings_scheme": "postgresql+asyncpg"
+    },
+    "connect_matrix": {
+      "negative": {
+        "client_certificate_cn_of_another_role": {
+          "accepted": false,
+          "error_type": "InvalidPasswordError",
+          "sqlstate": "28P01"
+        },
+        "client_certificate_from_untrusted_ca": {
+          "accepted": false,
+          "error_type": "ConnectionDoesNotExistError",
+          "sqlstate": "08003"
+        },
+        "compose_profile_as_shipped_dsn": {
+          "accepted": false,
+          "error_type": "InvalidAuthorizationSpecificationError",
+          "sqlstate": "28000"
+        },
+        "expired_client_certificate": {
+          "accepted": false,
+          "error_type": "ConnectionDoesNotExistError",
+          "sqlstate": "08003"
+        },
+        "plaintext_sslmode_disable": {
+          "accepted": false,
+          "error_type": "InvalidAuthorizationSpecificationError",
+          "sqlstate": "28000"
+        },
+        "server_hostname_not_in_certificate": {
+          "accepted": false,
+          "error_type": "SSLCertVerificationError",
+          "sqlstate": null
+        },
+        "superuser_over_network": {
+          "accepted": false,
+          "error_type": "InvalidAuthorizationSpecificationError",
+          "sqlstate": "28000"
+        },
+        "tls_require_without_verification_or_certificate": {
+          "accepted": false,
+          "error_type": "InvalidAuthorizationSpecificationError",
+          "sqlstate": "28000"
+        },
+        "tls_without_client_certificate": {
+          "accepted": false,
+          "error_type": "InvalidAuthorizationSpecificationError",
+          "sqlstate": "28000"
+        },
+        "wrong_password_with_valid_certificate": {
+          "accepted": false,
+          "error_type": "InvalidPasswordError",
+          "sqlstate": "28P01"
+        }
+      },
+      "positive": {
+        "middleware_backup": {
+          "accepted": true,
+          "bits": 256,
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "client_dn": "/CN=middleware_backup",
+          "database_name": "codestra_production",
+          "role_name": "middleware_backup",
+          "server_version": "17.11 (Debian 17.11-1.pgdg12+2)",
+          "ssl": true,
+          "tls_version": "TLSv1.3"
+        },
+        "middleware_migration": {
+          "accepted": true,
+          "bits": 256,
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "client_dn": "/CN=middleware_migration",
+          "database_name": "codestra_production",
+          "role_name": "middleware_migration",
+          "server_version": "17.11 (Debian 17.11-1.pgdg12+2)",
+          "ssl": true,
+          "tls_version": "TLSv1.3"
+        },
+        "middleware_production": {
+          "accepted": true,
+          "bits": 256,
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "client_dn": "/CN=middleware_production",
+          "database_name": "codestra_production",
+          "role_name": "middleware_production",
+          "server_version": "17.11 (Debian 17.11-1.pgdg12+2)",
+          "ssl": true,
+          "tls_version": "TLSv1.3"
+        },
+        "middleware_reconciler": {
+          "accepted": true,
+          "bits": 256,
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "client_dn": "/CN=middleware_reconciler",
+          "database_name": "codestra_production",
+          "role_name": "middleware_reconciler",
+          "server_version": "17.11 (Debian 17.11-1.pgdg12+2)",
+          "ssl": true,
+          "tls_version": "TLSv1.3"
+        },
+        "middleware_scheduler": {
+          "accepted": true,
+          "bits": 256,
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "client_dn": "/CN=middleware_scheduler",
+          "database_name": "codestra_production",
+          "role_name": "middleware_scheduler",
+          "server_version": "17.11 (Debian 17.11-1.pgdg12+2)",
+          "ssl": true,
+          "tls_version": "TLSv1.3"
+        },
+        "middleware_worker": {
+          "accepted": true,
+          "bits": 256,
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "client_dn": "/CN=middleware_worker",
+          "database_name": "codestra_production",
+          "role_name": "middleware_worker",
+          "server_version": "17.11 (Debian 17.11-1.pgdg12+2)",
+          "ssl": true,
+          "tls_version": "TLSv1.3"
+        },
+        "postgres_exporter": {
+          "accepted": true,
+          "bits": 256,
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "client_dn": "/CN=postgres_exporter",
+          "database_name": "codestra_production",
+          "role_name": "postgres_exporter",
+          "server_version": "17.11 (Debian 17.11-1.pgdg12+2)",
+          "ssl": true,
+          "tls_version": "TLSv1.3"
+        }
+      }
+    },
+    "role_isolation": {
+      "backup_denials": {
+        "insert": {
+          "denied": true,
+          "error_type": "InsufficientPrivilegeError",
+          "sqlstate": "42501"
+        }
+      },
+      "exporter_denials": {
+        "read_application_table": {
+          "denied": true,
+          "error_type": "InsufficientPrivilegeError",
+          "sqlstate": "42501"
+        }
+      },
+      "isolation": {
+        "middleware_backup": {
+          "bypassrls": false,
+          "createdb": false,
+          "createrole": false,
+          "elevated_role_memberships": 0,
+          "forced_rls_tables": 4,
+          "owned_public_tables": 0,
+          "owned_rls_tables_without_force": 0,
+          "public_schema_create": false,
+          "replication": false,
+          "rls_bypass_possible": false,
+          "role_name": "middleware_backup",
+          "runtime_role_isolated": true,
+          "superuser": false
+        },
+        "middleware_migration": {
+          "bypassrls": false,
+          "createdb": false,
+          "createrole": false,
+          "elevated_role_memberships": 0,
+          "forced_rls_tables": 4,
+          "owned_public_tables": 217,
+          "owned_rls_tables_without_force": 0,
+          "public_schema_create": true,
+          "replication": false,
+          "rls_bypass_possible": false,
+          "role_name": "middleware_migration",
+          "runtime_role_isolated": false,
+          "superuser": false
+        },
+        "middleware_production": {
+          "bypassrls": false,
+          "createdb": false,
+          "createrole": false,
+          "elevated_role_memberships": 0,
+          "forced_rls_tables": 4,
+          "owned_public_tables": 0,
+          "owned_rls_tables_without_force": 0,
+          "public_schema_create": false,
+          "replication": false,
+          "rls_bypass_possible": false,
+          "role_name": "middleware_production",
+          "runtime_role_isolated": true,
+          "superuser": false
+        },
+        "middleware_reconciler": {
+          "bypassrls": false,
+          "createdb": false,
+          "createrole": false,
+          "elevated_role_memberships": 0,
+          "forced_rls_tables": 4,
+          "owned_public_tables": 0,
+          "owned_rls_tables_without_force": 0,
+          "public_schema_create": false,
+          "replication": false,
+          "rls_bypass_possible": false,
+          "role_name": "middleware_reconciler",
+          "runtime_role_isolated": true,
+          "superuser": false
+        },
+        "middleware_scheduler": {
+          "bypassrls": false,
+          "createdb": false,
+          "createrole": false,
+          "elevated_role_memberships": 0,
+          "forced_rls_tables": 4,
+          "owned_public_tables": 0,
+          "owned_rls_tables_without_force": 0,
+          "public_schema_create": false,
+          "replication": false,
+          "rls_bypass_possible": false,
+          "role_name": "middleware_scheduler",
+          "runtime_role_isolated": true,
+          "superuser": false
+        },
+        "middleware_worker": {
+          "bypassrls": false,
+          "createdb": false,
+          "createrole": false,
+          "elevated_role_memberships": 0,
+          "forced_rls_tables": 4,
+          "owned_public_tables": 0,
+          "owned_rls_tables_without_force": 0,
+          "public_schema_create": false,
+          "replication": false,
+          "rls_bypass_possible": false,
+          "role_name": "middleware_worker",
+          "runtime_role_isolated": true,
+          "superuser": false
+        },
+        "postgres_exporter": {
+          "bypassrls": false,
+          "createdb": false,
+          "createrole": false,
+          "elevated_role_memberships": 0,
+          "forced_rls_tables": 4,
+          "owned_public_tables": 0,
+          "owned_rls_tables_without_force": 0,
+          "public_schema_create": false,
+          "replication": false,
+          "rls_bypass_possible": false,
+          "role_name": "postgres_exporter",
+          "runtime_role_isolated": true,
+          "superuser": false
+        }
+      },
+      "runtime_denials": {
+        "create_table": {
+          "denied": true,
+          "error_type": "InsufficientPrivilegeError",
+          "sqlstate": "42501"
+        },
+        "delete_append_only_ledger": {
+          "denied": true,
+          "error_type": "ObjectNotInPrerequisiteStateError",
+          "sqlstate": "55000"
+        },
+        "disable_ledger_triggers": {
+          "denied": true,
+          "error_type": "InsufficientPrivilegeError",
+          "sqlstate": "42501"
+        },
+        "drop_forced_rls": {
+          "denied": true,
+          "error_type": "InsufficientPrivilegeError",
+          "sqlstate": "42501"
+        },
+        "drop_schema_receipts": {
+          "denied": true,
+          "error_type": "InsufficientPrivilegeError",
+          "sqlstate": "42501"
+        },
+        "session_replication_role_replica": {
+          "denied": true,
+          "error_type": "InsufficientPrivilegeError",
+          "sqlstate": "42501"
+        },
+        "set_role_migration_owner": {
+          "denied": true,
+          "error_type": "InsufficientPrivilegeError",
+          "sqlstate": "42501"
+        },
+        "truncate_append_only_ledger": {
+          "denied": true,
+          "error_type": "InsufficientPrivilegeError",
+          "sqlstate": "42501"
+        }
+      }
+    },
+    "rls": {
+      "cross_tenant_insert": {
+        "denied": true,
+        "error_type": "InsufficientPrivilegeError",
+        "sqlstate": "42501"
+      },
+      "owner_row_security_setting": "on",
+      "owner_unscoped_rows": 0,
+      "rls_tables": [
+        {
+          "enabled": true,
+          "forced": true,
+          "policies": 1,
+          "table": "callback_delivery"
+        },
+        {
+          "enabled": true,
+          "forced": true,
+          "policies": 1,
+          "table": "callback_event"
+        },
+        {
+          "enabled": true,
+          "forced": true,
+          "policies": 1,
+          "table": "callback_popup_ack"
+        },
+        {
+          "enabled": true,
+          "forced": true,
+          "policies": 1,
+          "table": "callback_record"
+        }
+      ],
+      "tenant_a_agent_without_assignment_sees_rows": 0,
+      "tenant_a_sees_own_row": 1,
+      "tenant_b_sees_tenant_a_rows": 0,
+      "unscoped_session_sees_rows": 0
+    },
+    "pools": {
+      "asyncpg_pool": {
+        "acquire_beyond_max_times_out": true,
+        "application_names": [
+          ""
+        ],
+        "command_timeout_seconds": 10,
+        "idle_in_tx_timeout": "0",
+        "lock_timeout": "0",
+        "max_connections": 100,
+        "max_size": 20,
+        "min_size": 1,
+        "open_seconds": 0.061,
+        "role_sessions": 20,
+        "role_tls_sessions": 20,
+        "statement_timeout": "0",
+        "superuser_reserved": 3
+      },
+      "sqlalchemy_engine": {
+        "command_timeout_seconds": 30,
+        "connect_beyond_capacity": {
+          "error_type": "TimeoutError",
+          "refused": true,
+          "waited_seconds": 5.0
+        },
+        "max_overflow": 4,
+        "pool_recycle_seconds": 1800,
+        "pool_size": 8,
+        "pool_timeout_seconds": 5,
+        "tls_active": true
+      }
+    },
+    "backup_script": {
+      "exit_code": 1,
+      "BACKUP_STATUS": "FAIL",
+      "BACKUP_FAILURE_STAGE": "backup",
+      "BACKUP_FAILURE_REASON": "backup_catalog_invalid"
+    },
+    "backup_script_with_stdin_correction": {
+      "exit_code": 0,
+      "diff": [
+        "pg_restore --list - <\"$TEMPORARY_PATH\" -> pg_restore --list <\"$TEMPORARY_PATH\"",
+        "    - <\"$final_path\" || fail \"restore_failed\" ->     <\"$final_path\" || fail \"restore_failed\""
+      ],
+      "BACKUP_STATUS": "PASS",
+      "BACKUP_REFERENCE": "/var/backups/codestra-middleware/middleware-0606b0db9ff5-9da537cadf53-20260925T011050Z.dump",
+      "RESTORE_STATUS": "PASS",
+      "RESTORE_DATABASE_DROPPED": "YES",
+      "RESTORED_TABLE_COUNT": "217",
+      "OFFHOST_BACKUP_STATUS": "NOT_CONFIGURED",
+      "OFFHOST_BACKUP_REFERENCE": "NONE"
+    },
+    "role_based_dump": {
+      "exit_code": 1,
+      "stderr": [
+        "pg_dump: error: query failed: ERROR:  query would be affected by row-level security policy for table \"callback_delivery\"",
+        "pg_dump: detail: Query was: COPY public.callback_delivery (id, callback_id, callback_version, channel, stage, idempotency_key, status, provider_message_id, attempt_count, last_error_code, next_attempt_at, created_at, updated_at, message_id) TO stdout;"
+      ]
+    },
+    "restore_verify_only": {
+      "exit_code": 1,
+      "stdout": [],
+      "stderr_tail": [
+        "RUNTIME_MIGRATION=FAIL ERROR_TYPE=SchemaDriftError"
+      ]
+    },
+    "restore_schema_drift": {
+      "campaign_design_current": {
+        "source_matches_contract": true,
+        "differences": {
+          "constraints": {
+            "source_only": [
+              {
+                "deferrable": false,
+                "deferred": false,
+                "definition": "CHECK (((lifecycle_state)::text = ANY ((ARRAY['approval_pending'::character varying, 'approved'::character varying])::text[])))",
+                "name": "ck_campaign_current_lifecycle",
+                "type": "c",
+                "validated": true
+              }
+            ],
+            "restored_only": [
+              {
+                "deferrable": false,
+                "deferred": false,
+                "definition": "CHECK (((lifecycle_state)::text = ANY (ARRAY[('approval_pending'::character varying)::text, ('approved'::character varying)::text])))",
+                "name": "ck_campaign_current_lifecycle",
+                "type": "c",
+                "validated": true
+              }
+            ]
+          }
+        }
+      },
+      "campaign_design_failure": {
+        "source_matches_contract": true,
+        "differences": {
+          "constraints": {
+            "source_only": [
+              {
+                "deferrable": false,
+                "deferred": false,
+                "definition": "CHECK (((status)::text = ANY ((ARRAY['retry'::character varying, 'dead_letter'::character varying])::text[])))",
+                "name": "ck_campaign_failure_status",
+                "type": "c",
+                "validated": true
+              }
+            ],
+            "restored_only": [
+              {
+                "deferrable": false,
+                "deferred": false,
+                "definition": "CHECK (((status)::text = ANY (ARRAY[('retry'::character varying)::text, ('dead_letter'::character varying)::text])))",
+                "name": "ck_campaign_failure_status",
+                "type": "c",
+                "validated": true
+              }
+            ]
+          }
+        }
+      },
+      "campaign_design_revision": {
+        "source_matches_contract": true,
+        "differences": {
+          "constraints": {
+            "source_only": [
+              {
+                "deferrable": false,
+                "deferred": false,
+                "definition": "CHECK (((approval_state)::text = ANY ((ARRAY['preview'::character varying, 'approved'::character varying])::text[])))",
+                "name": "ck_campaign_design_approval",
+                "type": "c",
+                "validated": true
+              }
+            ],
+            "restored_only": [
+              {
+                "deferrable": false,
+                "deferred": false,
+                "definition": "CHECK (((approval_state)::text = ANY (ARRAY[('preview'::character varying)::text, ('approved'::character varying)::text])))",
+                "name": "ck_campaign_design_approval",
+                "type": "c",
+                "validated": true
+              }
+            ]
+          }
+        }
+      },
+      "campaign_event_inbox": {
+        "source_matches_contract": true,
+        "differences": {
+          "constraints": {
+            "source_only": [
+              {
+                "deferrable": false,
+                "deferred": false,
+                "definition": "CHECK (((processing_state)::text = ANY ((ARRAY['processing'::character varying, 'completed'::character varying])::text[])))",
+                "name": "ck_campaign_inbox_state",
+                "type": "c",
+                "validated": true
+              }
+            ],
+            "restored_only": [
+              {
+                "deferrable": false,
+                "deferred": false,
+                "definition": "CHECK (((processing_state)::text = ANY (ARRAY[('processing'::character varying)::text, ('completed'::character varying)::text])))",
+                "name": "ck_campaign_inbox_state",
+                "type": "c",
+                "validated": true
+              }
+            ]
+          }
+        }
+      }
+    },
+    "api_evidence": {
+      "backup": {
+        "evidence_id": "pas95-4e0b7d089b6e-backup",
+        "kind": "backup",
+        "created_at": "2026-09-25T01:11:09Z",
+        "source_database": "codestra_production",
+        "source_schema_head": "0067_service_catalog_monitoring_state",
+        "sha256": null,
+        "verified": true,
+        "status": "PASS"
+      },
+      "restore": {
+        "evidence_id": "pas95-4e0b7d089b6e-restore",
+        "kind": "restore",
+        "created_at": "2026-09-25T01:11:09Z",
+        "completed_at": "2026-09-25T01:11:09Z",
+        "source_database": "codestra_production",
+        "target_database": "pas95-4e0b7d089b6e-restore/codestra_production",
+        "source_schema_head": "0067_service_catalog_monitoring_state",
+        "target_schema_head": "0067_service_catalog_monitoring_state",
+        "sha256": null,
+        "verified": false,
+        "status": "FAIL"
+      }
+    },
+    "private_db_api": {
+      "mutation_routes": {
+        "DELETE /internal/v1/database/backups": 405,
+        "POST /internal/v1/database/migrations/apply": 404,
+        "POST /internal/v1/database/query": 404,
+        "POST /internal/v1/database/restores": 404,
+        "POST /internal/v1/database/sql": 404
+      },
+      "responses": {
+        "GET /internal/v1/database/backups": {
+          "body": {
+            "items": [
+              {
+                "available": true,
+                "created_at": "2026-09-25T01:11:09Z",
+                "evidence_id": "pas95-4e0b7d089b6e-backup",
+                "kind": "backup",
+                "sha256": null,
+                "source_database": "codestra_production",
+                "source_schema_head": "0067_service_catalog_monitoring_state",
+                "status": "PASS",
+                "verified": true
+              }
+            ]
+          },
+          "status": 200
+        },
+        "GET /internal/v1/database/backups/latest": {
+          "body": {
+            "available": true,
+            "created_at": "2026-09-25T01:11:09Z",
+            "evidence_id": "pas95-4e0b7d089b6e-backup",
+            "kind": "backup",
+            "sha256": null,
+            "source_database": "codestra_production",
+            "source_schema_head": "0067_service_catalog_monitoring_state",
+            "status": "PASS",
+            "verified": true
+          },
+          "status": 200
+        },
+        "GET /internal/v1/database/capacity": {
+          "body": {
+            "connections": 1,
+            "database_bytes": 19003059,
+            "max_connections": 100
+          },
+          "status": 200
+        },
+        "GET /internal/v1/database/health": {
+          "body": {
+            "latency_ms": 4.823,
+            "reachable": true,
+            "status": "ok",
+            "tls_active": true
+          },
+          "status": 200
+        },
+        "GET /internal/v1/database/locks": {
+          "body": {
+            "granted": 2,
+            "waiting": 0
+          },
+          "status": 200
+        },
+        "GET /internal/v1/database/migrations": {
+          "body": {
+            "alembic_heads": [
+              "0067_service_catalog_monitoring_state"
+            ],
+            "apply_supported": false,
+            "expected_alembic_head": "0067_service_catalog_monitoring_state",
+            "head_count": 1,
+            "verified": true
+          },
+          "status": 200
+        },
+        "GET /internal/v1/database/performance": {
+          "body": {
+            "blks_hit": 440793,
+            "blks_read": 542,
+            "deadlocks": 0,
+            "numbackends": 1,
+            "temp_files": 0,
+            "tup_deleted": 107,
+            "tup_fetched": 399010,
+            "tup_inserted": 17539,
+            "tup_returned": 585798,
+            "tup_updated": 1656,
+            "xact_commit": 244,
+            "xact_rollback": 31
+          },
+          "status": 200
+        },
+        "GET /internal/v1/database/pool": {
+          "body": {
+            "idle": 1,
+            "in_use": 0,
+            "max_size": 20,
+            "min_size": 1,
+            "size": 1
+          },
+          "status": 200
+        },
+        "GET /internal/v1/database/readiness": {
+          "body": {
+            "alembic_head": "0067_service_catalog_monitoring_state",
+            "database_matches": true,
+            "expected_alembic_head": "0067_service_catalog_monitoring_state",
+            "missing_required_tables": [],
+            "ready": true,
+            "role_matches": true,
+            "schema_matches": true,
+            "status": "ready",
+            "tls_active": true,
+            "tls_required": true
+          },
+          "status": 200
+        },
+        "GET /internal/v1/database/restores/latest": {
+          "body": {
+            "available": true,
+            "completed_at": "2026-09-25T01:11:09Z",
+            "created_at": "2026-09-25T01:11:09Z",
+            "evidence_id": "pas95-4e0b7d089b6e-restore",
+            "kind": "restore",
+            "sha256": null,
+            "source_database": "codestra_production",
+            "source_schema_head": "0067_service_catalog_monitoring_state",
+            "status": "FAIL",
+            "target_database": "pas95-4e0b7d089b6e-restore/codestra_production",
+            "target_schema_head": "0067_service_catalog_monitoring_state",
+            "verified": false
+          },
+          "status": 200
+        },
+        "GET /internal/v1/database/schema": {
+          "body": {
+            "alembic_head": "0067_service_catalog_monitoring_state",
+            "authority": "middleware",
+            "drift_detected": false,
+            "expected_alembic_head": "0067_service_catalog_monitoring_state",
+            "head_count": 1,
+            "missing_required_tables": [],
+            "required_tables": [
+              "alembic_version",
+              "platform_services",
+              "platform_service_monitoring_audit"
+            ],
+            "runtime_schema_verified": true
+          },
+          "status": 200
+        },
+        "GET /internal/v1/database/security/certificates": {
+          "body": {
+            "ca_verification": true,
+            "client_certificate_configured": true,
+            "dsn_exposed": false,
+            "hostname_verification": true,
+            "private_key_exposed": false,
+            "tls_active": true
+          },
+          "status": 200
+        },
+        "GET /internal/v1/database/security/rls": {
+          "body": {
+            "evidence_only": true,
+            "policy_count": 4,
+            "public_tables": 217,
+            "rls_enabled_tables": 4
+          },
+          "status": 200
+        },
+        "GET /internal/v1/database/security/tls": {
+          "body": {
+            "active": true,
+            "bits": 256,
+            "ca_verification": true,
+            "cipher": "TLS_AES_256_GCM_SHA384",
+            "hostname_verification": true,
+            "protocol": "TLSv1.3",
+            "required": true,
+            "verification_mode": "verify-full"
+          },
+          "status": 200
+        },
+        "GET /internal/v1/database/status": {
+          "body": {
+            "alembic_head": "0067_service_catalog_monitoring_state",
+            "database_name": "codestra_production",
+            "expected_alembic_head": "0067_service_catalog_monitoring_state",
+            "head_count": 1,
+            "in_recovery": false,
+            "role_name": "middleware_production",
+            "server_version": "17.11 (Debian 17.11-1.pgdg12+2)",
+            "tls_active": true
+          },
+          "status": 200
+        },
+        "POST /internal/v1/database/migrations/verify": {
+          "body": {
+            "alembic_head": "0067_service_catalog_monitoring_state",
+            "expected_alembic_head": "0067_service_catalog_monitoring_state",
+            "missing_required_tables": [],
+            "read_only": true,
+            "verified": true
+          },
+          "status": 200
+        }
+      },
+      "role_isolation_route_present": false,
+      "routes": [
+        "GET /internal/v1/database/backups",
+        "GET /internal/v1/database/backups/latest",
+        "GET /internal/v1/database/capacity",
+        "GET /internal/v1/database/health",
+        "GET /internal/v1/database/locks",
+        "GET /internal/v1/database/migrations",
+        "GET /internal/v1/database/performance",
+        "GET /internal/v1/database/pool",
+        "GET /internal/v1/database/readiness",
+        "GET /internal/v1/database/restores/latest",
+        "GET /internal/v1/database/schema",
+        "GET /internal/v1/database/security/certificates",
+        "GET /internal/v1/database/security/rls",
+        "GET /internal/v1/database/security/tls",
+        "GET /internal/v1/database/status",
+        "POST /internal/v1/database/migrations/verify"
+      ],
+      "scopes_requested": [
+        "platform.database.read",
+        "platform.database.verify"
+      ],
+      "secret_material_in_responses": false
+    },
+    "monitoring": {
+      "as_shipped": {
+        "alert_CodestraPostgresConnectionSaturation_condition": null,
+        "alert_CodestraPostgresDown_condition": true,
+        "metric_families": 47,
+        "pg_settings_max_connections": null,
+        "pg_stat_database_numbackends": null,
+        "pg_up": 0.0,
+        "scraped": true
+      },
+      "mtls": {
+        "alert_CodestraPostgresConnectionSaturation_condition": false,
+        "alert_CodestraPostgresDown_condition": false,
+        "metric_families": 390,
+        "pg_settings_max_connections": 100.0,
+        "pg_stat_database_numbackends": 2.0,
+        "pg_up": 1.0,
+        "scraped": true
+      }
+    },
+    "server_log_rejections": 12,
+    "migration_seeded_rows": {
+      "ai_model_capabilities": 7,
+      "alembic_version": 1,
+      "campaign_extension_allocation": 8,
+      "campaign_feature_gate": 64,
+      "campaign_registry": 8,
+      "campaign_search_alias": 32,
+      "integration_credential_reference": 2,
+      "integration_endpoint": 13,
+      "integration_endpoint_version": 25,
+      "integration_route_binding": 29,
+      "integration_schema_version": 13,
+      "integration_service": 2,
+      "middleware_automation_schema_migrations": 1,
+      "middleware_schema_migrations": 11,
+      "recording_retention_policies": 4,
+      "social_providers": 2,
+      "telephony_extension_pool": 36,
+      "website_site": 6
+    }
+  },
+  "checks": [
+    {
+      "area": "RC",
+      "id": "rc.source_revision",
+      "status": "PASS",
+      "expected": "0606b0db9ff59802f8da3824d209d2effc13f87d",
+      "observed": "0606b0db9ff59802f8da3824d209d2effc13f87d"
+    },
+    {
+      "area": "RC",
+      "id": "rc.runtime_user",
+      "status": "PASS",
+      "expected": "65532:65532",
+      "observed": "65532:65532"
+    },
+    {
+      "area": "RC",
+      "id": "rc.single_alembic_head",
+      "status": "PASS",
+      "expected": [
+        "0067_service_catalog_monitoring_state"
+      ],
+      "observed": [
+        "0067_service_catalog_monitoring_state"
+      ]
+    },
+    {
+      "area": "EFFECTS",
+      "id": "effects.network_has_no_egress",
+      "status": "PASS",
+      "expected": "internal=true",
+      "observed": "internal=true"
+    },
+    {
+      "area": "TOPOLOGY",
+      "id": "topology.server_started",
+      "status": "PASS",
+      "expected": "disposable TLS-only server",
+      "observed": {
+        "version": "17.11 (Debian 17.11-1.pgdg12+2)",
+        "settings": "hba_file=/etc/pas95-tls/pg_hba.conf,max_connections=100,password_encryption=scram-sha-256,ssl=on,ssl_min_protocol_version=TLSv1.2,superuser_reserved_connections=3"
+      }
+    },
+    {
+      "area": "ROLES",
+      "id": "roles.bootstrap",
+      "status": "PASS",
+      "expected": "split login roles, NOLOGIN grant roles",
+      "observed": [
+        "middleware_app:false:false:false:false:false",
+        "middleware_backup:true:false:false:false:false",
+        "middleware_migration:true:false:false:false:false",
+        "middleware_production:true:false:false:false:false",
+        "middleware_reconciler:true:false:false:false:false",
+        "middleware_runtime:false:false:false:false:false",
+        "middleware_scheduler:true:false:false:false:false",
+        "middleware_worker:true:false:false:false:false",
+        "mw_integration_api:false:false:false:false:false",
+        "mw_notification_worker:false:false:false:false:false",
+        "mw_scheduler:false:false:false:false:false",
+        "postgres_exporter:true:false:false:false:false"
+      ]
+    },
+    {
+      "area": "SCHEMA_HEAD",
+      "id": "migration.apply_1",
+      "status": "PASS",
+      "expected": "exit 0, head 0067_service_catalog_monitoring_state, RUNTIME_SCHEMA_VERIFIED=PASS",
+      "observed": {
+        "exit_code": 0,
+        "markers": [
+          "RUNTIME_ALEMBIC_HEAD=0067_service_catalog_monitoring_state",
+          "AUTOMATION_V2_SCHEMA_MIGRATION=PASS",
+          "RUNTIME_SCHEMA_VERIFIED=PASS",
+          "RUNTIME_MIGRATION=PASS",
+          "RUNTIME_MIGRATION_HISTORY=sha256:c06b02314be3bfe8639248421775d9f919c0f62cc1c5c52d85fe59575ba75832"
+        ]
+      }
+    },
+    {
+      "area": "SCHEMA_HEAD",
+      "id": "migration.apply_2_idempotent",
+      "status": "PASS",
+      "expected": "exit 0, head 0067_service_catalog_monitoring_state, RUNTIME_SCHEMA_VERIFIED=PASS",
+      "observed": {
+        "exit_code": 0,
+        "markers": [
+          "RUNTIME_ALEMBIC_HEAD=0067_service_catalog_monitoring_state",
+          "AUTOMATION_V2_SCHEMA_MIGRATION=PASS",
+          "RUNTIME_SCHEMA_VERIFIED=PASS",
+          "RUNTIME_MIGRATION=PASS",
+          "RUNTIME_MIGRATION_HISTORY=sha256:c06b02314be3bfe8639248421775d9f919c0f62cc1c5c52d85fe59575ba75832"
+        ]
+      }
+    },
+    {
+      "area": "SCHEMA_HEAD",
+      "id": "migration.verify_only",
+      "status": "PASS",
+      "expected": "exit 0, head 0067_service_catalog_monitoring_state, RUNTIME_SCHEMA_VERIFIED=PASS",
+      "observed": {
+        "exit_code": 0,
+        "markers": [
+          "RUNTIME_ALEMBIC_HEAD=0067_service_catalog_monitoring_state",
+          "AUTOMATION_V2_SCHEMA_MIGRATION=PASS",
+          "RUNTIME_SCHEMA_VERIFIED=PASS",
+          "RUNTIME_MIGRATION_HISTORY=sha256:c06b02314be3bfe8639248421775d9f919c0f62cc1c5c52d85fe59575ba75832"
+        ]
+      }
+    },
+    {
+      "area": "MIGRATION_RECEIPTS",
+      "id": "receipts.readback",
+      "status": "PASS",
+      "expected": {
+        "core": "1,2,3,4,5,6,7,8,9,10,11",
+        "automation": "1",
+        "alembic": "0067_service_catalog_monitoring_state"
+      },
+      "observed": {
+        "core": "1,2,3,4,5,6,7,8,9,10,11",
+        "automation": "1",
+        "alembic": "0067_service_catalog_monitoring_state"
+      }
+    },
+    {
+      "area": "MIGRATION_RECEIPTS",
+      "id": "receipts.deploy_controller_assertion",
+      "status": "FAIL",
+      "expected": "deploy/production/server/codestra-middleware-deploy accepts the RC receipts",
+      "observed": {
+        "controller_pins": "1..10",
+        "rc_receipts": "1,2,3,4,5,6,7,8,9,10,11"
+      },
+      "note": "PAS-27 F-07: the controller asserts receipts 1..10 while the RC ships 0011; a controller-driven deploy of this RC fails closed after migrating. Release/trust-owned file; not changed here."
+    },
+    {
+      "area": "ROLES",
+      "id": "roles.schema_owned_by_migration_role_only",
+      "status": "PASS",
+      "expected": "middleware_migration",
+      "observed": "middleware_migration"
+    },
+    {
+      "area": "ROLES",
+      "id": "roles.migration_least_privilege_grants_effective",
+      "status": "PASS",
+      "expected": "grants in 0020/0047/0048/0051-0053 land on pre-created NOLOGIN grant roles",
+      "observed": "middleware_app,mw_integration_api,mw_notification_worker,mw_scheduler",
+      "note": "PAS-78 F-05: these grants are silent no-ops unless the roles exist before migration; the repository still provisions none of them."
+    },
+    {
+      "area": "ROLES",
+      "id": "roles.runtime_role_cannot_migrate",
+      "status": "PASS",
+      "expected": "non-zero exit, RUNTIME_MIGRATION=FAIL",
+      "observed": {
+        "exit_code": 1,
+        "stderr": [
+          "RUNTIME_MIGRATION=FAIL ERROR_TYPE=InsufficientPrivilegeError"
+        ]
+      }
+    },
+    {
+      "area": "TLS",
+      "id": "profile.production_requires_verify_full",
+      "status": "PASS",
+      "expected": "sslmode=verify-full accepted, plaintext rejected",
+      "observed": {
+        "production_verify_full_sslmode_only": {
+          "accepted": true
+        },
+        "production_plaintext": {
+          "accepted": false,
+          "reason": "DATABASE_URL does not match the locked runtime profile"
+        }
+      }
+    },
+    {
+      "area": "MTLS",
+      "id": "profile.admits_ca_and_client_certificate",
+      "status": "FAIL",
+      "expected": "the locked production-v1 profile admits sslrootcert/sslcert/sslkey (the only way to present a client certificate)",
+      "observed": {
+        "accepted": false,
+        "reason": "DATABASE_URL does not match the locked runtime profile"
+      },
+      "note": "PAS-78 F-02: the RC's locked profile rejects every DSN that can present a client certificate; the RC API process cannot start against an mTLS-only production server. Owner lane: PR #304 (PAS-79/80)."
+    },
+    {
+      "area": "TLS",
+      "id": "profile.process_dsn_passes_its_own_profile",
+      "status": "FAIL",
+      "expected": "process settings keep scheme postgresql",
+      "observed": {
+        "process_settings_scheme": "postgresql+asyncpg",
+        "rewritten_case": {
+          "accepted": false,
+          "reason": "DATABASE_URL does not match the locked runtime profile"
+        }
+      },
+      "note": "PAS-78 F-01: app.core.config rewrites DATABASE_URL to postgresql+asyncpg, which _validate_database_profile then rejects; a profile-bound process fails closed at startup."
+    },
+    {
+      "area": "TLS",
+      "id": "profile.compose_canary_requires_tls",
+      "status": "FAIL",
+      "expected": "codestra-middleware-production-compose-v1 rejects a DSN without TLS",
+      "observed": {
+        "compose_as_shipped_no_sslmode": {
+          "accepted": true
+        },
+        "compose_with_verify_full": {
+          "accepted": false,
+          "reason": "DATABASE_URL does not match the locked runtime profile"
+        }
+      },
+      "note": "PAS-78 F-03: the canary compose profile locks sslmode to null; it can only run plaintext."
+    },
+    {
+      "area": "SECRET_REFS",
+      "id": "secrets.database_url_file_bound_to_profile_prefix",
+      "status": "FAIL",
+      "expected": "DATABASE_URL_FILE must live under the profile secret prefix",
+      "observed": false,
+      "note": "PAS-78 F-12."
+    },
+    {
+      "area": "MTLS",
+      "id": "mtls.accept.middleware_backup",
+      "status": "PASS",
+      "expected": "verify-full + CN-bound client certificate accepted over TLS>=1.2",
+      "observed": {
+        "accepted": true,
+        "role_name": "middleware_backup",
+        "ssl": true,
+        "tls_version": "TLSv1.3",
+        "cipher": "TLS_AES_256_GCM_SHA384",
+        "client_dn": "/CN=middleware_backup",
+        "error_type": null,
+        "sqlstate": null
+      }
+    },
+    {
+      "area": "MTLS",
+      "id": "mtls.accept.middleware_migration",
+      "status": "PASS",
+      "expected": "verify-full + CN-bound client certificate accepted over TLS>=1.2",
+      "observed": {
+        "accepted": true,
+        "role_name": "middleware_migration",
+        "ssl": true,
+        "tls_version": "TLSv1.3",
+        "cipher": "TLS_AES_256_GCM_SHA384",
+        "client_dn": "/CN=middleware_migration",
+        "error_type": null,
+        "sqlstate": null
+      }
+    },
+    {
+      "area": "MTLS",
+      "id": "mtls.accept.middleware_production",
+      "status": "PASS",
+      "expected": "verify-full + CN-bound client certificate accepted over TLS>=1.2",
+      "observed": {
+        "accepted": true,
+        "role_name": "middleware_production",
+        "ssl": true,
+        "tls_version": "TLSv1.3",
+        "cipher": "TLS_AES_256_GCM_SHA384",
+        "client_dn": "/CN=middleware_production",
+        "error_type": null,
+        "sqlstate": null
+      }
+    },
+    {
+      "area": "MTLS",
+      "id": "mtls.accept.middleware_reconciler",
+      "status": "PASS",
+      "expected": "verify-full + CN-bound client certificate accepted over TLS>=1.2",
+      "observed": {
+        "accepted": true,
+        "role_name": "middleware_reconciler",
+        "ssl": true,
+        "tls_version": "TLSv1.3",
+        "cipher": "TLS_AES_256_GCM_SHA384",
+        "client_dn": "/CN=middleware_reconciler",
+        "error_type": null,
+        "sqlstate": null
+      }
+    },
+    {
+      "area": "MTLS",
+      "id": "mtls.accept.middleware_scheduler",
+      "status": "PASS",
+      "expected": "verify-full + CN-bound client certificate accepted over TLS>=1.2",
+      "observed": {
+        "accepted": true,
+        "role_name": "middleware_scheduler",
+        "ssl": true,
+        "tls_version": "TLSv1.3",
+        "cipher": "TLS_AES_256_GCM_SHA384",
+        "client_dn": "/CN=middleware_scheduler",
+        "error_type": null,
+        "sqlstate": null
+      }
+    },
+    {
+      "area": "MTLS",
+      "id": "mtls.accept.middleware_worker",
+      "status": "PASS",
+      "expected": "verify-full + CN-bound client certificate accepted over TLS>=1.2",
+      "observed": {
+        "accepted": true,
+        "role_name": "middleware_worker",
+        "ssl": true,
+        "tls_version": "TLSv1.3",
+        "cipher": "TLS_AES_256_GCM_SHA384",
+        "client_dn": "/CN=middleware_worker",
+        "error_type": null,
+        "sqlstate": null
+      }
+    },
+    {
+      "area": "MTLS",
+      "id": "mtls.accept.postgres_exporter",
+      "status": "PASS",
+      "expected": "verify-full + CN-bound client certificate accepted over TLS>=1.2",
+      "observed": {
+        "accepted": true,
+        "role_name": "postgres_exporter",
+        "ssl": true,
+        "tls_version": "TLSv1.3",
+        "cipher": "TLS_AES_256_GCM_SHA384",
+        "client_dn": "/CN=postgres_exporter",
+        "error_type": null,
+        "sqlstate": null
+      }
+    },
+    {
+      "area": "MTLS",
+      "id": "reject.client_certificate_cn_of_another_role",
+      "status": "PASS",
+      "expected": "rejected",
+      "observed": {
+        "accepted": false,
+        "error_type": "InvalidPasswordError",
+        "sqlstate": "28P01"
+      }
+    },
+    {
+      "area": "MTLS",
+      "id": "reject.client_certificate_from_untrusted_ca",
+      "status": "PASS",
+      "expected": "rejected",
+      "observed": {
+        "accepted": false,
+        "error_type": "ConnectionDoesNotExistError",
+        "sqlstate": "08003"
+      }
+    },
+    {
+      "area": "TLS",
+      "id": "reject.compose_profile_as_shipped_dsn",
+      "status": "PASS",
+      "expected": "rejected",
+      "observed": {
+        "accepted": false,
+        "error_type": "InvalidAuthorizationSpecificationError",
+        "sqlstate": "28000"
+      }
+    },
+    {
+      "area": "MTLS",
+      "id": "reject.expired_client_certificate",
+      "status": "PASS",
+      "expected": "rejected",
+      "observed": {
+        "accepted": false,
+        "error_type": "ConnectionDoesNotExistError",
+        "sqlstate": "08003"
+      }
+    },
+    {
+      "area": "TLS",
+      "id": "reject.plaintext_sslmode_disable",
+      "status": "PASS",
+      "expected": "rejected",
+      "observed": {
+        "accepted": false,
+        "error_type": "InvalidAuthorizationSpecificationError",
+        "sqlstate": "28000"
+      }
+    },
+    {
+      "area": "TLS",
+      "id": "reject.server_hostname_not_in_certificate",
+      "status": "PASS",
+      "expected": "rejected",
+      "observed": {
+        "accepted": false,
+        "error_type": "SSLCertVerificationError",
+        "sqlstate": null
+      }
+    },
+    {
+      "area": "MTLS",
+      "id": "reject.superuser_over_network",
+      "status": "PASS",
+      "expected": "rejected",
+      "observed": {
+        "accepted": false,
+        "error_type": "InvalidAuthorizationSpecificationError",
+        "sqlstate": "28000"
+      }
+    },
+    {
+      "area": "MTLS",
+      "id": "reject.tls_require_without_verification_or_certificate",
+      "status": "PASS",
+      "expected": "rejected",
+      "observed": {
+        "accepted": false,
+        "error_type": "InvalidAuthorizationSpecificationError",
+        "sqlstate": "28000"
+      }
+    },
+    {
+      "area": "MTLS",
+      "id": "reject.tls_without_client_certificate",
+      "status": "PASS",
+      "expected": "rejected",
+      "observed": {
+        "accepted": false,
+        "error_type": "InvalidAuthorizationSpecificationError",
+        "sqlstate": "28000"
+      }
+    },
+    {
+      "area": "MTLS",
+      "id": "reject.wrong_password_with_valid_certificate",
+      "status": "PASS",
+      "expected": "rejected",
+      "observed": {
+        "accepted": false,
+        "error_type": "InvalidPasswordError",
+        "sqlstate": "28P01"
+      }
+    },
+    {
+      "area": "ROLES",
+      "id": "isolation.middleware_backup",
+      "status": "PASS",
+      "expected": "runtime_role_isolated=true, rls_bypass_possible=false (PAS-96/97 query)",
+      "observed": {
+        "bypassrls": false,
+        "createdb": false,
+        "createrole": false,
+        "elevated_role_memberships": 0,
+        "forced_rls_tables": 4,
+        "owned_public_tables": 0,
+        "owned_rls_tables_without_force": 0,
+        "public_schema_create": false,
+        "replication": false,
+        "rls_bypass_possible": false,
+        "role_name": "middleware_backup",
+        "runtime_role_isolated": true,
+        "superuser": false
+      }
+    },
+    {
+      "area": "ROLES",
+      "id": "isolation.middleware_migration",
+      "status": "PASS",
+      "expected": "schema owner: not isolated (owns DDL), but cannot bypass forced RLS",
+      "observed": {
+        "bypassrls": false,
+        "createdb": false,
+        "createrole": false,
+        "elevated_role_memberships": 0,
+        "forced_rls_tables": 4,
+        "owned_public_tables": 217,
+        "owned_rls_tables_without_force": 0,
+        "public_schema_create": true,
+        "replication": false,
+        "rls_bypass_possible": false,
+        "role_name": "middleware_migration",
+        "runtime_role_isolated": false,
+        "superuser": false
+      }
+    },
+    {
+      "area": "ROLES",
+      "id": "isolation.middleware_production",
+      "status": "PASS",
+      "expected": "runtime_role_isolated=true, rls_bypass_possible=false (PAS-96/97 query)",
+      "observed": {
+        "bypassrls": false,
+        "createdb": false,
+        "createrole": false,
+        "elevated_role_memberships": 0,
+        "forced_rls_tables": 4,
+        "owned_public_tables": 0,
+        "owned_rls_tables_without_force": 0,
+        "public_schema_create": false,
+        "replication": false,
+        "rls_bypass_possible": false,
+        "role_name": "middleware_production",
+        "runtime_role_isolated": true,
+        "superuser": false
+      }
+    },
+    {
+      "area": "ROLES",
+      "id": "isolation.middleware_reconciler",
+      "status": "PASS",
+      "expected": "runtime_role_isolated=true, rls_bypass_possible=false (PAS-96/97 query)",
+      "observed": {
+        "bypassrls": false,
+        "createdb": false,
+        "createrole": false,
+        "elevated_role_memberships": 0,
+        "forced_rls_tables": 4,
+        "owned_public_tables": 0,
+        "owned_rls_tables_without_force": 0,
+        "public_schema_create": false,
+        "replication": false,
+        "rls_bypass_possible": false,
+        "role_name": "middleware_reconciler",
+        "runtime_role_isolated": true,
+        "superuser": false
+      }
+    },
+    {
+      "area": "ROLES",
+      "id": "isolation.middleware_scheduler",
+      "status": "PASS",
+      "expected": "runtime_role_isolated=true, rls_bypass_possible=false (PAS-96/97 query)",
+      "observed": {
+        "bypassrls": false,
+        "createdb": false,
+        "createrole": false,
+        "elevated_role_memberships": 0,
+        "forced_rls_tables": 4,
+        "owned_public_tables": 0,
+        "owned_rls_tables_without_force": 0,
+        "public_schema_create": false,
+        "replication": false,
+        "rls_bypass_possible": false,
+        "role_name": "middleware_scheduler",
+        "runtime_role_isolated": true,
+        "superuser": false
+      }
+    },
+    {
+      "area": "ROLES",
+      "id": "isolation.middleware_worker",
+      "status": "PASS",
+      "expected": "runtime_role_isolated=true, rls_bypass_possible=false (PAS-96/97 query)",
+      "observed": {
+        "bypassrls": false,
+        "createdb": false,
+        "createrole": false,
+        "elevated_role_memberships": 0,
+        "forced_rls_tables": 4,
+        "owned_public_tables": 0,
+        "owned_rls_tables_without_force": 0,
+        "public_schema_create": false,
+        "replication": false,
+        "rls_bypass_possible": false,
+        "role_name": "middleware_worker",
+        "runtime_role_isolated": true,
+        "superuser": false
+      }
+    },
+    {
+      "area": "ROLES",
+      "id": "isolation.postgres_exporter",
+      "status": "PASS",
+      "expected": "runtime_role_isolated=true, rls_bypass_possible=false (PAS-96/97 query)",
+      "observed": {
+        "bypassrls": false,
+        "createdb": false,
+        "createrole": false,
+        "elevated_role_memberships": 0,
+        "forced_rls_tables": 4,
+        "owned_public_tables": 0,
+        "owned_rls_tables_without_force": 0,
+        "public_schema_create": false,
+        "replication": false,
+        "rls_bypass_possible": false,
+        "role_name": "postgres_exporter",
+        "runtime_role_isolated": true,
+        "superuser": false
+      }
+    },
+    {
+      "area": "ROLES",
+      "id": "runtime_denials.create_table",
+      "status": "PASS",
+      "expected": "denied",
+      "observed": {
+        "denied": true,
+        "error_type": "InsufficientPrivilegeError",
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "area": "ROLES",
+      "id": "runtime_denials.delete_append_only_ledger",
+      "status": "PASS",
+      "expected": "denied",
+      "observed": {
+        "denied": true,
+        "error_type": "ObjectNotInPrerequisiteStateError",
+        "sqlstate": "55000"
+      }
+    },
+    {
+      "area": "ROLES",
+      "id": "runtime_denials.disable_ledger_triggers",
+      "status": "PASS",
+      "expected": "denied",
+      "observed": {
+        "denied": true,
+        "error_type": "InsufficientPrivilegeError",
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "area": "ROLES",
+      "id": "runtime_denials.drop_forced_rls",
+      "status": "PASS",
+      "expected": "denied",
+      "observed": {
+        "denied": true,
+        "error_type": "InsufficientPrivilegeError",
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "area": "ROLES",
+      "id": "runtime_denials.drop_schema_receipts",
+      "status": "PASS",
+      "expected": "denied",
+      "observed": {
+        "denied": true,
+        "error_type": "InsufficientPrivilegeError",
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "area": "ROLES",
+      "id": "runtime_denials.session_replication_role_replica",
+      "status": "PASS",
+      "expected": "denied",
+      "observed": {
+        "denied": true,
+        "error_type": "InsufficientPrivilegeError",
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "area": "ROLES",
+      "id": "runtime_denials.set_role_migration_owner",
+      "status": "PASS",
+      "expected": "denied",
+      "observed": {
+        "denied": true,
+        "error_type": "InsufficientPrivilegeError",
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "area": "ROLES",
+      "id": "runtime_denials.truncate_append_only_ledger",
+      "status": "PASS",
+      "expected": "denied",
+      "observed": {
+        "denied": true,
+        "error_type": "InsufficientPrivilegeError",
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "area": "ROLES",
+      "id": "backup_denials.insert",
+      "status": "PASS",
+      "expected": "denied",
+      "observed": {
+        "denied": true,
+        "error_type": "InsufficientPrivilegeError",
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "area": "ROLES",
+      "id": "exporter_denials.read_application_table",
+      "status": "PASS",
+      "expected": "denied",
+      "observed": {
+        "denied": true,
+        "error_type": "InsufficientPrivilegeError",
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "area": "RLS",
+      "id": "rls.forced_tables",
+      "status": "PASS",
+      "expected": [
+        "callback_delivery",
+        "callback_event",
+        "callback_popup_ack",
+        "callback_record"
+      ],
+      "observed": [
+        {
+          "enabled": true,
+          "forced": true,
+          "policies": 1,
+          "table": "callback_delivery"
+        },
+        {
+          "enabled": true,
+          "forced": true,
+          "policies": 1,
+          "table": "callback_event"
+        },
+        {
+          "enabled": true,
+          "forced": true,
+          "policies": 1,
+          "table": "callback_popup_ack"
+        },
+        {
+          "enabled": true,
+          "forced": true,
+          "policies": 1,
+          "table": "callback_record"
+        }
+      ]
+    },
+    {
+      "area": "RLS",
+      "id": "rls.tenant_sees_own_row",
+      "status": "PASS",
+      "expected": 1,
+      "observed": 1
+    },
+    {
+      "area": "RLS",
+      "id": "rls.other_tenant_isolated",
+      "status": "PASS",
+      "expected": 0,
+      "observed": 0
+    },
+    {
+      "area": "RLS",
+      "id": "rls.unscoped_session_sees_nothing",
+      "status": "PASS",
+      "expected": 0,
+      "observed": 0
+    },
+    {
+      "area": "RLS",
+      "id": "rls.unassigned_agent_sees_nothing",
+      "status": "PASS",
+      "expected": 0,
+      "observed": 0
+    },
+    {
+      "area": "RLS",
+      "id": "rls.cross_tenant_insert_rejected",
+      "status": "PASS",
+      "expected": "WITH CHECK violation",
+      "observed": {
+        "denied": true,
+        "error_type": "InsufficientPrivilegeError",
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "area": "RLS",
+      "id": "rls.schema_owner_subject_to_force",
+      "status": "PASS",
+      "expected": "owner sees 0 rows, row_security=on",
+      "observed": {
+        "owner_unscoped_rows": 0,
+        "owner_row_security_setting": "on"
+      }
+    },
+    {
+      "area": "POOL",
+      "id": "pool.asyncpg_bounds",
+      "status": "PASS",
+      "expected": {
+        "min_size": 1,
+        "max_size": 20,
+        "command_timeout_seconds": 10
+      },
+      "observed": {
+        "min_size": 1,
+        "max_size": 20,
+        "command_timeout_seconds": 10,
+        "acquire_beyond_max_times_out": true
+      }
+    },
+    {
+      "area": "POOL",
+      "id": "pool.asyncpg_all_sessions_tls",
+      "status": "PASS",
+      "expected": "every pooled session is TLS",
+      "observed": {
+        "role_sessions": 20,
+        "role_tls_sessions": 20
+      }
+    },
+    {
+      "area": "POOL",
+      "id": "pool.sqlalchemy_bounds",
+      "status": "PASS",
+      "expected": {
+        "pool_size": 8,
+        "max_overflow": 4,
+        "pool_timeout_seconds": 5,
+        "pool_recycle_seconds": 1800,
+        "command_timeout_seconds": 30
+      },
+      "observed": {
+        "command_timeout_seconds": 30,
+        "connect_beyond_capacity": {
+          "error_type": "TimeoutError",
+          "refused": true,
+          "waited_seconds": 5.0
+        },
+        "max_overflow": 4,
+        "pool_recycle_seconds": 1800,
+        "pool_size": 8,
+        "pool_timeout_seconds": 5,
+        "tls_active": true
+      }
+    },
+    {
+      "area": "POOL",
+      "id": "pool.connection_budget",
+      "status": "PASS",
+      "expected": "canary demand <= max_connections - superuser_reserved (97)",
+      "observed": {
+        "per_api_process": 32,
+        "api_workers": 2,
+        "demand": 66,
+        "capacity": 97
+      }
+    },
+    {
+      "area": "POOL",
+      "id": "pool.application_name_attribution",
+      "status": "FAIL",
+      "expected": "every session sets application_name",
+      "observed": [
+        ""
+      ],
+      "note": "PAS-78 F-07."
+    },
+    {
+      "area": "POOL",
+      "id": "pool.statement_and_lock_timeouts",
+      "status": "FAIL",
+      "expected": "non-zero statement_timeout and lock_timeout",
+      "observed": {
+        "statement_timeout": "0",
+        "lock_timeout": "0",
+        "idle_in_tx_timeout": "0"
+      },
+      "note": "PAS-78 F-09."
+    },
+    {
+      "area": "BACKUP",
+      "id": "backup.repository_script",
+      "status": "FAIL",
+      "expected": "BACKUP_STATUS=PASS, in-place restore rehearsal PASS, rehearsal DB dropped",
+      "observed": {
+        "exit_code": 1,
+        "BACKUP_STATUS": "FAIL",
+        "BACKUP_FAILURE_STAGE": "backup",
+        "BACKUP_FAILURE_REASON": "backup_catalog_invalid"
+      },
+      "note": "codestra-middleware-backup passes '-' to pg_restore, which PostgreSQL 14/16/17 open as a file named '-' (could not open input file \"-\"). The script therefore always stops at backup_catalog_invalid, and codestra-middleware-deploy:485 aborts every controller-driven deploy at backup_or_restore_rehearsal_failed."
+    },
+    {
+      "area": "BACKUP",
+      "id": "backup.repository_script_with_stdin_correction",
+      "status": "PASS",
+      "expected": "BACKUP_STATUS=PASS, in-place restore rehearsal PASS, rehearsal DB dropped",
+      "observed": {
+        "exit_code": 0,
+        "diff": [
+          "pg_restore --list - <\"$TEMPORARY_PATH\" -> pg_restore --list <\"$TEMPORARY_PATH\"",
+          "    - <\"$final_path\" || fail \"restore_failed\" ->     <\"$final_path\" || fail \"restore_failed\""
+        ],
+        "BACKUP_STATUS": "PASS",
+        "BACKUP_REFERENCE": "/var/backups/codestra-middleware/middleware-0606b0db9ff5-9da537cadf53-20260925T011050Z.dump",
+        "RESTORE_STATUS": "PASS",
+        "RESTORE_DATABASE_DROPPED": "YES",
+        "RESTORED_TABLE_COUNT": "217",
+        "OFFHOST_BACKUP_STATUS": "NOT_CONFIGURED",
+        "OFFHOST_BACKUP_REFERENCE": "NONE"
+      },
+      "note": "The same script with only the two pg_restore '-' arguments removed; proves the fix, the repository file is not changed by this lane."
+    },
+    {
+      "area": "BACKUP",
+      "id": "backup.offhost_copy",
+      "status": "BLOCKED",
+      "expected": "off-host copy with digest readback",
+      "observed": "NOT_CONFIGURED",
+      "note": "deploy.conf.example ships OFFHOST_BACKUP_DIR empty; the production off-host target is a host decision."
+    },
+    {
+      "area": "BACKUP",
+      "id": "backup.pitr",
+      "status": "BLOCKED",
+      "expected": "WAL archiving / PITR",
+      "observed": "logical dumps only",
+      "note": "PAS-78 F-13: no WAL archiving or PITR in the repository; a production decision for the backup owner."
+    },
+    {
+      "area": "BACKUP",
+      "id": "backup.least_privilege_role_dump",
+      "status": "FAIL",
+      "expected": "middleware_backup (pg_read_all_data, NOBYPASSRLS) can take a complete dump over mTLS",
+      "observed": {
+        "exit_code": 1,
+        "stderr": [
+          "pg_dump: error: query failed: ERROR:  query would be affected by row-level security policy for table \"callback_delivery\"",
+          "pg_dump: detail: Query was: COPY public.callback_delivery (id, callback_id, callback_version, channel, stage, idempotency_key, status, provider_message_id, attempt_count, last_error_code, next_attempt_at, created_at, updated_at, message_id) TO stdout;"
+        ]
+      },
+      "note": "pg_dump refuses FORCE ROW LEVEL SECURITY tables without BYPASSRLS; the repository backup path therefore depends on the local postgres superuser (PAS-78 F-13). A production backup role needs BYPASSRLS (or superuser) by explicit owner decision."
+    },
+    {
+      "area": "BACKUP",
+      "id": "restore.isolated_pg_restore",
+      "status": "PASS",
+      "expected": "exit 0 in a --network none server",
+      "observed": {
+        "exit_code": 0,
+        "stderr": []
+      }
+    },
+    {
+      "area": "BACKUP",
+      "id": "restore.table_and_row_parity",
+      "status": "PASS",
+      "expected": "identical table set and row counts",
+      "observed": {
+        "tables": 217,
+        "equal": true
+      }
+    },
+    {
+      "area": "BACKUP",
+      "id": "restore.rc_verify_only",
+      "status": "FAIL",
+      "expected": "RC migrate_runtime --verify-only PASS on the restored copy",
+      "observed": {
+        "exit_code": 1,
+        "markers": [],
+        "stderr": [
+          "RUNTIME_MIGRATION=FAIL ERROR_TYPE=SchemaDriftError"
+        ],
+        "drifted_tables": [
+          "campaign_design_current",
+          "campaign_design_failure",
+          "campaign_design_revision",
+          "campaign_event_inbox"
+        ]
+      },
+      "note": "pg_dump/pg_restore re-deparses varchar IN (...) CHECK constraints (ANY ((ARRAY[...])::text[]) becomes ANY (ARRAY[(...)::text, ...])). They are semantically identical, but scripts/runtime_sql_schema.py hashes pg_get_constraintdef text, so every database restored from a logical backup fails the RC's own schema admission (migrate_runtime and therefore the deploy controller). Restore-based recovery is blocked until the contract normalizes constraint expressions or the restore re-applies them."
+    },
+    {
+      "area": "PRIVATE_DB_API",
+      "id": "api.all_routes_200",
+      "status": "PASS",
+      "expected": "200 for every canonical route",
+      "observed": {
+        "GET /internal/v1/database/backups": 200,
+        "GET /internal/v1/database/backups/latest": 200,
+        "GET /internal/v1/database/capacity": 200,
+        "GET /internal/v1/database/health": 200,
+        "GET /internal/v1/database/locks": 200,
+        "GET /internal/v1/database/migrations": 200,
+        "GET /internal/v1/database/performance": 200,
+        "GET /internal/v1/database/pool": 200,
+        "GET /internal/v1/database/readiness": 200,
+        "GET /internal/v1/database/restores/latest": 200,
+        "GET /internal/v1/database/schema": 200,
+        "GET /internal/v1/database/security/certificates": 200,
+        "GET /internal/v1/database/security/rls": 200,
+        "GET /internal/v1/database/security/tls": 200,
+        "GET /internal/v1/database/status": 200,
+        "POST /internal/v1/database/migrations/verify": 200
+      }
+    },
+    {
+      "area": "PRIVATE_DB_API",
+      "id": "api.readiness",
+      "status": "PASS",
+      "expected": {
+        "ready": true,
+        "alembic_head": "0067_service_catalog_monitoring_state",
+        "tls_required": true,
+        "tls_active": true
+      },
+      "observed": {
+        "alembic_head": "0067_service_catalog_monitoring_state",
+        "database_matches": true,
+        "expected_alembic_head": "0067_service_catalog_monitoring_state",
+        "missing_required_tables": [],
+        "ready": true,
+        "role_matches": true,
+        "schema_matches": true,
+        "status": "ready",
+        "tls_active": true,
+        "tls_required": true
+      }
+    },
+    {
+      "area": "PRIVATE_DB_API",
+      "id": "api.security_tls",
+      "status": "PASS",
+      "expected": "verify-full, hostname verification, TLS>=1.2",
+      "observed": {
+        "active": true,
+        "bits": 256,
+        "ca_verification": true,
+        "cipher": "TLS_AES_256_GCM_SHA384",
+        "hostname_verification": true,
+        "protocol": "TLSv1.3",
+        "required": true,
+        "verification_mode": "verify-full"
+      }
+    },
+    {
+      "area": "PRIVATE_DB_API",
+      "id": "api.security_certificates",
+      "status": "PASS",
+      "expected": "client certificate configured, nothing exposed",
+      "observed": {
+        "ca_verification": true,
+        "client_certificate_configured": true,
+        "dsn_exposed": false,
+        "hostname_verification": true,
+        "private_key_exposed": false,
+        "tls_active": true
+      }
+    },
+    {
+      "area": "PRIVATE_DB_API",
+      "id": "api.migrations_verify_read_only",
+      "status": "PASS",
+      "expected": {
+        "verified": true,
+        "read_only": true
+      },
+      "observed": {
+        "alembic_head": "0067_service_catalog_monitoring_state",
+        "expected_alembic_head": "0067_service_catalog_monitoring_state",
+        "missing_required_tables": [],
+        "read_only": true,
+        "verified": true
+      }
+    },
+    {
+      "area": "PRIVATE_DB_API",
+      "id": "api.security_rls",
+      "status": "PASS",
+      "expected": "4 RLS tables with policies",
+      "observed": {
+        "evidence_only": true,
+        "policy_count": 4,
+        "public_tables": 217,
+        "rls_enabled_tables": 4
+      }
+    },
+    {
+      "area": "PRIVATE_DB_API",
+      "id": "api.backup_evidence_readback",
+      "status": "PASS",
+      "expected": "reflects this run's backup evidence file (id, status, verified, sha256)",
+      "observed": {
+        "available": true,
+        "created_at": "2026-09-25T01:11:09Z",
+        "evidence_id": "pas95-4e0b7d089b6e-backup",
+        "kind": "backup",
+        "sha256": null,
+        "source_database": "codestra_production",
+        "source_schema_head": "0067_service_catalog_monitoring_state",
+        "status": "PASS",
+        "verified": true
+      }
+    },
+    {
+      "area": "PRIVATE_DB_API",
+      "id": "api.restore_evidence_readback",
+      "status": "PASS",
+      "expected": "reflects this run's restore evidence file (id, status, verified, sha256)",
+      "observed": {
+        "available": true,
+        "completed_at": "2026-09-25T01:11:09Z",
+        "created_at": "2026-09-25T01:11:09Z",
+        "evidence_id": "pas95-4e0b7d089b6e-restore",
+        "kind": "restore",
+        "sha256": null,
+        "source_database": "codestra_production",
+        "source_schema_head": "0067_service_catalog_monitoring_state",
+        "status": "FAIL",
+        "target_database": "pas95-4e0b7d089b6e-restore/codestra_production",
+        "target_schema_head": "0067_service_catalog_monitoring_state",
+        "verified": false
+      }
+    },
+    {
+      "area": "PRIVATE_DB_API",
+      "id": "api.no_mutation_routes",
+      "status": "PASS",
+      "expected": "404/405",
+      "observed": {
+        "DELETE /internal/v1/database/backups": 405,
+        "POST /internal/v1/database/migrations/apply": 404,
+        "POST /internal/v1/database/query": 404,
+        "POST /internal/v1/database/restores": 404,
+        "POST /internal/v1/database/sql": 404
+      }
+    },
+    {
+      "area": "PRIVATE_DB_API",
+      "id": "api.scopes",
+      "status": "PASS",
+      "expected": [
+        "platform.database.read",
+        "platform.database.verify"
+      ],
+      "observed": [
+        "platform.database.read",
+        "platform.database.verify"
+      ]
+    },
+    {
+      "area": "SECRET_REFS",
+      "id": "secrets.no_secret_material_in_api_responses",
+      "status": "PASS",
+      "expected": false,
+      "observed": false
+    },
+    {
+      "area": "PRIVATE_DB_API",
+      "id": "api.role_isolation_route",
+      "status": "BLOCKED",
+      "expected": "GET /internal/v1/database/security/roles (PAS-96/97)",
+      "observed": false,
+      "note": "PR #327 not merged; its query ran directly in roles checks above."
+    },
+    {
+      "area": "MONITORING",
+      "id": "monitoring.exporter_image_pinned",
+      "status": "PASS",
+      "expected": "docker.io/prometheuscommunity/postgres-exporter@sha256:9fca39a4307092387b7de884bed4b62205cb88a6a5fdb423b9a70ea80b34efb3",
+      "observed": "docker.io/prometheuscommunity/postgres-exporter@sha256:9fca39a4307092387b7de884bed4b62205cb88a6a5fdb423b9a70ea80b34efb3"
+    },
+    {
+      "area": "MONITORING",
+      "id": "monitoring.exporter_mtls_scrape",
+      "status": "PASS",
+      "expected": "pg_up=1 over verify-full + client certificate as postgres_exporter (pg_monitor)",
+      "observed": {
+        "alert_CodestraPostgresConnectionSaturation_condition": false,
+        "alert_CodestraPostgresDown_condition": false,
+        "metric_families": 390,
+        "pg_settings_max_connections": 100.0,
+        "pg_stat_database_numbackends": 2.0,
+        "pg_up": 1.0,
+        "scraped": true
+      }
+    },
+    {
+      "area": "MONITORING",
+      "id": "monitoring.alert_conditions_quiet",
+      "status": "PASS",
+      "expected": "CodestraPostgresDown and CodestraPostgresConnectionSaturation conditions false on a healthy server",
+      "observed": {
+        "alert_CodestraPostgresDown_condition": false,
+        "alert_CodestraPostgresConnectionSaturation_condition": false
+      }
+    },
+    {
+      "area": "MONITORING",
+      "id": "monitoring.as_shipped_exporter_fires_down_alert",
+      "status": "PASS",
+      "expected": "the as-shipped exporter (sslmode=disable, codestra_monitoring) cannot scrape an mTLS-only server, so CodestraPostgresDown fires",
+      "observed": {
+        "alert_CodestraPostgresConnectionSaturation_condition": null,
+        "alert_CodestraPostgresDown_condition": true,
+        "metric_families": 47,
+        "pg_settings_max_connections": null,
+        "pg_stat_database_numbackends": null,
+        "pg_up": 0.0,
+        "scraped": true
+      },
+      "note": "PAS-78 F-03/F-14: the repository exporter configuration must move to verify-full + client certificate before an mTLS cut-over."
+    },
+    {
+      "area": "MONITORING",
+      "id": "monitoring.rules_present",
+      "status": "PASS",
+      "expected": [
+        "CodestraPostgresDown",
+        "CodestraPostgresConnectionSaturation"
+      ],
+      "observed": {
+        "missing": []
+      }
+    },
+    {
+      "area": "SECRET_REFS",
+      "id": "secrets.not_in_container_environment",
+      "status": "PASS",
+      "expected": "no password/DSN/key in any container environment",
+      "observed": {
+        "containers": 4,
+        "leaks": 0
+      }
+    },
+    {
+      "area": "SECRET_REFS",
+      "id": "secrets.mount_prefix_matches_profile",
+      "status": "PASS",
+      "expected": "/run/secrets/middleware-production-",
+      "observed": "/run/secrets/middleware-production-"
+    },
+    {
+      "area": "SECRET_REFS",
+      "id": "secrets.file_modes",
+      "status": "PASS",
+      "expected": "credentials mounted read-only, 0400 (key 0600 for lib/pq), owned by the consuming uid",
+      "observed": {
+        "rc_uid": "65532",
+        "postgres_uid": "999",
+        "exporter_uid": "65534"
+      }
+    },
+    {
+      "area": "EFFECTS",
+      "id": "effects.no_row_changes_during_runtime_phase",
+      "status": "PASS",
+      "expected": "every probe write rolled back: row counts identical to the post-migration baseline in all tables",
+      "observed": {
+        "tables": 217,
+        "changed": {}
+      }
+    },
+    {
+      "area": "EFFECTS",
+      "id": "effects.effect_tables_seed_only",
+      "status": "PASS",
+      "expected": "no outbox/delivery/dispatch/webhook/message rows; social_providers holds migration-seeded reference rows only",
+      "observed": {
+        "social_providers": 2
+      }
+    },
+    {
+      "area": "EFFECTS",
+      "id": "effects.connection_targets_disposable",
+      "status": "PASS",
+      "expected": "every connection target is a harness resource",
+      "observed": {
+        "targets": [
+          "127.0.0.1",
+          "codestra-postgres-1",
+          "pas95-4e0b7d089b6e-exporter-as-shipped",
+          "pas95-4e0b7d089b6e-exporter-mtls",
+          "pas95-hostname-mismatch",
+          "postgresql.middleware-production.svc.cluster.local"
+        ],
+        "foreign": []
+      }
+    },
+    {
+      "area": "EFFECTS",
+      "id": "effects.canary_flags_off",
+      "status": "PASS",
+      "expected": "every canary effect flag false/disabled",
+      "observed": {
+        "ALLOW_IN_MEMORY_STORAGE": "false",
+        "NATS_DISPATCH_MODE": "disabled",
+        "TEMPORAL_WORKER_MODE": "disabled",
+        "OUTBOX_DISPATCH_ENABLED": "false",
+        "SEND_EVENTS": "false",
+        "ENABLE_EXTERNAL_DELIVERY": "false",
+        "LIVE_WRITE": "false",
+        "LIVE_WRITES": "false",
+        "ODOO_WRITE": "false",
+        "KLYROW_EVENT_INGRESS_ENABLED": "false",
+        "KLYROW_ODOO_PROJECTION_ENABLED": "false",
+        "FORM_ODOO_DELIVERY_ENABLED": "false",
+        "CRAWLER_ODOO_DELIVERY_ENABLED": "false",
+        "SCRAPPER_ODOO_DELIVERY_ENABLED": "false",
+        "CALLBACK_DISPATCH": "false",
+        "N8N_DELIVERY_ENABLED": "false",
+        "VICIDIAL_WRITES_ENABLED": "false",
+        "EXTERNAL_DIAL_ENABLED": "false",
+        "PRODUCTION_CALLBACKS_ENABLED": "false",
+        "N8N_PRODUCTION_WORKFLOWS_ENABLED": "false",
+        "PRODUCTION_DIALING": "DISABLED",
+        "SMS_DELIVERY_ENABLED": "false",
+        "EMAIL_DELIVERY_ENABLED": "false",
+        "SOCIAL_DELIVERY_ENABLED": "false",
+        "CRAWLER_EXECUTION_ENABLED": "false",
+        "SCRAPPER_EXECUTION_ENABLED": "false",
+        "CRAWLER_EXTERNAL_CONTACT_ENABLED": "false",
+        "SCRAPPER_EXTERNAL_CONTACT_ENABLED": "false",
+        "LIVE_SMS_DELIVERY": "false",
+        "LIVE_EMAIL_DELIVERY": "false",
+        "UNRESTRICTED_CRAWLING": "false",
+        "LIVE_ADVERTISING_ENABLED": "false",
+        "EXTERNAL_DELIVERY_ENABLED": "false",
+        "SOCIAL_PUBLISHING_ENABLED": "false",
+        "EXTERNAL_MODEL_CALLS_ENABLED": "false",
+        "N8N_EXTERNAL_PROVIDER_WRITES": "false"
+      }
+    },
+    {
+      "area": "RC",
+      "id": "rc.signed_digest",
+      "status": "BLOCKED",
+      "expected": "Signed, published RC digest (cosign/SLSA/SBOM) bound to this source",
+      "observed": "not attempted from the disposable harness",
+      "note": "PAS-27: no successful release run; 35613442378 on 0606b0d never started (Actions billing lock), 35602170321 failed at push (read_package)."
+    },
+    {
+      "area": "TOPOLOGY",
+      "id": "topology.live_readback",
+      "status": "BLOCKED",
+      "expected": "Live production server version, pg_hba, certificate fingerprints/expiry and role attributes",
+      "observed": "not attempted from the disposable harness",
+      "note": "Requires read-only readback on the production host; out of scope (do not touch production)."
+    },
+    {
+      "area": "BACKUP",
+      "id": "backup.production_restore_rehearsal",
+      "status": "BLOCKED",
+      "expected": "Restore of a real production backup, Middleware start and TEST_SYN against it",
+      "observed": "not attempted from the disposable harness",
+      "note": "PAS-92 (DB-15) is still in progress; this run proves the mechanism on disposable data only."
+    },
+    {
+      "area": "CHAOS",
+      "id": "chaos.failure_matrix",
+      "status": "BLOCKED",
+      "expected": "Restart / connection-drop / pool invalidation / certificate rotation behaviour",
+      "observed": "not attempted from the disposable harness",
+      "note": "PAS-94 (DB-17) not started; blocks PAS-95 per Linear relations."
+    },
+    {
+      "area": "MONITORING",
+      "id": "monitoring.alert_routing",
+      "status": "BLOCKED",
+      "expected": "Prometheus rule evaluation and Alertmanager routing on the live monitoring plane",
+      "observed": "not attempted from the disposable harness",
+      "note": "Needs the live monitoring stack; this run evaluates the rule conditions from a real scrape only."
+    },
+    {
+      "area": "PRIVATE_DB_API",
+      "id": "api.real_token_verifier",
+      "status": "BLOCKED",
+      "expected": "Private DB API behind the real Keycloak token verifier and private network edge",
+      "observed": "not attempted from the disposable harness",
+      "note": "Needs the production identity provider; the router ran with a recording verifier."
+    },
+    {
+      "area": "EFFECTS",
+      "id": "effects.teardown_residual_zero",
+      "status": "PASS",
+      "expected": 0,
+      "observed": {
+        "containers": 0,
+        "volumes": 0,
+        "networks": 0,
+        "pki_workdir": 0
+      }
+    }
+  ]
+}

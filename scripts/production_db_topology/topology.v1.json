@@ -1,0 +1,79 @@
+{
+  "schema_version": "1.0",
+  "issue": "PAS-95",
+  "gate": "DB-18",
+  "authority": "certification-input-only",
+  "note": "Disposable production-shaped topology for certifying the exact release candidate with every effect OFF. Nothing here is installed on a server; it is not a production provisioning authority.",
+  "release_candidate": {
+    "dockerfile": "Dockerfile.runtime",
+    "target": "runtime",
+    "schema_head": "0067_service_catalog_monitoring_state",
+    "core_sql_receipts": 11,
+    "automation_sql_receipts": 1,
+    "runtime_user": "65532:65532",
+    "signed_image_repository": "ghcr.io/ingtrader21-spec/codestra-middleware"
+  },
+  "runtime_profile_id": "codestra-middleware-production-v1",
+  "compose_profile_id": "codestra-middleware-production-compose-v1",
+  "database": {
+    "host": "postgresql.middleware-production.svc.cluster.local",
+    "port": 5432,
+    "name": "codestra_production",
+    "server_image": "postgres:17-bookworm",
+    "ssl_min_protocol_version": "TLSv1.2",
+    "password_encryption": "scram-sha-256",
+    "network_aliases_for_negative_checks": ["codestra-postgres-1", "pas95-hostname-mismatch"]
+  },
+  "secret_mounts": {
+    "prefix": "/run/secrets/middleware-production-",
+    "database_url": "/run/secrets/middleware-production-database-url",
+    "ca_certificate": "/run/secrets/middleware-production-db-ca.crt",
+    "client_certificate": "/run/secrets/middleware-production-db-client.crt",
+    "client_key": "/run/secrets/middleware-production-db-client.key"
+  },
+  "roles": {
+    "migration": "middleware_migration",
+    "api": "middleware_production",
+    "backup": "middleware_backup",
+    "exporter": "postgres_exporter",
+    "runtime": ["middleware_production", "middleware_worker", "middleware_scheduler", "middleware_reconciler"],
+    "login": [
+      "middleware_migration",
+      "middleware_production",
+      "middleware_worker",
+      "middleware_scheduler",
+      "middleware_reconciler",
+      "middleware_backup",
+      "postgres_exporter"
+    ],
+    "migration_grant_roles": ["middleware_app", "mw_integration_api", "mw_scheduler", "mw_notification_worker"],
+    "runtime_grant_role": "middleware_runtime"
+  },
+  "pools": {
+    "asyncpg_pool": {"min_size": 1, "max_size": 20, "command_timeout_seconds": 10},
+    "sqlalchemy_engine": {"pool_size": 8, "max_overflow": 4, "pool_timeout_seconds": 5, "pool_recycle_seconds": 1800, "command_timeout_seconds": 30},
+    "api_uvicorn_workers": 2,
+    "migration_connections": 2
+  },
+  "rls": {
+    "forced_tables": ["callback_delivery", "callback_event", "callback_popup_ack", "callback_record"],
+    "tenants": ["pas95-tenant-a", "pas95-tenant-b"],
+    "campaign": "pas95-campaign"
+  },
+  "backup": {
+    "script": "deploy/production/server/codestra-middleware-backup",
+    "config_example": "deploy/production/server/deploy.conf.example"
+  },
+  "monitoring": {
+    "exporter_compose": "deploy/monitoring/odoo-readiness/compose.yaml",
+    "exporter_image": "docker.io/prometheuscommunity/postgres-exporter@sha256:9fca39a4307092387b7de884bed4b62205cb88a6a5fdb423b9a70ea80b34efb3",
+    "rules_file": "deploy/monitoring/odoo-readiness/rules/odoo-readiness.rules.yml",
+    "alerts": ["CodestraPostgresDown", "CodestraPostgresConnectionSaturation"]
+  },
+  "canary_compose": "deploy/production/compose.canary.yaml",
+  "effects": {
+    "PRODUCTION_DATABASE_MUTATIONS": 0,
+    "PROVIDER_EFFECTS": 0,
+    "PRODUCTION_EFFECTS": 0
+  }
+}
