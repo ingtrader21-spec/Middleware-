@@ -426,9 +426,24 @@ class CampaignRecyclingEngine:
                 item.touch_index,
             ),
         )
+        decision_inputs = _decision_input_payload(
+            self.policy,
+            snapshot,
+            ordered,
+            mode=mode,
+            kill_switch_open=kill_switch_open,
+            evidence_stale_or_conflicting=evidence_stale_or_conflicting,
+        )
         if not ordered:
             return self._decision(
-                snapshot, (), None, ("NO_CANDIDATE",), None, mode, now
+                snapshot,
+                (),
+                None,
+                ("NO_CANDIDATE",),
+                None,
+                mode,
+                now,
+                decision_inputs,
             )
 
         evaluated: list[CandidateDecision] = []
@@ -484,6 +499,7 @@ class CampaignRecyclingEngine:
                 None,
                 mode,
                 now,
+                decision_inputs,
             )
 
         aggregate = _sort_reasons(
@@ -503,6 +519,7 @@ class CampaignRecyclingEngine:
             min(temporal_times) if temporal_times else None,
             mode,
             now,
+            decision_inputs,
         )
 
     def _candidate_reasons(
@@ -579,18 +596,16 @@ class CampaignRecyclingEngine:
             "hard_bounce", "complained", "unsubscribed", "suppressed", "invalid"
         }:
             reasons.append("CHANNEL_HEALTH_BLOCKED")
-        elif health.state == "possible" and not self._value(
-            "channel_health", "possible_is_contactable", default=False
+        elif (
+            health.state == "possible"
+            and self.policy.configured
+            and not self._value("channel_health", "possible_is_contactable")
         ):
             reasons.append("CHANNEL_HEALTH_POLICY_GATED")
-        elif health.state == "soft_bounce":
+        elif health.state == "soft_bounce" and self.policy.configured:
             retry_at = _utc(health.occurred_at) + timedelta(
                 seconds=int(
-                    self._value(
-                        "channel_health",
-                        "soft_bounce_retry_after_seconds",
-                        default=0,
-                    )
+                    self._value("channel_health", "soft_bounce_retry_after_seconds")
                 )
             )
             if retry_at > now:
@@ -627,89 +642,87 @@ class CampaignRecyclingEngine:
             reasons.append("COOLING_PERIOD_ACTIVE")
             temporal_until.append(_utc(snapshot.cooling_until))
 
-        max_cycles = self._value("reactivation", "max_cycles", default=0)
-        if (
-            snapshot.lifecycle_state == "REACTIVATION"
-            and snapshot.reactivation_cycles >= int(max_cycles)
-        ):
-            reasons.append("REACTIVATION_LIMIT_REACHED")
-        if (
-            snapshot.lifecycle_state == "REACTIVATION"
-            and self._value(
-                "reactivation", "requires_distinct_campaign_version", default=True
-            )
-            and any(
-                exposure.campaign_id == candidate.campaign_id
-                and exposure.campaign_version == candidate.campaign_version
-                for exposure in snapshot.exposures
-            )
-        ):
-            reasons.append("CAMPAIGN_VERSION_EXHAUSTED")
-
-        exposure_cfg = self.policy.values.get("exposure", {})
-        max_lifetime = int(exposure_cfg.get("max_lifetime_all_campaigns") or 0)
-        if max_lifetime and len(snapshot.exposures) >= max_lifetime:
-            reasons.append("LIFETIME_EXPOSURE_CAP_REACHED")
         same_campaign = [
             exposure
             for exposure in snapshot.exposures
             if exposure.campaign_id == candidate.campaign_id
         ]
-        max_campaign_lifetime = int(
-            exposure_cfg.get("max_lifetime_per_campaign") or 0
-        )
-        if max_campaign_lifetime and len(same_campaign) >= max_campaign_lifetime:
-            reasons.append("LIFETIME_EXPOSURE_CAP_REACHED")
+        if self.policy.configured:
+            max_cycles = self._value("reactivation", "max_cycles")
+            if (
+                snapshot.lifecycle_state == "REACTIVATION"
+                and snapshot.reactivation_cycles >= int(max_cycles)
+            ):
+                reasons.append("REACTIVATION_LIMIT_REACHED")
+            if (
+                snapshot.lifecycle_state == "REACTIVATION"
+                and self._value(
+                    "reactivation", "requires_distinct_campaign_version"
+                )
+                and any(
+                    exposure.campaign_id == candidate.campaign_id
+                    and exposure.campaign_version == candidate.campaign_version
+                    for exposure in snapshot.exposures
+                )
+            ):
+                reasons.append("CAMPAIGN_VERSION_EXHAUSTED")
 
-        recent_window = int(exposure_cfg.get("recent_window_seconds") or 0)
-        recent_cutoff = now - timedelta(seconds=recent_window)
-        recent = [
-            exposure
-            for exposure in snapshot.exposures
-            if recent_window and _utc(exposure.reserved_at) > recent_cutoff
-        ]
-        max_recent = int(exposure_cfg.get("max_recent_all_campaigns") or 0)
-        if max_recent and len(recent) >= max_recent:
-            reasons.append("RECENT_WINDOW_CAP_REACHED")
-            temporal_until.append(_cap_release_at(recent, max_recent, recent_window))
+            exposure_cfg = self.policy.values["exposure"]
+            max_lifetime = int(exposure_cfg["max_lifetime_all_campaigns"])
+            if len(snapshot.exposures) >= max_lifetime:
+                reasons.append("LIFETIME_EXPOSURE_CAP_REACHED")
+            max_campaign_lifetime = int(exposure_cfg["max_lifetime_per_campaign"])
+            if len(same_campaign) >= max_campaign_lifetime:
+                reasons.append("LIFETIME_EXPOSURE_CAP_REACHED")
 
-        channel_cfg = self.policy.values.get("channel_caps", {}).get(
-            candidate.channel, {}
-        )
-        channel_window = int(channel_cfg.get("window_seconds") or 0)
-        channel_cutoff = now - timedelta(seconds=channel_window)
-        channel_recent = [
-            exposure
-            for exposure in snapshot.exposures
-            if channel_window
-            and exposure.channel == candidate.channel
-            and _utc(exposure.reserved_at) > channel_cutoff
-        ]
-        max_channel = int(channel_cfg.get("max_touches") or 0)
-        if max_channel and len(channel_recent) >= max_channel:
-            reasons.append("CHANNEL_CAP_REACHED")
-            temporal_until.append(
-                _cap_release_at(channel_recent, max_channel, channel_window)
+            recent_window = int(exposure_cfg["recent_window_seconds"])
+            recent_cutoff = now - timedelta(seconds=recent_window)
+            recent = [
+                exposure
+                for exposure in snapshot.exposures
+                if _utc(exposure.reserved_at) > recent_cutoff
+            ]
+            max_recent = int(exposure_cfg["max_recent_all_campaigns"])
+            if len(recent) >= max_recent:
+                reasons.append("RECENT_WINDOW_CAP_REACHED")
+                temporal_until.append(
+                    _cap_release_at(recent, max_recent, recent_window)
+                )
+
+            channel_cfg = self.policy.values["channel_caps"][candidate.channel]
+            channel_window = int(channel_cfg["window_seconds"])
+            channel_cutoff = now - timedelta(seconds=channel_window)
+            channel_recent = [
+                exposure
+                for exposure in snapshot.exposures
+                if exposure.channel == candidate.channel
+                and _utc(exposure.reserved_at) > channel_cutoff
+            ]
+            max_channel = int(channel_cfg["max_touches"])
+            if len(channel_recent) >= max_channel:
+                reasons.append("CHANNEL_CAP_REACHED")
+                temporal_until.append(
+                    _cap_release_at(channel_recent, max_channel, channel_window)
+                )
+
+            campaign_cfg = self.policy.values["campaign"]
+            cooldown = int(campaign_cfg["cooldown_seconds"])
+            if same_campaign:
+                latest = max(_utc(e.reserved_at) for e in same_campaign)
+                cooldown_until = latest + timedelta(seconds=cooldown)
+                if cooldown_until > now:
+                    reasons.append("CAMPAIGN_COOLDOWN_ACTIVE")
+                    temporal_until.append(cooldown_until)
+
+            version_count = sum(
+                1
+                for exposure in snapshot.exposures
+                if exposure.campaign_id == candidate.campaign_id
+                and exposure.campaign_version == candidate.campaign_version
             )
-
-        campaign_cfg = self.policy.values.get("campaign", {})
-        cooldown = int(campaign_cfg.get("cooldown_seconds") or 0)
-        if same_campaign and cooldown:
-            latest = max(_utc(e.reserved_at) for e in same_campaign)
-            cooldown_until = latest + timedelta(seconds=cooldown)
-            if cooldown_until > now:
-                reasons.append("CAMPAIGN_COOLDOWN_ACTIVE")
-                temporal_until.append(cooldown_until)
-
-        version_count = sum(
-            1
-            for exposure in snapshot.exposures
-            if exposure.campaign_id == candidate.campaign_id
-            and exposure.campaign_version == candidate.campaign_version
-        )
-        max_per_version = int(campaign_cfg.get("max_touches_per_version") or 0)
-        if max_per_version and version_count >= max_per_version:
-            reasons.append("CAMPAIGN_VERSION_EXHAUSTED")
+            max_per_version = int(campaign_cfg["max_touches_per_version"])
+            if version_count >= max_per_version:
+                reasons.append("CAMPAIGN_VERSION_EXHAUSTED")
 
         ordered = _sort_reasons(reasons)
         next_at = max(temporal_until) if temporal_until else None
@@ -717,9 +730,13 @@ class CampaignRecyclingEngine:
             next_at = None
         return ordered, next_at
 
-    def _value(self, section: str, key: str, *, default: Any) -> Any:
+    def _value(self, section: str, key: str) -> Any:
         value = self.policy.values.get(section, {}).get(key)
-        return default if value is None else value
+        if value is None:
+            raise CampaignRecyclingPolicyError(
+                f"policy value {section}.{key} is not configured"
+            )
+        return value
 
     def _decision(
         self,
@@ -730,22 +747,24 @@ class CampaignRecyclingEngine:
         next_eligible_at: datetime | None,
         mode: str,
         evaluated_at: datetime,
+        decision_inputs: Mapping[str, Any],
     ) -> NextActionDecision:
-        body = {
+        output = {
             "tenant_id": snapshot.tenant_id,
             "lead_id": snapshot.lead_id,
+            "lifecycle_state": snapshot.lifecycle_state,
             "lifecycle_version": snapshot.lifecycle_version,
             "mode": mode,
             "policy_version": self.policy.policy_version,
+            "eligible": selected is not None,
             "selected": _candidate_payload(selected),
+            "next_eligible_at": _utc(next_eligible_at).isoformat()
+            if next_eligible_at is not None
+            else None,
             "reason_codes": list(reasons),
             "candidates": [_candidate_payload(item) for item in candidates],
         }
-        digest = hashlib.sha256(
-            json.dumps(
-                body, sort_keys=True, separators=(",", ":"), default=str
-            ).encode()
-        ).hexdigest()
+        digest = canonical_digest({"inputs": decision_inputs, "outputs": output})
         return NextActionDecision(
             eligible=selected is not None,
             selected=selected,
@@ -1997,6 +2016,187 @@ def delivery_event_payload_hash(event: Mapping[str, Any]) -> str:
     return canonical_digest(
         {k: v for k, v in event.items() if k not in {"received_at", "payload_hash"}}
     )
+
+
+def _decision_input_payload(
+    policy: PolicyProfile,
+    snapshot: LeadSnapshot,
+    candidates: Sequence[Candidate],
+    *,
+    mode: str,
+    kill_switch_open: bool,
+    evidence_stale_or_conflicting: bool,
+) -> dict[str, Any]:
+    """Canonical material inputs for stale-plan detection.
+
+    evaluated_at is intentionally excluded by contract. Collections whose
+    ordering is not semantically meaningful are normalized before hashing.
+    """
+
+    suppressions = sorted(
+        (
+            {
+                "scope": item.scope,
+                "reason": item.reason,
+                "occurred_at": _utc(item.occurred_at).isoformat(),
+                "suppression_id": item.suppression_id,
+                "channel": item.channel,
+                "campaign_id": item.campaign_id,
+            }
+            for item in snapshot.suppressions
+        ),
+        key=lambda item: (
+            item["scope"],
+            item["reason"],
+            item["occurred_at"],
+            item["suppression_id"],
+            item["channel"] or "",
+            item["campaign_id"] or "",
+        ),
+    )
+    exposures = sorted(
+        (
+            {
+                "campaign_id": item.campaign_id,
+                "campaign_version": item.campaign_version,
+                "channel": item.channel,
+                "touch_index": item.touch_index,
+                "status": item.status,
+                "reserved_at": _utc(item.reserved_at).isoformat(),
+                "engagement_outcome": item.engagement_outcome,
+                "negative_outcome": item.negative_outcome,
+            }
+            for item in snapshot.exposures
+        ),
+        key=lambda item: (
+            item["campaign_id"],
+            item["campaign_version"],
+            item["channel"],
+            item["touch_index"],
+            item["reserved_at"],
+            item["status"],
+        ),
+    )
+    return {
+        "policy": {
+            "policy_version": policy.policy_version,
+            "configured": policy.configured,
+            "production_authorized": policy.production_authorized,
+            "values": policy.values,
+            "channel_execution": policy.channel_execution,
+        },
+        "snapshot": {
+            "tenant_id": snapshot.tenant_id,
+            "lead_id": snapshot.lead_id,
+            "lifecycle_state": snapshot.lifecycle_state,
+            "lifecycle_version": snapshot.lifecycle_version,
+            "channel_health": {
+                channel: {
+                    "state": health.state,
+                    "occurred_at": _utc(health.occurred_at).isoformat(),
+                    "address_ref": health.address_ref,
+                }
+                for channel, health in sorted(snapshot.channel_health.items())
+            },
+            "suppressions": suppressions,
+            "exposures": exposures,
+            "cooling_until": _utc(snapshot.cooling_until).isoformat()
+            if snapshot.cooling_until is not None
+            else None,
+            "reactivation_cycles": snapshot.reactivation_cycles,
+        },
+        "candidates": [
+            {
+                "campaign_id": item.campaign_id,
+                "campaign_version": item.campaign_version,
+                "channel": item.channel,
+                "priority": item.priority,
+                "touch_index": item.touch_index,
+                "sender_identity_id": item.sender_identity_id,
+                "active": item.active,
+                "version_approved": item.version_approved,
+                "consent_granted": item.consent_granted,
+                "sender_authorized": item.sender_authorized,
+                "dialing_eligible": item.dialing_eligible,
+            }
+            for item in candidates
+        ],
+        "mode": mode,
+        "kill_switch_open": kill_switch_open,
+        "evidence_stale_or_conflicting": evidence_stale_or_conflicting,
+    }
+
+
+def exposure_idempotency_key(
+    snapshot: LeadSnapshot, selected: CandidateDecision
+) -> str:
+    natural_key = {
+        "tenant_id": snapshot.tenant_id,
+        "lead_id": snapshot.lead_id,
+        "campaign_id": selected.campaign_id,
+        "campaign_version": selected.campaign_version,
+        "channel": selected.channel,
+        "touch_index": selected.touch_index,
+    }
+    return "mcr1:" + canonical_digest(natural_key)
+
+
+def next_action_document(
+    decision: NextActionDecision,
+    snapshot: LeadSnapshot,
+    *,
+    mode: Literal["plan", "read", "execute"],
+    evaluated_at: datetime,
+    correlation_id: str,
+    candidates_redacted: bool = False,
+) -> dict[str, Any]:
+    """Serialize a pure decision into the frozen next-action.v1 shape."""
+
+    selected = decision.selected
+    selected_payload = None
+    if selected is not None:
+        selected_payload = {
+            "campaign_id": selected.campaign_id,
+            "campaign_version": selected.campaign_version,
+            "channel": selected.channel,
+            "sender_identity_id": selected.sender_identity_id,
+            "touch_index": selected.touch_index,
+            "exposure_idempotency_key": exposure_idempotency_key(snapshot, selected),
+        }
+    candidates = []
+    if not candidates_redacted:
+        candidates = [
+            {
+                "campaign_id": item.campaign_id,
+                "campaign_version": item.campaign_version,
+                "channel": item.channel,
+                "disposition": item.disposition,
+                "reason_codes": list(item.reason_codes),
+            }
+            for item in decision.candidates
+        ]
+    return {
+        "schema_version": "1.0",
+        "decision_id": str(uuid5(NAMESPACE_URL, f"mcr:decision:{decision.decision_hash}")),
+        "tenant_id": snapshot.tenant_id,
+        "lead_id": snapshot.lead_id,
+        "mode": mode,
+        "dry_run": mode in {"plan", "read"},
+        "provider_effects": "none",
+        "evaluated_at": _utc(evaluated_at).isoformat(),
+        "policy_version": decision.policy_version,
+        "lifecycle_state": snapshot.lifecycle_state,
+        "eligible": decision.eligible,
+        "selected": selected_payload,
+        "next_eligible_at": _utc(decision.next_eligible_at).isoformat()
+        if decision.next_eligible_at is not None
+        else None,
+        "reason_codes": list(decision.reason_codes),
+        "candidates": candidates,
+        "candidates_redacted": candidates_redacted,
+        "decision_hash": decision.decision_hash,
+        "correlation_id": correlation_id,
+    }
 
 
 def _json_default(value: Any) -> str:
