@@ -1,0 +1,29 @@
+{
+  "schema_version": "1.0",
+  "environment": "production",
+  "provider_effects": false,
+  "production_effects": false,
+  "production_go": false,
+  "unknown_capability_policy": "DENY",
+  "adapters": [
+    {"id": "ai-provider", "registered": true, "effect_capabilities": ["EXTERNAL_MODEL_CALLS"]},
+    {"id": "beyvra-nonfinancial", "registered": true, "effect_capabilities": ["BEYVRA_OPERATIONS_WRITE"]},
+    {"id": "klyrow-alert-email", "registered": true, "effect_capabilities": ["OBSERVABILITY_ALERT_EMAIL_DELIVERY"]},
+    {"id": "klyrow-email", "registered": true, "effect_capabilities": ["EMAIL_DELIVERY"]},
+    {"id": "kyqra-crawler", "registered": true, "effect_capabilities": ["CRAWLER_EXECUTION", "CRAWLER_WRITEBACK"]},
+    {"id": "marketing-provider", "registered": true, "effect_capabilities": ["LIVE_ADVERTISING"]},
+    {"id": "odoo-19", "registered": true, "effect_capabilities": ["ODOO_WRITE"]},
+    {"id": "postly-social", "registered": true, "effect_capabilities": ["SOCIAL_PUBLISH"]},
+    {"id": "provisioning-service", "registered": true, "effect_capabilities": ["PROVISIONING_WRITE"]},
+    {"id": "telnexa-sms", "registered": true, "effect_capabilities": ["SMS_DELIVERY"]},
+    {
+      "id": "vicidial-restricted",
+      "registered": true,
+      "effect_capabilities": [
+        "INTERNAL_TELEPHONY_CALLS",
+        "PRODUCTION_DIALING",
+        "TELEPHONY_ADMIN_WRITE"
+      ]
+    }
+  ]
+}
