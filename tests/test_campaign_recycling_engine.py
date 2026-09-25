@@ -14,9 +14,10 @@ from app.core.campaign_recycling import (
     delivery_event_payload_hash,
     next_action_document,
 )
-from app.core.campaign_recycling_contract import validator as mcr_contract_validator
+from scripts.validate_campaign_recycling_contracts import load_artifacts, validator_for
 
 NOW = datetime(2026, 9, 24, 16, 0, tzinfo=UTC)
+NEXT_ACTION_VALIDATOR = validator_for(load_artifacts(), "next_action")
 SENDER = "00000000-0000-4000-8000-000000000111"
 
 
@@ -179,10 +180,8 @@ def test_next_action_document_matches_frozen_contract() -> None:
         evaluated_at=NOW,
         correlation_id="corr-mcr-contract-1",
     )
-    assert mcr_contract_validator(
-        "./next-action.v1.schema.json"
-    ).is_valid(document), list(
-        mcr_contract_validator("./next-action.v1.schema.json").iter_errors(document)
+    assert NEXT_ACTION_VALIDATOR.is_valid(document), list(
+        NEXT_ACTION_VALIDATOR.iter_errors(document)
     )
     assert document["provider_effects"] == "none"
     assert document["dry_run"] is True
@@ -210,7 +209,7 @@ def test_next_action_document_redacts_candidates_without_changing_decision() -> 
     )
     assert document["candidates_redacted"] is True
     assert document["candidates"] == []
-    assert mcr_contract_validator("./next-action.v1.schema.json").is_valid(document)
+    assert NEXT_ACTION_VALIDATOR.is_valid(document)
 
 
 def test_global_suppression_precedes_channel_suppression() -> None:
