@@ -453,6 +453,8 @@ class CommandStore(Protocol):
         reason: str,
         provider_operation_id: str | None,
         evidence: Mapping[str, Any],
+        idempotency_key: str,
+        expected_version: int,
     ) -> CommandOperation:
         ...
 
@@ -568,17 +570,48 @@ class MemoryCommandStore:
         reason: str,
         provider_operation_id: str | None,
         evidence: Mapping[str, Any],
+        idempotency_key: str,
+        expected_version: int,
     ) -> CommandOperation:
         key = (tenant_id, command_id)
         entry = self._commands.get(key)
         if entry is None:
             raise CommandNotFound("command operation was not found")
         digest, operation = entry
+        safe_evidence = dict(evidence)
+        evidence_digest = provider_evidence_digest(safe_evidence)
+        request_digest = hashlib.sha256(
+            json.dumps(
+                {
+                    "matched": matched,
+                    "expected_version": expected_version,
+                    "reason": reason,
+                    "provider_operation_id": provider_operation_id,
+                    "evidence_sha256": evidence_digest,
+                },
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode()
+        ).hexdigest()
+        mutation_key = (
+            tenant_id,
+            command_id,
+            "resolve_reconciliation",
+            actor_id,
+            idempotency_key,
+        )
+        replay = self._mutations.get(mutation_key)
+        if replay:
+            if replay[0] != request_digest:
+                raise CommandConflict(
+                    "idempotency key was reused with different mutation content"
+                )
+            return replay[1].model_copy(update={"duplicate": True})
+        if operation.resource_version != expected_version:
+            raise CommandConflict("expected_version is stale")
         if operation.state != "reconciliation_required":
             raise CommandConflict("operation is no longer awaiting reconciliation")
         now = datetime.now().astimezone()
-        safe_evidence = dict(evidence)
-        evidence_digest = provider_evidence_digest(safe_evidence)
         updated = operation.model_copy(
             update={
                 "state": "completed" if matched else "reconciliation_required",
@@ -598,6 +631,7 @@ class MemoryCommandStore:
         attempts = self._attempts[key]
         if attempts:
             attempts[-1] = attempts[-1].model_copy(update={"state": updated.state, "provider_operation_id": provider_operation_id or attempts[-1].provider_operation_id, "safe_error_code": None if matched else "provider_readback_mismatch", "finished_at": now})
+        self._mutations[mutation_key] = (request_digest, updated)
         return updated
 
     async def get(self, tenant_id: str, command_id: UUID) -> CommandOperation:
@@ -1454,6 +1488,8 @@ class PostgresCommandStore:
         reason: str,
         provider_operation_id: str | None,
         evidence: Mapping[str, Any],
+        idempotency_key: str,
+        expected_version: int,
     ) -> CommandOperation:
         """Close (or keep parked) an operation awaiting reconciliation.
 
@@ -1465,16 +1501,56 @@ class PostgresCommandStore:
         safe_reason = reason[:2048]
         safe_evidence = dict(evidence)
         evidence_digest = provider_evidence_digest(safe_evidence)
+        request_digest = hashlib.sha256(
+            json.dumps(
+                {
+                    "matched": matched,
+                    "expected_version": expected_version,
+                    "reason": safe_reason,
+                    "provider_operation_id": provider_operation_id,
+                    "evidence_sha256": evidence_digest,
+                },
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode()
+        ).hexdigest()
+        mutation_action = "resolve_reconciliation"
         next_state = "completed" if matched else "reconciliation_required"
         async with self.pool.acquire() as conn:
             async with conn.transaction():
                 current = await conn.fetchrow(
-                    "SELECT state FROM middleware_commands WHERE tenant_id=$1 AND command_id=$2 FOR UPDATE",
+                    "SELECT state, resource_version FROM middleware_commands WHERE tenant_id=$1 AND command_id=$2 FOR UPDATE",
                     tenant_id,
                     str(command_id),
                 )
                 if current is None:
                     raise CommandNotFound("command operation was not found")
+                replay = await conn.fetchrow(
+                    """SELECT request_sha256, response_payload
+                       FROM middleware_operation_mutations
+                       WHERE tenant_id=$1 AND command_id=$2 AND action=$3
+                         AND actor_id=$4 AND idempotency_key=$5""",
+                    tenant_id,
+                    str(command_id),
+                    mutation_action,
+                    actor_id,
+                    idempotency_key,
+                )
+                if replay:
+                    if replay["request_sha256"] != request_digest:
+                        raise CommandConflict(
+                            "idempotency key was reused with different mutation content"
+                        )
+                    payload = (
+                        json.loads(replay["response_payload"])
+                        if isinstance(replay["response_payload"], str)
+                        else dict(replay["response_payload"])
+                    )
+                    return CommandOperation.model_validate(payload).model_copy(
+                        update={"duplicate": True}
+                    )
+                if current["resource_version"] != expected_version:
+                    raise CommandConflict("expected_version is stale")
                 if current["state"] != "reconciliation_required":
                     raise CommandConflict("operation is no longer awaiting reconciliation")
                 if matched:
@@ -1556,7 +1632,26 @@ class PostgresCommandStore:
                     json.dumps(safe_evidence, separators=(",", ":"), sort_keys=True),
                     safe_reason,
                 )
-        return self._operation(row, readback_evidence=safe_evidence, readback_evidence_sha256=evidence_digest)
+                operation = self._operation(
+                    row,
+                    readback_evidence=safe_evidence,
+                    readback_evidence_sha256=evidence_digest,
+                )
+                payload = operation.model_dump(mode="json")
+                await conn.execute(
+                    """INSERT INTO middleware_operation_mutations
+                       (tenant_id, command_id, action, actor_id, idempotency_key,
+                        request_sha256, response_status, response_payload)
+                       VALUES ($1,$2,$3,$4,$5,$6,200,$7::jsonb)""",
+                    tenant_id,
+                    str(command_id),
+                    mutation_action,
+                    actor_id,
+                    idempotency_key,
+                    request_digest,
+                    json.dumps(payload, separators=(",", ":"), sort_keys=True),
+                )
+                return operation
 
     async def ready(self) -> bool:
         try:

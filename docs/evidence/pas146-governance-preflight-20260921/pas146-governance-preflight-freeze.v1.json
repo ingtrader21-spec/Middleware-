@@ -1,0 +1,337 @@
+{
+  "schema_version": 1,
+  "kind": "pas146-governance-preflight-freeze",
+  "frozen_at_utc": "2026-09-21T11:32:40Z",
+  "frozen_by": "middleware-69 (read-only verification; no repository, runtime, DNS/TLS or provider mutation)",
+  "linear": {
+    "issue": "PAS-146",
+    "blocker": "PAS-178"
+  },
+  "verdict": {
+    "PROTECTED_MAIN_REVIEW_CI_ENFORCED": {
+      "Middleware-": "YES",
+      "Caddy": "YES (main merge blocked by stale promotion ruleset until fixed)",
+      "Kong": "YES",
+      "Keycloak": "YES",
+      "Infustruction-repo": "NO (still private)"
+    },
+    "ACCEPTED_SHAS_FROZEN": "YES",
+    "IMMUTABLE_CADDY_IMAGE_DIGEST_FROZEN": "YES",
+    "SIGNED_DEPLOY_READY_BUNDLE_FOR_CADDY_22c6d51": "NO",
+    "GOVERNANCE_PREFLIGHT": "STEP1 CLEARED for Caddy/Kong/Keycloak; Caddy promotion-ruleset defect + Infustruction-repo visibility + Actions billing remain owner actions",
+    "STAGING_EXECUTION_AUTHORIZED": "NO",
+    "PRODUCTION_GO": "NO"
+  },
+  "branch_protection_readback": {
+    "Middleware-": {
+      "visibility": "public",
+      "branch_api_protected": true,
+      "classic_protection": {
+        "required_status_checks_strict": true,
+        "required_contexts": [
+          "validate",
+          "docker-test-build",
+          "docker-runtime-build",
+          "container-security",
+          "Disposable PostgreSQL Redis integration",
+          "Disposable NATS JetStream integration",
+          "Temporal critical workflow integration",
+          "Synthetic no-effect acceptance E2E"
+        ],
+        "required_pull_request_reviews": {
+          "required_approving_review_count": 0,
+          "dismiss_stale_reviews": true
+        },
+        "enforce_admins": true,
+        "required_linear_history": true,
+        "allow_force_pushes": false,
+        "allow_deletions": false,
+        "required_conversation_resolution": true
+      },
+      "rulesets_active_on_main": [
+        {
+          "ruleset_id": 22120968,
+          "pull_request": {
+            "required_approving_review_count": 1,
+            "dismiss_stale_reviews_on_push": true,
+            "require_code_owner_review": true,
+            "required_review_thread_resolution": true,
+            "allowed_merge_methods": [
+              "squash"
+            ]
+          },
+          "required_status_checks_strict": true,
+          "required_status_checks": [
+            "validate",
+            "Validate middleware source head",
+            "Validate middleware merge result",
+            "docker-runtime-build",
+            "docker-test-build",
+            "connector-runtime-build",
+            "container-security",
+            "Disposable PostgreSQL Redis integration",
+            "Disposable NATS JetStream integration",
+            "Temporal critical workflow integration",
+            "Synthetic no-effect acceptance E2E"
+          ],
+          "deletion": "blocked",
+          "non_fast_forward": "blocked",
+          "required_linear_history": true
+        },
+        {
+          "ruleset_id": 22196852,
+          "pull_request": {
+            "required_approving_review_count": 1,
+            "dismiss_stale_reviews_on_push": true,
+            "require_extra_approval_for_unattributed_changes": true,
+            "required_review_thread_resolution": true,
+            "allowed_merge_methods": [
+              "squash"
+            ]
+          },
+          "deletion": "blocked",
+          "non_fast_forward": "blocked",
+          "required_linear_history": true
+        }
+      ]
+    },
+    "Caddy": {
+      "visibility": "private",
+      "branch_api_protected": false,
+      "protection_enabled": false,
+      "required_status_checks_enforcement_level": "off",
+      "branch_protection_endpoint": "HTTP 403 - Upgrade to GitHub Pro or make this repository public to enable this feature",
+      "rulesets_endpoint": "HTTP 403 - same plan gate",
+      "apply_branch_protection_workflow": {
+        "path": ".github/workflows/apply-branch-protection.yml",
+        "last_run": 34306189553,
+        "last_run_date": "2026-09-09T03:12:01Z",
+        "last_run_result": "FAILURE at 'Require repository-administration token' (CODESTRA_GITHUB_ADMIN_TOKEN absent in environment repository-administration)",
+        "would_succeed_with_token": false,
+        "reason": "the same plan-level 403 applies to PUT branch protection / POST rulesets on a private repository"
+      },
+      "intended_ruleset_source": "config/github/main-ruleset.json (1 approval, dismiss stale, last-push approval, thread resolution, squash only, required validate-source + validate-merge-result)"
+    },
+    "Kong": {
+      "visibility": "private",
+      "branch_api_protected": false,
+      "protection_enabled": false,
+      "required_status_checks_enforcement_level": "off",
+      "branch_protection_endpoint": "HTTP 403 - plan gate",
+      "rulesets_endpoint": "HTTP 403 - plan gate"
+    },
+    "Keycloak": {
+      "visibility": "private",
+      "branch_api_protected": false,
+      "protection_enabled": false,
+      "required_status_checks_enforcement_level": "off",
+      "branch_protection_endpoint": "HTTP 403 - plan gate",
+      "rulesets_endpoint": "HTTP 403 - plan gate"
+    },
+    "owner_account": {
+      "login": "ingtrader21-spec",
+      "type": "User",
+      "note": "branch protection and rulesets on private repositories require GitHub Pro for a user account; owner decision = upgrade the plan, or make Caddy/Kong/Keycloak public (PAS-178 says keep private unless explicitly decided)"
+    },
+    "actions_billing_gate": {
+      "verified_at_utc": "2026-09-21T11:40Z",
+      "annotation": "The job was not started because recent account payments have failed or your spending limit needs to be increased. Please check the 'Billing & plans' section in your settings",
+      "observed_on": [
+        "Infustruction-repo run 35593324091 job 106313452241 (0 steps)",
+        "Caddy runs 35593825527/35593859578/35593860227 on eef2647a (fail in ~1s)"
+      ],
+      "scope": "private repositories (Caddy, Kong, Keycloak, Infustruction-repo); public Middleware- jobs still execute (run 35594050666 job started 11:26Z with 20 steps, CodeQL success 11:33Z)",
+      "consequence": "no exact-head CI on Caddy/Kong/Keycloak/Infustruction-repo can be produced or trusted until the owner fixes billing; every red on those repos since ~11:17Z is a billing refusal, not a code verdict. Independent of the plan gate above."
+    }
+  },
+  "accepted_shas": {
+    "caddy": {
+      "repository": "ingtrader21-spec/Caddy",
+      "source_sha": "22c6d51ed2f5340139177131fb810e787f0f7550",
+      "tree": "9ec70691da22d5fa3ed25c38a4739a69672d4387",
+      "is_current_main_head": true,
+      "ci_on_exact_sha": {
+        "Validate Caddy source authority": "SUCCESS (run 35560793449)",
+        "Codestra deploy readiness": "FAILURE (run 35560793977) - immutable-candidate: cosign verify-blob identity regex still expects appolon1908-hue/Infustruction-repo; the certificate SAN is https://github.com/ingtrader21-spec/Infustruction-repo/.github/workflows/reusable-codestra-deploy-readiness.yml@9d32d421c8272ef33b7a442ac81617bea6d16897"
+      },
+      "pins": {
+        "middleware_source_sha": "2862af0aa97367b18cb360af69212abe4243a1ac",
+        "kong_required_source_sha": "3e68cb2a4955bd71ddb3e839f4d9e3770465fc08",
+        "keycloak_required_source_sha": "45a487d71a516ae3039b00c250752897469ffe7a",
+        "middleware_contract_sha256": "9c32daecd4a15104c6f9ff60ce19c8f7e78707fb31d9fd9fcb55b1b8dfa3512b"
+      },
+      "pas146_candidate_record": {
+        "path": "release/pas146/caddy-staging-candidate.v1.json",
+        "sha256": "34ca2f5df2f6df4d5efce5285de85666190b45c7783d6a3c6c16d5fedc66376e",
+        "evidence_template_sha256": "816e67e5835ca040f273437d386aa09bf60cd76cd74e84cf08049a461be75c06",
+        "validator_result": "PAS146_PREPARATION=PASS at 22c6d51 (START_GATES_SATISFIED=3/6, STAGING_EXECUTION_AUTHORIZED=NO)",
+        "drift": "prepared_from.merged_main_sha and the validator constant EXPECTED_MERGED_MAIN_SHA still say cd912a1e1a3caeb370d70b16d195428f97c8c56c (pre-#178/#180/#179); must be re-pinned to 22c6d51 in a Caddy PR before execution"
+      }
+    },
+    "kong": {
+      "repository": "ingtrader21-spec/Kong",
+      "source_sha": "3e68cb2a4955bd71ddb3e839f4d9e3770465fc08",
+      "tree": "b84547c31908854ee549bee1f42662e7c4e05b14",
+      "is_current_main_head": true,
+      "merged_via": "#110 (2026-09-21T03:04:35Z)",
+      "ci_on_exact_sha": {
+        "Validate Kong source authority": "SUCCESS",
+        "Validate Kong configuration": "SUCCESS",
+        "Kong candidate certification": "SUCCESS",
+        "Check Kong authority manifests": "SUCCESS",
+        "Generate immutable Kong release evidence": "SUCCESS",
+        "Security and supply-chain validation": "FAILURE (run 35556257677) - gitleaks git-history scan: 4 leaks found (redacted, report not uploaded); 'Upload local CodeQL evidence' found no SARIF. Also failing on the #110 PR heads 6f3cc7b8/1403090a; last green on ee86cdf8. Kong-lane adjudication required."
+      },
+      "pins": {
+        "middleware_source_sha": "2862af0aa97367b18cb360af69212abe4243a1ac",
+        "keycloak_accepted_source_sha": "45a487d71a516ae3039b00c250752897469ffe7a",
+        "middleware_contract_sha256": "9c32daecd4a15104c6f9ff60ce19c8f7e78707fb31d9fd9fcb55b1b8dfa3512b"
+      }
+    },
+    "keycloak": {
+      "repository": "ingtrader21-spec/Keycloak",
+      "source_sha": "45a487d71a516ae3039b00c250752897469ffe7a",
+      "tree": "852efb546ab0cc0eea28f73f5d8735c8e5db352c",
+      "is_current_main_head": true,
+      "merged_via": "#118 (2026-09-20T23:19:35Z)",
+      "ci_on_exact_sha": {
+        "Repository Name Authority": "SUCCESS",
+        "Validate password reset acceptance policy": "SUCCESS",
+        "Validate Keycloak GitOps": "SUCCESS"
+      },
+      "pins": {
+        "middleware_contract_sha256": "9c32daecd4a15104c6f9ff60ce19c8f7e78707fb31d9fd9fcb55b1b8dfa3512b",
+        "route_count": 117,
+        "middleware_api_access_status": "PREPARED_DISABLED"
+      }
+    },
+    "middleware": {
+      "repository": "ingtrader21-spec/Middleware-",
+      "source_sha": "2862af0aa97367b18cb360af69212abe4243a1ac",
+      "tree": "5f1b04f85c8277f03cb482d93a91643f54ba6ec5",
+      "certification": "MAIN_AFTER_TRUST_CONVERGENCE (#295 squash, 2026-09-20T18:13:15Z); validator 850cd5ec..., launcher 08b5e28a..., closure 2b0b8e83..., schema head 0067",
+      "is_current_main_head": false,
+      "current_main_head_at_freeze": "bd406a6508c8095a3f23b35149a2eebcb94c94c6",
+      "commits_after_accepted_sha_on_main": [
+        "8829d92 db: reconcile legacy staging lineage to canonical 0067 (#297)",
+        "4f8069e Trust maintenance: authorize GHCR package-authority successor on 8829d92 (#299)",
+        "bd406a6 PAS-102: private DB certification API + repo-owned Postman authority (#298)"
+      ],
+      "contract_unchanged_on_current_main": true,
+      "signed_rc_image_for_2862af0a": "NONE - release.yml run 35528661211 built manifest sha256:09359d07... but the GHCR push to ghcr.io/appolon1908-hue/codestra-middleware was denied (cross-owner); PAS-27 lane"
+    },
+    "contract": {
+      "path": "deploy/public-api-route-contract.json",
+      "schema": "codestra.middleware.public-api-route-contract.v2",
+      "canonical_sha256": "9c32daecd4a15104c6f9ff60ce19c8f7e78707fb31d9fd9fcb55b1b8dfa3512b",
+      "hash_rule": "sha256 over json.dumps(contract, sort_keys=True, separators=(',', ':')).encode('utf-8')",
+      "file_bytes_sha256_at_2862af0a": "0724a0c6a67a570d5ca2bbaca736804b831a3a5c9ea3df17d5cd81762ca588ba",
+      "route_count": 117,
+      "pinned_identically_in": [
+        "Caddy config/middleware-public-api-route-contract.sha256",
+        "Caddy config/edge-contract-chain.v1.json",
+        "Kong config/middleware-public-api-route-contract.sha256",
+        "Kong config/kong-cross-repo-parity.v1.json",
+        "Keycloak config/contracts/middleware-api-access.v3.json"
+      ]
+    }
+  },
+  "immutable_caddy_runtime": {
+    "image_reference": "docker.io/library/caddy@sha256:ae4458638da8e1a91aafffb231c5f8778e964bca650c8a8cb23a7e8ac557aa3c",
+    "image_index_digest": "sha256:ae4458638da8e1a91aafffb231c5f8778e964bca650c8a8cb23a7e8ac557aa3c",
+    "index_media_type": "application/vnd.oci.image.index.v1+json",
+    "registry_verification": "HEAD /v2/library/caddy/manifests/<digest> = 200, Docker-Content-Digest matches (2026-09-21T11:32Z)",
+    "tag_correspondence": {
+      "2.10.0-alpine": "sha256:ae4458638da8e1a91aafffb231c5f8778e964bca650c8a8cb23a7e8ac557aa3c",
+      "2.10.0": "sha256:133b5eb7ef9d42e34756ba206b06d84f4e3eb308044e268e182c2747083f09de (different index; NOT the pinned image)",
+      "latest": "sha256:14a9c00d4e833ebc2b65d36515b37bde3b73f0b323a2663aaafc88953d8c4e3f (NOT the pinned image)"
+    },
+    "platform_manifests": {
+      "linux/amd64": "sha256:f43d8810c944e27e6f7ea80b165de11dbdab16cff15c8a80d83ae3e1a109a35d",
+      "linux/arm64/v8": "sha256:6cbb331b584f701e31f54d68a4e42a51df8bcec32babb79bb9d20458defbf3ff",
+      "linux/arm/v6": "sha256:55953862c4a554eb95f948bd60ba43a19f227d614684e2c8ad7d0cd87bf5e2fc",
+      "linux/arm/v7": "sha256:b24c6757a6e1608a489d961b182374a269b857c185a2f4fe92aa0f72e099d035",
+      "linux/ppc64le": "sha256:189fdf94250d2da747f321dce1cd6898051eb120e3abb9c818f190bbb70444ae",
+      "linux/riscv64": "sha256:fab4c562bd13d4fe11cc47963461b4b2f197e38afa3be8a61b698b6319238f65",
+      "linux/s390x": "sha256:2d51d34db8630e03558db9a587a2060f7c5d6beb160750204de3b087d587e105"
+    },
+    "amd64_image_config": {
+      "CADDY_VERSION": "v2.10.0",
+      "org.opencontainers.image.version": "v2.10.0",
+      "org.opencontainers.image.source": "https://github.com/caddyserver/caddy-docker",
+      "created": "2025-04-19T03:51:58Z"
+    },
+    "mutable_tags_allowed": false,
+    "pinned_in_caddy_source": [
+      "scripts/validate-ci.sh CADDY_VALIDATOR_IMAGE",
+      "scripts/validate_caddy_staging_candidate.py",
+      "release/pas146/caddy-staging-candidate.v1.json",
+      "release/pas146/caddy-staging-evidence.template.v1.json",
+      "docs/pas146-staging-reload-rollback-runbook.md"
+    ],
+    "configuration_sha256_at_22c6d51": "f77be0593ce3c728749ee8930ebe21c6f7191bb6c6d47d661a2cee056f50463b",
+    "configuration_digest_command": "python scripts/config_digest.py (recomputed on a fresh checkout of 22c6d51; equals the prepared candidate value)",
+    "caddyfile_bytes_sha256_at_22c6d51": "7294ada05050e0c2483641126b6343aaf0e91ef226f64db06208154f7dcb3a8c",
+    "signed_source_bundle": {
+      "expected_release_tag": "deploy-ready-22c6d51ed2f5340139177131fb810e787f0f7550",
+      "exists": false,
+      "latest_existing_deploy_ready": "deploy-ready-a1ade1f26e5c5e8c9d688c0a31e979a3d7673730 (2026-09-09, pre-V3)",
+      "blocker": "Infustruction-repo#126 (head 60eff4c3ea848a202561412610728000de299f29, pushed 2026-09-21T11:17:59Z, 0 reviews, all 14 checks FAILURE with zero runner steps = Actions execution gate); after acceptance Caddy must repin the reusable workflow SHA and rerun exact-main deploy readiness"
+    },
+    "runtime_not_yet_using_pinned_image": "per the PAS-146 04:39Z readback the public caddy.service is a custom binary and the internal gateway runs sha256:5f5c8640... v2.11.4; no dedicated PAS-146 staging instance exists"
+  },
+  "visibility_change_2026-09-21": {
+    "performed_at_utc": "2026-09-21T12:42:38Z",
+    "performed_by": "middleware-69 on the user's instruction ('make all the repos public'), after a full-history gitleaks 8.30.1 scan of all refs",
+    "secret_scan": {
+      "tool": "gitleaks 8.30.1 (release checksum verified)",
+      "scope": "all refs/heads + tags",
+      "Caddy": "21 hits, all false positives (status strings, Postman variable names, 'authentication_owner' labels, RFC 6455 Sec-WebSocket-Key sample nonce, $..._SECRET variable references, prose, 2 sha256 digests)",
+      "Kong": "13 hits, all false positives (3x Keycloak commit SHA 45a487d7, 9x 'authenticationProfile' identifier documented as false positive in docs/mission2-evidence-matrix.md, 1 idempotency-key sample)",
+      "Keycloak": "13 hits, all commit SHAs / sha256 digests",
+      "Infustruction-repo": "53 hits, all false positives (commit SHAs pinned in STAGE6-SOURCE-LOCK, sha256 digests, internal container URLs in PRODUCTION-API-MATRIX.yaml, uid:gid 65532:65532, gitleaks policy test fixture) - but the repo is a production topology inventory (container names, ports, paths); disclosure decision left to the owner",
+      "limitation": "gitleaks default rules only; no manual review of every file"
+    },
+    "made_public": {
+      "Caddy": "yes",
+      "Keycloak": "yes",
+      "Kong": "yes",
+      "Infustruction-repo": "NOT DONE - auto-mode classifier denied (data exfiltration); owner must flip it"
+    },
+    "protection_after_flip": {
+      "Caddy": {
+        "main_protected": true,
+        "live_rulesets_on_main": {
+          "22138259 Protect main": "PR, 1 approval, dismiss stale, last-push approval, threads, extra approval for unattributed, squash; strict checks validate-source + validate-merge-result",
+          "22196743 server65-default-branch-gates": "PR, 1 approval, dismiss stale, threads, squash; deletion/non-FF blocked; linear history",
+          "22657889 Protect Caddy promotion branches": "ALSO targets main and requires promotion-guard + immutable-release-gate, which no workflow on main reports -> PRs into main are UNMERGEABLE until main is removed from this ruleset's targets (classifier denied the edit; owner action)"
+        },
+        "bypass_actors": []
+      },
+      "Keycloak": {
+        "main_protected": true,
+        "live_rulesets_on_main": {
+          "21608098 Bootstrap protect main": "PR, 1 approval, dismiss stale, last-push approval, code-owner review, threads, squash; creation/deletion/non-FF blocked; strict checks validate-merge-result + validate (both report on PRs)",
+          "22197063 server65-default-branch-gates": "PR, 1 approval, dismiss stale, threads, squash; linear history"
+        },
+        "bypass_actors": []
+      },
+      "Kong": {
+        "main_protected": true,
+        "live_rulesets_on_main": {
+          "22197413 server65-default-branch-gates": "PR, 1 approval, dismiss stale, threads, squash; deletion/non-FF blocked; linear history; strict checks validate + kong-config + security (all report on PRs; security is red on main head 3e68cb2 from gitleaks false positives, so the next Kong PR must carry the gitleaks allowlist fix)"
+        },
+        "bypass_actors": []
+      },
+      "Infustruction-repo": {
+        "main_protected": false,
+        "note": "still private; rulesets endpoint still plan-gated"
+      }
+    }
+  },
+  "committed_context": {
+    "repository": "ingtrader21-spec/Middleware-",
+    "middleware_main_at_commit": "8ecf6e9b75a7adf4c82c4c7094ba71d64d73e692",
+    "note": "main advanced past bd406a65 by #301 (governed GHCR successor generation: IMAGE_REPOSITORY -> ghcr.io/ingtrader21-spec/codestra-middleware); contract 9c32daec unchanged; accepted-SHA ruling (2862af0a frozen vs bd406a65 repin on Kong #115) still pending"
+  }
+}

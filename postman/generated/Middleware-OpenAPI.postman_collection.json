@@ -12425,6 +12425,57 @@
     {
       "item": [
         {
+          "name": "List Adapters",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "adapters"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/adapters"
+            }
+          }
+        },
+        {
+          "name": "Get Adapter",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "adapters",
+                "{adapter_id}"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/adapters/{adapter_id}"
+            }
+          }
+        },
+        {
           "name": "Submit Command",
           "request": {
             "body": {
@@ -12464,6 +12515,155 @@
           }
         },
         {
+          "name": "List Connectors",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "connectors"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/connectors"
+            }
+          }
+        },
+        {
+          "name": "Get Connector",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "connectors",
+                "{connector_id}"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/connectors/{connector_id}"
+            }
+          }
+        },
+        {
+          "name": "List Dead Letters",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "dead-letters"
+              ],
+              "query": [
+                {
+                  "disabled": true,
+                  "key": "limit",
+                  "value": "{{limit}}"
+                }
+              ],
+              "raw": "{{base_url}}/platform/v1/dead-letters"
+            }
+          }
+        },
+        {
+          "name": "Get Dead Letter",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "dead-letters",
+                "{operation_id}"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/dead-letters/{operation_id}"
+            }
+          }
+        },
+        {
+          "name": "Replay Dead Letter",
+          "request": {
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"expected_version\": 0,\n  \"mode\": \"\",\n  \"new_idempotency_key\": \"\",\n  \"reason\": \"\"\n}"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "type": "text",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "dead-letters",
+                "{operation_id}",
+                "replay"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/dead-letters/{operation_id}/replay"
+            }
+          }
+        },
+        {
           "name": "Describe Kernel",
           "request": {
             "header": [
@@ -12490,6 +12690,52 @@
           }
         },
         {
+          "name": "List Operations",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "operations"
+              ],
+              "query": [
+                {
+                  "disabled": true,
+                  "key": "limit",
+                  "value": "{{limit}}"
+                },
+                {
+                  "disabled": true,
+                  "key": "state",
+                  "value": "{{state}}"
+                },
+                {
+                  "disabled": true,
+                  "key": "command_type",
+                  "value": "{{command_type}}"
+                },
+                {
+                  "disabled": true,
+                  "key": "cursor",
+                  "value": "{{cursor}}"
+                }
+              ],
+              "raw": "{{base_url}}/platform/v1/operations"
+            }
+          }
+        },
+        {
           "name": "Get Operation",
           "request": {
             "header": [
@@ -12512,6 +12758,39 @@
               ],
               "query": [],
               "raw": "{{base_url}}/platform/v1/operations/{operation_id}"
+            }
+          }
+        },
+        {
+          "name": "Get Attempts",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "operations",
+                "{operation_id}",
+                "attempts"
+              ],
+              "query": [
+                {
+                  "disabled": true,
+                  "key": "limit",
+                  "value": "{{limit}}"
+                }
+              ],
+              "raw": "{{base_url}}/platform/v1/operations/{operation_id}/attempts"
             }
           }
         },
@@ -12621,6 +12900,145 @@
               ],
               "query": [],
               "raw": "{{base_url}}/platform/v1/operations/{operation_id}/timeline"
+            }
+          }
+        },
+        {
+          "name": "List Reconciliation",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "reconciliation"
+              ],
+              "query": [
+                {
+                  "disabled": true,
+                  "key": "limit",
+                  "value": "{{limit}}"
+                }
+              ],
+              "raw": "{{base_url}}/platform/v1/reconciliation"
+            }
+          }
+        },
+        {
+          "name": "Get Reconciliation",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "reconciliation",
+                "{operation_id}"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/reconciliation/{operation_id}"
+            }
+          }
+        },
+        {
+          "name": "Request Reconciliation Readback",
+          "request": {
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"expected_version\": 0,\n  \"reason\": \"\"\n}"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "type": "text",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "reconciliation",
+                "{operation_id}",
+                "readback"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/reconciliation/{operation_id}/readback"
+            }
+          }
+        },
+        {
+          "name": "Resolve Reconciliation",
+          "request": {
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"evidence\": {},\n  \"expected_version\": 0,\n  \"matched\": false,\n  \"provider_operation_id\": \"\",\n  \"reason\": \"\"\n}"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "type": "text",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "reconciliation",
+                "{operation_id}",
+                "resolve"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/reconciliation/{operation_id}/resolve"
             }
           }
         }

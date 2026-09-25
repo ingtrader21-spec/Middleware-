@@ -282,3 +282,190 @@ def test_chaos_a_persistence_failure_before_acceptance_is_never_a_202(stack: Sta
         assert response.status_code == 503
         assert response.json()["error"]["retryable"] is True
         assert stack.store._outbox == [] and stack.store._commands == {}
+
+
+def test_operational_catalog_surfaces_are_authenticated_and_secret_free(stack: Stack) -> None:
+    with TestClient(stack.app) as client:
+        assert client.get("/platform/v1/adapters").status_code == 401
+        auth = {"Authorization": f"Bearer {token()}"}
+        adapters = client.get("/platform/v1/adapters", headers=auth)
+        assert adapters.status_code == 200
+        rows = adapters.json()["items"]
+        assert {row["adapter_id"] for row in rows} >= {"test-syn", "odoo-fixture"}
+        assert client.get("/platform/v1/adapters/test-syn", headers=auth).status_code == 200
+
+        connectors = client.get("/platform/v1/connectors", headers=auth)
+        assert connectors.status_code == 200
+        connector_rows = connectors.json()["items"]
+        assert {row["connector_id"] for row in connector_rows} >= {"test-syn", "odoo-19"}
+        assert client.get("/platform/v1/connectors/test-syn", headers=auth).status_code == 200
+
+        rendered = adapters.text.lower() + connectors.text.lower()
+        for forbidden in ("client_secret", "private_key", "password", "bearer ", "hvs."):
+            assert forbidden not in rendered
+
+
+def test_dead_letter_and_reconciliation_surfaces_are_tenant_scoped(stack: Stack) -> None:
+    with TestClient(stack.app) as client:
+        auth = {"Authorization": f"Bearer {token()}"}
+        assert client.get("/platform/v1/dead-letters", headers=auth).json() == {"items": []}
+        assert client.get("/platform/v1/reconciliation", headers=auth).json() == {"items": []}
+        assert client.get("/platform/v1/dead-letters", headers={"Authorization": f"Bearer {token(tenants=(TENANT, 'tenant-b'))}"}).status_code == 400
+        assert client.get("/platform/v1/reconciliation", headers={"Authorization": f"Bearer {token(scope='platform.command')}"}).status_code == 401
+        assert client.get(f"/platform/v1/dead-letters/{uuid4()}", headers=auth).status_code == 404
+        assert client.get(f"/platform/v1/reconciliation/{uuid4()}", headers=auth).status_code == 404
+
+
+def test_reconciliation_resolution_is_idempotent_and_content_bound(stack: Stack) -> None:
+    import asyncio
+    from uuid import UUID
+
+    with TestClient(stack.app) as client:
+        _, body = submit(client)
+        command_id = UUID(body["command_id"])
+        for state in ("queued", "dispatching", "reconciliation_required"):
+            asyncio.run(
+                stack.store.transition(
+                    TENANT,
+                    command_id,
+                    new_state=state,
+                    actor_id="test",
+                    reason="force bounded operator reconciliation",
+                )
+            )
+        current = asyncio.run(stack.store.get(TENANT, command_id))
+        operator = token(
+            scope="platform.command platform.command.read platform.command.replay",
+            roles=("platform-operator",),
+        )
+        auth = {
+            "Authorization": f"Bearer {operator}",
+            "X-Correlation-ID": "resolve-corr",
+            "Idempotency-Key": "resolve-idem-0001",
+        }
+        payload = {
+            "expected_version": current.resource_version,
+            "matched": True,
+            "reason": "provider readback matched",
+            "provider_operation_id": "provider-op-1",
+            "evidence": {"task_id": 9, "profile_id": 5, "listed": True},
+        }
+        first = client.post(
+            f"/platform/v1/reconciliation/{command_id}/resolve",
+            json=payload,
+            headers=auth,
+        )
+        assert first.status_code == 200, first.text
+        assert first.json()["state"] == "COMPLETED"
+        first_version = first.json()["resource_version"]
+
+        replay = client.post(
+            f"/platform/v1/reconciliation/{command_id}/resolve",
+            json=payload,
+            headers=auth,
+        )
+        assert replay.status_code == 200, replay.text
+        assert replay.json()["state"] == "COMPLETED"
+        assert replay.json()["resource_version"] == first_version
+
+        conflict = client.post(
+            f"/platform/v1/reconciliation/{command_id}/resolve",
+            json={**payload, "evidence": {**payload["evidence"], "listed": False}},
+            headers=auth,
+        )
+        assert conflict.status_code == 409
+        assert conflict.json()["error"]["code"] == "command_conflict"
+
+
+def test_operation_collection_is_tenant_scoped_filterable_and_redacted(stack: Stack) -> None:
+    with TestClient(stack.app) as client:
+        first_response, first = submit(client)
+        second_response, second = submit(client)
+        assert first_response.status_code == second_response.status_code == 202
+
+        auth = {"Authorization": f"Bearer {token()}"}
+        third_response, third = submit(client)
+        assert third_response.status_code == 202
+
+        listed = client.get("/platform/v1/operations?limit=2", headers=auth)
+        assert listed.status_code == 200, listed.text
+        first_page = listed.json()
+        items = first_page["items"]
+        assert len(items) == 2
+        assert first_page["next_cursor"]
+        next_page = client.get(
+            "/platform/v1/operations",
+            params={"limit": 2, "cursor": first_page["next_cursor"]},
+            headers=auth,
+        )
+        assert next_page.status_code == 200, next_page.text
+        all_ids = {item["operation_id"] for item in items + next_page.json()["items"]}
+        assert {first["command_id"], second["command_id"], third["command_id"]} <= all_ids
+        assert {item["operation_id"] for item in items}.isdisjoint(
+            {item["operation_id"] for item in next_page.json()["items"]}
+        )
+        rendered = listed.text.lower()
+        for forbidden in ("payload", "password", "client_secret", "private_key", "bearer "):
+            assert forbidden not in rendered
+
+        received = client.get("/platform/v1/operations?state=RECEIVED", headers=auth)
+        assert received.status_code == 200
+        assert all(item["state"] == "RECEIVED" for item in received.json()["items"])
+
+        by_type = client.get(
+            "/platform/v1/operations",
+            params={"command_type": first["command_type"]},
+            headers=auth,
+        )
+        assert by_type.status_code == 200
+        assert all(item["command_type"] == first["command_type"] for item in by_type.json()["items"])
+
+        foreign = client.get(
+            "/platform/v1/operations",
+            headers={"Authorization": f"Bearer {token(tenants=('tenant-b',))}"},
+        )
+        assert foreign.status_code == 200
+        assert foreign.json() == {"items": [], "next_cursor": None}
+
+        assert client.get("/platform/v1/operations?limit=0", headers=auth).status_code == 400
+        assert client.get("/platform/v1/operations?state=NOT_A_STATE", headers=auth).status_code == 400
+        assert client.get("/platform/v1/operations?cursor=not-valid", headers=auth).status_code == 400
+
+
+def test_operation_attempts_are_safe_ordered_and_tenant_scoped(stack: Stack) -> None:
+    import asyncio
+
+    with TestClient(stack.app) as client:
+        _, body = submit(client)
+        asyncio.run(stack.bus.run_once())
+
+        auth = {"Authorization": f"Bearer {token()}"}
+        response = client.get(
+            f"/platform/v1/operations/{body['command_id']}/attempts",
+            headers=auth,
+        )
+        assert response.status_code == 200, response.text
+        payload = response.json()
+        assert payload["operation_id"] == body["command_id"]
+        assert len(payload["items"]) == 1
+        attempt = payload["items"][0]
+        assert attempt["attempt_number"] == 1
+        assert attempt["state"] == "COMPLETED"
+        assert attempt["provider_operation_id"].startswith("test-syn:")
+        assert list(sorted(item["attempt_number"] for item in payload["items"])) == [
+            item["attempt_number"] for item in payload["items"]
+        ]
+        rendered = response.text.lower()
+        for forbidden in ("error_detail", "payload", "password", "client_secret", "private_key"):
+            assert forbidden not in rendered
+
+        foreign = client.get(
+            f"/platform/v1/operations/{body['command_id']}/attempts",
+            headers={"Authorization": f"Bearer {token(tenants=('tenant-b',))}"},
+        )
+        assert foreign.status_code == 404
+
+        assert client.get(
+            f"/platform/v1/operations/{body['command_id']}/attempts?limit=101",
+            headers=auth,
+        ).status_code == 400
