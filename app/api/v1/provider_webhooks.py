@@ -145,6 +145,7 @@ async def _persist(
     request_hash = hashlib.sha256(body).hexdigest()
     scope = f"provider-webhook:{provider}"
     correlation_id = original_event_id
+
     try:
         await db.execute(
             text("SELECT pg_advisory_xact_lock(hashtextextended(:value, 0))"),
@@ -164,77 +165,78 @@ async def _persist(
             return dict(existing.response)
 
         incoming = IntegrationEvent(
-        idempotency_key=key_hash,
-        event_type=event_type,
-        schema_version="1.0",
-        original_event_id=original_event_id,
-        entity_key=entity_key,
-        source_system=provider,
-        correlation_id=correlation_id,
-        payload_json=normalized,
-        payload_hash=request_hash,
-        state="accepted",
-    )
+            idempotency_key=key_hash,
+            event_type=event_type,
+            schema_version="1.0",
+            original_event_id=original_event_id,
+            entity_key=entity_key,
+            source_system=provider,
+            correlation_id=correlation_id,
+            payload_json=normalized,
+            payload_hash=request_hash,
+            state="accepted",
+        )
         db.add(incoming)
         await db.flush()
-            db.add(
-        IntegrationDelivery(
-            event_id=incoming.id,
-            target="odoo",
-            status="pending" if write_enabled else "disabled",
-            max_attempts=settings.outbox_max_attempts,
-            result_json=odoo_intent,
-        )
-    )
-        if write_enabled:
-            db.add(
-            OdooResultDelivery(
-                integration_event_id=incoming.id,
-                originating_outbox_public_id=original_event_id,
-                request_hash=request_hash,
-                status="PENDING",
-                standard_result_json=odoo_intent,
+
+        db.add(
+            IntegrationDelivery(
+                event_id=incoming.id,
+                target="odoo",
+                status="pending" if write_enabled else "disabled",
+                max_attempts=settings.outbox_max_attempts,
+                result_json=odoo_intent,
             )
         )
+        if write_enabled:
             db.add(
-        OutboxEvent(
-            topic=event_type,
-            payload={
-                "event_id": original_event_id,
-                "event_type": event_type,
-                "source": provider,
-                "data": normalized,
-            },
-            correlation_id=correlation_id,
-            status="pending",
+                OdooResultDelivery(
+                    integration_event_id=incoming.id,
+                    originating_outbox_public_id=original_event_id,
+                    request_hash=request_hash,
+                    status="PENDING",
+                    standard_result_json=odoo_intent,
+                )
+            )
+        db.add(
+            OutboxEvent(
+                topic=event_type,
+                payload={
+                    "event_id": original_event_id,
+                    "event_type": event_type,
+                    "source": provider,
+                    "data": normalized,
+                },
+                correlation_id=correlation_id,
+                status="pending",
+            )
         )
-    )
         result = {
-        "accepted": True,
-        "event_id": original_event_id,
-        "duplicate": False,
-        "odoo_write": "pending" if write_enabled else "disabled",
-    }
-            db.add(
-        IdempotencyRecord(
-            scope=scope,
-            key_hash=key_hash,
-            request_hash=request_hash,
-            response=result,
-            status_code=202,
-            event_id=incoming.id,
-            expires_at=datetime.now(timezone.utc) + timedelta(days=30),
+            "accepted": True,
+            "event_id": original_event_id,
+            "duplicate": False,
+            "odoo_write": "pending" if write_enabled else "disabled",
+        }
+        db.add(
+            IdempotencyRecord(
+                scope=scope,
+                key_hash=key_hash,
+                request_hash=request_hash,
+                response=result,
+                status_code=202,
+                event_id=incoming.id,
+                expires_at=datetime.now(timezone.utc) + timedelta(days=30),
+            )
         )
-    )
-            db.add(
-        AuditEvent(
-            action=f"{provider}.webhook.accepted",
-            subject=original_event_id,
-            correlation_id=correlation_id,
-            decision="accepted",
-            redacted_payload={"event_type": event_type},
+        db.add(
+            AuditEvent(
+                action=f"{provider}.webhook.accepted",
+                subject=original_event_id,
+                correlation_id=correlation_id,
+                decision="accepted",
+                redacted_payload={"event_type": event_type},
+            )
         )
-    )
         await db.commit()
         return result
     except HTTPException:
