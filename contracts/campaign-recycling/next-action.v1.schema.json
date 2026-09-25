@@ -1,0 +1,476 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.codestra.co/campaign-recycling/next-action.v1.schema.json",
+  "title": "Next-action decision v1",
+  "description": "Deterministic Middleware policy decision for one lead. A decision document never causes a provider effect: plan and read modes are pure dry runs, and execute mode only reserves exposure-ledger rows and emits canonical commands through the outbox, which remain capability-gated. Contract only; no runtime handler exists in MCR-A.",
+  "x-codestra-contract": {
+    "mission": "MCR-A",
+    "runtime_status": "contract_only",
+    "system_of_record": "middleware",
+    "policy_config": "config/campaign-recycling-policy.v1.json"
+  },
+  "x-reason-codes": {
+    "ordering": "reason_codes arrays are sorted by the index of each code in $defs.ReasonCode.enum (evaluation precedence, index 0 first). The same inputs and policy_version always produce the same ordered codes.",
+    "classes": {
+      "POLICY_NOT_CONFIGURED": "fail_closed",
+      "PRODUCTION_NOT_AUTHORIZED": "fail_closed",
+      "KILL_SWITCH_OPEN": "fail_closed",
+      "EVIDENCE_STALE_OR_CONFLICTING": "fail_closed",
+      "SUPPRESSED_GLOBAL": "suppression",
+      "SUPPRESSED_CHANNEL": "suppression",
+      "SUPPRESSED_CAMPAIGN": "suppression",
+      "SUPPRESSED_CAMPAIGN_CHANNEL": "suppression",
+      "LIFECYCLE_TERMINAL": "blocking",
+      "LIFECYCLE_NOT_CONTACTABLE": "blocking",
+      "CONSENT_MISSING": "blocking",
+      "DIALING_NOT_ELIGIBLE": "blocking",
+      "CHANNEL_HEALTH_BLOCKED": "blocking",
+      "CHANNEL_HEALTH_UNKNOWN": "blocking",
+      "CHANNEL_HEALTH_POLICY_GATED": "blocking",
+      "CHANNEL_HEALTH_DEFERRED": "temporal",
+      "CAMPAIGN_NOT_ACTIVE": "blocking",
+      "CAMPAIGN_VERSION_NOT_APPROVED": "blocking",
+      "SENDER_IDENTITY_NOT_AUTHORIZED": "blocking",
+      "SENDER_IDENTITY_UNAVAILABLE": "blocking",
+      "CHANNEL_EXECUTION_NOT_SUPPORTED": "blocking",
+      "DUPLICATE_TOUCH": "blocking",
+      "COOLING_PERIOD_ACTIVE": "temporal",
+      "REACTIVATION_LIMIT_REACHED": "blocking",
+      "LIFETIME_EXPOSURE_CAP_REACHED": "blocking",
+      "RECENT_WINDOW_CAP_REACHED": "temporal",
+      "CHANNEL_CAP_REACHED": "temporal",
+      "CAMPAIGN_COOLDOWN_ACTIVE": "temporal",
+      "CAMPAIGN_VERSION_EXHAUSTED": "blocking",
+      "NO_CANDIDATE": "blocking",
+      "ELIGIBLE": "eligible"
+    },
+    "execute_only": [
+      "PRODUCTION_NOT_AUTHORIZED"
+    ],
+    "next_eligible_at_rule": "null when eligible. Otherwise the earliest instant at which some candidate whose reason codes are all class temporal clears every one of its temporal constraints; null when no candidate is purely temporal (a state change, not time, is required)."
+  },
+  "$defs": {
+    "ReasonCode": {
+      "type": "string",
+      "enum": [
+        "POLICY_NOT_CONFIGURED",
+        "PRODUCTION_NOT_AUTHORIZED",
+        "KILL_SWITCH_OPEN",
+        "EVIDENCE_STALE_OR_CONFLICTING",
+        "SUPPRESSED_GLOBAL",
+        "SUPPRESSED_CHANNEL",
+        "SUPPRESSED_CAMPAIGN",
+        "SUPPRESSED_CAMPAIGN_CHANNEL",
+        "LIFECYCLE_TERMINAL",
+        "LIFECYCLE_NOT_CONTACTABLE",
+        "CONSENT_MISSING",
+        "DIALING_NOT_ELIGIBLE",
+        "CHANNEL_HEALTH_BLOCKED",
+        "CHANNEL_HEALTH_UNKNOWN",
+        "CHANNEL_HEALTH_POLICY_GATED",
+        "CHANNEL_HEALTH_DEFERRED",
+        "CAMPAIGN_NOT_ACTIVE",
+        "CAMPAIGN_VERSION_NOT_APPROVED",
+        "SENDER_IDENTITY_NOT_AUTHORIZED",
+        "SENDER_IDENTITY_UNAVAILABLE",
+        "CHANNEL_EXECUTION_NOT_SUPPORTED",
+        "DUPLICATE_TOUCH",
+        "COOLING_PERIOD_ACTIVE",
+        "REACTIVATION_LIMIT_REACHED",
+        "LIFETIME_EXPOSURE_CAP_REACHED",
+        "RECENT_WINDOW_CAP_REACHED",
+        "CHANNEL_CAP_REACHED",
+        "CAMPAIGN_COOLDOWN_ACTIVE",
+        "CAMPAIGN_VERSION_EXHAUSTED",
+        "NO_CANDIDATE",
+        "ELIGIBLE"
+      ]
+    },
+    "ReasonCodes": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/ReasonCode"
+      }
+    },
+    "PolicyVersion": {
+      "type": "string",
+      "pattern": "^mcr-policy-[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "Selection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "campaign_id",
+        "campaign_version",
+        "channel",
+        "sender_identity_id",
+        "touch_index",
+        "exposure_idempotency_key"
+      ],
+      "properties": {
+        "campaign_id": {
+          "$ref": "channel-health.v1.schema.json#/$defs/CampaignId"
+        },
+        "campaign_version": {
+          "$ref": "exposure-ledger.v1.schema.json#/$defs/CampaignVersion"
+        },
+        "channel": {
+          "$ref": "channel-health.v1.schema.json#/$defs/Channel"
+        },
+        "sender_identity_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "touch_index": {
+          "$ref": "exposure-ledger.v1.schema.json#/$defs/TouchIndex"
+        },
+        "exposure_idempotency_key": {
+          "$ref": "exposure-ledger.v1.schema.json#/$defs/IdempotencyKey"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "channel": {
+                "enum": [
+                  "email",
+                  "sms",
+                  "whatsapp"
+                ]
+              }
+            },
+            "required": [
+              "channel"
+            ]
+          },
+          "then": {
+            "properties": {
+              "sender_identity_id": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "campaign_id",
+        "campaign_version",
+        "channel",
+        "disposition",
+        "reason_codes"
+      ],
+      "properties": {
+        "campaign_id": {
+          "$ref": "channel-health.v1.schema.json#/$defs/CampaignId"
+        },
+        "campaign_version": {
+          "$ref": "exposure-ledger.v1.schema.json#/$defs/CampaignVersion"
+        },
+        "channel": {
+          "$ref": "channel-health.v1.schema.json#/$defs/Channel"
+        },
+        "disposition": {
+          "type": "string",
+          "enum": [
+            "selected",
+            "rejected"
+          ]
+        },
+        "reason_codes": {
+          "$ref": "#/$defs/ReasonCodes"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "disposition": {
+                "const": "selected"
+              }
+            },
+            "required": [
+              "disposition"
+            ]
+          },
+          "then": {
+            "properties": {
+              "reason_codes": {
+                "const": [
+                  "ELIGIBLE"
+                ]
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "reason_codes": {
+                "not": {
+                  "contains": {
+                    "const": "ELIGIBLE"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "decision_id",
+    "tenant_id",
+    "lead_id",
+    "mode",
+    "dry_run",
+    "provider_effects",
+    "evaluated_at",
+    "policy_version",
+    "lifecycle_state",
+    "eligible",
+    "selected",
+    "next_eligible_at",
+    "reason_codes",
+    "candidates",
+    "candidates_redacted",
+    "decision_hash",
+    "correlation_id"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "decision_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "$ref": "lifecycle.v1.schema.json#/$defs/TenantId"
+    },
+    "lead_id": {
+      "$ref": "lifecycle.v1.schema.json#/$defs/LeadId"
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "plan",
+        "read",
+        "execute"
+      ]
+    },
+    "dry_run": {
+      "type": "boolean"
+    },
+    "provider_effects": {
+      "description": "A decision never performs a provider call. Any effect after execute is a separately authorized command in the outbox.",
+      "const": "none"
+    },
+    "evaluated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "policy_version": {
+      "$ref": "#/$defs/PolicyVersion"
+    },
+    "lifecycle_state": {
+      "$ref": "lifecycle.v1.schema.json#/$defs/LifecycleState"
+    },
+    "eligible": {
+      "type": "boolean"
+    },
+    "selected": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Selection"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "next_eligible_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "reason_codes": {
+      "$ref": "#/$defs/ReasonCodes"
+    },
+    "candidates": {
+      "type": "array",
+      "maxItems": 200,
+      "items": {
+        "$ref": "#/$defs/Candidate"
+      }
+    },
+    "candidates_redacted": {
+      "description": "true when the caller's scope does not permit candidate disclosure; candidates is then empty.",
+      "type": "boolean"
+    },
+    "decision_hash": {
+      "description": "sha256 of the canonical decision inputs and outputs, excluding decision_id, evaluated_at, correlation_id and decision_hash. Execute must present the plan's hash; a mismatch on re-evaluation is 409 plan_stale.",
+      "$ref": "lifecycle.v1.schema.json#/$defs/Sha256"
+    },
+    "correlation_id": {
+      "$ref": "lifecycle.v1.schema.json#/$defs/CorrelationId"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "eligible": {
+            "const": true
+          }
+        },
+        "required": [
+          "eligible"
+        ]
+      },
+      "then": {
+        "properties": {
+          "selected": {
+            "$ref": "#/$defs/Selection"
+          },
+          "next_eligible_at": {
+            "type": "null"
+          },
+          "reason_codes": {
+            "const": [
+              "ELIGIBLE"
+            ]
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "selected": {
+            "type": "null"
+          },
+          "reason_codes": {
+            "not": {
+              "contains": {
+                "const": "ELIGIBLE"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "mode": {
+            "enum": [
+              "plan",
+              "read"
+            ]
+          }
+        },
+        "required": [
+          "mode"
+        ]
+      },
+      "then": {
+        "properties": {
+          "dry_run": {
+            "const": true
+          },
+          "reason_codes": {
+            "not": {
+              "contains": {
+                "const": "PRODUCTION_NOT_AUTHORIZED"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "mode": {
+            "const": "execute"
+          }
+        },
+        "required": [
+          "mode"
+        ]
+      },
+      "then": {
+        "properties": {
+          "dry_run": {
+            "const": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "lifecycle_state": {
+            "enum": [
+              "NEW",
+              "VALIDATED",
+              "COOLING",
+              "CONVERTED",
+              "SUPPRESSED"
+            ]
+          }
+        },
+        "required": [
+          "lifecycle_state"
+        ]
+      },
+      "then": {
+        "properties": {
+          "eligible": {
+            "const": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "candidates_redacted": {
+            "const": true
+          }
+        },
+        "required": [
+          "candidates_redacted"
+        ]
+      },
+      "then": {
+        "properties": {
+          "candidates": {
+            "maxItems": 0
+          }
+        }
+      }
+    }
+  ]
+}
