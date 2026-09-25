@@ -305,6 +305,34 @@
               }
             }
           ]
+        },
+        {
+          "name": "Runtime Role Isolation",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{db_read_token}}"
+              }
+            ],
+            "url": "{{db_private_base_url}}/internal/v1/database/security/roles"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Role isolation 200',()=>pm.response.to.have.status(200));",
+                  "const r=pm.response.json();",
+                  "pm.test('Runtime role is not superuser/BYPASSRLS',()=>{pm.expect(r.superuser).to.eql(false);pm.expect(r.bypassrls).to.eql(false);pm.expect(r.elevated_role_memberships).to.eql(0);});",
+                  "pm.test('Runtime role cannot bypass tenant RLS',()=>pm.expect(r.rls_bypass_possible).to.eql(false));",
+                  "pm.test('Runtime role is isolated from migration ownership',()=>pm.expect(r.runtime_role_isolated).to.eql(true));"
+                ]
+              }
+            }
+          ]
         }
       ]
     },

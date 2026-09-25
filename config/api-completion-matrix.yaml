@@ -593,6 +593,12 @@ operations:
   runtime_state: IMPLEMENTED
 - domain: database
   method: GET
+  path: /internal/v1/database/security/roles
+  canonical_operation_id: roles_internal_v1_database_security_roles_get
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: database
+  method: GET
   path: /internal/v1/database/security/tls
   canonical_operation_id: tls_internal_v1_database_security_tls_get
   implementation_file: registered FastAPI runtime

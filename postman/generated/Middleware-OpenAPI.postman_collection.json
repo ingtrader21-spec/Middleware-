@@ -11271,6 +11271,33 @@
           }
         },
         {
+          "name": "Roles",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{db_read_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "internal",
+                "v1",
+                "database",
+                "security",
+                "roles"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/internal/v1/database/security/roles"
+            }
+          }
+        },
+        {
           "name": "Tls",
           "request": {
             "header": [

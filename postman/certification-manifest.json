@@ -25,6 +25,7 @@
     "backup verified",
     "isolated restore verified",
     "public /internal/v1/database/* denied",
-    "raw SQL HTTP endpoints absent"
+    "raw SQL HTTP endpoints absent",
+    "runtime role isolated (no superuser/BYPASSRLS/table ownership)"
   ]
 }
