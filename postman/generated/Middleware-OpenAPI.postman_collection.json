@@ -1,7 +1,34 @@
 {
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "exec": [
+          "const safeMethods = ['GET','HEAD','OPTIONS'];",
+          "const method = String(pm.request.method || '').toUpperCase();",
+          "const allowEffectful = pm.variables.replaceIn('{{RUN_EFFECTFUL}}') === 'true';",
+          "if (!safeMethods.includes(method) && !allowEffectful) {",
+          "  pm.execution.skipRequest();",
+          "}"
+        ],
+        "type": "text/javascript"
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "exec": [
+          "pm.test('response is not 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+          "const requestId = pm.response.headers.get('X-Request-ID') || pm.response.headers.get('X-Correlation-ID');",
+          "if (requestId) { pm.test('response correlation identifier is non-empty', () => pm.expect(String(requestId).trim()).not.to.eql('')); }"
+        ],
+        "type": "text/javascript"
+      }
+    }
+  ],
   "info": {
     "_postman_id": "middleware-openapi-generated",
-    "description": "Generated from contracts/platform/middleware-openapi.generated.json. Do not edit by hand; use scripts/generate_postman.py.",
+    "description": "Generated from contracts/platform/middleware-openapi.generated.json. Do not edit by hand; use scripts/generate_postman.py. Effectful methods are skipped unless RUN_EFFECTFUL=true; every executed request asserts no 5xx response.",
     "name": "Middleware OpenAPI - Generated",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
@@ -13506,6 +13533,10 @@
     {
       "key": "base_url",
       "value": "http://127.0.0.1:8095"
+    },
+    {
+      "key": "RUN_EFFECTFUL",
+      "value": "false"
     },
     {
       "key": "bearer_token",
