@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import math
 
 import jwt
 
@@ -26,18 +27,76 @@ class TokenValidator:
     def validate(self, token: str, required_scope: str) -> Principal:
         try:
             key = self.keys.get_signing_key_from_jwt(token)
-            claims = jwt.decode(token, key.key, algorithms=["RS256", "ES256"], audience=self.audience, issuer=self.issuer)
-        except jwt.PyJWTError as exc:
+            claims = jwt.decode(
+                token,
+                key.key,
+                algorithms=["RS256", "ES256"],
+                audience=self.audience,
+                issuer=self.issuer,
+                options={
+                    "require": [
+                        "exp",
+                        "iat",
+                        "iss",
+                        "sub",
+                        "aud",
+                        "azp",
+                        "scope",
+                        "tenant_id",
+                        "jti",
+                    ]
+                },
+            )
+        except (jwt.PyJWTError, OverflowError, TypeError, ValueError) as exc:
             raise AuthorizationError("invalid_token") from exc
-        scopes = frozenset(str(claims.get("scope", "")).split())
+
+        issued_at = claims.get("iat")
+        expires_at = claims.get("exp")
+        if (
+            isinstance(issued_at, bool)
+            or isinstance(expires_at, bool)
+            or not isinstance(issued_at, (int, float))
+            or not isinstance(expires_at, (int, float))
+        ):
+            raise AuthorizationError("invalid_token_lifetime")
+        try:
+            issued_value = float(issued_at)
+            expires_value = float(expires_at)
+        except (OverflowError, TypeError, ValueError) as exc:
+            raise AuthorizationError("invalid_token_lifetime") from exc
+        if (
+            not math.isfinite(issued_value)
+            or not math.isfinite(expires_value)
+            or expires_value <= issued_value
+            or expires_value - issued_value > 300
+        ):
+            raise AuthorizationError("invalid_token_lifetime")
+
+        scopes_claim = claims.get("scope")
+        if not isinstance(scopes_claim, str):
+            raise AuthorizationError("invalid_scope")
+        scopes = frozenset(scopes_claim.split())
         if required_scope not in scopes:
             raise AuthorizationError("insufficient_scope")
-        service = str(claims.get("service", ""))
-        azp = str(claims.get("azp", ""))
+
+        service = claims.get("service")
+        azp = claims.get("azp")
         expected = ("klyrow-email-provider", "klyrow-email-provider") if required_scope in {"email.inbound", "email.delivery_event"} else ("beyvra-email-production", "beyvra")
-        if (azp, service) != expected or claims.get("environment") != "production":
+        if (
+            not isinstance(azp, str)
+            or not isinstance(service, str)
+            or (azp, service) != expected
+            or claims.get("environment") != "production"
+        ):
             raise AuthorizationError("invalid_service_identity")
-        tenant_id = str(claims.get("tenant_id", ""))
-        if not tenant_id:
+
+        subject = claims.get("sub")
+        tenant_id = claims.get("tenant_id")
+        token_id = claims.get("jti")
+        if not isinstance(subject, str) or not subject.strip():
+            raise AuthorizationError("invalid_subject")
+        if not isinstance(tenant_id, str) or not tenant_id.strip() or tenant_id == "*":
             raise AuthorizationError("tenant_required")
-        return Principal(str(claims["sub"]), scopes, tenant_id, service, "production")
+        if not isinstance(token_id, str) or not token_id.strip():
+            raise AuthorizationError("invalid_token_id")
+        return Principal(subject, scopes, tenant_id, service, "production")
