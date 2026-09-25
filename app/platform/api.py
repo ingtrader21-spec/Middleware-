@@ -1,4 +1,4 @@
-"""The canonical V3 kernel surface: six routes under ``/platform/v1``.
+"""The canonical V3 kernel surface: eight routes under ``/platform/v1``.
 
 Served by every application profile through the router registry, so the
 deployed integration API (8095) exposes them behind Kong. Every handler
@@ -9,8 +9,9 @@ rendered by the registry's error envelope (``error.code`` / ``message`` /
 ``correlation_id`` / ``retryable`` / ``details``).
 
 Scopes: ``platform.command`` (submit, cancel), ``platform.command.read``
-(operation, timeline, describe), ``platform.command.replay`` + role
-``platform-operator`` (replay).
+(operation, timeline, describe, rehearsal read-back),
+``platform.command.replay`` + role ``platform-operator`` (replay, run the
+no-effect rehearsal).
 """
 
 from __future__ import annotations
@@ -26,8 +27,10 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.api_inputs import optional_header, required_header
 from app.commands import API_OPERATION_STATES, CommandCapabilityDisabled, CommandEnvelope, CommandNotFound, CommandOperation, OperationEvent, redact_metadata
+from app.core.policy_engine import PLATFORM_OPERATOR_ROLE
 from app.platform.kernel import SCOPE_COMMAND, SCOPE_COMMAND_READ, SCOPE_COMMAND_REPLAY
 from app.platform.principal import KernelPrincipal, authenticate
+from app.platform.rehearsal import NoEffectRehearsal, RehearsalRequest
 from app.platform.resilience import ReplayMode
 from app.security import AuthorizationError, RequestValidationError
 from app.storage import RUNTIME_SCHEMA_VERSION, StorageError
@@ -153,6 +156,48 @@ class ReplayRequest(BaseModel):
     expected_version: int = Field(ge=1)
     reason: str = Field(min_length=1, max_length=500, pattern=r"^[A-Za-z0-9][A-Za-z0-9_.: -]*$")
     new_idempotency_key: str | None = Field(default=None, min_length=8, max_length=180)
+
+
+class RehearsalRunRequest(BaseModel):
+    """Operator request to run the no-effect rehearsal against this process.
+
+    ``expected_source_sha`` / ``expected_schema_head`` pin the identity the
+    operator believes is deployed; a mismatch fails the rehearsal.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    reason: str = Field(min_length=1, max_length=500, pattern=r"^[A-Za-z0-9][A-Za-z0-9_.: -]*$")
+    expected_source_sha: str | None = Field(default=None, pattern=r"^[0-9a-fA-F]{7,64}$")
+    expected_schema_head: str | None = Field(default=None, pattern=r"^[0-9]{4}_[a-z0-9_]{1,120}$")
+
+
+class RehearsalCheckResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str
+    status: Literal["pass", "fail", "skipped"]
+    detail: dict[str, Any]
+
+
+class RehearsalReport(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    rehearsal_id: UUID
+    rehearsal_version: str
+    requested_by: str
+    correlation_id: str
+    reason: str
+    started_at: datetime
+    finished_at: datetime
+    environment: str
+    service_id: str
+    identity: dict[str, Any]
+    verdict: Literal["PASS", "FAIL"]
+    failed_checks: list[str]
+    provider_effects: int | None
+    checks: list[RehearsalCheckResult]
+    report_sha256: str
 
 
 # ----------------------------------------------------------------------
@@ -423,6 +468,53 @@ async def describe_kernel(request: Request) -> JSONResponse:
         command_contract_version=COMMAND_CONTRACT_VERSION,
     )
     return JSONResponse(status_code=200, content=description)
+
+
+# ----------------------------------------------------------------------
+# POST /platform/v1/rehearsals/no-effect
+# ----------------------------------------------------------------------
+@router.post(
+    "/rehearsals/no-effect",
+    status_code=201,
+    response_model=RehearsalReport,
+    responses={200: {"model": RehearsalReport, "description": "Exact replay of an existing rehearsal"}, 201: {"model": RehearsalReport, "description": "Rehearsal ran; the verdict is in the report"}},
+)
+async def run_no_effect_rehearsal(body: RehearsalRunRequest, request: Request) -> JSONResponse:
+    principal = await authenticate(request, required_scope=SCOPE_COMMAND_REPLAY)
+    if PLATFORM_OPERATOR_ROLE not in principal.roles:
+        raise AuthorizationError("the no-effect rehearsal requires the platform-operator role")
+    runtime, platform = _runtime(request)
+    correlation_id = required_header(request, "X-Correlation-ID", minimum=1, maximum=180)
+    idempotency_key = required_header(request, "Idempotency-Key", minimum=8, maximum=180)
+    rehearsal = RehearsalRequest(
+        requested_by=principal.subject,
+        correlation_id=correlation_id,
+        reason=body.reason,
+        expected_source_sha=body.expected_source_sha,
+        expected_schema_head=body.expected_schema_head,
+    )
+    ledger = platform.rehearsals
+    request_digest = rehearsal.digest()
+    # One rehearsal at a time per process; an exact replay returns the original report.
+    async with ledger.lock:
+        existing = ledger.replayed(principal.subject, idempotency_key, request_digest)
+        if existing is not None:
+            return _respond(200, RehearsalReport.model_validate(existing), correlation_id=correlation_id, location=f"/platform/v1/rehearsals/{existing['rehearsal_id']}")
+        runner = NoEffectRehearsal(runtime, runtime_schema_version=RUNTIME_SCHEMA_VERSION, contract_digest=_public_contract_digest())
+        report = await runner.run(rehearsal)
+        ledger.record(principal.subject, idempotency_key, request_digest, report)
+    return _respond(201, RehearsalReport.model_validate(report), correlation_id=correlation_id, location=f"/platform/v1/rehearsals/{report['rehearsal_id']}")
+
+
+# ----------------------------------------------------------------------
+# GET /platform/v1/rehearsals/{rehearsal_id}
+# ----------------------------------------------------------------------
+@router.get("/rehearsals/{rehearsal_id}", response_model=RehearsalReport)
+async def get_no_effect_rehearsal(rehearsal_id: UUID, request: Request) -> JSONResponse:
+    await authenticate(request, required_scope=SCOPE_COMMAND_READ)
+    runtime, platform = _runtime(request)
+    report = platform.rehearsals.get(rehearsal_id)
+    return _respond(200, RehearsalReport.model_validate(report), correlation_id=report["correlation_id"])
 
 
 def _public_contract_digest() -> str | None:

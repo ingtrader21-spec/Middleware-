@@ -19,6 +19,8 @@ KERNEL_ROUTES = {
     ("POST", "/platform/v1/operations/{operation_id}/cancel"): "KERNEL_WRAPPER",
     ("POST", "/platform/v1/operations/{operation_id}/replay"): "KERNEL_WRAPPER",
     ("GET", "/platform/v1/kernel/describe"): "READ_ONLY",
+    ("POST", "/platform/v1/rehearsals/no-effect"): "READ_ONLY",
+    ("GET", "/platform/v1/rehearsals/{rehearsal_id}"): "READ_ONLY",
 }
 
 

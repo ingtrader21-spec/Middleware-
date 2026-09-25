@@ -12623,6 +12623,72 @@
               "raw": "{{base_url}}/platform/v1/operations/{operation_id}/timeline"
             }
           }
+        },
+        {
+          "name": "Run No Effect Rehearsal",
+          "request": {
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"expected_schema_head\": \"\",\n  \"expected_source_sha\": \"\",\n  \"reason\": \"\"\n}"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "type": "text",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "rehearsals",
+                "no-effect"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/rehearsals/no-effect"
+            }
+          }
+        },
+        {
+          "name": "Get No Effect Rehearsal",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "rehearsals",
+                "{rehearsal_id}"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/rehearsals/{rehearsal_id}"
+            }
+          }
         }
       ],
       "name": "platform-command-kernel"
