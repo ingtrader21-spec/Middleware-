@@ -1,0 +1,184 @@
+{
+  "schema_version": "1.0",
+  "packet_id": "pas-180-middleware-staging-preflight-20260921",
+  "issue": "https://linear.app/passion-fruit/issue/PAS-180",
+  "parent_gate": "PAS-13",
+  "release_gate": "PAS-27",
+  "generated_at": "2026-09-21T13:10:00Z",
+  "generated_by": "middleware-96 (inventory/evidence lane)",
+  "exit": {
+    "STAGING_PREFLIGHT_PACKET": "PASS",
+    "CURRENT_STATE_RECORDED": "YES",
+    "BACKUP_ROLLBACK_READY": "YES",
+    "TLS_PREREQUISITES_CLASSIFIED": "YES",
+    "RUNTIME_MUTATION": 0,
+    "PROVIDER_EFFECTS": 0,
+    "LIVE_READBACK": "PENDING_OPERATOR"
+  },
+  "provenance_tags": {
+    "REPO@8ecf6e9": "protected main 8ecf6e9b75a7adf4c82c4c7094ba71d64d73e692 (MAIN_AFTER_301)",
+    "PR#304@61c30e1": "open PR #304 head 61c30e1cd8b51b8450429fbf0e1298878c2a5cf0 (not merged, CI red)",
+    "SENTINELX 2026-09-21": "independent Server 1 readback recorded on PAS-13 / PAS-102 (08:04 AST)",
+    "PR#297 2026-09-20": "rehearsal evidence recorded in merged PR #297 (8829d92)",
+    "LIVE_READBACK_PENDING": "must be read on Server 1 before execution (readback-commands.md)"
+  },
+  "source": {
+    "PROTECTED_MAIN": "8ecf6e9b75a7adf4c82c4c7094ba71d64d73e692",
+    "PROTECTED_MAIN_PREVIOUS": "bd406a6508c8095a3f23b35149a2eebcb94c94c6",
+    "CANONICAL_ALEMBIC_HEAD": "0067_service_catalog_monitoring_state",
+    "CORE_SQL_RECEIPTS": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+    "AUTOMATION_SQL_RECEIPTS": [1],
+    "FORWARD_IMAGE_REPOSITORY": "ghcr.io/ingtrader21-spec/codestra-middleware",
+    "SIGNED_RC_STATUS": "NOT_PUBLISHED",
+    "SIGNED_RC_FAILURE": {
+      "run_id": 35602170321,
+      "head": "8ecf6e9b75a7adf4c82c4c7094ba71d64d73e692",
+      "reason": "denied: permission_denied: read_package (ghcr.io/ingtrader21-spec/codestra-middleware)",
+      "owner": "PAS-27"
+    }
+  },
+  "current_state": {
+    "server": "65.109.65.169",
+    "STAGING_COMPOSE_PROJECT": "codestra-middleware-staging",
+    "STAGING_CONFIG_AUTHORITY": ["/opt/codestra/middleware-staging/compose.yaml", "/opt/codestra/middleware-staging/compose.scraper-canary.yaml"],
+    "CURRENT_STAGING_MIDDLEWARE_IMAGE": "codestra/middleware:staging-b29db772",
+    "CURRENT_STAGING_MIDDLEWARE_IMAGE_ID": "sha256:b81c125296effc17a33258212d9a71a3c427a972fa9783ec2c060109d167408f",
+    "CURRENT_STAGING_MIDDLEWARE_IMAGE_DIGEST": "NONE_LOCAL_TAG_ONLY",
+    "CURRENT_STAGING_MIDDLEWARE_SOURCE": "Codestra-SRL b29db772ed82c0d2f1adfdb8e6da58d4baa77524",
+    "CURRENT_STAGING_APP_PLANE": "DOWN",
+    "CURRENT_STAGING_APP_PLANE_DETAIL": "9 codestra-middleware-staging-* containers exited ~2026-09-21T11:20Z; 7 exit 0; callback and scraper-odoo-delivery-worker exit 137; cause unknown",
+    "CURRENT_STAGING_DB_CONTAINER": "codestra-middleware-staging-postgres-1",
+    "CURRENT_STAGING_DB_NAME": "middleware_staging",
+    "CURRENT_STAGING_DB_SCHEMA": "0058_odoo_delivery_sources",
+    "CURRENT_STAGING_DB_LINEAGE": ["0056_klyrow_delivery_events", "0057_provider_activities", "0058_odoo_delivery_sources"],
+    "CURRENT_STAGING_DB_TLS": "off",
+    "CURRENT_STAGING_DB_ROLES": "LIVE_READBACK_PENDING",
+    "CURRENT_STAGING_POSTGRES_IMAGE": "LIVE_READBACK_PENDING",
+    "CURRENT_STAGING_REDIS": "codestra-middleware-staging-redis-1 (healthy)",
+    "HOST_CAPACITY": "260 containers / 108 running / 1 unhealthy / 0 restarting",
+    "provenance": ["SENTINELX 2026-09-21", "REPO@8ecf6e9"],
+    "legacy_workloads": [
+      {"container": "codestra-middleware-staging-middleware-staging-1", "image": "codestra/middleware:staging-b29db772", "image_id": "sha256:b81c125296effc17a33258212d9a71a3c427a972fa9783ec2c060109d167408f", "source": "b29db772ed82c0d2f1adfdb8e6da58d4baa77524"},
+      {"container": "codestra-middleware-staging-odoo-result-worker-staging-1", "image": "codestra/middleware:staging-b29db772", "image_id": "sha256:b81c125296effc17a33258212d9a71a3c427a972fa9783ec2c060109d167408f", "source": "b29db772ed82c0d2f1adfdb8e6da58d4baa77524"},
+      {"container": "codestra-middleware-staging-callback-staging-1", "image": "codestra/middleware:current-hardened-20260723", "image_id": "sha256:57a4a3a22278aa61bc443910927a308d594db287b8e2cd500ee12293e8a93f4d", "source": "f1c07e0-reprofix2 (INVALID_REVISION_METADATA)"},
+      {"container": "codestra-middleware-staging-notification-worker-staging-1", "image": "codestra/middleware:staging-preflight-n8n-auth-20260801", "image_id": "sha256:ed7accf6d1f9ad7d84f43deba8caa0d58f8c40709c7b54d622d70df56b1f2386", "source": "UNESTABLISHED"},
+      {"container": "codestra-middleware-staging-scheduler-staging-1", "image": "codestra/middleware:staging-preflight-n8n-auth-20260801", "image_id": "sha256:ed7accf6d1f9ad7d84f43deba8caa0d58f8c40709c7b54d622d70df56b1f2386", "source": "UNESTABLISHED"},
+      {"container": "codestra-middleware-staging-scraper-odoo-delivery-worker-1", "image": "codestra/middleware:scraper-protected-main-4780bd72", "image_id": "sha256:dc97c48f3a29690635bf28de9f3d2562fac2dadb74b8744ea6e99c1bd4ffcda1", "source": "4780bd72d1c574af4aed62d374ec50b208e8ea4c"},
+      {"container": "codestra-middleware-staging-social-dead-letter-worker-staging-1", "image": "codestra/middleware:social-staging-12cd5fc", "image_id": "sha256:8e4a1afa8ca70a6c9136530074f6f8f1257e9f9a895f705fa50acb6f64b18fe6", "source": "UNESTABLISHED"},
+      {"container": "codestra-middleware-staging-social-delivery-worker-staging-1", "image": "codestra/middleware:social-staging-12cd5fc", "image_id": "sha256:8e4a1afa8ca70a6c9136530074f6f8f1257e9f9a895f705fa50acb6f64b18fe6", "source": "UNESTABLISHED"},
+      {"container": "codestra-middleware-staging-social-reconciliation-worker-staging-1", "image": "codestra/middleware:social-staging-12cd5fc", "image_id": "sha256:8e4a1afa8ca70a6c9136530074f6f8f1257e9f9a895f705fa50acb6f64b18fe6", "source": "UNESTABLISHED"}
+    ],
+    "isolated_pas102_candidate": {
+      "role": "rehearsal-only; not canonical; not forward authority",
+      "db_container": "middleware-pas102-staging-db",
+      "db_schema": "0067_service_catalog_monitoring_state",
+      "db_tls": "on",
+      "api_container": "middleware-pas102-candidate-api",
+      "api_image": "codestra/middleware:pas102-112bab3 (local unsigned build)"
+    }
+  },
+  "target_state": {
+    "TARGET_SCHEMA": "0067_service_catalog_monitoring_state",
+    "TARGET_IMAGE_DIGEST": "PENDING_PAS27",
+    "TARGET_IMAGE_REPOSITORY": "ghcr.io/ingtrader21-spec/codestra-middleware",
+    "TARGET_SOURCE_SHA": "PENDING_PAS27 (>= 8ecf6e9, must include accepted #304 successor)",
+    "TARGET_RUNTIME_PROFILE_ID": "codestra-middleware-staging-v1",
+    "TARGET_APP_ENV": "staging",
+    "TARGET_DB_HOST": "postgres",
+    "TARGET_DB_NAME": "middleware_staging",
+    "TARGET_DB_ROLES": ["middleware_api", "middleware_worker", "middleware_reconciler", "middleware_scheduler"],
+    "TARGET_DB_TLS_TUPLE": "sslmode=verify-full&sslrootcert=/run/secrets/middleware-staging-db-ca.crt&sslcert=/run/secrets/middleware-staging-db-client.crt&sslkey=/run/secrets/middleware-staging-db-client.key",
+    "TARGET_DB_TLS_TUPLE_SOURCE": "PR#304@61c30e1 database_alternates (not on main)",
+    "TARGET_EFFECT_FLAGS": "all false; NATS_DISPATCH_MODE=disabled; TEMPORAL_WORKER_MODE=disabled; OUTBOX_DISPATCH_ENABLED=false; PRODUCTION_DIALING=DISABLED"
+  },
+  "tls_prerequisites": {
+    "current_class": "PLAINTEXT",
+    "target_class": "verify-full + client certificate",
+    "POSTGRES_CA": {"requirement": "CA signing the server cert; mounted at /run/secrets/middleware-staging-db-ca.crt; readable by uid 10001", "readiness": "LIVE_READBACK_PENDING"},
+    "POSTGRES_SERVER_CERT": {"requirement": "ssl=on; ssl_cert_file/ssl_key_file/ssl_ca_file; SAN must include DNS:postgres; key 0600 postgres uid; reload via pg_reload_conf()", "readiness": "NOT_ACTIVE (ssl=off); files LIVE_READBACK_PENDING"},
+    "POSTGRES_CLIENT_CERT": {"requirement": "client cert/key at /run/secrets/middleware-staging-db-client.{crt,key}; key 0600 owned by uid 10001 (PR #304 fails closed otherwise)", "readiness": "LIVE_READBACK_PENDING"},
+    "PG_HBA": {"requirement": "hostssl middleware_staging <4 roles> <compose subnet> scram-sha-256 clientcert=verify-full; plaintext lines removed only at P7", "readiness": "LIVE_READBACK_PENDING"},
+    "CERT_VALIDITY_IDENTITY": {"requirement": "PAS-79: non-expired + expected identity before connection", "readiness": "GAP F-03 (not in #304; operator openssl check at P0.8)"},
+    "RUNTIME_MIGRATION_PARITY": {"requirement": "runtime engine, Alembic engine and asyncpg share one native DSN", "readiness": "source PASS in #304; not on main"}
+  },
+  "backup_rollback": {
+    "RECORDED_PHYSICAL_SNAPSHOT": "/opt/codestra/backups/middleware-db-reconcile/20260920T212950Z/postgres-data.tar",
+    "RECORDED_SNAPSHOT_TIMESTAMP": "2026-09-20T21:29:50Z",
+    "RECORDED_SNAPSHOT_SHA256SUMS": "PASS (value LIVE_READBACK_PENDING)",
+    "ISOLATED_RESTORE_RESULT": "PASS",
+    "ISOLATED_RESTORE_DETAIL": {"branch_head": "ec801b2b1ba5049d5b4753260bdaab5a0fd916b3", "from_head": "0058_odoo_delivery_sources", "to_head": "0067_service_catalog_monitoring_state", "rows_preserved": {"odoo_result_delivery": [2, 2], "integration_event": [4, 4], "outbox_event": [3, 3]}, "production_mutations": 0},
+    "ROLLBACK_SCHEMA_REFERENCE": "0058_odoo_delivery_sources via restore of pre-reconcile snapshot only (no Alembic downgrade across the lineage bridge)",
+    "ROLLBACK_IMAGE_REFERENCE": "five legacy image families by image ID (current_state.legacy_workloads); archived by docker save at P1",
+    "ROLLBACK_IMAGE_MIRROR": "ghcr.io/appolon1908-hue/codestra-middleware-legacy (PENDING_SERVER_A_ACCESS — not done)",
+    "ROLLBACK_CONFIG": "pg_hba.conf, postgresql.conf, /opt/codestra/middleware-staging/compose*.yaml backed up at P1",
+    "FRESH_BACKUP_REQUIRED_AT": "P1 (pg_dump custom + pg_basebackup tar + sha256 + isolated pg_restore readback)",
+    "INSTALLED_BACKUP_TOOL_USABLE": false,
+    "INSTALLED_BACKUP_TOOL_REASON": "production-shaped config (codestra_middleware_appolon / codestra-postgres-1) and restore rehearsal requires middleware_schema_migrations absent on legacy 0058"
+  },
+  "roles": {
+    "runtime": ["middleware_api", "middleware_worker", "middleware_reconciler", "middleware_scheduler"],
+    "migration_owner": "PENDING_OWNER (F-04)",
+    "provisioning_authority_in_repo": false,
+    "current_legacy_roles": "LIVE_READBACK_PENDING"
+  },
+  "secret_references": {
+    "per_unit_database_url": "/etc/codestra/secrets/middleware-runtime/middleware-<unit>-database-url -> /run/secrets/database_url",
+    "db_tls_material": "proposed /etc/codestra/secrets/middleware-staging/db/{ca.crt,client.crt,client.key} -> /run/secrets/middleware-staging-db-{ca.crt,client.crt,client.key}",
+    "compose_secrets": ["/etc/codestra/secrets/codestra-compose/redis_url", "/etc/codestra/secrets/codestra-compose/middleware_secret", "/etc/codestra/secrets/codestra-compose/webhook_shared_secret"],
+    "runtime_env_file_candidates": ["/opt/codestra/env/middleware.env", "/etc/codestra-middleware/runtime.env"],
+    "verification": "stat only (owner/mode/no symlink); never content"
+  },
+  "health_endpoints": {
+    "liveness": "GET /healthz",
+    "readiness": "GET /readyz (HEALTH_REQUIRE_DATABASE=true on middleware-integration-api)",
+    "metrics": "GET /metrics",
+    "runtime_safety": "GET /v1/runtime/safety",
+    "database_evidence": "GET /internal/v1/database/{health,readiness,status,schema,migrations,pool,security/tls,security/certificates,security/rls,performance,locks,capacity,backups,backups/latest,restores/latest}; POST /internal/v1/database/migrations/verify",
+    "database_scopes": {"read": "platform.database.read", "verify": "platform.database.verify"},
+    "worker_liveness": "python -c 'import os; os.kill(1, 0)'"
+  },
+  "expected_units": {
+    "pas13_minimum": [
+      {"service": "middleware-integration-api", "command": "app.entrypoints.integration_api", "db_role": "middleware_api", "replaces": "codestra-middleware-staging-middleware-staging-1"},
+      {"service": "middleware-notification-worker", "command": "app.entrypoints.notification_worker", "db_role": "middleware_worker", "replaces": "codestra-middleware-staging-notification-worker-staging-1"},
+      {"service": "middleware-scheduler", "command": "app.entrypoints.scheduler", "db_role": "middleware_scheduler", "replaces": "codestra-middleware-staging-scheduler-staging-1"},
+      {"service": "middleware-reconciliation-worker", "command": "app.entrypoints.reconciliation_worker", "db_role": "middleware_reconciler", "replaces": null}
+    ],
+    "canonical_compose_template": "deploy/compose.runtime.yaml (21 services; production-shaped; staging overlay required — F-08)",
+    "legacy_units_not_restarted": ["callback-staging-1", "odoo-result-worker-staging-1", "scraper-odoo-delivery-worker-1", "social-dead-letter-worker-staging-1", "social-delivery-worker-staging-1", "social-reconciliation-worker-staging-1"]
+  },
+  "pr_304_review": {
+    "head": "61c30e1cd8b51b8450429fbf0e1298878c2a5cf0",
+    "base": "bd406a6508c8095a3f23b35149a2eebcb94c94c6 (one behind main 8ecf6e9)",
+    "body_head_claim": "fbca878594ba868bce644e8dcc18a16aba653880 (stale)",
+    "consumable": false,
+    "ci_failures": [
+      "tests/test_staging_intake_observability_contract_validation.py::test_committed_staging_contract_is_valid (staging runtime profile drift: EXPECTED_PROFILE pin in scripts/validate_staging_intake_observability_contract.py)",
+      "tests/test_release_authority.py::test_trust_derivation_check_passes (STALE EXPECTED_REQUIRED_CHECK_SOURCE_CLOSURE_SHA256; must re-derive after rebase onto 8ecf6e9)"
+    ],
+    "required_before_consumption": ["rebase onto 8ecf6e9", "update staging contract EXPECTED_PROFILE/pin in the same PR", "re-derive trust closure", "green exact-head CI", "independent review"],
+    "content_findings": ["F-03 no cert expiry/identity check", "F-05 plaintext redis alternate for staging"],
+    "do_not": ["merge or rebase into PAS-27 RC repair"]
+  },
+  "findings": [
+    {"id": "F-01", "blocking": true, "owner": "PAS-27", "phase": "P0", "text": "Signed RC not published: run 35602170321 on 8ecf6e9 denied: permission_denied: read_package on ghcr.io/ingtrader21-spec/codestra-middleware"},
+    {"id": "F-02", "blocking": true, "owner": "PAS-79/PAS-80", "phase": "P0", "text": "PR #304 red on exact head (staging profile validator drift + stale trust closure) and one behind main"},
+    {"id": "F-03", "blocking": true, "owner": "PAS-79 (DB-04/05)", "phase": "P4", "text": "#304 lacks certificate expiry/identity checks required by PAS-79; operator openssl check as interim"},
+    {"id": "F-04", "blocking": true, "owner": "PAS-77", "phase": "P3/P5", "text": "No role-provisioning authority for the four runtime roles + migration owner role"},
+    {"id": "F-05", "blocking": true, "owner": "PAS-79/PAS-80", "phase": "P5", "text": "#304 admits plaintext redis://redis:6379/0 for staging; main profile and historical contract require rediss"},
+    {"id": "F-06", "blocking": true, "owner": "staging operator", "phase": "P1", "text": "Rollback images exist only in Server 1 Docker cache; GHCR legacy mirror pending; docker save at P1"},
+    {"id": "F-07", "blocking": true, "owner": "PAS-27 / release lane", "phase": "any controller deploy", "text": "deploy/production/server/codestra-middleware-deploy line 510 pins core SQL receipts to 1..10; main ships 0011_audit_timeline_indexes.sql (receipt 11) -> middleware_migration_head_mismatch; file is release/trust-owned, not edited here"},
+    {"id": "F-08", "blocking": true, "owner": "PAS-13", "phase": "P5", "text": "No staging compose overlay in Git; staging profile on main is k8s-shaped; reviewed overlay pinned to RC digest + #304 profile required"},
+    {"id": "F-09", "blocking": true, "owner": "staging operator", "phase": "P0", "text": "Staging app plane exited ~11:20Z (two exit 137); root cause must be established before P5"},
+    {"id": "F-10", "blocking": false, "owner": "PAS-79/PAS-80", "phase": null, "text": "PR #304 body claims live staging reconciliation completed via #297; SentinelX shows canonical DB still 0058 (#297 was a disposable-restore rehearsal)"},
+    {"id": "F-11", "blocking": false, "owner": null, "phase": null, "text": "Installed backup controller is production-shaped; staging backup uses explicit pg_dump/pg_restore + pg_basebackup"}
+  ],
+  "ownership_fence": {
+    "pr_301_release_trust_files_edited": false,
+    "migrations_applied": false,
+    "staging_images_replaced": false,
+    "caddy_kong_odoo_n8n_reloaded": false,
+    "provider_business_effects_enabled": false,
+    "server_commands_executed": false
+  }
+}
