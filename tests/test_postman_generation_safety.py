@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import importlib.util
 import sys
+import json
+import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -250,3 +252,70 @@ def test_database_certification_requires_explicit_private_base_url() -> None:
 
     assert private_requests
     assert public_negative_requests
+
+
+def _run_collection_prerequest(method: str, environment: str, allow_effectful: str) -> bool:
+    collection, _ = postman.build()
+    event = next(row for row in collection["event"] if row["listen"] == "prerequest")
+    script = "\n".join(event["script"]["exec"])
+    values = json.dumps({"{{environment}}": environment, "{{RUN_EFFECTFUL}}": allow_effectful})
+    node_source = f"""
+let skipped = false;
+const values = {values};
+const pm = {{
+  request: {{ method: {json.dumps(method)} }},
+  variables: {{ replaceIn: (value) => values[value] ?? value }},
+  execution: {{ skipRequest: () => {{ skipped = true; }} }}
+}};
+{script}
+process.stdout.write(JSON.stringify({{skipped}}));
+"""
+    result = subprocess.run(
+        ["node", "-e", node_source],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    return bool(json.loads(result.stdout)["skipped"])
+
+
+def test_collection_javascript_is_syntactically_valid() -> None:
+    collection, _ = postman.build()
+    scripts = [
+        "\n".join(event["script"]["exec"])
+        for event in collection["event"]
+    ]
+    scripts.extend(
+        "\n".join(event["script"]["exec"])
+        for request in _flatten(collection)
+        for event in request.get("event", [])
+    )
+    assert scripts
+    for script in scripts:
+        result = subprocess.run(
+            ["node", "-e", f"new Function({json.dumps(script)});"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert result.returncode == 0, result.stderr
+
+
+def test_production_effectful_requests_are_always_skipped() -> None:
+    for environment in ("production", "prod"):
+        for method in ("POST", "PUT", "PATCH", "DELETE"):
+            assert _run_collection_prerequest(method, environment, "true") is True
+            assert _run_collection_prerequest(method, environment, "false") is True
+
+
+def test_local_effectful_requests_require_explicit_opt_in() -> None:
+    assert _run_collection_prerequest("POST", "local", "false") is True
+    assert _run_collection_prerequest("POST", "local", "true") is False
+
+
+def test_safe_methods_are_not_skipped_by_effect_guard() -> None:
+    for method in ("GET", "HEAD", "OPTIONS"):
+        assert _run_collection_prerequest(method, "production", "false") is False
