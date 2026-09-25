@@ -130,7 +130,7 @@ class DenialAuditSink:
     writes ``middleware_control_audit`` (immutable); the memory one keeps a list."""
 
     async def record(self, audit: DenialAudit) -> None:  # pragma: no cover - protocol
-        raise NotImplementedError
+        raise RuntimeError("denial audit sink is not configured")
 
 
 class MemoryDenialAuditSink(DenialAuditSink):

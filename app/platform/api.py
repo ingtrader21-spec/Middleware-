@@ -518,3 +518,62 @@ def _public_contract_digest() -> str | None:
 
 
 __all__ = ["router", "CommandNotFound"]
+
+# Connector catalog/readiness projections. These routes are read-only and never
+# enable an effect; authentication/tenant policy remains the platform authority.
+@router.get("/connectors")
+async def connectors_catalog(request: Request):
+    from app.platform.connector_catalog import list_connectors
+    runtime, platform = _runtime(request)
+    return {"items": await list_connectors(platform)}
+
+@router.get("/connectors/{connector_id}")
+async def connector_catalog_item(request: Request, connector_id: str):
+    from app.platform.connector_catalog import ConnectorCatalogError, describe_connector
+    runtime, platform = _runtime(request)
+    try:
+        return await describe_connector(platform, connector_id)
+    except ConnectorCatalogError as exc:
+        return JSONResponse(status_code=404, content={"error":{"code":exc.code,"message":str(exc)}})
+
+@router.get("/connectors/{connector_id}/capabilities")
+async def connector_capabilities(request: Request, connector_id: str):
+    from app.platform.connector_catalog import ConnectorCatalogError, describe_connector
+    runtime, platform = _runtime(request)
+    try:
+        row=await describe_connector(platform,connector_id)
+    except ConnectorCatalogError as exc:
+        return JSONResponse(status_code=404,content={"error":{"code":exc.code,"message":str(exc)}})
+    return {"connector_id":connector_id,"capabilities":row["capabilities"],
+            "effect_classification":row["effect_classification"],"enabled":row["enabled"]}
+
+@router.get("/connectors/{connector_id}/health")
+async def connector_health(request: Request, connector_id: str):
+    from app.platform.connector_catalog import ConnectorCatalogError, describe_connector
+    runtime, platform = _runtime(request)
+    try:
+        row=await describe_connector(platform,connector_id)
+    except ConnectorCatalogError as exc:
+        return JSONResponse(status_code=404,content={"error":{"code":exc.code,"message":str(exc)}})
+    return {"connector_id":connector_id,"health":row["health"],"readiness":row["readiness"],
+            "enabled":row["enabled"],"environment":row["environment"]}
+
+class ConnectorOperationRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    operation_id: UUID
+
+@router.post("/connectors/{connector_id}/readback")
+async def connector_operator_readback(request: Request, connector_id: str, body: ConnectorOperationRequest):
+    principal=await authenticate(request,required_scope=SCOPE_COMMAND_READ)
+    runtime,platform=_runtime(request)
+    tenant_id=_tenant_for_read(request,principal)
+    from app.platform.connector_catalog import connector_readback
+    return await connector_readback(platform,runtime.commands,tenant_id=tenant_id,connector_id=connector_id,operation_id=body.operation_id)
+
+@router.post("/connectors/{connector_id}/reconcile")
+async def connector_operator_reconcile(request: Request, connector_id: str, body: ConnectorOperationRequest):
+    principal=await authenticate(request,required_scope=SCOPE_COMMAND_REPLAY)
+    runtime,platform=_runtime(request)
+    tenant_id=_tenant_for_read(request,principal)
+    from app.platform.connector_catalog import connector_reconcile
+    return await connector_reconcile(platform,runtime.commands,tenant_id=tenant_id,connector_id=connector_id,operation_id=body.operation_id)
