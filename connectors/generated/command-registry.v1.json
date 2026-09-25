@@ -18,6 +18,30 @@
     },
     {
       "connector_id": "camera-gateway",
+      "prefix": "camera-gateway.capture.",
+      "readback_required": true,
+      "required_capability": "CAMERA_CAPTURE",
+      "timeout_seconds": 30,
+      "unknown_outcome_requires_readback": true
+    },
+    {
+      "connector_id": "camera-gateway",
+      "prefix": "camera-gateway.event.",
+      "readback_required": true,
+      "required_capability": "CAMERA_EVENT_NORMALIZATION",
+      "timeout_seconds": 30,
+      "unknown_outcome_requires_readback": true
+    },
+    {
+      "connector_id": "camera-gateway",
+      "prefix": "camera-gateway.maintenance.",
+      "readback_required": true,
+      "required_capability": "CAMERA_MAINTENANCE_METADATA",
+      "timeout_seconds": 30,
+      "unknown_outcome_requires_readback": true
+    },
+    {
+      "connector_id": "camera-gateway",
       "prefix": "camera-gateway.ptz.",
       "readback_required": true,
       "required_capability": "CAMERA_PTZ",
@@ -45,6 +69,46 @@
       "prefix": "email.",
       "readback_required": true,
       "required_capability": "EMAIL_DELIVERY",
+      "timeout_seconds": 30,
+      "unknown_outcome_requires_readback": true
+    },
+    {
+      "connector_id": "face-id",
+      "prefix": "face-id.access.",
+      "readback_required": true,
+      "required_capability": "FACE_ID_ACCESS_EVALUATE",
+      "timeout_seconds": 30,
+      "unknown_outcome_requires_readback": true
+    },
+    {
+      "connector_id": "face-id",
+      "prefix": "face-id.duplicate.",
+      "readback_required": true,
+      "required_capability": "FACE_ID_ENROLLMENT_REVIEW",
+      "timeout_seconds": 30,
+      "unknown_outcome_requires_readback": true
+    },
+    {
+      "connector_id": "face-id",
+      "prefix": "face-id.enrollment.",
+      "readback_required": true,
+      "required_capability": "FACE_ID_ENROLLMENT_REVIEW",
+      "timeout_seconds": 30,
+      "unknown_outcome_requires_readback": true
+    },
+    {
+      "connector_id": "face-id",
+      "prefix": "face-id.presence.",
+      "readback_required": true,
+      "required_capability": "FACE_ID_PRESENCE_EVENT",
+      "timeout_seconds": 30,
+      "unknown_outcome_requires_readback": true
+    },
+    {
+      "connector_id": "face-id",
+      "prefix": "face-id.verify.",
+      "readback_required": true,
+      "required_capability": "FACE_ID_VERIFY",
       "timeout_seconds": 30,
       "unknown_outcome_requires_readback": true
     },
@@ -109,6 +173,14 @@
       "prefix": "social.",
       "readback_required": true,
       "required_capability": "SOCIAL_PUBLISH",
+      "timeout_seconds": 30,
+      "unknown_outcome_requires_readback": true
+    },
+    {
+      "connector_id": "vicidial-restricted",
+      "prefix": "telephony-internal.",
+      "readback_required": true,
+      "required_capability": "INTERNAL_TELEPHONY_CALLS",
       "timeout_seconds": 30,
       "unknown_outcome_requires_readback": true
     },

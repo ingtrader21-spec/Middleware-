@@ -436,6 +436,12 @@ def validate(root: Path = ROOT) -> tuple[int, int]:
     )
     require_exact_record(command, COMMAND_CONTRACT, "alert_command_policy_drifted")
 
+    authority_registry = load_object(root, "config/repository-authorities.v1.json")
+    principal_repositories = {
+        item.get("principal_repository")
+        for item in authority_registry.get("authorities", [])
+        if isinstance(item, dict) and isinstance(item.get("principal_repository"), str)
+    }
     adapter_registry = load_object(root, "config/adapter-registry.v2.json")
     if set(adapter_registry) != {"schema_version", "adapters"}:
         fail("adapter_registry_fields_drifted")
@@ -463,15 +469,7 @@ def validate(root: Path = ROOT) -> tuple[int, int]:
         repository = require_string(
             candidate.get("repository"), f"invalid_adapter_repository:{connector_id}"
         )
-        identity_service_repositories = {
-            "face-id": "ingtrader21-spec/FACE-ID",
-            "face-liveness": "ingtrader21-spec/Codestra-Face-Liveness",
-            "camera-gateway": "ingtrader21-spec/Codestra-Camera-Gateway",
-            "postgresql": "ingtrader21-spec/Codestra-PostgreSQL",
-        }
-        if re.fullmatch(
-            r"appolon1908-hue/[A-Za-z0-9_.-]+", repository
-        ) is None and repository != identity_service_repositories.get(connector_id):
+        if repository not in principal_repositories:
             fail(f"invalid_adapter_repository:{connector_id}")
         prefixes = require_string_list(
             candidate.get("command_prefixes"),
