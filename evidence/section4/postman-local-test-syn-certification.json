@@ -1,0 +1,39 @@
+{
+  "certification": "LOCAL_TEST_SYN_POSTMAN_NEWMAN",
+  "certified_at": "2026-09-25T20:54:19.976357+00:00",
+  "mission": "Mission 4-FINAL \u2014 Canonical Integration API :8095",
+  "newman": {
+    "assertion_failures": 0,
+    "assertions": 22,
+    "failures": [],
+    "iterations": 1,
+    "request_failures": 0,
+    "requests": 11,
+    "version": "6.2.2"
+  },
+  "notes": [
+    "Certification used the canonical FastAPI application factory and in-memory TEST_SYN runtime.",
+    "Existing unrelated local :8095 process was not stopped or modified; certification harness used loopback :18095.",
+    "No external provider effect was enabled or executed."
+  ],
+  "postman": {
+    "bearer_token_persisted": false,
+    "collection": "postman/collections/Middleware-Section4-Local-TEST_SYN-Certification.postman_collection.json",
+    "collection_sha256": "6e95e9202a4dc046ec06c65f55f61ed423760a6860342a1c66f13f4648afaaff",
+    "environment": "postman/environments/Middleware-Section4-Local-TEST_SYN.postman_environment.json",
+    "environment_sha256": "4d80ea3cfdbf42cd105631c7d60d2dd2158b8c769fc708789aa282ad5b0c489b",
+    "openapi": "contracts/platform/middleware-openapi.generated.json",
+    "openapi_sha256": "d57e7d5099a3e0055b915e699a616d26f0a19f811ff3fc46bb1614ffbe9b3ebc"
+  },
+  "production_effects_enabled": false,
+  "runtime": {
+    "host": "127.0.0.1",
+    "port": 18095,
+    "profile": "test/in-memory",
+    "provider_effects": "disabled",
+    "tenant": "TEST_SYN"
+  },
+  "schema_version": "1.0",
+  "source_sha": "25e6987e90898243ee18afd2887497a2d61871ce",
+  "status": "PASS"
+}
