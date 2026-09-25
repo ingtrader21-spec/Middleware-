@@ -156,13 +156,9 @@ jobs:
           # Source contains intentional production-denial fixtures and restricted
           # operator bind addresses. Block actual traffic instead of pretending
           # a missing `rg` executable proves that those strings do not exist.
-          for target in 65.109.65.169/32 65.21.67.207/32 37.27.128.39/32 10.40.0.0/24; do
-            for chain in OUTPUT FORWARD; do
-              sudo -n iptables -I "$chain" 1 -d "$target" -j REJECT
-              sudo -n iptables -C "$chain" -d "$target" -j REJECT
-            done
-          done
-          echo 'CI_RUNTIME_EGRESS_DENY=PASS'
+          # The governed self-hosted runner exposes one root-owned wrapper whose
+          # only authority is to add/verify these fixed OUTPUT/FORWARD REJECT rules.
+          sudo -n /usr/local/sbin/codestra-ci-egress-guard
 
       - name: Lint and type checks
         shell: bash
