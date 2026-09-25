@@ -166,7 +166,7 @@ C2 canonical API/auth/error boundary.
 C3 journey durable readback/cursor.
 C4 delivery-event ingress/replay.
 C5 suppression ingestion/idempotency/atomic lifecycle.
-C6 certified campaign/version/audience candidate authority.
+C6 certified campaign/version/audience candidate authority. The machine-readable readiness gate is config/campaign-recycling-candidate-authority.v1.json; current Klyrow campaign definitions/preflight are explicitly insufficient because they do not provide immutable campaign versions or authoritative per-lead audience membership.
 C7 plan + next-action + eligible-leads runtime evaluation using C6.
 C8 execute reservation/outbox with provider effects still disabled.
 C9 readback/reconciliation/DLQ/replay evidence and observability.

@@ -1,0 +1,70 @@
+{
+  "schema_version": "1.0",
+  "gate": "MCR-C6-candidate-authority",
+  "status": "blocked_pending_dependencies",
+  "production_authorized": false,
+  "provider_effects_enabled": false,
+  "rules": {
+    "middleware_must_not_invent_campaigns": true,
+    "raw_provider_or_vicidial_campaign_ids_allowed": false,
+    "candidate_source_must_be_tenant_bound": true,
+    "campaign_version_must_be_immutable": true,
+    "audience_membership_must_be_authoritative": true,
+    "sender_identity_must_be_authoritative": true
+  },
+  "channels": {
+    "email": {
+      "campaign_authority": "klyrow",
+      "sender_identity_authority": "klyrow",
+      "status": "blocked",
+      "observed_existing_surface": {
+        "campaign_list": "GET /v1/campaign-definitions",
+        "preflight": "POST /v1/campaign-definitions/{campaign_id}/preflight",
+        "deficiency": "mutable campaign row plus caller-supplied aggregate estimates; no immutable campaign-version or recipient audience-membership read contract"
+      },
+      "required_read_contract": {
+        "tenant_binding": "authenticated service tenant plus X-Tenant-ID equivalent",
+        "campaign_id": "klyrow:<raw_id>",
+        "campaign_version": "immutable positive integer",
+        "channel": "email",
+        "active": "boolean",
+        "version_approved": "boolean",
+        "priority": "integer",
+        "sender_identity_id": "verified immutable identity reference",
+        "sender_authorized": "boolean readback from Klyrow sender authority",
+        "audience_snapshot_ref": "immutable audience/segment snapshot reference",
+        "lead_membership": "authoritative per-lead membership or bounded tenant-scoped membership page",
+        "effective_window": "start/end or explicit always-active state",
+        "readback_version": "monotonic or immutable snapshot version"
+      }
+    },
+    "sms": {
+      "campaign_authority": "klyrow",
+      "sender_identity_authority": "telnexa",
+      "status": "blocked",
+      "required_read_contract": "same campaign/version/audience guarantees as email plus Telnexa-approved sender identity readback"
+    },
+    "whatsapp": {
+      "campaign_authority": "whatsapp",
+      "sender_identity_authority": "whatsapp",
+      "transport_authority": "evolution",
+      "status": "blocked_pending_dependency",
+      "required_read_contract": "namespaced immutable campaign/version/audience/template/sender snapshot; Evolution remains transport-only"
+    },
+    "voice": {
+      "campaign_authority": "odoo",
+      "sender_identity_authority": "vicidial",
+      "status": "not_supported_in_v1"
+    }
+  },
+  "activation_requirements": [
+    "all consumed authority endpoints have frozen request/response schemas",
+    "service authentication and tenant isolation negative tests pass",
+    "campaign IDs are namespaced",
+    "campaign versions are immutable and approved",
+    "audience membership is authoritative and restart-safe",
+    "sender identity readback is authoritative",
+    "stale/conflicting evidence fails closed",
+    "no provider effect is introduced by candidate reads"
+  ]
+}
