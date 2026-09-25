@@ -20,6 +20,54 @@ PROVIDER_EFFECTS=0
 LIVE_READBACK=PENDING_OPERATOR     # see "Provenance" below and readback-commands.md
 ```
 
+## 0. Re-baseline — 2026-09-24 (supersedes the DB/TLS rows of §1.2)
+
+The packet was written against the 2026-09-21 SentinelX readback. The
+read-only Server 1 readback recorded on PAS-180 on 2026-09-23 (`LINEAR
+PAS-180 2026-09-23`) shows that the canonical data plane moved on since then.
+Where this section and §1–§10 disagree, this section wins. The original rows
+stay below as history.
+
+| Key | 2026-09-21 (superseded) | 2026-09-23 readback (current) |
+|---|---|---|
+| CURRENT_STAGING_DB_SCHEMA | `0058_odoo_delivery_sources` | `0067_service_catalog_monitoring_state` |
+| CURRENT_STAGING_DB_TLS | `off` | `on`; non-SSL network connections rejected |
+| pg_hba (service roles) | unknown | `hostssl` + `scram-sha-256` + `clientcert=verify-full` + `clientname=CN` for `middleware_api`, `middleware_worker`, `middleware_reconciler`, `middleware_scheduler`, `middleware_migration`, `middleware_backup`, `postgres_exporter` |
+| CURRENT_STAGING_POSTGRES_IMAGE | `LIVE_READBACK_PENDING` | image ID `sha256:ef257d85f76e48da1c64832459b59fcaba1a4dac97bf5d7450c77753542eee94` |
+| CURRENT_STAGING_REDIS_IMAGE | not recorded | image ID `sha256:bb186d083732f669da90be8b0f975a37812b15e913465bb14d845db72a4e3e08` |
+| CURRENT_STAGING_MIDDLEWARE_IMAGE | `codestra/middleware:staging-b29db772` / `sha256:b81c1252…67408f` | unchanged; app plane still stopped (API, scheduler, result, notification, social workers) |
+| App-plane exit cause (F-09) | unknown | API and workers were **cleanly stopped** (exit 0 after `/readyz` 200, PAS-151 2026-09-21 16:16 AST). `callback` and `scraper` exit 137 are still unexplained; neither unit is in the PAS-13 minimum set. |
+| Backups | #297 rehearsal snapshot only | all-database encrypted certification backup SUCCESS 2026-09-22 21:38 AST; encrypted online Middleware off-server backup SUCCESS 2026-09-23 00:16 AST; both timers scheduled. Fresh canonical staging backup restored to disposable PostgreSQL 17, SHA-256 `4312cbe8964f8d1eb3992a058ddd12c78551e7820ae40dd2a6d9eb7412c5dcd1` (PAS-234 2026-09-23 08:22 AST). |
+| Deployment hygiene | — | the old stopped API container carries sensitive values directly in container environment variables. **Never restart or reuse it.** The new deployment consumes governed secret files only (F-13). |
+
+What this means for the plan (details in `execution-plan.md`):
+
+* **P3 (0058→0067) is no longer an execution step for Alembic.** The canonical
+  DB already reports `0067`. The run that reconciled it is not attached to this
+  packet (F-17), so P3 becomes *verify-only*: SQL receipts `1..11` / automation
+  `1`, the four PR #309 CHECK-constraint drifts, and row counts. On
+  2026-09-21 17:14 AST, `migrate_runtime.py --verify-only` against canonical
+  staging still exited 1 (`middleware_schema_migrations` absent). No readback
+  after that date proves the receipts exist.
+* **P4 (verify-full TLS) is already live.** It becomes a readback gate. With
+  `clientname=CN`, each unit needs **its own** client certificate whose CN
+  equals its role (F-16).
+* F-04's migration-role gap is partly closed: `middleware_migration` and
+  `middleware_backup` exist live. The repo still has no role-provisioning
+  authority for them.
+
+Re-baselined exit (unchanged in value, re-based in evidence):
+
+```text
+STAGING_PREFLIGHT_PACKET=PASS
+CURRENT_STATE_RECORDED=YES         # 2026-09-23 readback
+BACKUP_ROLLBACK_READY=YES          # fresh backups + disposable restore 2026-09-22/23
+TLS_PREREQUISITES_CLASSIFIED=YES   # class is now VERIFY_FULL_MTLS_LIVE
+RUNTIME_MUTATION=0
+PROVIDER_EFFECTS=0
+LIVE_READBACK=RECORDED_2026-09-23  # SQL receipt / #309 constraint readback still PENDING_OPERATOR
+```
+
 ## Provenance and limits
 
 Every value below carries one of these provenance tags:
@@ -32,11 +80,14 @@ Every value below carries one of these provenance tags:
 | `SENTINELX 2026-09-21` | independent runtime readback of Server 1 recorded on PAS-13 / PAS-102 (08:04 AST) |
 | `PR#297 2026-09-20` | rehearsal evidence recorded in merged PR #297 (`8829d92`) |
 | `LIVE_READBACK_PENDING` | must be read from Server 1 before execution; exact command in `readback-commands.md` |
+| `LINEAR PAS-180 2026-09-23` | read-only Server 1 readback recorded in the PAS-180 issue body ("Fresh canonical staging preflight readback — 2026-09-23") |
+| `LINEAR PAS-151/PAS-234` | runtime/rehearsal notes recorded on PAS-151 (2026-09-21) and PAS-234 (2026-09-22/23) |
+| `REPO@0606b0d` | protected main `0606b0db9ff59802f8da3824d209d2effc13f87d` (after #307; current main at re-baseline) |
 
 This session's SSH access to Server 1 (`65.109.65.169`) was denied by the
 workstation permission classifier (shared production host), so no fresh live
-readback was taken here. The most recent independent readback (SentinelX, today)
-is used as the recorded current state; the execution plan re-reads every value at
+readback was taken here. The most recent independent readback at packet time
+(SentinelX, 2026-09-21) was used as the recorded current state (superseded by §0); the execution plan re-reads every value at
 gate P0 and stops on any drift.
 
 ## 1. Current state (recorded)
@@ -111,7 +162,8 @@ the execution plan pins the canonical container by exact name.
 | TARGET_DB_DSN (per unit) | `postgresql://<role>:<secret>@postgres:5432/middleware_staging?sslmode=verify-full&sslrootcert=/run/secrets/middleware-staging-db-ca.crt&sslcert=/run/secrets/middleware-staging-db-client.crt&sslkey=/run/secrets/middleware-staging-db-client.key` | `PR#304@61c30e1` (`database_alternates`) |
 | TARGET_DB_ROLES | `middleware_api`, `middleware_worker`, `middleware_reconciler`, `middleware_scheduler` | `PR#304@61c30e1` |
 | TARGET_REDIS | main profile: `rediss://middleware-staging@redis.middleware-staging.svc.cluster.local:6379/14`; #304 alternate: `redis://redis:6379/0` (plaintext, see F-05) | `REPO@8ecf6e9` / `PR#304@61c30e1` |
-| TARGET_EFFECT_FLAGS | every flag in `deploy/compose.runtime.yaml` `x-runtime.environment` = `false`; `NATS_DISPATCH_MODE=disabled`, `TEMPORAL_WORKER_MODE=disabled`, `OUTBOX_DISPATCH_ENABLED=false`, `PRODUCTION_DIALING=DISABLED` | `REPO@8ecf6e9` |
+| TARGET_EFFECT_FLAGS | every flag in `deploy/compose.runtime.yaml` `x-runtime.environment` = `false` **and** the per-service overrides below forced back to `false`; `NATS_DISPATCH_MODE=disabled`, `TEMPORAL_WORKER_MODE=disabled`, `OUTBOX_DISPATCH_ENABLED=false`, `PRODUCTION_DIALING=DISABLED` (these four come from `config/environments/staging.runtime.env.example` + `app/core/config.py` validation, **not** from `compose.runtime.yaml`, which does not set them) | `REPO@0606b0d` |
+| COMPOSE EFFECT OVERRIDES (F-12) | `deploy/compose.runtime.yaml` sets `N8N_RUNTIME_ENABLED: "true"` on `middleware-integration-api` (enables `POST /v1/n8n-runtime/dispatch` execution writes), `middleware-n8n-runtime-worker` and `middleware-social-n8n-delivery-worker`. The staging overlay must set it to `"false"` for every unit. | `REPO@0606b0d` |
 
 Topology note: the staging profile on main (`config/runtime-profiles.v1.json`)
 still describes a Kubernetes-style topology
@@ -200,7 +252,8 @@ repair.
 | Secret | Host path (per `deploy/compose.runtime.yaml`) | Mount |
 |---|---|---|
 | per-unit DATABASE_URL | `/etc/codestra/secrets/middleware-runtime/middleware-<unit>-database-url` | `/run/secrets/database_url` |
-| DB CA / client cert / client key | to be created: `/etc/codestra/secrets/middleware-staging/db/{ca.crt,client.crt,client.key}` (proposed) | `/run/secrets/middleware-staging-db-{ca.crt,client.crt,client.key}` (#304 tuple) |
+| DB CA | `/etc/codestra/secrets/middleware-staging/db/ca.crt` (proposed) | `/run/secrets/middleware-staging-db-ca.crt` (#304 tuple) |
+| DB client cert / key — **one pair per role** (F-16) | `/etc/codestra/secrets/middleware-staging/db/<role>/client.{crt,key}` (proposed; CN = `<role>` because live `pg_hba` uses `clientname=CN`) | `/run/secrets/middleware-staging-db-client.{crt,key}` in the unit that runs as `<role>` |
 | redis_url / middleware_secret / webhook_shared_secret | `/etc/codestra/secrets/codestra-compose/{redis_url,middleware_secret,webhook_shared_secret}` | compose `secrets:` |
 | runtime env file | `/opt/codestra/env/middleware.env` (compose) vs `/etc/codestra-middleware/runtime.env` (deploy controller) — staging must pick one, root-owned `0600` | — |
 
@@ -250,16 +303,22 @@ some workers). A reviewed staging overlay is an execution input (F-08).
 | ID | Finding | Owner | Blocks |
 |---|---|---|---|
 | F-01 | Signed RC not published: release run `35602170321` on `8ecf6e9` → `denied: permission_denied: read_package` on `ghcr.io/ingtrader21-spec/codestra-middleware`. Package/installation authority decision required. | PAS-27 | P0 |
-| F-02 | PR #304 RED on exact head (staging-profile validator drift + stale trust closure) and one commit behind main. Rebase → update `EXPECTED_PROFILE` in `scripts/validate_staging_intake_observability_contract.py` (or its pin) in the same PR → re-derive closure → green → independent review. | PAS-79/80 | P0 |
+| F-02 | PR #304 RED on exact head (staging-profile validator drift + stale trust closure) and one commit behind main. Rebase → update `EXPECTED_PROFILE` in `scripts/validate_staging_intake_observability_contract.py` (or its pin) in the same PR → re-derive closure → green → independent review. **2026-09-24:** now contains main, head `4e524fc84c`, still red and unreviewed; see F-15. | PAS-79/80 | P0 |
 | F-03 | #304 lacks certificate expiry / identity checks required by PAS-79. | PAS-79 (DB-04/05) | P4 (operator check as interim) |
 | F-04 | No role-provisioning authority for the four runtime roles + migration owner role. | PAS-77 | P3/P5 |
 | F-05 | #304 admits plaintext `redis://redis:6379/0` for staging; main profile and historical contract require `rediss`. | PAS-79/80 | P5 (decision) |
 | F-06 | Rollback images exist only in the Server 1 Docker cache; GHCR legacy mirror `PENDING_SERVER_A_ACCESS`. A prune destroys rollback. Plan P1 `docker save`s all five families first. | staging operator | P1 |
 | F-07 | `deploy/production/server/codestra-middleware-deploy` pins core SQL receipts to `1,2,3,4,5,6,7,8,9,10` (line 510) while main ships `0011_audit_timeline_indexes.sql` (receipt 11). Any controller-driven deploy fails at `middleware_migration_head_mismatch` after a successful migration. Pre-existing; file belongs to the release/trust set — **not edited by this lane**. | PAS-27 / release lane | any deploy through the controller |
 | F-08 | No staging compose overlay in Git; staging profile on main is k8s-shaped. Execution needs a reviewed staging compose pinned to the RC digest + #304 profile. | PAS-13 owner | P5 |
-| F-09 | Staging app plane exited at ~11:20Z today (two exit 137). Root cause unknown; must be explained (host memory / manual stop / OOM) before P5 — otherwise the new units inherit the same fate. | staging operator | P0 |
+| F-09 | Staging app plane exited at ~11:20Z today (two exit 137). Root cause unknown; must be explained (host memory / manual stop / OOM) before P5 — otherwise the new units inherit the same fate. **2026-09-24:** API/workers were a clean stop (exit 0, PAS-151); only the out-of-scope `callback`/`scraper` exit 137 remain unexplained. Blocking only if either unit is brought into scope. | staging operator | P0 (narrowed) |
 | F-10 | PR #304 body says live staging reconciliation "already completed through merged PR #297". SentinelX shows the canonical DB still at 0058; #297 was a disposable-restore rehearsal. Wording only, but it must not be used as evidence of a reconciled staging DB. | PAS-79/80 | — |
 | F-11 (info) | The installed backup controller is production-shaped and its restore rehearsal expects `middleware_schema_migrations`; staging backup uses explicit `pg_dump`/`pg_restore` + physical tar (§4). | — | — |
+| F-12 | `deploy/compose.runtime.yaml` turns `N8N_RUNTIME_ENABLED` **on** for `middleware-integration-api`, `middleware-n8n-runtime-worker` and `middleware-social-n8n-delivery-worker`. Deploying it unchanged, or deriving the overlay from it without an explicit override, breaks effects-OFF. P5 must assert `N8N_RUNTIME_ENABLED=false` in `docker compose config` output for every started unit. | PAS-13 (overlay) | P5 |
+| F-13 | The old staging API container has secret-bearing environment values. It must not be restarted, reused, or used as a template for the new overlay; no `docker inspect … .Config.Env` output may be pasted into evidence. | PAS-13 / staging operator | P5 |
+| F-14 (fixed here) | The packet cited `compose.runtime.yaml` as the source of `NATS_DISPATCH_MODE` / `TEMPORAL_WORKER_MODE` / `OUTBOX_DISPATCH_ENABLED` / `PRODUCTION_DIALING`. That file sets none of them. The real authority is `config/environments/staging.runtime.env.example` + `app/core/config.py` (`PRODUCTION_DIALING must remain DISABLED`). Corrected in §2. | PAS-180 | — |
+| F-15 | PR #304 head moved to `4e524fc84c` (merge of `mission/pas-61-api-postman-authority`). Its diff against main now also carries PAS-146/PAS-179/edge-digest evidence trees and `postman/api-certification-manifest.v1.json`, so it is no longer a single-purpose DB/TLS PR. 29/29 exact-head checks fail (hosted CI, PAS-190), review is still `REVIEW_REQUIRED`, and F-05 (`redis_alternates` plaintext `redis://redis:6379/0`) is still present. Split or re-scope it before it becomes staging authority. | PAS-79/80 | P0.2 |
+| F-16 | Live `pg_hba` enforces `clientname=CN`. One shared client certificate (the old §7 proposal) would authenticate only one role, so the other units fail closed at connect. Each unit needs its own client cert/key with CN = its DB role. | PAS-13 / PAS-77 | P5 |
+| F-17 | The canonical DB went from `0058` (2026-09-21 SentinelX) to `0067` + TLS on (2026-09-23). The reconciliation run's receipt (operator, `RUN_ID`, pre-run backup digest, reconcile script output, row counts) is not attached to PAS-180, and SQL receipt tables were absent on 2026-09-21 17:14 AST. Attach the receipt, or run the P3 verify-only readback, before P5. | staging operator | P0.4 / P3 |
 
 ## 11. Ownership fence honoured
 
