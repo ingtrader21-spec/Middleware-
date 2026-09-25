@@ -1,0 +1,28 @@
+{
+  "schema_version": "1.0",
+  "milestone": "MCR-10",
+  "contract_sha": "b3f44dd4b8ad8976f10394051d2f13cc17443155",
+  "implementation_enabled": true,
+  "routes_registered": true,
+  "production_authorized": false,
+  "provider_effects_enabled": false,
+  "allowed_runtime_files": [
+    "app/core/campaign_recycling.py",
+    "migrations/versions/0068_campaign_recycling_core.py",
+    "migrations/versions/0069_campaign_recycling_delivery_events.py",
+    "app/core/config.py",
+    "deploy/observability-alerts/production.env.example",
+    "deploy/production/compose.canary.yaml",
+    "deploy/production/server/codestra-middleware-deploy",
+    "deploy/production/server-command-contract.v1.json",
+    "app/api/v1/leads_journey.py",
+    "app/core/journey_contract.py",
+    "app/core/journey_readback.py",
+    "contracts/platform/middleware-openapi.generated.json"
+  ],
+  "read_routes": [
+    "GET /platform/v1/leads/{lead_id}/journey",
+    "GET /platform/v1/leads/{lead_id}/next-action"
+  ],
+  "next_action_status": "blocked_pending_authoritative_candidate_reader"
+}

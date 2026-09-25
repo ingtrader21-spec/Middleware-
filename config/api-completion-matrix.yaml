@@ -851,6 +851,18 @@ operations:
   runtime_state: IMPLEMENTED
 - domain: platform
   method: GET
+  path: /platform/v1/leads/{lead_id}/journey
+  canonical_operation_id: lead_journey_read
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: platform
+  method: GET
+  path: /platform/v1/leads/{lead_id}/next-action
+  canonical_operation_id: lead_next_action_read
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: platform
+  method: GET
   path: /platform/v1/me/presence
   canonical_operation_id: get_my_presence_platform_v1_me_presence_get
   implementation_file: registered FastAPI runtime

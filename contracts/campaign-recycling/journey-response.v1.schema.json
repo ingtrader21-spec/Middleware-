@@ -1,0 +1,168 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.codestra.co/campaign-recycling/journey-response.v1.schema.json",
+  "title": "Lead journey durable read projection v1",
+  "description": "Readback of existing MCR-C rows. Channel health exposes the evidence hash actually retained by storage, not a reconstructed evidence event. Current health and additive suppressions accompany each history page. Lifecycle/exposure history is newest-page-first, chronological within each page; the cursor continues both streams independently. This is a live read, not a multi-request snapshot.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "lead_id",
+    "lifecycle_state",
+    "lifecycle_version",
+    "transitions",
+    "channel_health",
+    "suppressions",
+    "exposures",
+    "next_cursor"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "lead_id": {
+      "$ref": "lifecycle.v1.schema.json#/$defs/LeadId"
+    },
+    "lifecycle_state": {
+      "$ref": "lifecycle.v1.schema.json#/$defs/LifecycleState"
+    },
+    "lifecycle_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "transitions": {
+      "type": "array",
+      "maxItems": 200,
+      "items": {
+        "$ref": "lifecycle.v1.schema.json"
+      }
+    },
+    "channel_health": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "channel",
+          "address_ref",
+          "state",
+          "previous_state",
+          "source",
+          "reason_code",
+          "occurred_at",
+          "recorded_at",
+          "health_version",
+          "correlation_id",
+          "evidence_hash",
+          "updated_at"
+        ],
+        "properties": {
+          "channel": {
+            "$ref": "channel-health.v1.schema.json#/properties/channel"
+          },
+          "address_ref": {
+            "$ref": "channel-health.v1.schema.json#/properties/address_ref"
+          },
+          "state": {
+            "$ref": "channel-health.v1.schema.json#/properties/state"
+          },
+          "previous_state": {
+            "$ref": "channel-health.v1.schema.json#/properties/previous_state"
+          },
+          "source": {
+            "$ref": "channel-health.v1.schema.json#/properties/source"
+          },
+          "reason_code": {
+            "$ref": "channel-health.v1.schema.json#/properties/reason_code"
+          },
+          "occurred_at": {
+            "$ref": "channel-health.v1.schema.json#/properties/occurred_at"
+          },
+          "recorded_at": {
+            "$ref": "channel-health.v1.schema.json#/properties/recorded_at"
+          },
+          "health_version": {
+            "$ref": "channel-health.v1.schema.json#/properties/health_version"
+          },
+          "correlation_id": {
+            "$ref": "channel-health.v1.schema.json#/properties/correlation_id"
+          },
+          "evidence_hash": {
+            "$ref": "lifecycle.v1.schema.json#/$defs/Sha256"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    "suppressions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "scope",
+          "channel",
+          "campaign_id",
+          "reason",
+          "source",
+          "occurred_at",
+          "requested_by",
+          "suppression_id",
+          "evidence_hash",
+          "created_at"
+        ],
+        "properties": {
+          "scope": {
+            "$ref": "channel-health.v1.schema.json#/$defs/SuppressionRequest/properties/scope"
+          },
+          "channel": {
+            "$ref": "channel-health.v1.schema.json#/$defs/SuppressionRequest/properties/channel"
+          },
+          "campaign_id": {
+            "$ref": "channel-health.v1.schema.json#/$defs/SuppressionRequest/properties/campaign_id"
+          },
+          "reason": {
+            "$ref": "channel-health.v1.schema.json#/$defs/SuppressionRequest/properties/reason"
+          },
+          "source": {
+            "$ref": "channel-health.v1.schema.json#/$defs/SuppressionRequest/properties/source"
+          },
+          "occurred_at": {
+            "$ref": "channel-health.v1.schema.json#/$defs/SuppressionRequest/properties/occurred_at"
+          },
+          "requested_by": {
+            "$ref": "channel-health.v1.schema.json#/$defs/SuppressionRequest/properties/requested_by"
+          },
+          "suppression_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "evidence_hash": {
+            "$ref": "lifecycle.v1.schema.json#/$defs/Sha256"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    "exposures": {
+      "type": "array",
+      "maxItems": 200,
+      "items": {
+        "$ref": "exposure-ledger.v1.schema.json"
+      }
+    },
+    "next_cursor": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 500
+    }
+  }
+}

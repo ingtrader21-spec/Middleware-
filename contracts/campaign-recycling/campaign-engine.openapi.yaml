@@ -1,0 +1,799 @@
+openapi: 3.1.0
+info:
+  title: Codestra Campaign Recycling Engine API
+  version: 1.0.0
+  description: >-
+    Canonical contract for the Master Lead Lifecycle and Campaign Recycling
+    Engine (MCR-A). Contract only: no runtime handler, route registration,
+    migration, or provider call exists for these operations. Bearer tokens use
+    issuer https://auth.codestra.co/realms/codestra and audience
+    middleware-api. Request metadata, idempotency, the error envelope, and
+    signed-webhook replay rules follow contracts/http-conventions.md. Every
+    domain document is referenced from contracts/campaign-recycling/*.v1
+    schemas and is not redefined here.
+  x-codestra-mission: MCR-A
+  x-codestra-runtime-status: contract_only
+  x-codestra-implemented: false
+  x-codestra-authority: contracts/campaign-recycling/authority.v1.json
+  x-codestra-policy: config/campaign-recycling-policy.v1.json
+security:
+  - codestraOAuth: []
+tags:
+  - name: campaign-engine
+  - name: leads
+  - name: delivery-events
+  - name: suppressions
+paths:
+  /platform/v1/campaign-engine/plan:
+    post:
+      tags: [campaign-engine]
+      operationId: campaign_engine_plan
+      summary: Dry-run next-action planning for one or more leads
+      description: >-
+        Pure evaluation. Writes no exposure rows, emits no commands, and
+        performs no provider call. Returns a plan_hash that execute must echo.
+        Idempotency-Key is optional because the operation has no effect.
+      x-codestra-effects: none
+      x-codestra-dry-run: always
+      security:
+        - codestraOAuth: [campaign.engine.plan]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/CausationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlanRequest'
+      responses:
+        '200':
+          description: Plan evaluated with zero provider effects
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlanResponse'
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/Unprocessable'}
+        '429': {$ref: '#/components/responses/RateLimited'}
+        '503': {$ref: '#/components/responses/Unavailable'}
+  /platform/v1/campaign-engine/execute:
+    post:
+      tags: [campaign-engine]
+      operationId: campaign_engine_execute
+      summary: Execute a previously planned set of decisions
+      description: >-
+        Re-evaluates the referenced plan; if the re-evaluated decision_hash
+        differs, responds 409 plan_stale and does nothing. Otherwise reserves
+        exposure-ledger rows (insert-if-absent on the natural key) and emits
+        canonical commands through the outbox in the same transaction. Provider
+        effects remain gated by config/capabilities.v2.json and channel
+        production gates; while any required capability is false the request
+        fails closed with 403 production_not_authorized.
+      x-codestra-effects: command_outbox_only
+      x-codestra-required-capabilities:
+        email: EMAIL_DELIVERY
+        sms: SMS_DELIVERY
+        whatsapp: WHATSAPP_DELIVERY
+      security:
+        - codestraOAuth: [campaign.engine.execute]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/CausationId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExecuteRequest'
+      responses:
+        '202':
+          description: Exposures reserved and commands durably queued
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecuteResponse'
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/Unprocessable'}
+        '429': {$ref: '#/components/responses/RateLimited'}
+        '503': {$ref: '#/components/responses/Unavailable'}
+  /platform/v1/leads/{lead_id}/journey:
+    get:
+      tags: [leads]
+      operationId: lead_journey_read
+      summary: Lifecycle, channel health, and exposure history for one lead
+      x-codestra-effects: none
+      security:
+        - codestraOAuth: [leads.journey.read]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/LeadId'
+        - $ref: '#/components/parameters/Cursor'
+        - name: limit
+          in: query
+          schema: {type: integer, minimum: 1, maximum: 200, default: 100}
+      responses:
+        '200':
+          description: Journey page
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JourneyResponse'
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '429': {$ref: '#/components/responses/RateLimited'}
+        '503': {$ref: '#/components/responses/Unavailable'}
+  /platform/v1/leads/{lead_id}/next-action:
+    get:
+      tags: [leads]
+      operationId: lead_next_action_read
+      summary: Current next-action decision for one lead (read mode, dry run)
+      x-codestra-effects: none
+      x-codestra-dry-run: always
+      x-codestra-candidate-disclosure-scope: campaign.engine.candidates.read
+      security:
+        - codestraOAuth: [campaign.engine.read]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/LeadId'
+        - $ref: '#/components/parameters/ChannelFilter'
+      responses:
+        '200':
+          description: Decision evaluated with zero provider effects
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: './next-action.v1.schema.json'
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '429': {$ref: '#/components/responses/RateLimited'}
+        '503': {$ref: '#/components/responses/Unavailable'}
+  /platform/v1/campaigns/{campaign_id}/eligible-leads:
+    get:
+      tags: [campaign-engine]
+      operationId: campaign_eligible_leads_read
+      summary: Leads currently eligible for a campaign version (read model, dry run)
+      description: >-
+        campaign_id is the Klyrow campaign identifier. The existing
+        /platform/v1/campaigns router keys campaign_id to the VICIdial campaign
+        registry; that namespace conflict is recorded in authority.v1.json and
+        must be resolved before a handler is added.
+      x-codestra-effects: none
+      x-codestra-dry-run: always
+      security:
+        - codestraOAuth: [campaign.engine.read]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/CampaignId'
+        - $ref: '#/components/parameters/CampaignVersion'
+        - $ref: '#/components/parameters/ChannelFilter'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Eligible leads page
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EligibleLeadsPage'
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '429': {$ref: '#/components/responses/RateLimited'}
+        '503': {$ref: '#/components/responses/Unavailable'}
+  /platform/v1/delivery-events:
+    post:
+      tags: [delivery-events]
+      operationId: delivery_event_ingest
+      summary: Ingest one normalized delivery or engagement event
+      description: >-
+        Service-to-service ingestion of delivery-event.v1 documents from
+        authenticated adapters. The raw body is signature-verified before
+        parsing, the timestamp must fall inside a bounded window supplied by
+        deployment configuration, and (source, event_id) plus payload_hash are
+        durably recorded before 202 is returned. Same digest replays return
+        duplicate=true without re-applying effects; a different digest is 409
+        replay_conflict. Raw Klyrow and Telnexa events keep their existing
+        inboxes and are not re-posted here directly.
+      x-codestra-effects: durable_inbox_only
+      x-codestra-replay-protection:
+        identity: [source, event_id]
+        signature_headers: [X-Codestra-Event-ID, X-Codestra-Timestamp, X-Codestra-Signature]
+        idempotency_key_rule: Idempotency-Key must equal "<source>:<event_id>"
+      security:
+        - codestraOAuth: [campaign.delivery_events.publish]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/CausationId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/SignedEventId'
+        - $ref: '#/components/parameters/SignedTimestamp'
+        - $ref: '#/components/parameters/Signature'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: './delivery-event.v1.schema.json'
+      responses:
+        '202':
+          description: Event durably accepted (or recognized as an identical replay)
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeliveryEventAck'
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/Unprocessable'}
+        '429': {$ref: '#/components/responses/RateLimited'}
+        '503': {$ref: '#/components/responses/Unavailable'}
+  /platform/v1/suppressions:
+    post:
+      tags: [suppressions]
+      operationId: suppression_record
+      summary: Record an additive, scoped suppression
+      description: >-
+        Suppressions are additive and idempotent. v1 defines no release
+        operation. A scope=global suppression also moves the lead lifecycle to
+        SUPPRESSED; narrower scopes never change lifecycle state.
+      x-codestra-effects: durable_record_only
+      security:
+        - codestraOAuth: [campaign.suppressions.write]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/CausationId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: './channel-health.v1.schema.json#/$defs/SuppressionRequest'
+      responses:
+        '201':
+          description: Suppression recorded
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuppressionAck'
+        '200':
+          description: Identical replay of an existing suppression
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuppressionAck'
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/Unprocessable'}
+        '429': {$ref: '#/components/responses/RateLimited'}
+        '503': {$ref: '#/components/responses/Unavailable'}
+  /platform/v1/campaign-engine/status:
+    get:
+      tags: [campaign-engine]
+      operationId: campaign_engine_status
+      summary: Non-secret engine and policy status
+      x-codestra-effects: none
+      security:
+        - codestraOAuth: [campaign.engine.read]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/CorrelationId'
+      responses:
+        '200':
+          description: Engine status
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EngineStatus'
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '429': {$ref: '#/components/responses/RateLimited'}
+        '503': {$ref: '#/components/responses/Unavailable'}
+components:
+  securitySchemes:
+    codestraOAuth:
+      type: oauth2
+      description: >-
+        Keycloak-issued JWT (issuer https://auth.codestra.co/realms/codestra,
+        audience middleware-api). X-Tenant-ID must match the authenticated
+        tenant mapping. These scopes are not yet provisioned in Keycloak.
+      flows:
+        clientCredentials:
+          tokenUrl: https://auth.codestra.co/realms/codestra/protocol/openid-connect/token
+          scopes:
+            campaign.engine.plan: Evaluate dry-run plans
+            campaign.engine.execute: Reserve exposures and queue commands for a plan
+            campaign.engine.read: Read decisions, eligible leads, and engine status
+            campaign.engine.candidates.read: Disclose considered and rejected candidates
+            leads.journey.read: Read a lead journey
+            campaign.delivery_events.publish: Publish normalized delivery events
+            campaign.suppressions.write: Record suppressions
+  headers:
+    CorrelationId:
+      description: Echo of the request correlation identifier
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 180
+  parameters:
+    TenantId:
+      name: X-Tenant-ID
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+    CorrelationId:
+      name: X-Correlation-ID
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 180
+    CausationId:
+      name: X-Causation-ID
+      in: header
+      required: false
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 200
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: Same key and same body returns the original result; same key and different body is 409 idempotency_conflict.
+      schema:
+        type: string
+        minLength: 8
+        maxLength: 180
+    SignedEventId:
+      name: X-Codestra-Event-ID
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 8
+        maxLength: 200
+    SignedTimestamp:
+      name: X-Codestra-Timestamp
+      in: header
+      required: true
+      schema:
+        type: string
+        pattern: '^[0-9]{1,12}$'
+    Signature:
+      name: X-Codestra-Signature
+      in: header
+      required: true
+      schema:
+        type: string
+        pattern: '^v[0-9]+=[0-9a-f]{64}$'
+    LeadId:
+      name: lead_id
+      in: path
+      required: true
+      schema:
+        $ref: './lifecycle.v1.schema.json#/$defs/LeadId'
+    CampaignId:
+      name: campaign_id
+      in: path
+      required: true
+      schema:
+        $ref: './channel-health.v1.schema.json#/$defs/CampaignId'
+    CampaignVersion:
+      name: campaign_version
+      in: query
+      required: true
+      schema:
+        $ref: './exposure-ledger.v1.schema.json#/$defs/CampaignVersion'
+    ChannelFilter:
+      name: channel
+      in: query
+      required: false
+      schema:
+        $ref: './channel-health.v1.schema.json#/$defs/Channel'
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      description: Opaque, tenant-and-lead-bound continuation position. It grants no authority; malformed or wrong-scope cursors are 400 invalid_cursor.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 500
+    Limit:
+      name: limit
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 500
+  responses:
+    BadRequest:
+      description: Malformed or semantically invalid request
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/ErrorEnvelope'}
+    Unauthorized:
+      description: Missing or invalid authentication
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/ErrorEnvelope'}
+    Forbidden:
+      description: Scope, tenant, or production authorization denied
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/ErrorEnvelope'}
+    NotFound:
+      description: Authorized resource not found
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/ErrorEnvelope'}
+    Conflict:
+      description: Idempotency, replay, plan staleness, or optimistic-concurrency conflict
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/ErrorEnvelope'}
+    Unprocessable:
+      description: Valid JSON that violates the contract
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/ErrorEnvelope'}
+    RateLimited:
+      description: Rate limited; Retry-After carries bounded retry guidance
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+            minimum: 1
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/ErrorEnvelope'}
+    Unavailable:
+      description: Engine disabled, policy unconfigured, or a required durable dependency is unavailable
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/ErrorEnvelope'}
+  schemas:
+    ErrorEnvelope:
+      description: Canonical error envelope from contracts/http-conventions.md.
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          type: object
+          additionalProperties: false
+          required: [code, message, correlation_id, retryable, details]
+          properties:
+            code:
+              type: string
+              minLength: 1
+              maxLength: 100
+            message:
+              type: string
+              maxLength: 500
+            correlation_id:
+              type: string
+              minLength: 1
+              maxLength: 200
+            retryable:
+              type: boolean
+            details:
+              type: object
+      x-codestra-error-codes:
+        - invalid_request
+        - invalid_cursor
+        - unsupported_schema_version
+        - authentication_required
+        - tenant_scope_denied
+        - scope_denied
+        - production_not_authorized
+        - lead_not_found
+        - campaign_not_found
+        - plan_not_found
+        - plan_stale
+        - policy_version_mismatch
+        - idempotency_conflict
+        - replay_conflict
+        - signature_invalid
+        - timestamp_out_of_window
+        - lifecycle_version_conflict
+        - contract_violation
+        - rate_limited
+        - engine_disabled
+        - policy_not_configured
+        - dependency_unavailable
+    PlanRequest:
+      type: object
+      additionalProperties: false
+      required: [schema_version, lead_ids]
+      properties:
+        schema_version:
+          const: '1.0'
+        lead_ids:
+          type: array
+          minItems: 1
+          maxItems: 100
+          uniqueItems: true
+          items:
+            $ref: './lifecycle.v1.schema.json#/$defs/LeadId'
+        campaign_scope:
+          anyOf:
+            - type: 'null'
+            - type: object
+              additionalProperties: false
+              required: [campaign_id, campaign_version]
+              properties:
+                campaign_id:
+                  $ref: './channel-health.v1.schema.json#/$defs/CampaignId'
+                campaign_version:
+                  $ref: './exposure-ledger.v1.schema.json#/$defs/CampaignVersion'
+        channels:
+          type: array
+          uniqueItems: true
+          items:
+            $ref: './channel-health.v1.schema.json#/$defs/Channel'
+        policy_version:
+          description: Optional pin; a mismatch with the active policy is 409 policy_version_mismatch.
+          anyOf:
+            - $ref: './next-action.v1.schema.json#/$defs/PolicyVersion'
+            - type: 'null'
+    PlanResponse:
+      type: object
+      additionalProperties: false
+      required: [schema_version, plan_id, plan_hash, policy_version, dry_run, provider_effects, generated_at, expires_at, decisions]
+      properties:
+        schema_version:
+          const: '1.0'
+        plan_id:
+          type: string
+          format: uuid
+        plan_hash:
+          $ref: './lifecycle.v1.schema.json#/$defs/Sha256'
+        policy_version:
+          $ref: './next-action.v1.schema.json#/$defs/PolicyVersion'
+        dry_run:
+          const: true
+        provider_effects:
+          const: none
+        generated_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+        decisions:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            $ref: './next-action.v1.schema.json'
+    ExecuteRequest:
+      type: object
+      additionalProperties: false
+      required: [schema_version, plan_id, plan_hash]
+      properties:
+        schema_version:
+          const: '1.0'
+        plan_id:
+          type: string
+          format: uuid
+        plan_hash:
+          $ref: './lifecycle.v1.schema.json#/$defs/Sha256'
+        lead_ids:
+          description: Optional subset of the plan's leads; leads outside the plan are 422.
+          type: array
+          minItems: 1
+          maxItems: 100
+          uniqueItems: true
+          items:
+            $ref: './lifecycle.v1.schema.json#/$defs/LeadId'
+    ExecuteResponse:
+      type: object
+      additionalProperties: false
+      required: [schema_version, execution_id, plan_id, dry_run, provider_effects, reserved, rejected]
+      properties:
+        schema_version:
+          const: '1.0'
+        execution_id:
+          type: string
+          format: uuid
+        plan_id:
+          type: string
+          format: uuid
+        dry_run:
+          const: false
+        provider_effects:
+          description: Effects happen only when the outbox command is dispatched under an enabled capability.
+          const: deferred_to_command_outbox
+        reserved:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [lead_id, exposure_id, exposure_idempotency_key, command_id, status]
+            properties:
+              lead_id:
+                $ref: './lifecycle.v1.schema.json#/$defs/LeadId'
+              exposure_id:
+                type: string
+                format: uuid
+              exposure_idempotency_key:
+                $ref: './exposure-ledger.v1.schema.json#/$defs/IdempotencyKey'
+              command_id:
+                type: string
+                format: uuid
+              status:
+                const: reserved
+        rejected:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [lead_id, reason_codes]
+            properties:
+              lead_id:
+                $ref: './lifecycle.v1.schema.json#/$defs/LeadId'
+              reason_codes:
+                $ref: './next-action.v1.schema.json#/$defs/ReasonCodes'
+    JourneyResponse:
+      $ref: './journey-response.v1.schema.json'
+    EligibleLeadsPage:
+      type: object
+      additionalProperties: false
+      required: [schema_version, campaign_id, campaign_version, policy_version, dry_run, provider_effects, items, next_cursor]
+      properties:
+        schema_version:
+          const: '1.0'
+        campaign_id:
+          $ref: './channel-health.v1.schema.json#/$defs/CampaignId'
+        campaign_version:
+          $ref: './exposure-ledger.v1.schema.json#/$defs/CampaignVersion'
+        policy_version:
+          $ref: './next-action.v1.schema.json#/$defs/PolicyVersion'
+        dry_run:
+          const: true
+        provider_effects:
+          const: none
+        items:
+          type: array
+          maxItems: 500
+          items:
+            type: object
+            additionalProperties: false
+            required: [lead_id, channel, decision_id, touch_index, exposure_idempotency_key]
+            properties:
+              lead_id:
+                $ref: './lifecycle.v1.schema.json#/$defs/LeadId'
+              channel:
+                $ref: './channel-health.v1.schema.json#/$defs/Channel'
+              decision_id:
+                type: string
+                format: uuid
+              touch_index:
+                $ref: './exposure-ledger.v1.schema.json#/$defs/TouchIndex'
+              exposure_idempotency_key:
+                $ref: './exposure-ledger.v1.schema.json#/$defs/IdempotencyKey'
+        next_cursor:
+          type: [string, 'null']
+          maxLength: 500
+    DeliveryEventAck:
+      type: object
+      additionalProperties: false
+      required: [accepted, duplicate, source, event_id]
+      properties:
+        accepted:
+          const: true
+        duplicate:
+          type: boolean
+        source:
+          type: string
+          maxLength: 100
+        event_id:
+          type: string
+          maxLength: 200
+    SuppressionAck:
+      type: object
+      additionalProperties: false
+      required: [suppression_id, duplicate, scope, effective_at]
+      properties:
+        suppression_id:
+          type: string
+          format: uuid
+        duplicate:
+          type: boolean
+        scope:
+          $ref: './channel-health.v1.schema.json#/$defs/SuppressionScope'
+        effective_at:
+          type: string
+          format: date-time
+    EngineStatus:
+      description: MCR-A pins every activation flag to false; enabling any of them requires a reviewed contract revision.
+      type: object
+      additionalProperties: false
+      required: [schema_version, runtime_status, engine_enabled, execute_enabled, production_authorized, policy_version, policy_configured, capabilities]
+      properties:
+        schema_version:
+          const: '1.0'
+        runtime_status:
+          const: contract_only
+        engine_enabled:
+          const: false
+        execute_enabled:
+          const: false
+        production_authorized:
+          const: false
+        policy_version:
+          $ref: './next-action.v1.schema.json#/$defs/PolicyVersion'
+        policy_configured:
+          type: boolean
+        capabilities:
+          type: object
+          additionalProperties: false
+          required: [EMAIL_DELIVERY, SMS_DELIVERY, WHATSAPP_DELIVERY, PRODUCTION_DIALING]
+          properties:
+            EMAIL_DELIVERY:
+              const: false
+            SMS_DELIVERY:
+              const: false
+            WHATSAPP_DELIVERY:
+              const: false
+            PRODUCTION_DIALING:
+              const: false
