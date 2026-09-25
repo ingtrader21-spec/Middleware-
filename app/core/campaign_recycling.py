@@ -967,6 +967,19 @@ class PostgresCampaignRecyclingStore:
             raise CampaignRecyclingConflict(
                 "Evolution normalized events must be whatsapp"
             )
+        if source == "vicidial":
+            if channel != "voice":
+                raise CampaignRecyclingConflict(
+                    "VICIdial normalized events must be voice"
+                )
+            if event_type not in {"accepted", "queued", "dispatched", "delivered", "deferred", "reply"}:
+                raise CampaignRecyclingConflict(
+                    "VICIdial normalized events must be call-state events"
+                )
+        if source in {"odoo", "middleware"} and event_type != "conversion":
+            raise CampaignRecyclingConflict(
+                f"{source} normalized events are conversion truth only"
+            )
 
         event_id = str(event["event_id"])
         correlation_id = str(event["correlation_id"])
