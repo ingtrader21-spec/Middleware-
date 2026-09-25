@@ -69,6 +69,7 @@ async def test_worker_refreshes_lease_before_handler_and_resolves_success_as_own
     worker = OutboxWorker(
         store,  # type: ignore[arg-type]
         {"provider": handler},
+        effect_gate=lambda _: True,
         lease_seconds=60,
         handler_timeout_seconds=45,
     )
@@ -92,7 +93,7 @@ async def test_pre_dispatch_quarantine_failure_prevents_handler_invocation() -> 
         nonlocal invoked
         invoked = True
 
-    worker = OutboxWorker(store, {"provider": handler})  # type: ignore[arg-type]
+    worker = OutboxWorker(store, {"provider": handler}, effect_gate=lambda _: True)  # type: ignore[arg-type]
     with pytest.raises(RuntimeError, match="database unavailable"):
         await worker.run_once()
     assert invoked is False
@@ -111,6 +112,7 @@ async def test_handler_timeout_leaves_precommitted_active_quarantine() -> None:
     worker = OutboxWorker(
         store,  # type: ignore[arg-type]
         {"provider": slow_handler},
+        effect_gate=lambda _: True,
         lease_seconds=0.1,
         handler_timeout_seconds=0.01,
         max_attempts=8,
@@ -145,6 +147,7 @@ async def test_heartbeat_continues_while_cancelled_handler_suppresses_cancellati
     worker = OutboxWorker(
         store,  # type: ignore[arg-type]
         {"provider": cancellation_suppressing_handler},
+        effect_gate=lambda _: True,
         lease_seconds=0.06,
         handler_timeout_seconds=0.01,
         max_attempts=8,
@@ -175,6 +178,7 @@ async def test_known_safe_retry_reported_after_timeout_stays_quarantined() -> No
     worker = OutboxWorker(
         store,  # type: ignore[arg-type]
         {"provider": late_safe_retry_handler},
+        effect_gate=lambda _: True,
         lease_seconds=0.06,
         handler_timeout_seconds=0.01,
         max_attempts=8,
@@ -193,7 +197,7 @@ async def test_generic_handler_exception_leaves_precommitted_active_quarantine()
         store.events.append("handler")
         raise ConnectionError("provider accepted request then connection reset")
 
-    worker = OutboxWorker(store, {"provider": ambiguous_handler})  # type: ignore[arg-type]
+    worker = OutboxWorker(store, {"provider": ambiguous_handler}, effect_gate=lambda _: True)  # type: ignore[arg-type]
     assert await worker.run_once() is True
     assert store.quarantined
     assert not store.failed
@@ -209,7 +213,7 @@ async def test_explicit_known_safe_retry_resolves_quarantine_as_owner() -> None:
         store.events.append("handler")
         raise KnownSafeRetryError("provider rejected request before dispatch")
 
-    worker = OutboxWorker(store, {"provider": safe_retry_handler})  # type: ignore[arg-type]
+    worker = OutboxWorker(store, {"provider": safe_retry_handler}, effect_gate=lambda _: True)  # type: ignore[arg-type]
     assert await worker.run_once() is True
     assert store.quarantined
     assert not store.failed
@@ -231,9 +235,23 @@ async def test_handler_returning_future_completes_under_owned_quarantine() -> No
         asyncio.get_running_loop().call_soon(future.set_result, None)
         return future
 
-    worker = OutboxWorker(Mock(spec=PostgresOutboxStore, wraps=store), {"provider": handler})
+    worker = OutboxWorker(Mock(spec=PostgresOutboxStore, wraps=store), {"provider": handler}, effect_gate=lambda _: True)
     assert await worker.run_once() is True
     assert future.done()
     assert store.events[:2] == ["quarantine", "handler"]
     assert store.events[-1] == "resolve:complete"
     assert store.resolved[0][1]["worker_id"] == worker.worker_id
+
+
+@pytest.mark.asyncio
+async def test_worker_fails_closed_before_provider_dispatch_without_effect_gate() -> None:
+    store = FakeStore(record())
+    invoked = False
+    async def handler(item: OutboxRecord) -> None:
+        nonlocal invoked
+        invoked = True
+    worker = OutboxWorker(store, {"provider": handler})  # type: ignore[arg-type]
+    assert await worker.run_once() is True
+    assert invoked is False
+    assert not store.quarantined
+    assert store.failed[0][1]["error"] == "effect gate denied dispatch"
