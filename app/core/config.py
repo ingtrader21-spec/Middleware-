@@ -1567,8 +1567,13 @@ class Settings(BaseSettings):
                 allowed_usernames = {str(value) for value in usernames}
             else:
                 return False
+            actual_scheme = (
+                "postgresql"
+                if parsed.scheme == "postgresql+asyncpg"
+                else parsed.scheme
+            )
             return (
-                parsed.scheme == candidate["scheme"]
+                actual_scheme == candidate["scheme"]
                 and parsed.hostname == candidate["host"]
                 and port == candidate["port"]
                 and unquote(parsed.path.lstrip("/")) == candidate["name"]
