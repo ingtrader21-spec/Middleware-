@@ -4,7 +4,7 @@ from uuid import uuid4
 
 import pytest
 
-from app.db.session import TENANT_CONTEXT_GUC, set_transaction_tenant_context
+from app.db.session import set_transaction_tenant_context
 
 
 class _RecordingSession:
@@ -36,8 +36,16 @@ async def test_sets_transaction_local_postgres_context() -> None:
 async def test_rejects_missing_or_invalid_tenant_context_before_sql() -> None:
     session = _RecordingSession()
 
-    for invalid in ("", "   ", "tenant-a", "not-a-uuid"):
+    for invalid in ("", "   ", "bad tenant", "/tenant", "\x00"):
         with pytest.raises(ValueError):
             await set_transaction_tenant_context(session, invalid)  # type: ignore[arg-type]
 
     assert session.calls == []
+
+
+@pytest.mark.asyncio
+async def test_accepts_existing_text_tenant_identifier() -> None:
+    session = _RecordingSession()
+    normalized = await set_transaction_tenant_context(session, "COD")  # type: ignore[arg-type]
+    assert normalized == "COD"
+    assert session.calls[-1][1]["tenant_id"] == "COD"

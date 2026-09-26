@@ -69,7 +69,7 @@ class FakeConn:
 
     async def fetch(self, query, *args):
         if "alembic_version" in query:
-            return [{"version_num": "0069_progressive_tenant_rls"}]
+            return [{"version_num": "0070_agent_provisioning_lifecycle"}]
         if "pg_catalog.pg_tables" in query:
             return [
                 {"tablename": name}
@@ -123,7 +123,7 @@ def _client(monkeypatch):
             "middleware_staging?sslmode=verify-full"
             "&sslrootcert=/run/secrets/ca.pem"
         ),
-        schema_head="0069_progressive_tenant_rls",
+        schema_head="0070_agent_provisioning_lifecycle",
         database_certification_evidence_dir="",
     )
     runtime = SimpleNamespace(
@@ -153,7 +153,7 @@ def test_readiness_schema_and_verify_are_read_only(monkeypatch):
     assert ready.json()["ready"] is True
     assert (
         ready.json()["alembic_head"]
-        == "0069_progressive_tenant_rls"
+        == "0070_agent_provisioning_lifecycle"
     )
     assert ready.json()["tls_active"] is True
 

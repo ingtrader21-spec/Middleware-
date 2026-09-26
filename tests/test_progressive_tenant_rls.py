@@ -29,9 +29,16 @@ def _source_tables(prefix: str) -> set[str]:
 def test_progressive_rls_coverage_is_partitioned_by_migration_authority() -> None:
     namespace = _migration_namespace()
     alembic = set(namespace["RLS_TABLES"])
-    expected_alembic = _source_tables("migrations/versions/")
-    expected_core = _source_tables("migrations/") - expected_alembic - _source_tables(
-        "migrations/automation/"
+    expected_alembic = _source_tables("migrations/versions/") - {
+        "agent_provisioning_repair_intent",
+        "agent_webrtc_session",
+    }
+    section6 = {"agent_provisioning_repair_intent", "agent_webrtc_session"}
+    expected_core = (
+        _source_tables("migrations/")
+        - expected_alembic
+        - section6
+        - _source_tables("migrations/automation/")
     )
     expected_automation = _source_tables("migrations/automation/")
 
@@ -69,3 +76,13 @@ def test_sql_rls_migrations_are_forward_only_and_receipted() -> None:
         assert "DISABLE ROW LEVEL SECURITY" not in text
         assert "BYPASSRLS" in text
         assert "WITH CHECK" in text
+
+
+def test_section6_successor_owns_new_rls_tables() -> None:
+    source = (ROOT / "migrations/versions/0070_agent_provisioning_lifecycle.py").read_text()
+    for table in ("agent_provisioning_repair_intent", "agent_webrtc_session"):
+        assert table in source
+    assert 'for table in ("agent_provisioning_repair_intent", "agent_webrtc_session")' in source
+    assert 'ALTER TABLE {table} ENABLE ROW LEVEL SECURITY' in source
+    assert 'CREATE POLICY codestra_tenant_isolation ON {table}' in source
+    assert "current_setting('app.tenant_id', true)" in source

@@ -353,7 +353,7 @@ def test_real_tenant_rls_isolation_across_all_migration_authorities(monkeypatch)
 
             conn = await asyncpg.connect(url)
             try:
-                assert head == "0069_progressive_tenant_rls"
+                assert head == "0070_agent_provisioning_lifecycle"
                 assert await conn.fetchval(
                     "SELECT version_num FROM public.alembic_version"
                 ) == head

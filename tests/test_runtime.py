@@ -358,7 +358,7 @@ def test_health_ready_version(test_settings, runtime) -> None:
         assert version["service"] == "middleware-api"
         assert version["environment"] == "test"
         assert version["runtime_profile_id"] == "local-unlocked"
-        assert version["schema_head"] == "0069_progressive_tenant_rls"
+        assert version["schema_head"] == "0070_agent_provisioning_lifecycle"
         assert version["git_sha"] == version["source_sha"]
         assert version["schema_version"] == version["schema_head"]
         assert {

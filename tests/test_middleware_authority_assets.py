@@ -46,7 +46,7 @@ def test_current_authority_must_require_schema_0010(tmp_path: Path) -> None:
     path.write_text(json.dumps(value), encoding="utf-8")
     errors = validator.validate_assets(tmp_path)
     assert any(
-        "must require schema 0069_progressive_tenant_rls" in error for error in errors
+        "must require schema 0070_agent_provisioning_lifecycle" in error for error in errors
     )
 
 
