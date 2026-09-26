@@ -184,11 +184,16 @@ def _pure_domain_module_is_safe(path: Path) -> bool:
         if isinstance(node, ast.AsyncFunctionDef):
             return False
         if isinstance(node, ast.Import):
-            if any(alias.name.split(".", 1)[0] in PURE_DOMAIN_FORBIDDEN_IMPORT_ROOTS for alias in node.names):
+            if any(
+                alias.name.split(".", 1)[0] in PURE_DOMAIN_FORBIDDEN_IMPORT_ROOTS
+                for alias in node.names
+            ):
                 return False
         if isinstance(node, ast.ImportFrom):
             root = (node.module or "").split(".", 1)[0]
-            if root in PURE_DOMAIN_FORBIDDEN_IMPORT_ROOTS or (node.module or "").startswith("app.api"):
+            if root in PURE_DOMAIN_FORBIDDEN_IMPORT_ROOTS or (
+                node.module or ""
+            ).startswith("app.api"):
                 return False
     return True
 
@@ -513,7 +518,11 @@ def check_channel_health(
         )
     channels = _enum(schema, "Channel")
     runtime_channels = communications_channels(root)
-    if channels != meta["channels"] or channels != policy["channels"] or channels != DESIRED_CHANNELS:
+    if (
+        channels != meta["channels"]
+        or channels != policy["channels"]
+        or channels != DESIRED_CHANNELS
+    ):
         errors.append(
             "channel-health: channels must equal the frozen desired channel set"
         )
@@ -709,7 +718,13 @@ def check_delivery_event(
         errors.append(
             "delivery-event: opens/reads must be weak; clicks/replies strong; conversions strongest"
         )
-    if meta["signal_strength_order"] != ["open", "read", "click", "reply", "conversion"]:
+    if meta["signal_strength_order"] != [
+        "open",
+        "read",
+        "click",
+        "reply",
+        "conversion",
+    ]:
         errors.append("delivery-event: signal strength order changed")
     if (
         meta["effects"]["open"]["lifecycle"] is not None
@@ -1147,9 +1162,7 @@ def check_no_runtime_activation(
             text = path.read_text(encoding="utf-8", errors="ignore")
             hits = [marker for marker in RUNTIME_MARKERS if marker in text]
             if hits:
-                errors.append(
-                    f"runtime: {relative} references MCR-A surface {hits}"
-                )
+                errors.append(f"runtime: {relative} references MCR-A surface {hits}")
     serialized = (
         json.dumps({k: v for k, v in artifacts.items() if k != "doc"})
         + artifacts["doc"]

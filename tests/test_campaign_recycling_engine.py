@@ -86,6 +86,17 @@ def test_test_profile_is_configured_and_production_is_fail_closed() -> None:
     assert "PRODUCTION_NOT_AUTHORIZED" not in result.reason_codes
 
 
+def test_unknown_profile_fails_closed_without_hidden_defaults() -> None:
+    policy = PolicyProfile.load("does-not-exist")
+    assert policy.configured is False
+    assert policy.values == {}
+    result = CampaignRecyclingEngine(policy).evaluate(
+        snapshot(), [candidate()], now=NOW
+    )
+    assert result.eligible is False
+    assert result.reason_codes[0] == "POLICY_NOT_CONFIGURED"
+
+
 def test_deterministic_priority_selects_one_candidate() -> None:
     result = engine().evaluate(
         snapshot(),
@@ -111,19 +122,58 @@ def test_hash_changes_when_material_inputs_change_even_if_decision_does_not() ->
     base = engine().evaluate(snapshot(), [candidate(priority=10)], now=NOW)
     changed_priority = engine().evaluate(snapshot(), [candidate(priority=20)], now=NOW)
     changed_health_evidence = engine().evaluate(
-        snapshot(channel_health={
-            "email": ChannelHealth("valid", NOW - timedelta(days=2)),
-            "sms": ChannelHealth("valid", NOW - timedelta(days=1)),
-            "whatsapp": ChannelHealth("valid", NOW - timedelta(days=1)),
-            "voice": ChannelHealth("valid", NOW - timedelta(days=1)),
-        }),
+        snapshot(
+            channel_health={
+                "email": ChannelHealth("valid", NOW - timedelta(days=2)),
+                "sms": ChannelHealth("valid", NOW - timedelta(days=1)),
+                "whatsapp": ChannelHealth("valid", NOW - timedelta(days=1)),
+                "voice": ChannelHealth("valid", NOW - timedelta(days=1)),
+            }
+        ),
         [candidate(priority=10)],
         now=NOW,
     )
-    assert base.eligible and changed_priority.eligible and changed_health_evidence.eligible
-    assert base.reason_codes == changed_priority.reason_codes == changed_health_evidence.reason_codes
+    assert (
+        base.eligible and changed_priority.eligible and changed_health_evidence.eligible
+    )
+    assert (
+        base.reason_codes
+        == changed_priority.reason_codes
+        == changed_health_evidence.reason_codes
+    )
     assert base.decision_hash != changed_priority.decision_hash
     assert base.decision_hash != changed_health_evidence.decision_hash
+
+
+def test_hash_includes_soft_bounce_escalation_evidence() -> None:
+    first = engine().evaluate(
+        snapshot(
+            channel_health={
+                "email": ChannelHealth(
+                    "soft_bounce",
+                    NOW - timedelta(hours=1),
+                    consecutive_soft_bounces=1,
+                )
+            }
+        ),
+        [candidate()],
+        now=NOW,
+    )
+    second = engine().evaluate(
+        snapshot(
+            channel_health={
+                "email": ChannelHealth(
+                    "soft_bounce",
+                    NOW - timedelta(hours=1),
+                    consecutive_soft_bounces=2,
+                )
+            }
+        ),
+        [candidate()],
+        now=NOW,
+    )
+    assert first.reason_codes == second.reason_codes == ("CHANNEL_HEALTH_DEFERRED",)
+    assert first.decision_hash != second.decision_hash
 
 
 def test_no_candidate_is_explicitly_blocked() -> None:
@@ -132,6 +182,25 @@ def test_no_candidate_is_explicitly_blocked() -> None:
     assert result.selected is None
     assert result.reason_codes == ("NO_CANDIDATE",)
     assert result.next_eligible_at is None
+
+
+def test_no_candidate_preserves_global_fail_closed_precedence() -> None:
+    result = engine("production").evaluate(
+        snapshot(),
+        [],
+        mode="execute",
+        now=NOW,
+        kill_switch_open=True,
+        evidence_stale_or_conflicting=True,
+    )
+    assert result.eligible is False
+    assert result.reason_codes == (
+        "POLICY_NOT_CONFIGURED",
+        "PRODUCTION_NOT_AUTHORIZED",
+        "KILL_SWITCH_OPEN",
+        "EVIDENCE_STALE_OR_CONFLICTING",
+        "NO_CANDIDATE",
+    )
 
 
 def test_lifetime_exposure_cap_is_enforced() -> None:
@@ -155,7 +224,9 @@ def test_unconfigured_policy_fails_closed_without_applying_code_defaults() -> No
     result = engine("production").evaluate(
         snapshot(
             lifecycle_state="REACTIVATION",
-            channel_health={"email": ChannelHealth("possible", NOW - timedelta(days=1))},
+            channel_health={
+                "email": ChannelHealth("possible", NOW - timedelta(days=1))
+            },
             reactivation_cycles=999,
         ),
         [candidate()],
@@ -208,6 +279,42 @@ def test_next_action_document_redacts_candidates_without_changing_decision() -> 
     assert document["candidates_redacted"] is True
     assert document["candidates"] == []
     assert NEXT_ACTION_VALIDATOR.is_valid(document)
+
+
+def test_next_action_document_enforces_candidate_disclosure_limit() -> None:
+    lead = snapshot()
+    candidates = [
+        candidate(
+            campaign_id=f"klyrow:cmp-{index:03d}",
+            priority=index,
+            active=False,
+        )
+        for index in range(200)
+    ]
+    candidates.append(
+        candidate(campaign_id="klyrow:cmp-selected", priority=200, active=True)
+    )
+    decision = engine().evaluate(lead, candidates, now=NOW)
+    assert decision.selected is not None
+    assert decision.selected.campaign_id == "klyrow:cmp-selected"
+    assert decision.max_candidates_disclosed == 200
+
+    document = next_action_document(
+        decision,
+        lead,
+        mode="plan",
+        evaluated_at=NOW,
+        correlation_id="corr-mcr-contract-disclosure-limit",
+    )
+    assert len(document["candidates"]) == 200
+    assert document["selected"]["campaign_id"] == "klyrow:cmp-selected"
+    assert all(
+        item["campaign_id"] != "klyrow:cmp-selected"
+        for item in document["candidates"]
+    )
+    assert NEXT_ACTION_VALIDATOR.is_valid(document), list(
+        NEXT_ACTION_VALIDATOR.iter_errors(document)
+    )
 
 
 def test_global_suppression_precedes_channel_suppression() -> None:
@@ -273,6 +380,20 @@ def test_soft_bounce_defers_until_retry_time_then_clears() -> None:
     assert cleared.eligible is True
 
 
+def test_soft_bounce_escalation_count_blocks_instead_of_retrying() -> None:
+    health = {
+        "email": ChannelHealth(
+            "soft_bounce",
+            NOW - timedelta(hours=1),
+            consecutive_soft_bounces=3,
+        )
+    }
+    result = engine().evaluate(snapshot(channel_health=health), [candidate()], now=NOW)
+    assert result.eligible is False
+    assert result.reason_codes == ("CHANNEL_HEALTH_BLOCKED",)
+    assert result.next_eligible_at is None
+
+
 def test_duplicate_touch_is_rejected() -> None:
     existing = Exposure(
         campaign_id="klyrow:cmp-a",
@@ -282,9 +403,7 @@ def test_duplicate_touch_is_rejected() -> None:
         status="reserved",
         reserved_at=NOW - timedelta(days=3),
     )
-    result = engine().evaluate(
-        snapshot(exposures=(existing,)), [candidate()], now=NOW
-    )
+    result = engine().evaluate(snapshot(exposures=(existing,)), [candidate()], now=NOW)
     assert result.eligible is False
     assert "DUPLICATE_TOUCH" in result.reason_codes
 
@@ -462,9 +581,7 @@ def test_reactivation_requires_distinct_campaign_version() -> None:
     reactivating = snapshot(
         lifecycle_state="REACTIVATION", reactivation_cycles=1, exposures=(prior,)
     )
-    same_version = engine().evaluate(
-        reactivating, [candidate(touch_index=2)], now=NOW
-    )
+    same_version = engine().evaluate(reactivating, [candidate(touch_index=2)], now=NOW)
     assert same_version.eligible is False
     assert same_version.reason_codes == ("CAMPAIGN_VERSION_EXHAUSTED",)
     assert same_version.next_eligible_at is None

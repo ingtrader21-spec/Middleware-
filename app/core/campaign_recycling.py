@@ -11,8 +11,15 @@ from uuid import NAMESPACE_URL, UUID, uuid5
 ROOT = Path(__file__).resolve().parents[2]
 
 LifecycleState = Literal[
-    "NEW", "VALIDATED", "ELIGIBLE", "ACTIVE_CYCLE", "ENGAGED",
-    "COOLING", "REACTIVATION", "CONVERTED", "SUPPRESSED",
+    "NEW",
+    "VALIDATED",
+    "ELIGIBLE",
+    "ACTIVE_CYCLE",
+    "ENGAGED",
+    "COOLING",
+    "REACTIVATION",
+    "CONVERTED",
+    "SUPPRESSED",
 ]
 Channel = Literal["email", "sms", "whatsapp", "voice"]
 
@@ -66,6 +73,7 @@ TEMPORAL_REASONS = frozenset(
     }
 )
 
+
 class CampaignRecyclingError(RuntimeError):
     pass
 
@@ -105,6 +113,9 @@ class ChannelHealth:
     state: str
     occurred_at: datetime
     address_ref: str = ""
+    # Derived by the snapshot projection from ordered channel-health evidence.
+    # It is an internal decision input and does not alter the frozen MCR-A schema.
+    consecutive_soft_bounces: int = 0
 
 
 @dataclass(frozen=True)
@@ -167,6 +178,7 @@ class NextActionDecision:
     candidates: tuple[CandidateDecision, ...]
     next_eligible_at: datetime | None
     policy_version: str
+    max_candidates_disclosed: int | None
     decision_hash: str
 
 
@@ -177,6 +189,7 @@ class PolicyProfile:
     configured: bool
     production_authorized: bool
     channel_execution: Mapping[str, Mapping[str, Any]]
+    max_candidates_disclosed: int | None
 
     @classmethod
     def load(cls, profile: str, *, root: Path = ROOT) -> "PolicyProfile":
@@ -186,16 +199,31 @@ class PolicyProfile:
             )
         )
         profiles = raw["parameters"]["profiles"]
-        if profile not in profiles:
-            raise CampaignRecyclingPolicyError(f"unknown policy profile {profile}")
-        values = profiles[profile]["values"]
-        configured = all(value is not None for value in _leaf_values(values))
+        disclosure_limit = raw.get("decision", {}).get("max_candidates_disclosed")
+        disclosure_configured = (
+            isinstance(disclosure_limit, int)
+            and not isinstance(disclosure_limit, bool)
+            and 1 <= disclosure_limit <= 200
+        )
+        values: Mapping[str, Any]
+        if profile in profiles:
+            values = profiles[profile]["values"]
+            configured = (
+                all(value is not None for value in _leaf_values(values))
+                and disclosure_configured
+            )
+        else:
+            values = {}
+            configured = False
         return cls(
             policy_version=raw["policy_version"],
             values=values,
             configured=configured,
             production_authorized=raw["production"]["authorized"] is True,
             channel_execution=raw["channel_execution"],
+            max_candidates_disclosed=(
+                int(disclosure_limit) if disclosure_configured else None
+            ),
         )
 
 
@@ -232,12 +260,17 @@ class CampaignRecyclingEngine:
             kill_switch_open=kill_switch_open,
             evidence_stale_or_conflicting=evidence_stale_or_conflicting,
         )
+        global_reasons = self._global_reasons(
+            mode=mode,
+            kill_switch_open=kill_switch_open,
+            evidence_stale_or_conflicting=evidence_stale_or_conflicting,
+        )
         if not ordered:
             return self._decision(
                 snapshot,
                 (),
                 None,
-                ("NO_CANDIDATE",),
+                _sort_reasons((*global_reasons, "NO_CANDIDATE")),
                 None,
                 mode,
                 now,
@@ -320,6 +353,24 @@ class CampaignRecyclingEngine:
             decision_inputs,
         )
 
+    def _global_reasons(
+        self,
+        *,
+        mode: str,
+        kill_switch_open: bool,
+        evidence_stale_or_conflicting: bool,
+    ) -> tuple[str, ...]:
+        reasons: list[str] = []
+        if not self.policy.configured:
+            reasons.append("POLICY_NOT_CONFIGURED")
+        if mode == "execute" and not self.policy.production_authorized:
+            reasons.append("PRODUCTION_NOT_AUTHORIZED")
+        if kill_switch_open:
+            reasons.append("KILL_SWITCH_OPEN")
+        if evidence_stale_or_conflicting:
+            reasons.append("EVIDENCE_STALE_OR_CONFLICTING")
+        return _sort_reasons(reasons)
+
     def _candidate_reasons(
         self,
         snapshot: LeadSnapshot,
@@ -330,17 +381,14 @@ class CampaignRecyclingEngine:
         kill_switch_open: bool,
         evidence_stale_or_conflicting: bool,
     ) -> tuple[tuple[str, ...], datetime | None]:
-        reasons: list[str] = []
+        reasons = list(
+            self._global_reasons(
+                mode=mode,
+                kill_switch_open=kill_switch_open,
+                evidence_stale_or_conflicting=evidence_stale_or_conflicting,
+            )
+        )
         temporal_until: list[datetime] = []
-
-        if not self.policy.configured:
-            reasons.append("POLICY_NOT_CONFIGURED")
-        if mode == "execute" and not self.policy.production_authorized:
-            reasons.append("PRODUCTION_NOT_AUTHORIZED")
-        if kill_switch_open:
-            reasons.append("KILL_SWITCH_OPEN")
-        if evidence_stale_or_conflicting:
-            reasons.append("EVIDENCE_STALE_OR_CONFLICTING")
 
         matching = [s for s in snapshot.suppressions if s.matches(candidate)]
         if matching:
@@ -391,7 +439,11 @@ class CampaignRecyclingEngine:
         if health is None or health.state == "unknown":
             reasons.append("CHANNEL_HEALTH_UNKNOWN")
         elif health.state in {
-            "hard_bounce", "complained", "unsubscribed", "suppressed", "invalid"
+            "hard_bounce",
+            "complained",
+            "unsubscribed",
+            "suppressed",
+            "invalid",
         }:
             reasons.append("CHANNEL_HEALTH_BLOCKED")
         elif (
@@ -401,14 +453,21 @@ class CampaignRecyclingEngine:
         ):
             reasons.append("CHANNEL_HEALTH_POLICY_GATED")
         elif health.state == "soft_bounce" and self.policy.configured:
-            retry_at = _utc(health.occurred_at) + timedelta(
-                seconds=int(
-                    self._value("channel_health", "soft_bounce_retry_after_seconds")
+            if health.consecutive_soft_bounces < 0:
+                reasons.append("EVIDENCE_STALE_OR_CONFLICTING")
+            elif max(1, health.consecutive_soft_bounces) >= int(
+                self._value("channel_health", "soft_bounce_escalation_count")
+            ):
+                reasons.append("CHANNEL_HEALTH_BLOCKED")
+            else:
+                retry_at = _utc(health.occurred_at) + timedelta(
+                    seconds=int(
+                        self._value("channel_health", "soft_bounce_retry_after_seconds")
+                    )
                 )
-            )
-            if retry_at > now:
-                reasons.append("CHANNEL_HEALTH_DEFERRED")
-                temporal_until.append(retry_at)
+                if retry_at > now:
+                    reasons.append("CHANNEL_HEALTH_DEFERRED")
+                    temporal_until.append(retry_at)
 
         if not candidate.active:
             reasons.append("CAMPAIGN_NOT_ACTIVE")
@@ -454,9 +513,7 @@ class CampaignRecyclingEngine:
                 reasons.append("REACTIVATION_LIMIT_REACHED")
             if (
                 snapshot.lifecycle_state == "REACTIVATION"
-                and self._value(
-                    "reactivation", "requires_distinct_campaign_version"
-                )
+                and self._value("reactivation", "requires_distinct_campaign_version")
                 and any(
                     exposure.campaign_id == candidate.campaign_id
                     and exposure.campaign_version == candidate.campaign_version
@@ -570,9 +627,9 @@ class CampaignRecyclingEngine:
             candidates=tuple(candidates),
             next_eligible_at=next_eligible_at,
             policy_version=self.policy.policy_version,
+            max_candidates_disclosed=self.policy.max_candidates_disclosed,
             decision_hash=digest,
         )
-
 
 
 def _leaf_values(value: Any) -> list[Any]:
@@ -702,6 +759,7 @@ def _decision_input_payload(
             "production_authorized": policy.production_authorized,
             "values": policy.values,
             "channel_execution": policy.channel_execution,
+            "max_candidates_disclosed": policy.max_candidates_disclosed,
         },
         "snapshot": {
             "tenant_id": snapshot.tenant_id,
@@ -713,6 +771,7 @@ def _decision_input_payload(
                     "state": health.state,
                     "occurred_at": _utc(health.occurred_at).isoformat(),
                     "address_ref": health.address_ref,
+                    "consecutive_soft_bounces": health.consecutive_soft_bounces,
                 }
                 for channel, health in sorted(snapshot.channel_health.items())
             },
@@ -783,6 +842,8 @@ def next_action_document(
         }
     candidates = []
     if not candidates_redacted:
+        disclosure_limit = decision.max_candidates_disclosed or 0
+        visible_candidates = list(decision.candidates[:disclosure_limit])
         candidates = [
             {
                 "campaign_id": item.campaign_id,
@@ -791,11 +852,13 @@ def next_action_document(
                 "disposition": item.disposition,
                 "reason_codes": list(item.reason_codes),
             }
-            for item in decision.candidates
+            for item in visible_candidates
         ]
     return {
         "schema_version": "1.0",
-        "decision_id": str(uuid5(NAMESPACE_URL, f"mcr:decision:{decision.decision_hash}")),
+        "decision_id": str(
+            uuid5(NAMESPACE_URL, f"mcr:decision:{decision.decision_hash}")
+        ),
         "tenant_id": snapshot.tenant_id,
         "lead_id": snapshot.lead_id,
         "mode": mode,
