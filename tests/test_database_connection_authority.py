@@ -76,6 +76,46 @@ def test_database_query_cannot_override_target_identity() -> None:
         )
 
 
+@pytest.mark.parametrize("secure", [True, False])
+def test_query_keys_must_match_case_sensitive_driver_parsing(secure: bool) -> None:
+    # asyncpg ignores SSLMODE and silently falls back to sslmode=prefer.
+    value = (
+        "postgresql://middleware_api:secret@postgres:5432/middleware_staging"
+        "?SSLMODE=verify-full"
+    )
+    with pytest.raises(DatabaseConnectionError, match="lowercase"):
+        build_database_connection_authority(
+            value,
+            command_timeout_seconds=30,
+            application_name="codestra-middleware-migration",
+            secure_environment=secure,
+            validate_tls_files=False,
+        )
+
+
+@pytest.mark.parametrize("extra", ["&role=postgres", "&options=-csearch_path%3Devil"])
+def test_secure_environment_rejects_non_tls_startup_parameters(extra: str) -> None:
+    with pytest.raises(DatabaseConnectionError, match="not allowed"):
+        build_database_connection_authority(
+            _url(extra=extra),
+            command_timeout_seconds=30,
+            application_name="codestra-middleware-migration",
+            secure_environment=True,
+            validate_tls_files=False,
+        )
+
+
+def test_tls_paths_are_decoded_exactly_once_like_the_driver() -> None:
+    with pytest.raises(DatabaseConnectionError, match="absolute"):
+        build_database_connection_authority(
+            _url(extra="&sslrootcert=%252Frun%252Fsecrets%252Fca.crt"),
+            command_timeout_seconds=30,
+            application_name="codestra-middleware/staging",
+            secure_environment=True,
+            validate_tls_files=False,
+        )
+
+
 def test_client_certificate_and_key_are_atomic() -> None:
     with pytest.raises(DatabaseConnectionError, match="together"):
         build_database_connection_authority(

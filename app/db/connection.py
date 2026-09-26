@@ -16,7 +16,7 @@ from dataclasses import dataclass
 import os
 from pathlib import Path, PurePosixPath, PureWindowsPath
 import re
-from urllib.parse import parse_qsl, unquote, urlsplit
+from urllib.parse import parse_qsl, urlsplit
 
 
 class DatabaseConnectionError(ValueError):
@@ -37,6 +37,9 @@ _TARGET_OVERRIDE_QUERY_KEYS = frozenset(
     }
 )
 _TLS_PATH_KEYS = ("sslrootcert", "sslcert", "sslkey")
+# Staging/production accept only the TLS keys the runtime profile lock allows,
+# so the migration path (which has no profile lock) cannot inject startup GUCs.
+_SECURE_QUERY_KEYS = frozenset({"sslmode", *_TLS_PATH_KEYS})
 _SAFE_APPLICATION_NAME = re.compile(r"^[A-Za-z0-9._:/-]{1,128}$")
 
 
@@ -67,11 +70,19 @@ def _native_postgres_dsn(value: str) -> tuple[str, object]:
     return "postgresql:" + suffix, parsed
 
 
-def _query_values(parsed: object) -> dict[str, str]:
+def _query_values(
+    parsed: object, *, secure_environment: bool
+) -> dict[str, str]:
     query = getattr(parsed, "query", "")
     values: dict[str, str] = {}
     for raw_key, raw_value in parse_qsl(query, keep_blank_values=True):
         key = raw_key.lower()
+        # asyncpg matches DSN keys case-sensitively: SSLMODE=verify-full would
+        # pass this policy yet leave the driver on its default sslmode=prefer.
+        if raw_key != key:
+            raise DatabaseConnectionError(
+                "DATABASE_URL query parameter names must be lowercase"
+            )
         if key in values:
             raise DatabaseConnectionError(
                 f"DATABASE_URL query parameter is duplicated: {key}"
@@ -79,6 +90,10 @@ def _query_values(parsed: object) -> dict[str, str]:
         if key in _TARGET_OVERRIDE_QUERY_KEYS:
             raise DatabaseConnectionError(
                 "DATABASE_URL query must not override its target or identity"
+            )
+        if secure_environment and key not in _SECURE_QUERY_KEYS:
+            raise DatabaseConnectionError(
+                f"staging/production DATABASE_URL query parameter is not allowed: {key}"
             )
         values[key] = raw_value
     return values
@@ -98,10 +113,11 @@ def _validate_tls_paths(
         raw = query.get(key, "")
         if not raw:
             continue
-        decoded = unquote(raw)
-        if not _is_absolute_tls_path(decoded):
+        # parse_qsl already percent-decoded once, exactly as asyncpg does;
+        # decoding again would validate a different file than the driver opens.
+        if not _is_absolute_tls_path(raw):
             raise DatabaseConnectionError(f"{key} must be an absolute path")
-        paths[key] = Path(decoded)
+        paths[key] = Path(raw)
 
     if bool(paths.get("sslcert")) != bool(paths.get("sslkey")):
         raise DatabaseConnectionError("sslcert and sslkey must be configured together")
@@ -142,7 +158,7 @@ def build_database_connection_authority(
         raise DatabaseConnectionError("database command timeout must be positive")
 
     native_dsn, parsed = _native_postgres_dsn(value)
-    query = _query_values(parsed)
+    query = _query_values(parsed, secure_environment=secure_environment)
     sslmode = query.get("sslmode") or None
     if secure_environment and sslmode != "verify-full":
         raise DatabaseConnectionError(
