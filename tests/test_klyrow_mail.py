@@ -216,8 +216,16 @@ def test_usage_event_is_persisted_before_acknowledgement(
     result = asyncio.run(receive_klyrow_mail(request, database))
 
     assert result == {"accepted": True, "duplicate": False, "status": "complete"}
-    assert database.execute.await_count == 2
-    insert_parameters = database.execute.await_args_list[1].args[1]
+    assert database.execute.await_count == 3
+    bind_sql = str(database.execute.await_args_list[0].args[0])
+    assert "set_config" in bind_sql
+    assert "app.tenant_id" not in bind_sql  # setting name is bound, not interpolated
+    bind_parameters = database.execute.await_args_list[0].args[1]
+    assert bind_parameters == {
+        "setting_name": "app.tenant_id",
+        "tenant_id": "tenant-a",
+    }
+    insert_parameters = database.execute.await_args_list[2].args[1]
     assert insert_parameters["event_id"] == event_id
     assert insert_parameters["stream"] == "transactional"
     database.commit.assert_awaited_once()

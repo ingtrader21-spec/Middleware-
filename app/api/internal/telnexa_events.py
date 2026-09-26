@@ -25,7 +25,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.communications import CommunicationMessage, MessageStatus
 from app.core.config import settings
-from app.db.session import get_session
+from app.db.session import get_session, set_transaction_tenant_context
 
 
 PATH = "/api/v1/events/telnexa"
@@ -498,6 +498,7 @@ async def receive_telnexa_event(
     ):
         raise HTTPException(409, "telnexa_header_body_binding_mismatch")
 
+    await set_transaction_tenant_context(db, event.tenant_id)
     body_hash = hashlib.sha256(body).hexdigest()
     payload_json = json.dumps(
         event.model_dump(mode="json"), separators=(",", ":"), sort_keys=True

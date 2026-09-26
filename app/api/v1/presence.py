@@ -49,7 +49,7 @@ from app.core.provisioning_auth import (
     require_tenant_match,
 )
 from app.db.models import AgentCallState, IntegrationEvent
-from app.db.session import get_session
+from app.db.session import get_session, set_transaction_tenant_context
 
 router = APIRouter(prefix="/platform/v1", tags=["presence"])
 
@@ -113,6 +113,7 @@ async def list_agents_presence(
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
     require_tenant_match(principal, tenant_id)
+    await set_transaction_tenant_context(session, tenant_id)
 
     # Recover the set of agents known to this tenant via their most recent
     # tracked call, then take the latest presence row for each. There is no
@@ -144,6 +145,7 @@ async def get_agent_presence(
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
     require_tenant_match(principal, tenant_id)
+    await set_transaction_tenant_context(session, tenant_id)
 
     business_unit = await _latest_business_unit(session, user_id)
     if business_unit != tenant_id:
