@@ -50,6 +50,7 @@ import py_compile
 import re
 import runpy
 import subprocess
+import stat
 import sys
 import tempfile
 from pathlib import Path
@@ -589,6 +590,7 @@ def atomic_apply(root: Path, proposed: dict[str, bytes]) -> list[str]:
             )
             with os.fdopen(handle, "wb") as stream:
                 stream.write(data)
+            os.chmod(temp_name, stat.S_IMODE(target.stat().st_mode))
             staged.append((Path(temp_name), target))
         for temp, target in staged:
             os.replace(temp, target)

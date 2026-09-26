@@ -158,7 +158,7 @@ EXPECTED_CHECK_WORKFLOWS = {
     },
 }
 ORCHESTRATOR_CONTRACT_WORKFLOW_SHA256 = (
-    "5e968a824d9738ac8237dfd677bae1091aaecfe73f3f98d0c6c63f07a503968f"
+    "b639ed5e5022b70939315c681fb7725531ba5cd8442934eb497ce5aeeb36f98a"
 )
 EXPECTED_CHECK_WORKFLOW_SHA256 = {
     "appolon1908-hue/Infustruction-repo": {
@@ -171,7 +171,7 @@ EXPECTED_CHECK_WORKFLOW_SHA256 = {
     },
     "ingtrader21-spec/Middleware-": {
         ".github/workflows/production-orchestrator-contract.yml": ORCHESTRATOR_CONTRACT_WORKFLOW_SHA256,
-        ".github/workflows/middleware-ci.yml": "8cec813feb267b63f4f27807606237dbe518f2fb94379062e447a6636fea2f16",
+        ".github/workflows/middleware-ci.yml": "9f4920a63522490f3f1688ec627a8078d80427c0b5a0d08acacb80f65afd88ec",
     },
     "appolon1908-hue/codestra": {
         ".github/workflows/production-orchestrator-contract.yml": ORCHESTRATOR_CONTRACT_WORKFLOW_SHA256,
@@ -221,7 +221,7 @@ KEYCLOAK_PRODUCTION_VALIDATOR_SHA256 = (
     "83d2fce102104543b871530f11115f20"
 )
 MIDDLEWARE_PRODUCTION_VALIDATOR_SHA256 = (
-    "15c35ad11c65b7605d44812e08d45493e31afdea678876b3a44a16d27c1c1a21"
+    "19ef9fff979c5b3682c851e862e30c296cfd6ee45f257051d4da81b5df1e1082"
 )
 BACKEND_PRODUCTION_VALIDATOR_SHA256 = (
     "6006bbc7850ce7666de926b6cad2585b"
@@ -294,8 +294,8 @@ EXPECTED_CHECK_WORKFLOW_EXECUTABLE_SHA256 = {
                 "238dfe4a262eaf5fa2c79403f147d4d6"
             ),
             "scripts/verify_container_image.sh": (
-                "86550c26b32862fefaf2cefdefa2db1e"
-            "73abcb702d28536816f9093df47c5ccd"
+                "9f98cb4e801b9310ea9d7f538b5ea6d8"
+            "aa5e1ad370c4f7f9630d5ccab9da90db"
             ),
         },
     },
@@ -381,8 +381,8 @@ EXPECTED_REQUIRED_CHECK_SOURCE_CLOSURE_SHA256 = {
         "fcdd0d5c3832479b10deda8c6a6afca6"
     ),
     "ingtrader21-spec/Middleware-": (
-        "59c70756ffba0ab5195e36e52e41f74e76"
-        "eab21ca0ca5b376af6536d124a9db6"
+        "522a18d0802315118300d46f409501d787"
+        "5b032e3f4d2f1b2e6a76fa482446d5"
     ),
     "appolon1908-hue/codestra": (
         "4e3ea69c3ec2a4bd6e4b50395672f44d"

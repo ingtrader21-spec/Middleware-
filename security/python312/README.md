@@ -16,7 +16,7 @@ security corrections.
 | CVE-2026-6100 | Included in Python 3.12.14 (`e20c6c9667c99ecaab96e1a2b3767082841ffc8b`) |
 | CVE-2026-9669 | Included in Python 3.12.14 (`938ec030e90c5e53f1faac6fab1643f14e4f4a79`) |
 | CVE-2026-4786 | Included in Python 3.12.14 (`f4654824ae0850ac87227fb270f9057477946769`) |
-| CVE-2026-7210 | Included in Python 3.12.14 and linked against Expat 2.8.4 |
+| CVE-2026-7210 | Included in Python 3.12.14 and linked against Expat 2.8.5 (Alpine 3.24 `expat-2.8.5-r0`; 2.8.4-r0 was withdrawn from the index) |
 | CVE-2026-3298 | Not applicable: the vulnerable code is Windows-specific and the release image is Linux/amd64 |
 
 The historical local patch files remain as review evidence for older 3.12
