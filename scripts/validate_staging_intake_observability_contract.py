@@ -104,7 +104,6 @@ EXPECTED_REGISTRY_ROUTERS = {
     "calls_router": ("api.v1.calls", "router"),
     "campaign_search_router": ("api.v1.campaign_search", "router"),
     "campaigns_router": ("api.v1.campaigns", "router"),
-    "commands_router": ("api.v1.commands", "router"),
     "contacts_router": ("api.v1.contacts", "router"),
     "control_legacy_events_router": ("api.v1.control", "legacy_events_router"),
     "control_router": ("api.v1.control", "router"),
@@ -191,7 +190,6 @@ EXPECTED_REGISTRY_TUPLES = {
     ),
     "INTEGRATION_ROUTERS": frozenset(
         {
-            "commands_router",
             "control_router",
             "reports_router",
             "operations_router",
@@ -264,6 +262,7 @@ EXPECTED_FACTORY_APP_CALLS: dict[str, str | None] = {
     **{name: None for name in EXPECTED_REGISTRY_MOUNTERS},
     "install_request_guard": None,
     "register_health_routes": None,
+    "route_operations": None,
     "assert_unique_routes": None,
     "install_error_handlers": "appolon_routes",
     "install_canonical_openapi": "appolon_routes",
