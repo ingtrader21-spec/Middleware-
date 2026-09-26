@@ -49,6 +49,7 @@ class OutboxWorker:
         lease_seconds: float = 60.0,
         handler_timeout_seconds: float = 45.0,
         max_attempts: int = DEFAULT_MAX_OUTBOX_ATTEMPTS,
+        tenant_ids: tuple[str, ...] = (),
     ) -> None:
         if poll_seconds <= 0:
             raise ValueError("poll_seconds must be positive")
@@ -64,11 +65,16 @@ class OutboxWorker:
         self.lease_seconds = lease_seconds
         self.handler_timeout_seconds = handler_timeout_seconds
         self.max_attempts = max_attempts
+        self.tenant_ids = tuple(dict.fromkeys(item.strip() for item in tenant_ids if item.strip()))
+        if not self.tenant_ids:
+            raise ValueError("outbox worker requires explicit tenant_ids")
+        self._tenant_cursor = 0
         self.worker_id = f"{socket.gethostname()}:{os.getpid()}:{uuid.uuid4().hex[:8]}"
 
     async def _heartbeat_active_dispatch(
         self,
         record_id: int,
+        tenant_id: str,
         stop: asyncio.Event,
     ) -> None:
         interval = max(0.01, min(5.0, self.lease_seconds / 3.0))
@@ -81,6 +87,7 @@ class OutboxWorker:
             try:
                 await self.store.renew_active_dispatch(
                     record_id,
+                    tenant_id=tenant_id,
                     worker_id=self.worker_id,
                     lease_seconds=self.lease_seconds,
                 )
@@ -94,11 +101,19 @@ class OutboxWorker:
                 )
 
     async def run_once(self) -> bool:
-        record = await self.store.claim(
-            worker_id=self.worker_id,
-            lease_seconds=self.lease_seconds,
-            max_attempts=self.max_attempts,
-        )
+        record = None
+        for offset in range(len(self.tenant_ids)):
+            index = (self._tenant_cursor + offset) % len(self.tenant_ids)
+            tenant_id = self.tenant_ids[index]
+            record = await self.store.claim(
+                tenant_id=tenant_id,
+                worker_id=self.worker_id,
+                lease_seconds=self.lease_seconds,
+                max_attempts=self.max_attempts,
+            )
+            if record is not None:
+                self._tenant_cursor = (index + 1) % len(self.tenant_ids)
+                break
         if record is None:
             return False
 
@@ -106,6 +121,7 @@ class OutboxWorker:
         if handler is None:
             await self.store.fail(
                 record.id,
+                tenant_id=record.tenant_id,
                 worker_id=self.worker_id,
                 error=f"no handler registered for destination {record.destination}",
                 max_attempts=self.max_attempts,
@@ -116,6 +132,7 @@ class OutboxWorker:
         # time. If it fails, the exception propagates and provider code is never run.
         await self.store.quarantine_unknown_outcome(
             record.id,
+            tenant_id=record.tenant_id,
             worker_id=self.worker_id,
             error=(
                 "provider dispatch reserved before handler invocation; external outcome "
@@ -126,7 +143,7 @@ class OutboxWorker:
 
         heartbeat_stop = asyncio.Event()
         heartbeat_task = asyncio.create_task(
-            self._heartbeat_active_dispatch(record.id, heartbeat_stop)
+            self._heartbeat_active_dispatch(record.id, record.tenant_id, heartbeat_stop)
         )
         handler_task = asyncio.ensure_future(handler(record))
         timed_out = False
@@ -159,6 +176,7 @@ class OutboxWorker:
                         )
                         await self.store.resolve_reconciliation(
                             record.id,
+                            tenant_id=record.tenant_id,
                             operator_id=f"worker:{self.worker_id}",
                             action="retry",
                             reason=f"handler certified known-safe retry: {exc}",
@@ -187,6 +205,7 @@ class OutboxWorker:
                     else:
                         await self.store.resolve_reconciliation(
                             record.id,
+                            tenant_id=record.tenant_id,
                             operator_id=f"worker:{self.worker_id}",
                             action="complete",
                             reason="handler returned successfully and confirmed delivery outcome",

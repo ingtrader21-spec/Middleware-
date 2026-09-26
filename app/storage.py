@@ -41,6 +41,17 @@ class EventLedgerIntegrityError(StorageError):
 ZERO_LEDGER_HASH = "0" * 64
 
 
+async def set_connection_tenant_context(
+    conn: asyncpg.Connection, tenant_id: str
+) -> str:
+    """Bind one tenant to the current asyncpg transaction for PostgreSQL RLS."""
+    value = str(tenant_id).strip()
+    if not value:
+        raise ValueError("tenant_id is required")
+    await conn.execute("SELECT set_config('app.tenant_id', $1, true)", value)
+    return value
+
+
 def canonical_payload_sha256(payload: dict[str, Any]) -> str:
     return hashlib.sha256(
         json.dumps(
@@ -724,6 +735,7 @@ class PostgresInboxStore:
         now = datetime.now(timezone.utc)
         async with self.pool.acquire() as conn:
             async with conn.transaction():
+                await set_connection_tenant_context(conn, envelope.tenant_id)
                 if deduplication_sha256 is not None:
                     await conn.execute(
                         "SELECT pg_advisory_xact_lock(hashtextextended($1, 0))",
@@ -950,20 +962,20 @@ class PostgresInboxStore:
 
     async def verify_event_ledger(
         self,
-        tenant_id: str | None = None,
+        tenant_id: str,
     ) -> dict[str, int]:
         query = """
             SELECT tenant_id, tenant_sequence, event_id, semantic_sha256,
                    previous_entry_hash, entry_hash, payload
             FROM middleware_event_ledger
         """
-        values: tuple[str, ...] = ()
-        if tenant_id is not None:
-            query += " WHERE tenant_id=$1"
-            values = (tenant_id,)
+        query += " WHERE tenant_id=$1"
+        values: tuple[str, ...] = (tenant_id,)
         query += " ORDER BY tenant_id, tenant_sequence"
         async with self.pool.acquire() as conn:
-            rows = await conn.fetch(query, *values)
+            async with conn.transaction():
+                await set_connection_tenant_context(conn, tenant_id)
+                rows = await conn.fetch(query, *values)
         records = []
         for row in rows:
             raw_payload = row["payload"]
@@ -1020,6 +1032,7 @@ class PostgresOutboxStore:
     async def claim(
         self,
         *,
+        tenant_id: str,
         worker_id: str,
         lease_seconds: float = 60,
         max_attempts: int = DEFAULT_MAX_OUTBOX_ATTEMPTS,
@@ -1030,6 +1043,7 @@ class PostgresOutboxStore:
             raise ValueError("max_attempts must be positive")
         async with self.pool.acquire() as conn:
             async with conn.transaction():
+                await set_connection_tenant_context(conn, tenant_id)
                 await conn.execute(
                     """
                     UPDATE middleware_outbox
@@ -1040,7 +1054,8 @@ class PostgresOutboxStore:
                             last_error,
                             'maximum attempts exhausted after worker lease expiry'
                         )
-                    WHERE completed_at IS NULL
+                    WHERE tenant_id=$2
+                      AND completed_at IS NULL
                       AND cancelled_at IS NULL
                       AND dead_lettered_at IS NULL
                       AND reconciliation_required_at IS NULL
@@ -1048,13 +1063,15 @@ class PostgresOutboxStore:
                       AND (lease_until IS NULL OR lease_until < now())
                     """,
                     max_attempts,
+                    tenant_id,
                 )
                 row = await conn.fetchrow(
                     """
                     WITH candidate AS (
                         SELECT id
                         FROM middleware_outbox
-                        WHERE completed_at IS NULL
+                        WHERE tenant_id=$4
+                          AND completed_at IS NULL
                           AND cancelled_at IS NULL
                           AND dead_lettered_at IS NULL
                           AND reconciliation_required_at IS NULL
@@ -1077,6 +1094,7 @@ class PostgresOutboxStore:
                     worker_id,
                     lease_seconds,
                     max_attempts,
+                    tenant_id,
                 )
                 if row:
                     await conn.execute(
@@ -1104,9 +1122,10 @@ class PostgresOutboxStore:
             attempt_count=row["attempt_count"],
         )
 
-    async def complete(self, record_id: int, *, worker_id: str) -> None:
+    async def complete(self, record_id: int, *, tenant_id: str, worker_id: str) -> None:
         async with self.pool.acquire() as conn:
             async with conn.transaction():
+                await set_connection_tenant_context(conn, tenant_id)
                 row = await conn.fetchrow(
                     """
                 UPDATE middleware_outbox
@@ -1131,6 +1150,7 @@ class PostgresOutboxStore:
         self,
         record_id: int,
         *,
+        tenant_id: str,
         worker_id: str,
         error: str,
         lease_seconds: float = 60,
@@ -1142,6 +1162,7 @@ class PostgresOutboxStore:
         safe_error = error[:2048]
         async with self.pool.acquire() as conn:
             async with conn.transaction():
+                await set_connection_tenant_context(conn, tenant_id)
                 row = await conn.fetchrow(
                     """
                     UPDATE middleware_outbox
@@ -1175,6 +1196,7 @@ class PostgresOutboxStore:
         self,
         record_id: int,
         *,
+        tenant_id: str,
         worker_id: str,
         lease_seconds: float,
     ) -> None:
@@ -1190,7 +1212,9 @@ class PostgresOutboxStore:
         if lease_seconds <= 0:
             raise ValueError("lease_seconds must be positive")
         async with self.pool.acquire() as conn:
-            result = await conn.execute(
+            async with conn.transaction():
+                await set_connection_tenant_context(conn, tenant_id)
+                result = await conn.execute(
                 """
                 UPDATE middleware_outbox
                 SET lease_until=now() + ($3 * interval '1 second')
@@ -1203,16 +1227,17 @@ class PostgresOutboxStore:
                 record_id,
                 worker_id,
                 lease_seconds,
-            )
-            if result != "UPDATE 1":
-                raise StorageError(
-                    "active dispatch ownership lost during lease renewal"
                 )
+                if result != "UPDATE 1":
+                    raise StorageError(
+                        "active dispatch ownership lost during lease renewal"
+                    )
 
     async def resolve_reconciliation(
         self,
         record_id: int,
         *,
+        tenant_id: str,
         operator_id: str,
         action: ReconciliationAction,
         reason: str,
@@ -1235,6 +1260,7 @@ class PostgresOutboxStore:
 
         async with self.pool.acquire() as conn:
             async with conn.transaction():
+                await set_connection_tenant_context(conn, tenant_id)
                 row = await conn.fetchrow(
                     """
                     SELECT id, tenant_id, attempt_count,
@@ -1344,6 +1370,7 @@ class PostgresOutboxStore:
         self,
         record_id: int,
         *,
+        tenant_id: str,
         worker_id: str,
         error: str,
         max_attempts: int = DEFAULT_MAX_OUTBOX_ATTEMPTS,
@@ -1353,6 +1380,7 @@ class PostgresOutboxStore:
         safe_error = error[:2048]
         async with self.pool.acquire() as conn:
             async with conn.transaction():
+                await set_connection_tenant_context(conn, tenant_id)
                 row = await conn.fetchrow(
                     """
                 UPDATE middleware_outbox

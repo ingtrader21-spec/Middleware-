@@ -16,6 +16,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.telephony_commands import (
     TelephonyCommandRequest,
     new_command_record,
@@ -31,7 +32,21 @@ from app.db.models import (
 )
 from app.db.session import get_session
 
-router = APIRouter(prefix="/api/v1", tags=["commands"])
+def require_legacy_command_api() -> None:
+    """Fence the pre-V3 telephony command plane behind explicit compatibility."""
+    if not settings.legacy_telephony_command_api_enabled:
+        raise HTTPException(
+            status.HTTP_410_GONE,
+            "legacy telephony command API is retired; use /platform/v1/commands",
+        )
+
+
+router = APIRouter(
+    prefix="/api/v1",
+    tags=["commands-legacy-compatibility"],
+    dependencies=[Depends(require_legacy_command_api)],
+    deprecated=True,
+)
 
 
 def _command_view(row: TelephonyCommandJournal, *, replayed: bool = False) -> dict:

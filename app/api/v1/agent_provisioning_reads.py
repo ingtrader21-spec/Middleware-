@@ -47,7 +47,6 @@ from app.api.v1.agent_provisioning import (
     AgentProvisioningRequest,
     AgentProvisioningStep,
     ProvisioningPrincipal,
-    _append_audit,
     _public_view,
     _steps_for,
     require_provisioning_scope,
@@ -338,12 +337,6 @@ async def list_email_identities(
             "campaign_email": campaign.get("campaign_email"),
             **state,
         })
-        await _append_audit(
-            session, request, from_state=request.state, to_state=request.state,
-            action="email_identity.read", principal=principal,
-        )
-    if items:
-        await session.commit()
     return {"items": items, "next_cursor": next_cursor}
 
 
@@ -378,10 +371,4 @@ async def list_sms_identities(
             "sms_sender": campaign.get("sms_sender"),
             **state,
         })
-        await _append_audit(
-            session, request, from_state=request.state, to_state=request.state,
-            action="sms_identity.read", principal=principal,
-        )
-    if items:
-        await session.commit()
     return {"items": items, "next_cursor": next_cursor}

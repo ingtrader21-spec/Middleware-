@@ -45,6 +45,7 @@ from app.api.internal.klyrow_mail import router as klyrow_mail_router
 from app.api.internal.telnexa_events import router as telnexa_events_router
 from app.api.v1.activity import router as activity_router
 from app.api.v1.agent_provisioning import router as agent_provisioning_router
+from app.api.v1.agent_provisioning_lifecycle import router as agent_provisioning_lifecycle_router
 from app.api.v1.agent_provisioning_reads import (
     router as agent_provisioning_reads_router,
 )
@@ -134,6 +135,7 @@ CANONICAL_ROUTERS: tuple[APIRouter, ...] = (
     callbacks_router,
     email_production_router,
     agent_provisioning_router,
+    agent_provisioning_lifecycle_router,
     agent_provisioning_reads_router,
     session_context_router,
     calls_router,

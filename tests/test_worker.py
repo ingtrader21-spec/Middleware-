@@ -71,6 +71,7 @@ async def test_worker_refreshes_lease_before_handler_and_resolves_success_as_own
         {"provider": handler},
         lease_seconds=60,
         handler_timeout_seconds=45,
+        tenant_ids=("tenant-1",),
     )
     assert await worker.run_once() is True
     assert observed == ["idem-12345678"]
@@ -92,7 +93,7 @@ async def test_pre_dispatch_quarantine_failure_prevents_handler_invocation() -> 
         nonlocal invoked
         invoked = True
 
-    worker = OutboxWorker(store, {"provider": handler})  # type: ignore[arg-type]
+    worker = OutboxWorker(store, {"provider": handler}, tenant_ids=("tenant-1",))  # type: ignore[arg-type]
     with pytest.raises(RuntimeError, match="database unavailable"):
         await worker.run_once()
     assert invoked is False
@@ -114,6 +115,7 @@ async def test_handler_timeout_leaves_precommitted_active_quarantine() -> None:
         lease_seconds=0.1,
         handler_timeout_seconds=0.01,
         max_attempts=8,
+        tenant_ids=("tenant-1",),
     )
     assert await worker.run_once() is True
     assert store.quarantined
@@ -148,6 +150,7 @@ async def test_heartbeat_continues_while_cancelled_handler_suppresses_cancellati
         lease_seconds=0.06,
         handler_timeout_seconds=0.01,
         max_attempts=8,
+        tenant_ids=("tenant-1",),
     )
     assert await worker.run_once() is True
     assert cancelled.is_set()
@@ -178,6 +181,7 @@ async def test_known_safe_retry_reported_after_timeout_stays_quarantined() -> No
         lease_seconds=0.06,
         handler_timeout_seconds=0.01,
         max_attempts=8,
+        tenant_ids=("tenant-1",),
     )
     assert await worker.run_once() is True
     assert store.quarantined
@@ -193,7 +197,7 @@ async def test_generic_handler_exception_leaves_precommitted_active_quarantine()
         store.events.append("handler")
         raise ConnectionError("provider accepted request then connection reset")
 
-    worker = OutboxWorker(store, {"provider": ambiguous_handler})  # type: ignore[arg-type]
+    worker = OutboxWorker(store, {"provider": ambiguous_handler}, tenant_ids=("tenant-1",))  # type: ignore[arg-type]
     assert await worker.run_once() is True
     assert store.quarantined
     assert not store.failed
@@ -209,7 +213,7 @@ async def test_explicit_known_safe_retry_resolves_quarantine_as_owner() -> None:
         store.events.append("handler")
         raise KnownSafeRetryError("provider rejected request before dispatch")
 
-    worker = OutboxWorker(store, {"provider": safe_retry_handler})  # type: ignore[arg-type]
+    worker = OutboxWorker(store, {"provider": safe_retry_handler}, tenant_ids=("tenant-1",))  # type: ignore[arg-type]
     assert await worker.run_once() is True
     assert store.quarantined
     assert not store.failed
@@ -231,7 +235,7 @@ async def test_handler_returning_future_completes_under_owned_quarantine() -> No
         asyncio.get_running_loop().call_soon(future.set_result, None)
         return future
 
-    worker = OutboxWorker(Mock(spec=PostgresOutboxStore, wraps=store), {"provider": handler})
+    worker = OutboxWorker(Mock(spec=PostgresOutboxStore, wraps=store), {"provider": handler}, tenant_ids=("tenant-1",))
     assert await worker.run_once() is True
     assert future.done()
     assert store.events[:2] == ["quarantine", "handler"]

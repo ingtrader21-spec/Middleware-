@@ -67,6 +67,39 @@ async def set_transaction_tenant_context(
     return normalized
 
 
+
+def resolve_tenant_id(
+    authorized_tenants: tuple[str, ...] | frozenset[str] | set[str] | list[str],
+    requested_tenant_id: str | None = None,
+) -> str:
+    """Resolve exactly one tenant from verified authority.
+
+    Explicit tenant selection is required for multi-tenant callers. Wildcards
+    are never accepted. This helper is transport-agnostic so HTTP routes and
+    background workers can share the same fail-closed rule.
+    """
+    tenants = tuple(dict.fromkeys(str(item).strip() for item in authorized_tenants if str(item).strip()))
+    if "*" in tenants:
+        raise ValueError("wildcard tenant authorization is prohibited")
+    if requested_tenant_id is not None:
+        requested = _canonical_tenant_id(requested_tenant_id)
+        if requested not in tenants:
+            raise ValueError("tenant authority does not cover requested tenant")
+        return requested
+    if len(tenants) != 1:
+        raise ValueError("explicit tenant_id is required for multi-tenant authority")
+    return _canonical_tenant_id(tenants[0])
+
+
+async def bind_transaction_tenant(
+    session: AsyncSession,
+    authorized_tenants: tuple[str, ...] | frozenset[str] | set[str] | list[str],
+    requested_tenant_id: str | None = None,
+) -> str:
+    """Resolve verified authority and install the transaction-local RLS GUC."""
+    tenant_id = resolve_tenant_id(authorized_tenants, requested_tenant_id)
+    return await set_transaction_tenant_context(session, tenant_id)
+
 def _native_asyncpg_dsn(database_url: str) -> str:
     """Return a native asyncpg DSN while preserving libpq TLS query policy."""
     prefix = "postgresql+asyncpg://"

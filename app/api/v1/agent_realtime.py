@@ -254,6 +254,8 @@ async def ingest_agent_event(
 ) -> dict[str, Any]:
     if not settings.agent_websocket_enabled:
         raise HTTPException(503, "agent realtime disabled")
+    require_tenant_match(principal, event.tenant_id)
+    await set_transaction_tenant_context(db, event.tenant_id)
     await _authorize_agent_event(db, principal, event)
     duplicate = await db.scalar(
         select(AgentCallEvent).where(

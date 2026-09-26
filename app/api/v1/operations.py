@@ -1,8 +1,9 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.integration_admin_auth import IntegrationAdminPrincipal, require_integration_admin
 from app.db.session import get_session
 from app.workers.dead_letter import list_dead_letters, replay
 from app.workers.outbox import queue_metrics, recover_expired_leases
@@ -11,10 +12,6 @@ from app.workers.reconciliation import reconcile_internal_outbox
 
 router = APIRouter(prefix="/api/v1/operations", tags=["operations"])
 
-
-def require_integration_admin(role: str) -> None:
-    if role != "integration_admin":
-        raise HTTPException(403, "integration administrator role required")
 
 
 @router.get("/reliability")
@@ -31,9 +28,8 @@ async def dead_letters(limit: int = 100, db: AsyncSession = Depends(get_session)
 async def replay_item(
     item_id: UUID,
     db: AsyncSession = Depends(get_session),
-    x_codestra_role: str = Header("", alias="X-Codestra-Role"),
+    principal: IntegrationAdminPrincipal = Depends(require_integration_admin),
 ):
-    require_integration_admin(x_codestra_role)
     if not await replay(db, item_id):
         raise HTTPException(409, "item is not eligible for replay")
     return {"id": str(item_id), "status": "pending"}
@@ -42,16 +38,14 @@ async def replay_item(
 @router.post("/maintenance/recover", status_code=202)
 async def recover(
     db: AsyncSession = Depends(get_session),
-    x_codestra_role: str = Header("", alias="X-Codestra-Role"),
+    principal: IntegrationAdminPrincipal = Depends(require_integration_admin),
 ):
-    require_integration_admin(x_codestra_role)
     return {"recovered": await recover_expired_leases(db)}
 
 
 @router.post("/reconciliation", status_code=202)
 async def reconcile(
     db: AsyncSession = Depends(get_session),
-    x_codestra_role: str = Header("", alias="X-Codestra-Role"),
+    principal: IntegrationAdminPrincipal = Depends(require_integration_admin),
 ):
-    require_integration_admin(x_codestra_role)
     return await reconcile_internal_outbox(db)

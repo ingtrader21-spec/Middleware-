@@ -133,10 +133,11 @@ class MemoryReconciliationSource:
     clock: Callable[[], float] = time.monotonic
     resolutions: list[tuple[int, str, str]] = field(default_factory=list)
 
-    async def claim(self, *, reconciler_id: str, lease_seconds: float) -> ReconciliationClaim | None:
+    async def claim(self, *, tenant_id: str, reconciler_id: str, lease_seconds: float) -> ReconciliationClaim | None:
         for item in self.store._outbox:
             if (
-                item.destination == ADAPTER_COMMAND_DESTINATION
+                item.tenant_id == tenant_id
+                and item.destination == ADAPTER_COMMAND_DESTINATION
                 and item.reconciliation_required_at is not None
                 and item.completed_at is None
                 and item.dead_lettered_at is None
@@ -184,11 +185,12 @@ class MemoryReconciliationSource:
         item.last_error = reason[:2048]
         self.resolutions.append((item.id, "release", reason))
 
-    async def backlog(self) -> int:
+    async def backlog(self, tenant_id: str) -> int:
         return sum(
             1
             for item in self.store._outbox
-            if item.destination == ADAPTER_COMMAND_DESTINATION
+            if item.tenant_id == tenant_id
+            and item.destination == ADAPTER_COMMAND_DESTINATION
             and item.reconciliation_required_at is not None
             and item.completed_at is None
             and item.dead_lettered_at is None

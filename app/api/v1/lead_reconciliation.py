@@ -3,12 +3,13 @@
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.integration_admin_auth import IntegrationAdminPrincipal, require_integration_admin
 from app.db.session import get_session
 
 
@@ -31,18 +32,13 @@ class FinishRequest(BaseModel):
     error_summary: str | None = Field(default=None, max_length=2000)
 
 
-def require_integration_admin(role: str) -> None:
-    if role != "integration_admin":
-        raise HTTPException(403, "integration administrator role required")
-
 
 @router.post("/start", status_code=202)
 async def start_run(
     body: StartRequest,
     db: AsyncSession = Depends(get_session),
-    x_codestra_role: str = Header("", alias="X-Codestra-Role"),
+    principal: IntegrationAdminPrincipal = Depends(require_integration_admin),
 ):
-    require_integration_admin(x_codestra_role)
     lock_name = f"crm-vicidial:{body.company_id}:{body.connector_id}"
     locked = await db.scalar(
         text("SELECT pg_try_advisory_xact_lock(hashtextextended(:key, 0))"),
@@ -81,9 +77,8 @@ async def finish_run(
     run_id: UUID,
     body: FinishRequest,
     db: AsyncSession = Depends(get_session),
-    x_codestra_role: str = Header("", alias="X-Codestra-Role"),
+    principal: IntegrationAdminPrincipal = Depends(require_integration_admin),
 ):
-    require_integration_admin(x_codestra_role)
     if any(value < 0 for value in body.counts.values()):
         raise HTTPException(422, "counts must be non-negative")
     row = await db.execute(

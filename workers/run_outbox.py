@@ -134,9 +134,21 @@ async def main() -> None:
                     default_secret=settings.odoo_default_hmac_secret or None,
                 ).dispatch
             )
+        tenant_ids = tuple(
+            dict.fromkeys(
+                item.strip()
+                for item in settings.outbox_worker_tenant_ids.split(",")
+                if item.strip()
+            )
+        )
+        if not tenant_ids:
+            raise ConfigurationError(
+                "OUTBOX_WORKER_TENANT_IDS is required for tenant-RLS worker execution"
+            )
         worker = OutboxWorker(
             PostgresOutboxStore(pool),
             handlers,
+            tenant_ids=tenant_ids,
         )
         await worker.run_forever()
     finally:

@@ -54,13 +54,13 @@ class ReconciliationClaim:
 class ReconciliationSource(Protocol):
     """Where quarantined adapter-command rows come from (Postgres outbox or memory)."""
 
-    async def claim(self, *, reconciler_id: str, lease_seconds: float) -> ReconciliationClaim | None: ...
+    async def claim(self, *, tenant_id: str, reconciler_id: str, lease_seconds: float) -> ReconciliationClaim | None: ...
 
     async def resolve(self, claim: ReconciliationClaim, *, reconciler_id: str, action: str, reason: str) -> None: ...
 
     async def release(self, claim: ReconciliationClaim, *, reconciler_id: str, reason: str) -> None: ...
 
-    async def backlog(self) -> int: ...
+    async def backlog(self, tenant_id: str) -> int: ...
 
 
 @dataclass(frozen=True)
@@ -97,16 +97,40 @@ class Reconciler:
         self.lease_seconds = lease_seconds
         self.timeout_seconds = timeout_seconds
         self.reconciler_id = reconciler_id or worker_identity("reconciler")
+        self.tenant_ids = tuple(
+            dict.fromkeys(
+                item.strip()
+                for item in settings.outbox_worker_tenant_ids.split(",")
+                if item.strip()
+            )
+        )
+        self._tenant_cursor = 0
 
     async def run_once(self) -> ReconciliationDecision | None:
-        claim = await self.source.claim(reconciler_id=self.reconciler_id, lease_seconds=self.lease_seconds)
+        if not self.tenant_ids:
+            return None
+        claim = None
+        for offset in range(len(self.tenant_ids)):
+            index = (self._tenant_cursor + offset) % len(self.tenant_ids)
+            tenant_id = self.tenant_ids[index]
+            claim = await self.source.claim(
+                tenant_id=tenant_id,
+                reconciler_id=self.reconciler_id,
+                lease_seconds=self.lease_seconds,
+            )
+            if claim is not None:
+                self._tenant_cursor = (index + 1) % len(self.tenant_ids)
+                break
         if claim is None:
             return None
         try:
             return await self._reconcile(claim)
         finally:
             try:
-                self.metrics.reconciliation_backlog.set(await self.source.backlog())
+                backlog = 0
+                for tenant_id in self.tenant_ids:
+                    backlog += await self.source.backlog(tenant_id)
+                self.metrics.reconciliation_backlog.set(backlog)
             except Exception:  # metrics must not break the loop
                 logger.debug("reconciliation_backlog_probe_failed", exc_info=True)
 
