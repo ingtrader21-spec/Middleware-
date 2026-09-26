@@ -18,7 +18,7 @@ import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Mapping
-from uuid import UUID, uuid4
+from uuid import NAMESPACE_URL, UUID, uuid5
 
 from app.commands import (
     ADAPTER_COMMAND_DESTINATION,
@@ -55,6 +55,9 @@ logger = logging.getLogger("codestra.platform.kernel")
 SCOPE_COMMAND = "platform.command"
 SCOPE_COMMAND_READ = "platform.command.read"
 SCOPE_COMMAND_REPLAY = "platform.command.replay"
+# REEXECUTE names its new operation deterministically, so a retried replay
+# request is an exact replay of the same new command, never a second one.
+REEXECUTE_NAMESPACE = uuid5(NAMESPACE_URL, "urn:codestra:middleware:platform:reexecute:v1")
 
 
 class PolicyDenied(CommandError):
@@ -416,7 +419,7 @@ class CommandKernel:
         envelope = await self.commands.load_envelope(tenant_id, operation_id)
         replayed = envelope.model_copy(
             update={
-                "command_id": uuid4(),
+                "command_id": uuid5(REEXECUTE_NAMESPACE, f"{tenant_id}\x1f{operation_id}\x1f{new_idempotency_key}"),
                 "idempotency_key": new_idempotency_key,
                 "requested_by": principal.subject,
                 "correlation_id": mutation_correlation_id or envelope.correlation_id,

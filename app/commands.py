@@ -27,6 +27,11 @@ COMMAND_DESTINATIONS = frozenset(
 )
 ACTIVE_COMMAND_STATES = ("persisted", "queued", "dispatching", "accepted", "readback_pending")
 AUTHENTICATED_CLIENT_ID_KEY = "_authenticated_client_id"
+# middleware_operation_mutations.action is CHECK-constrained to
+# (cancel, reconcile, retry). Resolution uses the reconcile action in a
+# dedicated key namespace so it cannot collide with operator REPROCESS.
+RESOLVE_RECONCILIATION_ACTION = "reconcile"
+RESOLVE_RECONCILIATION_KEY_PREFIX = "resolve:"
 CommandState = Literal[
     "persisted",
     "queued",
@@ -1519,7 +1524,8 @@ class PostgresCommandStore:
                 separators=(",", ":"),
             ).encode()
         ).hexdigest()
-        mutation_action = "resolve_reconciliation"
+        mutation_action = RESOLVE_RECONCILIATION_ACTION
+        mutation_key = RESOLVE_RECONCILIATION_KEY_PREFIX + idempotency_key
         next_state = "completed" if matched else "reconciliation_required"
         async with self.pool.acquire() as conn:
             async with conn.transaction():
@@ -1539,7 +1545,7 @@ class PostgresCommandStore:
                     str(command_id),
                     mutation_action,
                     actor_id,
-                    idempotency_key,
+                    mutation_key,
                 )
                 if replay:
                     if replay["request_sha256"] != request_digest:
@@ -1653,7 +1659,7 @@ class PostgresCommandStore:
                     str(command_id),
                     mutation_action,
                     actor_id,
-                    idempotency_key,
+                    mutation_key,
                     request_digest,
                     json.dumps(payload, separators=(",", ":"), sort_keys=True),
                 )

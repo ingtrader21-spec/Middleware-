@@ -240,8 +240,11 @@ def test_replay_requires_replay_scope_and_operator_role(stack: Stack) -> None:
         assert no_role.status_code == 409 and no_role.json()["error"]["code"] == "replay_not_allowed"
         operator = token(scope="platform.command platform.command.read platform.command.replay", roles=("platform-operator",))
         reexecuted = client.post(f"/platform/v1/operations/{body['command_id']}/replay", json={"mode": "REEXECUTE", "expected_version": 1, "reason": "r", "new_idempotency_key": "idem-new-0000001"}, headers={**base, "Authorization": f"Bearer {operator}"})
+        retried = client.post(f"/platform/v1/operations/{body['command_id']}/replay", json={"mode": "REEXECUTE", "expected_version": 1, "reason": "r", "new_idempotency_key": "idem-new-0000001"}, headers={**base, "Authorization": f"Bearer {operator}"})
         assert reexecuted.status_code == 202
+        assert retried.status_code == 202
         assert reexecuted.json()["operation_id"] != body["command_id"]
+        assert retried.json()["operation_id"] == reexecuted.json()["operation_id"]
         assert reexecuted.json()["correlation_id"] == "replay-corr"
         assert reexecuted.headers["Location"].startswith("/platform/v1/operations/")
         bad_mode = client.post(f"/platform/v1/operations/{body['command_id']}/replay", json={"mode": "AGAIN", "expected_version": 1, "reason": "r"}, headers={**base, "Authorization": f"Bearer {operator}"})
