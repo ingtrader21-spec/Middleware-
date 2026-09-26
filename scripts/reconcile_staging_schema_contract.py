@@ -31,6 +31,8 @@ from sqlalchemy.engine import Connection
 TARGET_DATABASE = "middleware_staging"
 TARGET_HEAD = "0067_service_catalog_monitoring_state"
 LOCK_NAME = "codestra.middleware.staging-schema-contract-normalize"
+LOCK_TIMEOUT = "5s"
+STATEMENT_TIMEOUT = "30s"
 
 CONSTRAINTS = (
     (
@@ -107,6 +109,14 @@ def validate_target(conn: Connection) -> None:
 
 
 def reconcile(conn: Connection) -> None:
+    conn.execute(
+        text("select set_config('lock_timeout', :timeout, true)"),
+        {"timeout": LOCK_TIMEOUT},
+    )
+    conn.execute(
+        text("select set_config('statement_timeout', :timeout, true)"),
+        {"timeout": STATEMENT_TIMEOUT},
+    )
     conn.execute(text("select pg_advisory_xact_lock(hashtext(:name))"), {"name": LOCK_NAME})
     validate_target(conn)
     for table, constraint, expression in CONSTRAINTS:

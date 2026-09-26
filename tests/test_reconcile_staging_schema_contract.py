@@ -34,3 +34,14 @@ def test_default_mode_is_non_mutating_by_contract():
     assert "if not apply:" in source
     assert "STAGING_SCHEMA_CONTRACT_APPLY=NO" in source
     assert "ALEMBIC_HEAD_UNCHANGED=" in source
+
+
+def test_apply_path_sets_bounded_transaction_local_timeouts():
+    source = open(target.__file__, encoding="utf-8").read()
+    assert target.LOCK_TIMEOUT == "5s"
+    assert target.STATEMENT_TIMEOUT == "30s"
+    assert "set_config('lock_timeout', :timeout, true)" in source
+    assert "set_config('statement_timeout', :timeout, true)" in source
+    assert source.index("set_config('lock_timeout', :timeout, true)") < source.index(
+        "pg_advisory_xact_lock"
+    )
