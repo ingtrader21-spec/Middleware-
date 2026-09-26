@@ -51,7 +51,12 @@ def test_nonisolated_connection_target_is_rejected(target):
 def test_workflow_blocks_real_runner_and_container_egress_without_rg_dependency():
     source = (ROOT / ".github/workflows/required-ci.yml").read_text()
     assert "python scripts/validate_ci_isolation.py" in source
-    assert "sudo -n /usr/local/sbin/codestra-ci-egress-guard" in source
+    assert "egress_guard=/usr/local/sbin/codestra-ci-egress-guard" in source
+    assert "root:root 755" in source
+    assert "13f52595c901f7a5febbecec57a174ba82563978eceb1b6442f80564bded5ca9" in source
+    assert 'sudo -n "$egress_guard" apply' in source
+    assert 'sudo -n "$egress_guard" check' in source
+    assert 'sudo -n "$egress_guard" clear' not in source
     assert "for chain in OUTPUT FORWARD" not in source
     assert 'iptables -I "$chain" 1 -d "$target" -j REJECT' not in source
     assert 'iptables -C "$chain" -d "$target" -j REJECT' not in source

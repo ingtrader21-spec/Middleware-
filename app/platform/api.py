@@ -595,7 +595,12 @@ async def request_reconciliation_readback(operation_id: UUID, body: Reconciliati
         reason=body.reason,
         mutation_correlation_id=mutation_correlation_id,
     )
-    return _respond(202, _status(operation), correlation_id=operation.correlation_id)
+    return _respond(
+        202,
+        _status(operation),
+        correlation_id=operation.correlation_id,
+        location=f"/platform/v1/operations/{operation.command_id}",
+    )
 
 
 @router.post("/reconciliation/{operation_id}/resolve", response_model=OperationStatus)

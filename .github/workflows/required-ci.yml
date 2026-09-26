@@ -160,7 +160,12 @@ jobs:
           # a missing `rg` executable proves that those strings do not exist.
           # The governed self-hosted runner exposes one root-owned wrapper whose
           # only authority is to add/verify the fixed OUTPUT/FORWARD REJECT rules.
-          sudo -n /usr/local/sbin/codestra-ci-egress-guard
+          egress_guard=/usr/local/sbin/codestra-ci-egress-guard
+          test -x "$egress_guard"
+          test "$(stat -c '%U:%G %a' "$egress_guard")" = "root:root 755"
+          echo "13f52595c901f7a5febbecec57a174ba82563978eceb1b6442f80564bded5ca9  $egress_guard" | sha256sum --check --strict >/dev/null
+          sudo -n "$egress_guard" apply
+          sudo -n "$egress_guard" check
 
       - name: Lint and type checks
         shell: bash

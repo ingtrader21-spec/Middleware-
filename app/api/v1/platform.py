@@ -387,9 +387,10 @@ async def service_state(service_id: str, target: str, role: str, db: AsyncSessio
     require_role(role, {"platform_admin"})
     result = await db.execute(text("UPDATE platform_services SET state=:state,updated_at=:now WHERE service_id=:id RETURNING id"), {"state": target, "now": now(), "id": service_id})
     updated = result.scalar_one_or_none()
-    await db.commit()
     if updated is None:
+        await db.rollback()
         raise HTTPException(404, "service not found")
+    await db.commit()
     return {"service_id": service_id, "state": target}
 
 

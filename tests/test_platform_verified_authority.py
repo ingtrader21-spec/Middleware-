@@ -130,6 +130,21 @@ def test_missing_identity_configuration_and_anonymous_fail_closed(authority, cli
     db.execute.assert_not_awaited()
 
 
+@pytest.mark.parametrize("action", ["activate", "decommission"])
+def test_missing_service_lifecycle_rolls_back_before_404(authority, client_and_db, action):
+    client, db = client_and_db
+    db.execute.return_value = Result(None)
+
+    response = client.post(
+        f"/platform/v1/services/missing-service/{action}",
+        headers={"Authorization": "Bearer " + authority(scope="platform.services.write")},
+    )
+
+    assert response.status_code == 404
+    db.rollback.assert_awaited_once()
+    db.commit.assert_not_awaited()
+
+
 def test_verified_catalog_write_and_read_only_denial(authority, client_and_db):
     client, db = client_and_db
     response = client.post("/platform/v1/services", json=SERVICE, headers={"Authorization": "Bearer " + authority()})
