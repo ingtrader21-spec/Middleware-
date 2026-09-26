@@ -1,3 +1,4 @@
+import os
 from uuid import uuid4
 
 import pytest
@@ -193,7 +194,13 @@ def test_settings_accept_only_complete_protected_canary_configuration(tmp_path):
             "postly_webhook_secret_file": str(webhook),
         }
     )
-    config.validate_safety()
+    if os.name == "nt":
+        # Windows cannot prove the POSIX group/other mode bits required for
+        # production secret-file certification, so the runtime must fail closed.
+        with pytest.raises(ValueError, match="secret file is unavailable or unsafe"):
+            config.validate_safety()
+    else:
+        config.validate_safety()
 
 
 def test_openapi_exposes_dry_run_without_provider_secrets():
