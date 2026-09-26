@@ -1,0 +1,585 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.codestra.co/campaign-recycling/delivery-event.v1.schema.json",
+  "title": "Unified delivery and engagement event v1",
+  "description": "Normalized cross-channel delivery/engagement event consumed by the campaign recycling engine. Raw provider events remain in their channel authorities; Middleware owns the normalized event. Klyrow and Telnexa durable inboxes are reused today. Evolution/WhatsApp normalization is contract-frozen but runtime-blocked until its provider/event dependency is merged and certified. Contract only; no runtime handler exists in MCR-A.",
+  "x-codestra-contract": {
+    "mission": "MCR-A",
+    "runtime_status": "contract_only",
+    "system_of_record": "middleware",
+    "normalizer": "middleware",
+    "event_envelope": "contracts/platform/event-envelope.v1.schema.json"
+  },
+  "x-delivery-taxonomy": {
+    "event_types": [
+      "accepted",
+      "queued",
+      "dispatched",
+      "delivered",
+      "deferred",
+      "soft_bounce",
+      "hard_bounce",
+      "complaint",
+      "unsubscribe",
+      "open",
+      "read",
+      "click",
+      "reply",
+      "conversion"
+    ],
+    "signal_class": {
+      "accepted": "transport",
+      "queued": "transport",
+      "dispatched": "transport",
+      "delivered": "transport",
+      "deferred": "transport",
+      "soft_bounce": "negative",
+      "hard_bounce": "negative",
+      "complaint": "negative",
+      "unsubscribe": "negative",
+      "open": "weak_engagement",
+      "read": "weak_engagement",
+      "click": "strong_engagement",
+      "reply": "strong_engagement",
+      "conversion": "conversion"
+    },
+    "signal_strength_order": [
+      "open",
+      "read",
+      "click",
+      "reply",
+      "conversion"
+    ],
+    "weak_signal_rule": "Email open and WhatsApp read are engagement hints, not conversion proof. Email privacy proxies may create opens; channel/provider behavior may also create read-like signals. Neither open nor read changes lifecycle state, ends cooling, or resets a cap/cooldown. A click with automated_suspected=true is treated as weak.",
+    "effects": {
+      "accepted": {
+        "exposure": "status",
+        "channel_health": null,
+        "lifecycle": null
+      },
+      "queued": {
+        "exposure": "status",
+        "channel_health": null,
+        "lifecycle": null
+      },
+      "dispatched": {
+        "exposure": "status",
+        "channel_health": null,
+        "lifecycle": null
+      },
+      "delivered": {
+        "exposure": "status",
+        "channel_health": "valid",
+        "lifecycle": null
+      },
+      "deferred": {
+        "exposure": "status",
+        "channel_health": null,
+        "lifecycle": null
+      },
+      "soft_bounce": {
+        "exposure": "negative_outcome",
+        "channel_health": "soft_bounce",
+        "lifecycle": null
+      },
+      "hard_bounce": {
+        "exposure": "negative_outcome",
+        "channel_health": "hard_bounce",
+        "lifecycle": null
+      },
+      "complaint": {
+        "exposure": "negative_outcome",
+        "channel_health": "complained",
+        "lifecycle": null,
+        "suppression": {
+          "scope": "channel",
+          "reason": "complaint"
+        }
+      },
+      "unsubscribe": {
+        "exposure": "negative_outcome",
+        "channel_health": "unsubscribed",
+        "lifecycle": null,
+        "suppression": {
+          "scope": "channel",
+          "reason": "unsubscribe"
+        }
+      },
+      "open": {
+        "exposure": "engagement_outcome",
+        "channel_health": null,
+        "lifecycle": null
+      },
+      "read": {
+        "exposure": "engagement_outcome",
+        "channel_health": null,
+        "lifecycle": null
+      },
+      "click": {
+        "exposure": "engagement_outcome",
+        "channel_health": null,
+        "lifecycle": "STRONG_ENGAGEMENT_RECORDED"
+      },
+      "reply": {
+        "exposure": "engagement_outcome",
+        "channel_health": null,
+        "lifecycle": "STRONG_ENGAGEMENT_RECORDED"
+      },
+      "conversion": {
+        "exposure": "engagement_outcome",
+        "channel_health": null,
+        "lifecycle": "CONVERSION_RECORDED"
+      }
+    },
+    "effects_are_channel_local": true,
+    "dedupe": {
+      "identity": [
+        "source",
+        "event_id"
+      ],
+      "payload_digest": "payload_hash = sha256 of the canonical JSON event (sort_keys, compact separators) excluding received_at",
+      "same_digest": "202 duplicate=true; effects are not re-applied",
+      "different_digest": "409 replay_conflict; the event is quarantined and never applied",
+      "origin_identity": "When origin is present, (origin.inbox, origin.inbox_event_id) is also unique, so re-projecting an inbox row cannot create a second normalized event."
+    },
+    "ordering": "Effects are monotonic and order-independent: transport-terminal exposure statuses never regress, outcomes only move up their rank, suppressions apply regardless of arrival order, and health downgrades (bounce, complaint, unsubscribe) always win over a concurrently arriving delivered.",
+    "replay": "Operator replay re-applies a stored event through an audited command and never bypasses authentication, tenant binding, signature, or idempotency checks."
+  },
+  "x-source-mappings": {
+    "klyrow": {
+      "raw_contract": "KlyrowDeliveryEvent.event_type in app/api/internal/klyrow_mail.py",
+      "inbox": "klyrow_delivery_event_inbox",
+      "event_types": {
+        "klyrow.email.accepted": "accepted",
+        "klyrow.email.queued": "queued",
+        "klyrow.email.submitted": "dispatched",
+        "klyrow.email.sent": "dispatched",
+        "klyrow.email.delivered": "delivered",
+        "klyrow.email.deferred": "deferred",
+        "klyrow.email.bounced": {
+          "by_bounce_class": {
+            "soft": "soft_bounce",
+            "hard": "hard_bounce",
+            "unknown": "hard_bounce"
+          }
+        },
+        "klyrow.email.complained": "complaint",
+        "klyrow.email.unsubscribed": "unsubscribe",
+        "klyrow.email.opened": "open",
+        "klyrow.email.clicked": "click",
+        "klyrow.email.rejected": null,
+        "klyrow.email.failed": null,
+        "klyrow.email.cancelled": null,
+        "klyrow.email.unknown_outcome": null
+      },
+      "null_mapping_rule": "Raw events mapped to null are not engagement/delivery taxonomy events; they reach the exposure ledger only as communications MessageStatus (failed, cancelled, indeterminate)."
+    },
+    "telnexa": {
+      "raw_contract": "contracts/telnexa-delivery-event.v1.schema.json",
+      "inbox": "telnexa_delivery_event_inbox",
+      "event_types": {
+        "sms.message.delivered.v1": "delivered",
+        "sms.message.failed.v1": null,
+        "sms.message.status.v1": null,
+        "sms.message.reconciled.v1": null,
+        "inbound_sms_stop": "unsubscribe"
+      },
+      "null_mapping_rule": "Status and reconciliation events update exposure status only through the existing communications canonical status."
+    },
+    "evolution": {
+      "runtime_status": "blocked_pending_dependency",
+      "dependency": "https://github.com/ingtrader21-spec/Middleware-/pull/316",
+      "provider_authority": "Codestra Evolution API",
+      "business_authority": "Codestra WhatsApp",
+      "channel": "whatsapp",
+      "normalized_event_types": [
+        "accepted",
+        "queued",
+        "dispatched",
+        "delivered",
+        "deferred",
+        "read",
+        "reply",
+        "unsubscribe"
+      ],
+      "raw_event_names_frozen": false,
+      "rule": "Evolution normalizes provider-specific WhatsApp events before Middleware applies this taxonomy. Raw provider names are frozen in the Evolution project, not duplicated here."
+    }
+  },
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "event_id",
+    "event_type",
+    "source",
+    "provider",
+    "tenant_id",
+    "lead_id",
+    "channel",
+    "campaign_id",
+    "campaign_version",
+    "exposure_idempotency_key",
+    "message_id",
+    "provider_message_id",
+    "correlation_id",
+    "causation_id",
+    "occurred_at",
+    "received_at",
+    "payload_hash",
+    "origin"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "event_id": {
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 200,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "accepted",
+        "queued",
+        "dispatched",
+        "delivered",
+        "deferred",
+        "soft_bounce",
+        "hard_bounce",
+        "complaint",
+        "unsubscribe",
+        "open",
+        "read",
+        "click",
+        "reply",
+        "conversion"
+      ]
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "klyrow",
+        "telnexa",
+        "evolution",
+        "vicidial",
+        "odoo",
+        "middleware"
+      ]
+    },
+    "provider": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 100
+    },
+    "tenant_id": {
+      "$ref": "lifecycle.v1.schema.json#/$defs/TenantId"
+    },
+    "lead_id": {
+      "$ref": "lifecycle.v1.schema.json#/$defs/LeadId"
+    },
+    "channel": {
+      "$ref": "channel-health.v1.schema.json#/$defs/Channel"
+    },
+    "campaign_id": {
+      "anyOf": [
+        {
+          "$ref": "channel-health.v1.schema.json#/$defs/CampaignId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "campaign_version": {
+      "anyOf": [
+        {
+          "$ref": "exposure-ledger.v1.schema.json#/$defs/CampaignVersion"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "exposure_idempotency_key": {
+      "anyOf": [
+        {
+          "$ref": "exposure-ledger.v1.schema.json#/$defs/IdempotencyKey"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "message_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 998
+    },
+    "provider_message_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 998
+    },
+    "correlation_id": {
+      "$ref": "lifecycle.v1.schema.json#/$defs/CorrelationId"
+    },
+    "causation_id": {
+      "anyOf": [
+        {
+          "$ref": "lifecycle.v1.schema.json#/$defs/CorrelationId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "received_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "payload_hash": {
+      "$ref": "lifecycle.v1.schema.json#/$defs/Sha256"
+    },
+    "bounce_class": {
+      "type": "string",
+      "enum": [
+        "soft",
+        "hard",
+        "unknown"
+      ]
+    },
+    "automated_suspected": {
+      "type": "boolean"
+    },
+    "origin": {
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "inbox",
+            "inbox_event_id"
+          ],
+          "properties": {
+            "inbox": {
+              "type": "string",
+              "enum": [
+                "klyrow_delivery_event_inbox",
+                "telnexa_delivery_event_inbox"
+              ]
+            },
+            "inbox_event_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "enum": [
+              "soft_bounce",
+              "hard_bounce"
+            ]
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "required": [
+          "bounce_class"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "soft_bounce"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "bounce_class": {
+            "const": "soft"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "hard_bounce"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "bounce_class": {
+            "enum": [
+              "hard",
+              "unknown"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "enum": [
+              "open",
+              "click"
+            ]
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "required": [
+          "automated_suspected"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "conversion"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "source": {
+            "enum": [
+              "odoo",
+              "middleware"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "source": {
+            "const": "klyrow"
+          }
+        },
+        "required": [
+          "source"
+        ]
+      },
+      "then": {
+        "properties": {
+          "channel": {
+            "const": "email"
+          },
+          "origin": {
+            "type": "object",
+            "properties": {
+              "inbox": {
+                "const": "klyrow_delivery_event_inbox"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "source": {
+            "const": "telnexa"
+          }
+        },
+        "required": [
+          "source"
+        ]
+      },
+      "then": {
+        "properties": {
+          "channel": {
+            "const": "sms"
+          },
+          "origin": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "inbox": {
+                    "const": "telnexa_delivery_event_inbox"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "source": {
+            "const": "evolution"
+          }
+        },
+        "required": [
+          "source"
+        ]
+      },
+      "then": {
+        "properties": {
+          "channel": {
+            "const": "whatsapp"
+          },
+          "origin": {
+            "type": "null"
+          }
+        }
+      }
+    }
+  ]
+}

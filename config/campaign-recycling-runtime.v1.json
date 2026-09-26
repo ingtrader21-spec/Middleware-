@@ -1,0 +1,76 @@
+{
+  "schema_version": "1.0",
+  "milestone": "MCR-10",
+  "phase": "MCR-C",
+  "contract_sha": "b3f44dd4b8ad8976f10394051d2f13cc17443155",
+  "implementation_enabled": true,
+  "routes_registered": true,
+  "production_authorized": false,
+  "provider_effects_enabled": false,
+  "allowed_runtime_files": [
+    "app/core/campaign_recycling.py",
+    "migrations/versions/0068_campaign_recycling_core.py",
+    "migrations/versions/0069_campaign_recycling_delivery_events.py",
+    "app/core/config.py",
+    "deploy/observability-alerts/production.env.example",
+    "deploy/production/compose.canary.yaml",
+    "deploy/production/server/codestra-middleware-deploy",
+    "deploy/production/server-command-contract.v1.json"
+  ],
+  "reviewed_runtime": {
+    "files": [
+      "app/api/v1/campaign_recycling.py",
+      "app/core/campaign_recycling_contract.py",
+      "app/core/campaign_recycling_readback.py",
+      "app/router_registry.py",
+      "config/route-authority-overrides.v1.json",
+      "config/route-authority-report.v1.json",
+      "contracts/platform/middleware-openapi.generated.json",
+      "deploy/public-api-route-contract.json",
+      "deploy/public-api-route-contract.sha256",
+      "app/core/campaign_recycling_candidates.py"
+    ],
+    "routes": [
+      {
+        "method": "get",
+        "path": "/platform/v1/campaign-engine/status",
+        "disposition": "read_only_frozen_contract_only"
+      },
+      {
+        "method": "post",
+        "path": "/platform/v1/campaign-engine/plan",
+        "disposition": "fail_closed_dependency_unavailable"
+      },
+      {
+        "method": "post",
+        "path": "/platform/v1/campaign-engine/execute",
+        "disposition": "denied_production_not_authorized"
+      },
+      {
+        "method": "get",
+        "path": "/platform/v1/leads/{lead_id}/journey",
+        "disposition": "read_only_tenant_bound"
+      },
+      {
+        "method": "get",
+        "path": "/platform/v1/leads/{lead_id}/next-action",
+        "disposition": "fail_closed_dependency_unavailable"
+      },
+      {
+        "method": "get",
+        "path": "/platform/v1/campaigns/{campaign_id}/eligible-leads",
+        "disposition": "fail_closed_dependency_unavailable"
+      },
+      {
+        "method": "post",
+        "path": "/platform/v1/delivery-events",
+        "disposition": "durable_inbox_only"
+      },
+      {
+        "method": "post",
+        "path": "/platform/v1/suppressions",
+        "disposition": "durable_record_only"
+      }
+    ]
+  }
+}

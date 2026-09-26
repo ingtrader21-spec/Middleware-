@@ -682,6 +682,24 @@ operations:
   implementation_file: registered FastAPI runtime
   runtime_state: IMPLEMENTED
 - domain: platform
+  method: POST
+  path: /platform/v1/campaign-engine/execute
+  canonical_operation_id: campaign_engine_execute
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: platform
+  method: POST
+  path: /platform/v1/campaign-engine/plan
+  canonical_operation_id: campaign_engine_plan
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: platform
+  method: GET
+  path: /platform/v1/campaign-engine/status
+  canonical_operation_id: campaign_engine_status
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: platform
   method: GET
   path: /platform/v1/campaigns
   canonical_operation_id: list_campaigns_platform_v1_campaigns_get
@@ -697,6 +715,12 @@ operations:
   method: GET
   path: /platform/v1/campaigns/{campaign_id}/channels
   canonical_operation_id: get_campaign_channels_platform_v1_campaigns__campaign_id__channels_get
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: platform
+  method: GET
+  path: /platform/v1/campaigns/{campaign_id}/eligible-leads
+  canonical_operation_id: campaign_eligible_leads_read
   implementation_file: registered FastAPI runtime
   runtime_state: IMPLEMENTED
 - domain: platform
@@ -769,6 +793,12 @@ operations:
   method: POST
   path: /platform/v1/contacts/{contact_id}/tasks
   canonical_operation_id: create_task_platform_v1_contacts__contact_id__tasks_post
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: platform
+  method: POST
+  path: /platform/v1/delivery-events
+  canonical_operation_id: delivery_event_ingest
   implementation_file: registered FastAPI runtime
   runtime_state: IMPLEMENTED
 - domain: platform
@@ -847,6 +877,18 @@ operations:
   method: GET
   path: /platform/v1/kernel/describe
   canonical_operation_id: describe_kernel_platform_v1_kernel_describe_get
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: platform
+  method: GET
+  path: /platform/v1/leads/{lead_id}/journey
+  canonical_operation_id: lead_journey_read
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: platform
+  method: GET
+  path: /platform/v1/leads/{lead_id}/next-action
+  canonical_operation_id: lead_next_action_read
   implementation_file: registered FastAPI runtime
   runtime_state: IMPLEMENTED
 - domain: platform
@@ -997,6 +1039,12 @@ operations:
   method: GET
   path: /platform/v1/sms/identities
   canonical_operation_id: list_sms_identities_platform_v1_sms_identities_get
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: platform
+  method: POST
+  path: /platform/v1/suppressions
+  canonical_operation_id: suppression_record
   implementation_file: registered FastAPI runtime
   runtime_state: IMPLEMENTED
 - domain: platform

@@ -1,1 +1,29 @@
-{"schema": "codestra.middleware.route-authority-overrides.v1", "routes": {}}
+{
+  "schema": "codestra.middleware.route-authority-overrides.v1",
+  "routes": {
+    "POST /platform/v1/campaign-engine/plan": {
+      "classification": "READ_ONLY",
+      "effectful": false,
+      "scope": "campaign.engine.plan",
+      "justification": "MCR dry-run plan (x-codestra-effects none); fails closed 503 until certified campaign/version/audience readback exists; no durable mutation or provider call"
+    },
+    "POST /platform/v1/campaign-engine/execute": {
+      "classification": "READ_ONLY",
+      "effectful": false,
+      "scope": "campaign.engine.execute",
+      "justification": "MCR execute is pinned 403 production_not_authorized before any read, write, reservation, outbox intent or provider call"
+    },
+    "POST /platform/v1/delivery-events": {
+      "classification": "INTERNAL_EVENT_INGRESS",
+      "effectful": false,
+      "scope": "campaign.delivery_events.publish",
+      "justification": "signed normalized delivery-event ingress (durable_inbox_only) into mcr_delivery_events with monotonic projection onto Middleware-owned exposure/lifecycle state; no provider transport"
+    },
+    "POST /platform/v1/suppressions": {
+      "classification": "INTERNAL_EVENT_INGRESS",
+      "effectful": false,
+      "scope": "campaign.suppressions.write",
+      "justification": "additive idempotent suppression record (durable_record_only) with atomic global lifecycle SUPPRESSED transition; Middleware-owned state only; no provider transport"
+    }
+  }
+}
