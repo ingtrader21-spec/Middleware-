@@ -1,0 +1,35 @@
+name: Single-lane agent governance
+
+on:
+  pull_request:
+  push:
+    branches-ignore:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  governance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Materialize exact branch refs
+        shell: bash
+        run: |
+          branch="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
+          git fetch --no-tags origin "$branch:refs/remotes/origin/$branch"
+          if [ -n "${GITHUB_BASE_REF:-}" ]; then
+            git fetch --no-tags origin "$GITHUB_BASE_REF:refs/remotes/origin/$GITHUB_BASE_REF"
+          fi
+          git branch -f "$branch" "refs/remotes/origin/$branch"
+          git checkout "$branch"
+          git branch --set-upstream-to="origin/$branch" "$branch"
+      - name: Validate single-lane authority
+        shell: bash
+        run: |
+          chmod +x scripts/agent_preflight.sh
+          branch="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
+          ./scripts/agent_preflight.sh --ci --branch "$branch"
