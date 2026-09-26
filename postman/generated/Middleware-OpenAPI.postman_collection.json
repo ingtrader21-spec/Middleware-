@@ -92,6 +92,46 @@
     {
       "item": [
         {
+          "name": "Adopt Agent Extension",
+          "request": {
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"campaign_id\": \"\",\n  \"employee_id\": \"\",\n  \"extension\": \"\",\n  \"provisioning_request_id\": \"\",\n  \"tenant_id\": \"\"\n}"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "type": "text",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "agent-provisioning",
+                "adopt-extension"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/agent-provisioning/adopt-extension"
+            }
+          }
+        },
+        {
           "name": "Create Provisioning Request",
           "request": {
             "body": {
@@ -168,8 +208,48 @@
                 "requests",
                 "{request_id}"
               ],
-              "query": [],
+              "query": [
+                {
+                  "disabled": true,
+                  "key": "tenant_id",
+                  "value": "{{tenant_id}}"
+                }
+              ],
               "raw": "{{base_url}}/platform/v1/agent-provisioning/requests/{request_id}"
+            }
+          }
+        },
+        {
+          "name": "Provisioning History",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "agent-provisioning",
+                "requests",
+                "{request_id}",
+                "history"
+              ],
+              "query": [
+                {
+                  "disabled": true,
+                  "key": "tenant_id",
+                  "value": "{{tenant_id}}"
+                }
+              ],
+              "raw": "{{base_url}}/platform/v1/agent-provisioning/requests/{request_id}/history"
             }
           }
         },
@@ -210,7 +290,13 @@
                 "{request_id}",
                 "reactivate"
               ],
-              "query": [],
+              "query": [
+                {
+                  "disabled": true,
+                  "key": "tenant_id",
+                  "value": "{{tenant_id}}"
+                }
+              ],
               "raw": "{{base_url}}/platform/v1/agent-provisioning/requests/{request_id}/reactivate"
             }
           }
@@ -252,7 +338,13 @@
                 "{request_id}",
                 "reconcile"
               ],
-              "query": [],
+              "query": [
+                {
+                  "disabled": true,
+                  "key": "tenant_id",
+                  "value": "{{tenant_id}}"
+                }
+              ],
               "raw": "{{base_url}}/platform/v1/agent-provisioning/requests/{request_id}/reconcile"
             }
           }
@@ -294,7 +386,13 @@
                 "{request_id}",
                 "revoke"
               ],
-              "query": [],
+              "query": [
+                {
+                  "disabled": true,
+                  "key": "tenant_id",
+                  "value": "{{tenant_id}}"
+                }
+              ],
               "raw": "{{base_url}}/platform/v1/agent-provisioning/requests/{request_id}/revoke"
             }
           }
@@ -336,8 +434,368 @@
                 "{request_id}",
                 "suspend"
               ],
-              "query": [],
+              "query": [
+                {
+                  "disabled": true,
+                  "key": "tenant_id",
+                  "value": "{{tenant_id}}"
+                }
+              ],
               "raw": "{{base_url}}/platform/v1/agent-provisioning/requests/{request_id}/suspend"
+            }
+          }
+        },
+        {
+          "name": "Reserve Agent Extension",
+          "request": {
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"campaign_id\": \"\",\n  \"employee_id\": \"\",\n  \"evidence_by_extension\": {},\n  \"extension_pool\": \"\",\n  \"tenant_id\": \"\"\n}"
+            },
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "type": "text",
+                "value": "{{idempotency_key}}"
+              },
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "type": "text",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "agent-provisioning",
+                "reserve-extension"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/agent-provisioning/reserve-extension"
+            }
+          }
+        },
+        {
+          "name": "Issue Webrtc Ticket",
+          "request": {
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"campaign_id\": \"\",\n  \"extension\": \"\",\n  \"provisioning_request_id\": \"\",\n  \"tenant_id\": \"\"\n}"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "type": "text",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "agent-provisioning",
+                "webrtc",
+                "tickets"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/agent-provisioning/webrtc/tickets"
+            }
+          }
+        },
+        {
+          "name": "Disable Agent",
+          "request": {
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"reason\": \"\"\n}"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "type": "text",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "agent-provisioning",
+                "{request_id}",
+                "disable"
+              ],
+              "query": [
+                {
+                  "disabled": true,
+                  "key": "tenant_id",
+                  "value": "{{tenant_id}}"
+                }
+              ],
+              "raw": "{{base_url}}/platform/v1/agent-provisioning/{request_id}/disable"
+            }
+          }
+        },
+        {
+          "name": "Provisioning Readback",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "agent-provisioning",
+                "{request_id}",
+                "readback"
+              ],
+              "query": [
+                {
+                  "disabled": true,
+                  "key": "tenant_id",
+                  "value": "{{tenant_id}}"
+                }
+              ],
+              "raw": "{{base_url}}/platform/v1/agent-provisioning/{request_id}/readback"
+            }
+          }
+        },
+        {
+          "name": "Release Agent Extension",
+          "request": {
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"reason\": \"\"\n}"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "type": "text",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "agent-provisioning",
+                "{request_id}",
+                "release-extension"
+              ],
+              "query": [
+                {
+                  "disabled": false,
+                  "key": "campaign_id",
+                  "value": "{{campaign_id}}"
+                },
+                {
+                  "disabled": true,
+                  "key": "tenant_id",
+                  "value": "{{tenant_id}}"
+                }
+              ],
+              "raw": "{{base_url}}/platform/v1/agent-provisioning/{request_id}/release-extension"
+            }
+          }
+        },
+        {
+          "name": "Create Repair Intent",
+          "request": {
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"drift_class\": \"\",\n  \"proposed_action\": \"\",\n  \"tenant_id\": \"\"\n}"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "type": "text",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "agent-provisioning",
+                "{request_id}",
+                "repair-intents"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/agent-provisioning/{request_id}/repair-intents"
+            }
+          }
+        },
+        {
+          "name": "Sync Agent",
+          "request": {
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"reason\": \"\"\n}"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "type": "text",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "agent-provisioning",
+                "{request_id}",
+                "sync"
+              ],
+              "query": [
+                {
+                  "disabled": true,
+                  "key": "tenant_id",
+                  "value": "{{tenant_id}}"
+                }
+              ],
+              "raw": "{{base_url}}/platform/v1/agent-provisioning/{request_id}/sync"
+            }
+          }
+        },
+        {
+          "name": "Revoke Webrtc Session",
+          "request": {
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"reason\": \"\"\n}"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "type": "text",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "agent-provisioning",
+                "{request_id}",
+                "webrtc",
+                "revoke"
+              ],
+              "query": [
+                {
+                  "disabled": true,
+                  "key": "tenant_id",
+                  "value": "{{tenant_id}}"
+                }
+              ],
+              "raw": "{{base_url}}/platform/v1/agent-provisioning/{request_id}/webrtc/revoke"
             }
           }
         }

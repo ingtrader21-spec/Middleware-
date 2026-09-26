@@ -4171,6 +4171,14 @@ paths:
           type: string
           format: uuid
           title: Request Id
+      - name: tenant_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Tenant Id
       responses:
         '200':
           description: Successful Response
@@ -4213,6 +4221,14 @@ paths:
           type: string
           format: uuid
           title: Request Id
+      - name: tenant_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Tenant Id
       requestBody:
         required: true
         content:
@@ -4261,6 +4277,14 @@ paths:
           type: string
           format: uuid
           title: Request Id
+      - name: tenant_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Tenant Id
       requestBody:
         required: true
         content:
@@ -4309,6 +4333,14 @@ paths:
           type: string
           format: uuid
           title: Request Id
+      - name: tenant_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Tenant Id
       requestBody:
         required: true
         content:
@@ -4357,6 +4389,521 @@ paths:
           type: string
           format: uuid
           title: Request Id
+      - name: tenant_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Tenant Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransitionRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '400':
+          description: Invalid canonical request
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+  /platform/v1/agent-provisioning/requests/{request_id}/history:
+    get:
+      tags:
+      - agent-provisioning
+      summary: Provisioning History
+      operationId: provisioning_history_platform_v1_agent_provisioning_requests__request_id__history_get
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: request_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Request Id
+      - name: tenant_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Tenant Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '400':
+          description: Invalid canonical request
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+  /platform/v1/agent-provisioning/{request_id}/sync:
+    post:
+      tags:
+      - agent-provisioning
+      summary: Sync Agent
+      operationId: sync_agent_platform_v1_agent_provisioning__request_id__sync_post
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: request_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Request Id
+      - name: tenant_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Tenant Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransitionRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '400':
+          description: Invalid canonical request
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+  /platform/v1/agent-provisioning/{request_id}/disable:
+    post:
+      tags:
+      - agent-provisioning
+      summary: Disable Agent
+      operationId: disable_agent_platform_v1_agent_provisioning__request_id__disable_post
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: request_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Request Id
+      - name: tenant_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Tenant Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransitionRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '400':
+          description: Invalid canonical request
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+  /platform/v1/agent-provisioning/{request_id}/readback:
+    get:
+      tags:
+      - agent-provisioning
+      summary: Provisioning Readback
+      operationId: provisioning_readback_platform_v1_agent_provisioning__request_id__readback_get
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: request_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Request Id
+      - name: tenant_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Tenant Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '400':
+          description: Invalid canonical request
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+  /platform/v1/agent-provisioning/{request_id}/repair-intents:
+    post:
+      tags:
+      - agent-provisioning
+      summary: Create Repair Intent
+      operationId: create_repair_intent_platform_v1_agent_provisioning__request_id__repair_intents_post
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: request_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Request Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RepairIntentRequest'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '400':
+          description: Invalid canonical request
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+  /platform/v1/agent-provisioning/reserve-extension:
+    post:
+      tags:
+      - agent-provisioning
+      summary: Reserve Agent Extension
+      operationId: reserve_agent_extension_platform_v1_agent_provisioning_reserve_extension_post
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          minLength: 16
+          maxLength: 256
+          title: Idempotency-Key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExtensionReserveRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '400':
+          description: Invalid canonical request
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+  /platform/v1/agent-provisioning/adopt-extension:
+    post:
+      tags:
+      - agent-provisioning
+      summary: Adopt Agent Extension
+      operationId: adopt_agent_extension_platform_v1_agent_provisioning_adopt_extension_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExtensionAdoptRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '400':
+          description: Invalid canonical request
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+      security:
+      - bearerAuth: []
+  /platform/v1/agent-provisioning/{request_id}/release-extension:
+    post:
+      tags:
+      - agent-provisioning
+      summary: Release Agent Extension
+      operationId: release_agent_extension_platform_v1_agent_provisioning__request_id__release_extension_post
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: request_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Request Id
+      - name: campaign_id
+        in: query
+        required: true
+        schema:
+          type: string
+          title: Campaign Id
+      - name: tenant_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Tenant Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransitionRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '400':
+          description: Invalid canonical request
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+  /platform/v1/agent-provisioning/webrtc/tickets:
+    post:
+      tags:
+      - agent-provisioning
+      summary: Issue Webrtc Ticket
+      operationId: issue_webrtc_ticket_platform_v1_agent_provisioning_webrtc_tickets_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebRtcTicketRequest'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '400':
+          description: Invalid canonical request
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+      security:
+      - bearerAuth: []
+  /platform/v1/agent-provisioning/{request_id}/webrtc/revoke:
+    post:
+      tags:
+      - agent-provisioning
+      summary: Revoke Webrtc Session
+      operationId: revoke_webrtc_session_platform_v1_agent_provisioning__request_id__webrtc_revoke_post
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: request_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Request Id
+      - name: tenant_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Tenant Id
       requestBody:
         required: true
         content:
@@ -18653,6 +19200,78 @@ components:
       - freshness
       - correlation_id
       title: Envelope
+    ExtensionAdoptRequest:
+      properties:
+        tenant_id:
+          type: string
+          maxLength: 64
+          minLength: 1
+          title: Tenant Id
+        provisioning_request_id:
+          type: string
+          format: uuid
+          title: Provisioning Request Id
+        employee_id:
+          type: string
+          maxLength: 128
+          minLength: 1
+          title: Employee Id
+        campaign_id:
+          type: string
+          maxLength: 64
+          minLength: 1
+          title: Campaign Id
+        extension:
+          type: string
+          pattern: ^[0-9]{3,6}$
+          title: Extension
+      additionalProperties: false
+      type: object
+      required:
+      - tenant_id
+      - provisioning_request_id
+      - employee_id
+      - campaign_id
+      - extension
+      title: ExtensionAdoptRequest
+    ExtensionReserveRequest:
+      properties:
+        tenant_id:
+          type: string
+          maxLength: 64
+          minLength: 1
+          title: Tenant Id
+        employee_id:
+          type: string
+          maxLength: 128
+          minLength: 1
+          title: Employee Id
+        campaign_id:
+          type: string
+          maxLength: 64
+          minLength: 1
+          title: Campaign Id
+        extension_pool:
+          type: string
+          maxLength: 32
+          minLength: 1
+          title: Extension Pool
+        evidence_by_extension:
+          additionalProperties:
+            additionalProperties:
+              type: string
+            type: object
+          type: object
+          title: Evidence By Extension
+      additionalProperties: false
+      type: object
+      required:
+      - tenant_id
+      - employee_id
+      - campaign_id
+      - extension_pool
+      - evidence_by_extension
+      title: ExtensionReserveRequest
     FailureResult:
       properties:
         tenant_id:
@@ -20631,6 +21250,31 @@ components:
       - violations
       - adapters
       title: RegistrationEvidence
+    RepairIntentRequest:
+      properties:
+        tenant_id:
+          type: string
+          maxLength: 64
+          minLength: 1
+          title: Tenant Id
+        drift_class:
+          type: string
+          enum:
+          - REMOTE_UNKNOWN
+          - REPAIR_REQUIRED
+          title: Drift Class
+        proposed_action:
+          type: string
+          maxLength: 128
+          minLength: 1
+          title: Proposed Action
+      additionalProperties: false
+      type: object
+      required:
+      - tenant_id
+      - drift_class
+      - proposed_action
+      title: RepairIntentRequest
     ReplayRequest:
       properties:
         mode:
@@ -21176,6 +21820,34 @@ components:
       - msg
       - type
       title: ValidationError
+    WebRtcTicketRequest:
+      properties:
+        provisioning_request_id:
+          type: string
+          format: uuid
+          title: Provisioning Request Id
+        tenant_id:
+          type: string
+          maxLength: 64
+          minLength: 1
+          title: Tenant Id
+        campaign_id:
+          type: string
+          maxLength: 64
+          minLength: 1
+          title: Campaign Id
+        extension:
+          type: string
+          pattern: ^[0-9]{3,6}$
+          title: Extension
+      additionalProperties: false
+      type: object
+      required:
+      - provisioning_request_id
+      - tenant_id
+      - campaign_id
+      - extension
+      title: WebRtcTicketRequest
     app__control_api__ControlMutation:
       properties:
         expected_version:

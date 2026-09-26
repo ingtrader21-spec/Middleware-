@@ -61,7 +61,7 @@ def test_real_fresh_and_predecessor_migrations(predecessor, monkeypatch):
                     await conn.fetchval(
                         "SELECT count(*) FROM public.middleware_schema_migrations"
                     )
-                    == 11
+                    == 12
                 )
                 assert (
                     await conn.fetchval(
@@ -114,7 +114,7 @@ SQL_CORRUPTIONS = {
     "trigger_function": "CREATE OR REPLACE FUNCTION public.middleware_reject_automation_evidence_mutation() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RETURN NEW; END; $$",
     "fk_enforcement": "ALTER TABLE public.middleware_automation_dispatch_outbox DISABLE TRIGGER ALL",
     "sequence": "ALTER SEQUENCE public.middleware_outbox_id_seq INCREMENT BY 2",
-    "rls": "ALTER TABLE public.middleware_automation_jobs ENABLE ROW LEVEL SECURITY",
+    "rls": "ALTER TABLE public.middleware_automation_jobs DISABLE ROW LEVEL SECURITY",
 }
 
 
@@ -196,7 +196,7 @@ def test_actual_sql_structure_cannot_be_certified_from_intact_receipts(
                     await conn.fetchval(
                         "SELECT count(*) FROM public.middleware_schema_migrations"
                     )
-                    == 11
+                    == 12
                 )
                 assert (
                     await conn.fetch(
@@ -315,6 +315,157 @@ def test_real_campaign_approval_is_hash_bound_and_append_only(monkeypatch):
                     )
                     == "approved"
                 )
+                await runner.main(verify_only=True)
+            finally:
+                await conn.close()
+        finally:
+            if created:
+                await admin.execute(f'DROP DATABASE "{name}" WITH (FORCE)')
+            await admin.close()
+
+    asyncio.run(scenario())
+
+
+def test_real_tenant_rls_isolation_across_all_migration_authorities(monkeypatch):
+    import asyncpg
+
+    async def scenario():
+        base = os.environ["DATABASE_URL"]
+        parsed = urlsplit(base)
+        assert os.getenv("RUNTIME_INTEGRATION_ALLOW_DISPOSABLE") == "YES"
+        assert parsed.scheme in {"postgres", "postgresql"}
+        assert parsed.hostname in {"localhost", "127.0.0.1"}
+        assert not parsed.query and not parsed.fragment
+        assert re.fullmatch(
+            r"middleware_test_[A-Za-z0-9_]+", unquote(parsed.path.lstrip("/"))
+        )
+        name = "middleware_test_rls_" + uuid4().hex
+        url = urlunsplit((parsed.scheme, parsed.netloc, "/" + name, "", ""))
+        admin = await asyncpg.connect(base)
+        created = False
+        try:
+            await admin.execute(f'CREATE DATABASE "{name}"')
+            created = True
+            monkeypatch.setenv("DATABASE_URL", url)
+            head, _, _ = validate_authority(runner.ROOT)
+            monkeypatch.setenv("SCHEMA_HEAD", head)
+            await runner.main()
+
+            conn = await asyncpg.connect(url)
+            try:
+                assert head == "0070_agent_provisioning_lifecycle"
+                assert await conn.fetchval(
+                    "SELECT version_num FROM public.alembic_version"
+                ) == head
+                assert await conn.fetchval(
+                    "SELECT count(*) FROM public.middleware_schema_migrations"
+                ) == 12
+                assert await conn.fetchval(
+                    "SELECT count(*) FROM public.middleware_automation_schema_migrations"
+                ) == 2
+
+                role = "mw_rls_test_" + uuid4().hex[:16]
+                await conn.execute(
+                    f'CREATE ROLE "{role}" NOLOGIN NOSUPERUSER NOCREATEDB '
+                    "NOCREATEROLE NOINHERIT NOBYPASSRLS"
+                )
+                try:
+                    assert not await conn.fetchval(
+                        "SELECT rolbypassrls FROM pg_roles WHERE rolname=$1", role
+                    )
+                    for table in (
+                        "middleware_inbox",
+                        "middleware_automation_reconciliation_runs",
+                        "agent_call_state",
+                    ):
+                        await conn.execute(
+                            f'GRANT SELECT,INSERT,UPDATE ON public.{table} TO "{role}"'
+                        )
+
+                    tenant_a = "11111111-1111-4111-8111-111111111111"
+                    tenant_b = "22222222-2222-4222-8222-222222222222"
+                    await conn.execute(
+                        """
+                        INSERT INTO middleware_inbox
+                        (event_id,tenant_id,source_client_id,event_type,body_sha256,
+                         semantic_sha256,idempotency_key,correlation_id,payload,status)
+                        VALUES
+                        ('evt-a',$1,'src','type',$3,$4,'idem-a','corr-a','{}','accepted'),
+                        ('evt-b',$2,'src','type',$4,$3,'idem-b','corr-b','{}','accepted')
+                        """,
+                        tenant_a, tenant_b, "a" * 64, "b" * 64,
+                    )
+                    await conn.execute(
+                        """
+                        INSERT INTO middleware_automation_reconciliation_runs
+                        (tenant_id,reconciliation_id,mode,requested_by,idempotency_key,
+                         request_sha256,result_payload)
+                        VALUES
+                        ($1,'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','READ','tester',
+                         'auto-a',$3,'{}'),
+                        ($2,'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','READ','tester',
+                         'auto-b',$4,'{}')
+                        """,
+                        tenant_a, tenant_b, "c" * 64, "d" * 64,
+                    )
+                    await conn.execute(
+                        """
+                        INSERT INTO agent_call_state
+                        (call_id,tenant_id,business_unit_id,campaign_id,agent_id,extension,
+                         correlation_id,asterisk_uniqueid,linkedid,event_type,state_rank,
+                         sequence,event_timestamp)
+                        VALUES
+                        ('call-a',$1,'bu','camp','agent','6101','call-corr-a',
+                         'ast-a','link-a','CONNECTED',1,1,now()),
+                        ('call-b',$2,'bu','camp','agent','6102','call-corr-b',
+                         'ast-b','link-b','CONNECTED',1,2,now())
+                        """,
+                        tenant_a, tenant_b,
+                    )
+
+                    async with conn.transaction():
+                        await conn.execute(f'SET LOCAL ROLE "{role}"')
+                        await conn.fetchval(
+                            "SELECT set_config('app.tenant_id',$1,true)", tenant_a
+                        )
+                        assert await conn.fetchval(
+                            "SELECT count(*) FROM middleware_inbox"
+                        ) == 1
+                        assert await conn.fetchval(
+                            "SELECT count(*) FROM middleware_automation_reconciliation_runs"
+                        ) == 1
+                        assert await conn.fetchval(
+                            "SELECT count(*) FROM agent_call_state"
+                        ) == 1
+                        with pytest.raises(asyncpg.InsufficientPrivilegeError):
+                            await conn.execute(
+                                """
+                                INSERT INTO middleware_inbox
+                                (event_id,tenant_id,source_client_id,event_type,body_sha256,
+                                 semantic_sha256,idempotency_key,correlation_id,payload,status)
+                                VALUES ('evt-cross',$1,'src','type',$2,$3,'idem-cross',
+                                        'corr-cross','{}','accepted')
+                                """,
+                                tenant_b, "e" * 64, "f" * 64,
+                            )
+
+                    async with conn.transaction():
+                        await conn.execute(f'SET LOCAL ROLE "{role}"')
+                        assert await conn.fetchval(
+                            "SELECT current_setting('app.tenant_id', true)"
+                        ) in (None, "")
+                        assert await conn.fetchval(
+                            "SELECT count(*) FROM middleware_inbox"
+                        ) == 0
+                        await conn.fetchval(
+                            "SELECT set_config('app.tenant_id',$1,true)", tenant_b
+                        )
+                        assert await conn.fetchval(
+                            "SELECT count(*) FROM middleware_inbox"
+                        ) == 1
+                finally:
+                    await conn.execute(f'DROP OWNED BY "{role}"')
+                    await conn.execute(f'DROP ROLE IF EXISTS "{role}"')
                 await runner.main(verify_only=True)
             finally:
                 await conn.close()

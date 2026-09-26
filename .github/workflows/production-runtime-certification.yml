@@ -189,7 +189,7 @@ jobs:
               raise SystemExit("release digest mismatch")
           if not re.fullmatch(r"[0-9a-f]{12}-[0-9a-f]{12}", release_id):
               raise SystemExit("release id invalid")
-          if value.get("runtime", {}).get("schema_or_migration_head") != "0067_service_catalog_monitoring_state":
+          if value.get("runtime", {}).get("schema_or_migration_head") != "0070_agent_provisioning_lifecycle":
               raise SystemExit("release schema head mismatch")
           if value.get("runtime", {}).get("external_effects_default") != "disabled":
               raise SystemExit("release effect default mismatch")
@@ -407,7 +407,7 @@ jobs:
           - Certification workflow run: \`$GITHUB_RUN_ID\`
           - Evidence bundle SHA-256: \`$EVIDENCE_SHA256\`
           - Backup and isolated restore rehearsal: \`PASS\`
-          - Migration head: \`0067_service_catalog_monitoring_state\`
+          - Migration head: \`0070_agent_provisioning_lifecycle\`
           - Health, readiness, version, and capabilities: \`PASS\`
           - Read-only observation: \`PASS\`
           - Rollback rehearsal and candidate re-deploy: \`PASS\`

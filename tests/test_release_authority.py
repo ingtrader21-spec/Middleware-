@@ -27,7 +27,7 @@ ROOT = Path(__file__).resolve().parents[1]
 REPOSITORY = "ingtrader21-spec/Middleware-"
 VALIDATOR = ROOT / ".codestra" / "validate-production-orchestrator-contract.py"
 RELEASE_WORKFLOW = ROOT / ".github" / "workflows" / "release.yml"
-CANONICAL_SCHEMA_HEAD = "0067_service_catalog_monitoring_state"
+CANONICAL_SCHEMA_HEAD = "0070_agent_provisioning_lifecycle"
 PUBLISHER_IDENTITY = "https://github.com/ingtrader21-spec/Middleware-/.github/workflows/release.yml@refs/heads/main"
 
 
