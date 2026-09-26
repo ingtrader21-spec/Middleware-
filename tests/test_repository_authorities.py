@@ -64,7 +64,7 @@ class RepositoryAuthorityContractTests(unittest.TestCase):
         write_json(path, data)
 
     def test_repository_authority_contract_is_complete(self) -> None:
-        self.assertEqual(validator.validate(ROOT), (33, 11))
+        self.assertEqual(validator.validate(ROOT), (38, 16))
 
     def test_duplicate_authority_component_fails_closed(self) -> None:
         self.mutate_json(

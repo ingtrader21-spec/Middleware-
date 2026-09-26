@@ -130,7 +130,7 @@ class DenialAuditSink:
     writes ``middleware_control_audit`` (immutable); the memory one keeps a list."""
 
     async def record(self, audit: DenialAudit) -> None:  # pragma: no cover - protocol
-        raise NotImplementedError
+        raise RuntimeError("denial audit sink is not configured")
 
 
 class MemoryDenialAuditSink(DenialAuditSink):
@@ -253,6 +253,11 @@ class CommandKernel:
         trace: Mapping[str, str] | None = None,
         required_scope: str | None = None,
     ) -> SubmitResult:
+        from app.identity_missions import authorize_mission
+
+        if not authorize_mission(command.command_type, principal.scopes):
+            await self._deny("policy_deny", command, principal, reason_code="mission_scope_missing", decision_id=str(uuid4()), version="identity-missions.v1")
+            raise PolicyDenied("policy denied: mission_scope_missing")
         started = time.perf_counter()
         family = _family(command.command_type)
         self.metrics.commands_received.labels(command_family=family).inc()
@@ -376,6 +381,34 @@ class CommandKernel:
             reason=reason,
         )
         self.metrics.cancellations.labels(result=operation.state).inc()
+        return operation
+
+    # ------------------------------------------------------------------
+    # Retry / redrive: reuse the durable command identity and schedule a new
+    # execution attempt only for states the command store classifies safe.
+    # ------------------------------------------------------------------
+    async def retry(
+        self,
+        tenant_id: str,
+        operation_id: UUID,
+        *,
+        principal: KernelPrincipal,
+        idempotency_key: str,
+        expected_version: int,
+        reason: str,
+    ) -> CommandOperation:
+        if PLATFORM_OPERATOR_ROLE not in principal.roles:
+            raise ReplayNotAllowed("retry requires the platform-operator role")
+        operation = await self.commands.mutate_operation(
+            tenant_id,
+            operation_id,
+            action="retry",
+            actor_id=principal.subject,
+            idempotency_key=idempotency_key,
+            expected_version=expected_version,
+            reason=reason,
+        )
+        self.metrics.replays.labels(mode="RETRY").inc()
         return operation
 
     # ------------------------------------------------------------------

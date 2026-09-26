@@ -281,6 +281,11 @@ class ConnectorSdkStandardsTests(unittest.TestCase):
             {
                 "ai-provider",
                 "beyvra-nonfinancial",
+                "evolution-whatsapp",
+                "face-id",
+                "face-liveness",
+                "camera-gateway",
+                "postgresql",
                 "klyrow-alert-email",
                 "klyrow-email",
                 "kyqra-crawler",
@@ -290,6 +295,7 @@ class ConnectorSdkStandardsTests(unittest.TestCase):
                 "provisioning-service",
                 "telnexa-sms",
                 "vicidial-restricted",
+                "evolution-whatsapp",
             },
         )
         self.assertEqual(
@@ -650,7 +656,7 @@ class ConnectorSdkStandardsTests(unittest.TestCase):
         )
         self.assertEqual(
             len(artifacts["kong-routes.v1.json"]["routes"]),
-            8,
+            9,
         )
 
 

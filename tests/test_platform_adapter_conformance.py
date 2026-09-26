@@ -374,7 +374,7 @@ async def test_odoo_bridge_readback_tenant_binding_and_ambiguity() -> None:
     assert (await adapter.readback(op, context(command))).status is ReadbackStatus.NOT_FOUND
     foreign = envelope(SUBJECTS[-1], tenant_id="tenant-b")
     denied = await adapter.execute(foreign, context(foreign))
-    assert denied.outcome is Outcome.REJECTED and denied.safe_error_code == "crm_bridge_tenant_mismatch"
+    assert denied.outcome is Outcome.REJECTED and denied.safe_error_code == "PROVIDER_REFERENCE_MISMATCH"
     from app.adapters.odoo.crm_bridge_client import CrmBridgeUnavailable
 
     crm.raise_error = CrmBridgeUnavailable("502")

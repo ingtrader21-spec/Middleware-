@@ -12515,6 +12515,427 @@
           }
         },
         {
+          "name": "Get Operation",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "commands",
+                "{operation_id}"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/commands/{operation_id}"
+            }
+          }
+        },
+        {
+          "name": "Get Timeline",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "commands",
+                "{operation_id}",
+                "history"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/commands/{operation_id}/history"
+            }
+          }
+        },
+        {
+          "name": "Replay Operation",
+          "request": {
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"expected_version\": 0,\n  \"mode\": \"\",\n  \"new_idempotency_key\": \"\",\n  \"reason\": \"\"\n}"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "type": "text",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "commands",
+                "{operation_id}",
+                "replay"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/commands/{operation_id}/replay"
+            }
+          }
+        },
+        {
+          "name": "Get Command Result",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "commands",
+                "{operation_id}",
+                "result"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/commands/{operation_id}/result"
+            }
+          }
+        },
+        {
+          "name": "Retry Command",
+          "request": {
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"expected_version\": 0,\n  \"reason\": \"\"\n}"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "type": "text",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "commands",
+                "{operation_id}",
+                "retry"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/commands/{operation_id}/retry"
+            }
+          }
+        },
+        {
+          "name": "List Connectors",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "connectors"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/connectors"
+            }
+          }
+        },
+        {
+          "name": "Get Connector",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "connectors",
+                "{connector_id}"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/connectors/{connector_id}"
+            }
+          }
+        },
+        {
+          "name": "Connector Capabilities",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "connectors",
+                "{connector_id}",
+                "capabilities"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/connectors/{connector_id}/capabilities"
+            }
+          }
+        },
+        {
+          "name": "Connector Health",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "connectors",
+                "{connector_id}",
+                "health"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/connectors/{connector_id}/health"
+            }
+          }
+        },
+        {
+          "name": "Connector Readback",
+          "request": {
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"operation_id\": \"\",\n  \"provider_reference\": \"\"\n}"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "type": "text",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "connectors",
+                "{connector_id}",
+                "readback"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/connectors/{connector_id}/readback"
+            }
+          }
+        },
+        {
+          "name": "Connector Reconcile",
+          "request": {
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"operation_id\": \"\",\n  \"provider_reference\": \"\"\n}"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "type": "text",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "connectors",
+                "{connector_id}",
+                "reconcile"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/connectors/{connector_id}/reconcile"
+            }
+          }
+        },
+        {
+          "name": "List Dead Letters",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "dead-letters"
+              ],
+              "query": [
+                {
+                  "disabled": true,
+                  "key": "limit",
+                  "value": "{{limit}}"
+                }
+              ],
+              "raw": "{{base_url}}/platform/v1/dead-letters"
+            }
+          }
+        },
+        {
+          "name": "Redrive Dead Letter",
+          "request": {
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"expected_version\": 0,\n  \"reason\": \"\"\n}"
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "type": "text",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "dead-letters",
+                "{operation_id}",
+                "redrive"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/dead-letters/{operation_id}/redrive"
+            }
+          }
+        },
+        {
           "name": "Describe Kernel",
           "request": {
             "header": [
@@ -12672,6 +13093,58 @@
               ],
               "query": [],
               "raw": "{{base_url}}/platform/v1/operations/{operation_id}/timeline"
+            }
+          }
+        },
+        {
+          "name": "Scan Reconciliation",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "POST",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "reconciliation",
+                "scan"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/reconciliation/scan"
+            }
+          }
+        },
+        {
+          "name": "Get Reconciliation",
+          "request": {
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{bearer_token}}"
+              }
+            ],
+            "method": "GET",
+            "url": {
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "platform",
+                "v1",
+                "reconciliation",
+                "{operation_id}"
+              ],
+              "query": [],
+              "raw": "{{base_url}}/platform/v1/reconciliation/{operation_id}"
             }
           }
         }

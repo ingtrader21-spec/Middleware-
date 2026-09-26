@@ -1,0 +1,109 @@
+{
+  "schema_version": "1.0",
+  "state": "DECLARED_NOT_CREATED",
+  "authority": "Keycloak",
+  "issuer": "https://auth.codestra.co/realms/codestra",
+  "audience": "middleware-api",
+  "tenant_claim": "tenant_id",
+  "wildcard_tenants": false,
+  "clients": {
+    "face-id-operator": {
+      "role": "face-id-operator",
+      "scopes": [
+        "platform.command.read",
+        "platform.command",
+        "face-id.access.evaluate",
+        "camera-gateway.ptz.control",
+        "face-id.watchlist.write",
+        "camera-gateway.maintenance.write"
+      ],
+      "allowed_command_prefixes": [
+        "face-id.verify.",
+        "face-id.access.",
+        "camera-gateway.ptz.",
+        "face-id.watchlist.",
+        "camera-gateway.maintenance."
+      ],
+      "allowed_targets": [
+        "face-id",
+        "camera-gateway"
+      ],
+      "human_login": true,
+      "password_grant": false
+    },
+    "face-id-reviewer": {
+      "role": "face-id-reviewer",
+      "scopes": [
+        "platform.command.read",
+        "platform.command",
+        "face-id.enrollment.review"
+      ],
+      "allowed_command_prefixes": [
+        "face-id.duplicate."
+      ],
+      "allowed_targets": [
+        "face-id"
+      ],
+      "human_login": true,
+      "password_grant": false
+    },
+    "face-id-enrollment": {
+      "role": "face-id-enrollment",
+      "scopes": [
+        "platform.command.read",
+        "platform.command",
+        "face-id.enrollment.review"
+      ],
+      "allowed_command_prefixes": [
+        "face-id.enrollment."
+      ],
+      "allowed_targets": [
+        "face-id"
+      ],
+      "human_login": true,
+      "password_grant": false
+    },
+    "face-id-security-admin": {
+      "role": "face-id-security-admin",
+      "scopes": [
+        "platform.command.read"
+      ],
+      "allowed_command_prefixes": [],
+      "allowed_targets": [],
+      "human_login": true,
+      "password_grant": false
+    },
+    "face-id-service": {
+      "role": "face-id-service",
+      "scopes": [
+        "platform.command.read",
+        "platform.command",
+        "face-id.presence.write"
+      ],
+      "allowed_command_prefixes": [
+        "face-id.presence."
+      ],
+      "allowed_targets": [
+        "face-id"
+      ],
+      "human_login": false,
+      "password_grant": false
+    },
+    "camera-gateway-service": {
+      "role": "camera-gateway-service",
+      "scopes": [
+        "platform.command.read",
+        "platform.command",
+        "camera-gateway.events.write"
+      ],
+      "allowed_command_prefixes": [
+        "camera-gateway.event."
+      ],
+      "allowed_targets": [
+        "camera-gateway"
+      ],
+      "human_login": false,
+      "password_grant": false
+    }
+  }
+}

@@ -105,7 +105,24 @@ def everyone() -> KernelPrincipal:
         connector_commands_allowed=True,
         compatibility_only=False,
     )
-    return KernelPrincipal(subject="user-1", client_id="middleware-api", tenants=(TENANT,), roles=("platform-operator",), scopes=("platform.command", "platform.command.read"), caller=caller)
+    return KernelPrincipal(
+        subject="user-1",
+        client_id="middleware-api",
+        tenants=(TENANT,),
+        roles=("platform-operator",),
+        scopes=(
+            "platform.command",
+            "platform.command.read",
+            "face-id.access.evaluate",
+            "face-id.presence.write",
+            "face-id.watchlist.write",
+            "face-id.enrollment.review",
+            "camera-gateway.ptz.control",
+            "camera-gateway.events.write",
+            "camera-gateway.maintenance.write",
+        ),
+        caller=caller,
+    )
 
 
 def envelope(command_type: str, target: str, capability: str, **payload: Any) -> CommandEnvelope:
@@ -333,9 +350,34 @@ async def test_every_production_command_is_denied_with_zero_provider_or_business
     platform, store = production_runtime(production, candidates=candidates)
     bus = MemoryExecutionBus(store, platform.dispatch)
     denied: dict[str, str] = {}
+    from app.identity_missions import MISSION_COMMANDS
+    from app.identity_service_contract import SERVICE_COMMANDS
+    from tests.test_identity_missions import mission as identity_mission
+    from tests.test_identity_service_adapters import command as service_command
+
     for policy in platform.registry.policies.policies:
-        command = envelope(f"{policy.prefix}probe.v1", policy.target, policy.capability)
-        with pytest.raises(SafetyDenied, match="capability_disabled"):
+        mission_name = next(
+            (name for name in MISSION_COMMANDS if name.startswith(policy.prefix)),
+            None,
+        )
+        if mission_name is not None:
+            command = identity_mission(mission_name).model_copy(
+                update={"tenant_id": TENANT, "requested_by": "user-1"}
+            )
+        elif (
+            policy.target in SERVICE_COMMANDS
+            and SERVICE_COMMANDS[policy.target][0] == policy.capability
+        ):
+            command = service_command(policy.target).model_copy(
+                update={"tenant_id": TENANT, "requested_by": "user-1"}
+            )
+        else:
+            command = envelope(
+                f"{policy.prefix}probe.v1", policy.target, policy.capability
+            )
+        with pytest.raises(
+            SafetyDenied, match="capability_disabled|provider_kill_switch"
+        ):
             await platform.kernel.submit(command, everyone())
         denied[policy.prefix] = policy.capability
         # The ledger itself refuses a disabled capability even without the kernel.
@@ -347,7 +389,12 @@ async def test_every_production_command_is_denied_with_zero_provider_or_business
     assert store._commands == {} and store._outbox == []
     records = platform.denials.records  # type: ignore[attr-defined]
     assert len(records) == len(denied)
-    assert {(record.kind, record.reason_code) for record in records} == {("safety_deny", "capability_disabled")}
+    reasons = {(record.kind, record.reason_code) for record in records}
+    assert reasons <= {
+        ("safety_deny", "capability_disabled"),
+        ("safety_deny", "provider_kill_switch"),
+    }
+    assert reasons
 
 
 def test_safety_gate_denies_every_manifest_capability_even_with_a_ready_adapter(production: Settings) -> None:
@@ -398,9 +445,9 @@ async def test_kernel_denies_unknown_capability_before_policy_resolution(product
 # ----------------------------------------------------------------------------
 # readback API
 # ----------------------------------------------------------------------------
-def token(*, scope: str = "platform.command platform.command.read") -> str:
+def token(*, scope: str = "platform.command platform.command.read", tenant: str = TENANT) -> str:
     now = int(time.time())
-    claims = {"iss": "fake", "aud": "middleware-api", "azp": "middleware-api", "sub": "user-1", "iat": now, "exp": now + 120, "scope": scope, "tenant_ids": [TENANT], "realm_access": {"roles": []}}
+    claims = {"iss": "fake", "aud": "middleware-api", "azp": "middleware-api", "sub": "user-1", "iat": now, "exp": now + 120, "scope": scope, "tenant_ids": [tenant], "realm_access": {"roles": []}}
     return jwt.encode(claims, "unit-test-only-signing-key-32-bytes!", algorithm="HS256")
 
 
@@ -505,3 +552,83 @@ def test_submission_with_unknown_capability_is_denied_explicitly(api) -> None:
     assert known_but_off.status_code == 403
     assert known_but_off.json()["error"]["code"] in {"safety_denied", "policy_denied"}
     assert legacy.calls == [] and store._commands == {} and store._outbox == []
+
+
+def test_connector_catalog_aliases_adapter_posture(api) -> None:
+    client, legacy, _ = api
+    response = client.get("/platform/v1/connectors", headers=bearer())
+    assert response.status_code == 200
+    body = response.json()
+    rows = {row["adapter_id"]: row for row in body["connectors"]}
+    assert rows["odoo-19"]["registered"] is True
+    assert rows["odoo-19"]["capability_states"] == {"ODOO_WRITE": False}
+    assert rows["klyrow-email"]["registered"] is False
+    assert body["environment"] == "production"
+
+    detail = client.get("/platform/v1/connectors/odoo-19", headers=bearer())
+    assert detail.status_code == 200
+    assert detail.json()["command_prefixes"] == ["crm."]
+
+    health = client.get("/platform/v1/connectors/odoo-19/health", headers=bearer())
+    assert health.status_code == 200
+    assert health.json()["health"] == "disabled"
+    assert legacy.calls == []
+
+
+def test_connector_readback_reconcile_reference_and_tenant_guards(api) -> None:
+    import asyncio
+
+    client, legacy, store = api
+    cmd = envelope("crm.contact.create.v1", "odoo-19", "ODOO_WRITE", record={"name": "Synthetic"})
+    asyncio.run(store.submit(cmd, authenticated_client_id="middleware-api"))
+    asyncio.run(store.transition(TENANT, cmd.command_id, new_state="queued", actor_id="worker", reason="queued"))
+    asyncio.run(store.transition(TENANT, cmd.command_id, new_state="dispatching", actor_id="worker", reason="dispatch"))
+    asyncio.run(store.transition(
+        TENANT,
+        cmd.command_id,
+        new_state="accepted",
+        actor_id="worker",
+        reason="accepted",
+        provider_operation_id="profile_id:123",
+    ))
+    asyncio.run(store.transition(
+        TENANT,
+        cmd.command_id,
+        new_state="readback_pending",
+        actor_id="worker",
+        reason="readback",
+        provider_operation_id="profile_id:123",
+    ))
+
+    wrong_reference = client.post(
+        "/platform/v1/connectors/odoo-19/readback",
+        json={"operation_id": str(cmd.command_id), "provider_reference": "profile_id:999"},
+        headers=bearer(),
+    )
+    assert wrong_reference.status_code == 409
+    assert wrong_reference.json()["error"]["code"] == "PROVIDER_REFERENCE_MISMATCH"
+    assert legacy.calls == []
+
+    readback = client.post(
+        "/platform/v1/connectors/odoo-19/readback",
+        json={"operation_id": str(cmd.command_id), "provider_reference": "profile_id:123"},
+        headers=bearer(),
+    )
+    assert readback.status_code == 200
+    assert readback.json()["command_id"] == str(cmd.command_id)
+    assert readback.json()["provider_state"] == "MATCHED"
+
+    reconcile = client.post(
+        "/platform/v1/connectors/odoo-19/reconcile",
+        json={"operation_id": str(cmd.command_id), "provider_reference": "profile_id:123"},
+        headers=bearer(),
+    )
+    assert reconcile.status_code == 200
+    assert reconcile.json()["consistency"] == "CONSISTENT"
+
+    foreign = client.post(
+        "/platform/v1/connectors/odoo-19/readback",
+        json={"operation_id": str(cmd.command_id), "provider_reference": "profile_id:123"},
+        headers={"Authorization": f"Bearer {token(tenant='tenant-b')}"},
+    )
+    assert foreign.status_code == 404
