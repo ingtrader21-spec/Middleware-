@@ -241,7 +241,9 @@ async def _plan(request: Request, params: dict, claims: dict, body: dict, policy
                 mode='plan',
                 evaluated_at=generated_at,
                 correlation_id=params['X-Correlation-ID'],
-                candidates_redacted=False,
+                candidates_redacted=not _has_scope(
+                    claims, 'campaign.engine.candidates.read'
+                ),
             )
         )
     plan_hash = canonical_digest({

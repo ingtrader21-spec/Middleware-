@@ -20,7 +20,7 @@ def test_candidate_authority_gate_is_fail_closed_and_non_effectful() -> None:
     gate = _gate()
     assert gate["schema_version"] == "1.0"
     assert gate["gate"] == "MCR-C6-candidate-authority"
-    assert gate["status"] == "blocked_pending_dependencies"
+    assert gate["status"] == "synthetic_certified_production_blocked"
     assert gate["production_authorized"] is False
     assert gate["provider_effects_enabled"] is False
     assert gate["rules"] == {

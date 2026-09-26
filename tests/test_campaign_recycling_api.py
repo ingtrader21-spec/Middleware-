@@ -743,9 +743,35 @@ def test_synthetic_plan_returns_deterministic_zero_effect_decision(client):
     assert a['policy_version'] == 'mcr-policy-1.0.0'
     assert len(a['decisions']) == 1
     assert a['decisions'][0]['eligible'] is True
+    assert a['decisions'][0]['candidates_redacted'] is True
+    assert a['decisions'][0]['candidates'] == []
     assert a['plan_hash'] == b['plan_hash']
     assert a['plan_id'] == b['plan_id']
     assert a['decisions'][0]['decision_hash'] == b['decisions'][0]['decision_hash']
+
+
+def test_synthetic_plan_discloses_candidates_only_with_extra_scope(client, claims):
+    claims['scope'] += ' campaign.engine.candidates.read'
+    payload = {
+        'schema_version': '1.0',
+        'lead_ids': [LEAD],
+        'campaign_scope': {
+            'campaign_id': 'klyrow:test-syn-mcr',
+            'campaign_version': 1,
+        },
+        'channels': ['email'],
+        'policy_version': 'mcr-policy-1.0.0',
+    }
+    response = client.post(
+        '/platform/v1/campaign-engine/plan',
+        headers={**HEADERS, 'Content-Type': 'application/json'},
+        json=payload,
+    )
+    assert response.status_code == 200, response.text
+    decision = response.json()['decisions'][0]
+    assert decision['candidates_redacted'] is False
+    assert len(decision['candidates']) == 1
+    assert decision['candidates'][0]['campaign_id'] == 'klyrow:test-syn-mcr'
 
 
 def test_synthetic_plan_raw_campaign_id_is_rejected_at_contract_boundary(client):
