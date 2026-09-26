@@ -2277,10 +2277,12 @@ class Settings(BaseSettings):
         )
 
 
-settings = Settings()
-settings.load_secret_files()
-if settings.database_url.startswith("postgresql://"):
-    settings.database_url = settings.database_url.replace(
-        "postgresql://", "postgresql+asyncpg://", 1
-    )
-settings.validate_safety()
+def _load_process_settings() -> Settings:
+    """Load process settings without mutating authoritative connection DSNs."""
+    process_settings = Settings()
+    process_settings.load_secret_files()
+    process_settings.validate_safety()
+    return process_settings
+
+
+settings = _load_process_settings()
