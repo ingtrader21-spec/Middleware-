@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import argparse
 import json
@@ -14,6 +14,16 @@ _CREATE_TABLE_RE = re.compile(
     re.IGNORECASE | re.DOTALL,
 )
 
+
+_ADD_TENANT_COLUMN_RE = re.compile(
+    r"ALTER TABLE\s+([A-Za-z0-9_.]+)\s+ADD COLUMN\s+tenant_id\s+"
+    r"(?:text|varchar\s*\(\s*\d+\s*\))",
+    re.IGNORECASE,
+)
+_SET_TENANT_NOT_NULL_RE = re.compile(
+    r"ALTER TABLE\s+([A-Za-z0-9_.]+)\s+ALTER COLUMN\s+tenant_id\s+SET NOT NULL",
+    re.IGNORECASE,
+)
 
 @dataclass(frozen=True)
 class TenantTableRecord:
@@ -89,9 +99,23 @@ def _iter_migration_files(root: Path) -> Iterable[Path]:
 
 def scan_tenant_inventory(repo_root: str | Path) -> tuple[TenantTableRecord, ...]:
     root = Path(repo_root)
+    migration_sources = [
+        (path, path.read_text(encoding="utf-8", errors="ignore"))
+        for path in _iter_migration_files(root)
+    ]
+    added_tenant_columns: set[str] = set()
+    set_not_null: set[str] = set()
+    for _path, text in migration_sources:
+        added_tenant_columns.update(
+            match.group(1).strip('"') for match in _ADD_TENANT_COLUMN_RE.finditer(text)
+        )
+        set_not_null.update(
+            match.group(1).strip('"')
+            for match in _SET_TENANT_NOT_NULL_RE.finditer(text)
+        )
+
     seen: dict[str, TenantTableRecord] = {}
-    for path in _iter_migration_files(root):
-        text = path.read_text(encoding="utf-8", errors="ignore")
+    for path, text in migration_sources:
         for match in _CREATE_TABLE_RE.finditer(text):
             table = match.group(1).strip('"')
             body = match.group(2)
@@ -106,6 +130,10 @@ def scan_tenant_inventory(repo_root: str | Path) -> tuple[TenantTableRecord, ...
                     flags=re.IGNORECASE,
                 )
             )
+
+            if table in added_tenant_columns:
+                has_tenant = True
+                tenant_not_null = table in set_not_null
 
             if has_tenant:
                 ownership = "tenant_owned"

@@ -31,6 +31,7 @@ def delivery(row: CallbackRecord) -> CallbackDelivery:
     return CallbackDelivery(
         id=uuid4(),
         callback_id=row.id,
+        tenant_id=row.tenant_id,
         callback_version=row.version,
         channel="POPUP",
         stage="DUE",
