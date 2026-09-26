@@ -38,11 +38,18 @@ fi
 
 local_head="$(git rev-parse HEAD)"
 upstream_head="$(git rev-parse '@{u}')"
-[[ "$local_head" == "$upstream_head" ]] || fail "local_upstream_mismatch local=$local_head upstream=$upstream_head"
 
 remote_head="$(git ls-remote origin "refs/heads/$branch" | awk 'NR==1{print $1}')"
 [[ -n "$remote_head" ]] || fail "remote_branch_missing branch=$branch"
 [[ "$remote_head" == "$upstream_head" ]] || fail "stale_remote upstream=$upstream_head remote=$remote_head"
+
+if [[ "$mode" == "certify" ]]; then
+  git merge-base --is-ancestor "$upstream_head" "$local_head" \
+    || fail "local_upstream_diverged local=$local_head upstream=$upstream_head"
+else
+  [[ "$local_head" == "$upstream_head" ]] \
+    || fail "local_upstream_mismatch local=$local_head upstream=$upstream_head"
+fi
 
 base_ref="${GITHUB_BASE_REF:-main}"
 if git show-ref --verify --quiet "refs/remotes/origin/$base_ref"; then
