@@ -48,6 +48,7 @@ class V2TokenVerifier:
             "azp": expected_client_id,
             "scope": required_scope,
             "sub": f"service-account-{expected_client_id}",
+            "tenant_id": "tenant-1",
         }
 
     async def ready(self) -> bool:
