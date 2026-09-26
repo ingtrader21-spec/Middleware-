@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.api.internal import database as database_api
+from app.router_registry import install_domain_error_handler
 
 
 class _Acquire:
@@ -170,6 +171,21 @@ def test_readiness_schema_and_verify_are_read_only(monkeypatch):
     assert verify.json()["read_only"] is True
     assert database_api.READ_SCOPE in tokens.scopes
     assert database_api.VERIFY_SCOPE in tokens.scopes
+
+
+def test_unauthenticated_private_database_route_fails_auth_before_runtime():
+    app = FastAPI()
+    app.state.runtime = None
+    install_domain_error_handler(app)
+    app.include_router(database_api.router)
+    client = TestClient(app)
+
+    response = client.get("/internal/v1/database/health")
+
+    assert response.status_code == 401
+    body = response.json()
+    assert body["error"]["code"] == "authentication_failed"
+    assert "database runtime unavailable" not in response.text.lower()
 
 
 def test_forbidden_mutation_surfaces_do_not_exist(monkeypatch):
