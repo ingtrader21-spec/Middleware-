@@ -686,14 +686,14 @@ APPROVED_CONTROL_PLANE_WORKFLOW_SHA256: dict[str, dict[str, str]] = {
             "ad974408f16adcd0823be5fa0ada6da47"
             "4381e096454958aa683719b973f533a"
         ),
-        ".github/workflows/required-ci.yml": "507539af02dc0ea8fe7d754a65b96df47705468dba636aba35e8a598104e68ea",
+        ".github/workflows/required-ci.yml": "4ee2d0778d99f7cdfc24d2d4ed87176b1d22c417e66c8dc8ea41e6645f4211aa",
         ".github/workflows/production-route-contract.yml": (
             "4ba721212e5a31fc49b7fffc969c298d"
             "09316656b92dc930370568de569fb7a9"
         ),
         ".github/workflows/release-component-ci.yml": (
-            "68a79af10368fbd7a5580492d60833"
-            "7fa03880529c86b6cc51c581bfced4f39c"
+            "ea8029de5554439b628f97a36a70cc"
+            "1eb907b99ef9889fa3f7e2f96ab0f4281f"
         ),
     },
     "appolon1908-hue/beyvra-backend": {
@@ -9373,8 +9373,8 @@ APPROVED_NARROW_MUTATION_SHA256: dict[str, dict[str, str]] = {
         # The only external mutation is the required job posting its own exact
         # commit status through checks:write.
         ".github/workflows/required-ci.yml:test": (
-            "53ab0463034552feaf21264814ae13aa"
-            "89dfffc9a36bd7b8e632b21f8c101e9d"
+            "aeb6ee7bf5c49cfa49b0248b7da2cb17"
+            "2205ac5a13ce1440933e76668ec4961f"
         ),
         # The single forward Middleware production publisher: builds, scans,
         # signs and verifies one immutable image from the exact protected-main

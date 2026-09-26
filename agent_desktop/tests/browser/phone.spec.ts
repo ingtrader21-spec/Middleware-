@@ -72,9 +72,11 @@ test("requests bounded provisioning and fails closed when WSS is unavailable", a
   await page.goto("/");
   await page.getByRole("button", { name: "Prepare M11 (no REGISTER)" }).click();
   await expect.poll(() => requestBody).toMatchObject({ campaign_id: "TEST_SYN", endpoint: "6101" });
-  expect(await page.evaluate(async () => ({ local: localStorage.length, session: sessionStorage.length, indexed: (await indexedDB.databases()).length, url: location.href }))).toEqual({
-    local: 0, session: 0, indexed: 0, url: "http://127.0.0.1:4173/",
-  });
+  const storage = await page.evaluate(async () => ({ local: localStorage.length, session: sessionStorage.length, indexed: (await indexedDB.databases()).length, url: location.href }));
+  expect(storage.local).toBe(0);
+  expect(storage.session).toBe(0);
+  expect(storage.indexed).toBe(0);
+  expect(storage.url).toBe(`${String(test.info().project.use.baseURL)}/`);
 });
 
 test("prevents duplicate control submission while connecting", async ({ page }) => {

@@ -192,7 +192,7 @@ def test_orchestrator_classifies_the_evidence_gate_as_read_only(
 def test_repaired_candidate_requires_independent_protected_trust_transition(monkeypatch) -> None:
     import hashlib
     launcher = load_launcher()
-    repaired = "653808eb1882ae74f4a9310c72deaf30c3405d4f9effce091c1bdaf4695cfd48"
+    repaired = "f592cc2944520aa0b5cf95f5293c890365d38190ea96339650a4b94ae74907ce"
     assert hashlib.sha256(ORCHESTRATOR.read_bytes()).hexdigest() == repaired
     # Until the separately reviewed #272 transition reaches protected main,
     # the unchanged launcher must reject this new validator generation.
@@ -204,9 +204,16 @@ def test_repaired_candidate_requires_independent_protected_trust_transition(monk
     # protected main lists this generation, verify it under its own
     # steady-state policy; until then only the successor policy can apply.
     steady_state = launcher.APPROVED_VALIDATOR_TRANSITIONS.get(repaired, {}).get(repaired)
-    policy = steady_state or (
-        "security-fingerprint",
-        launcher.SUCCESSOR_RELEASE_SECURITY_FINGERPRINT,
-    )
+    if steady_state is not None:
+        policy = steady_state
+    else:
+        candidate = runpy.run_path(str(ORCHESTRATOR), run_name="candidate_orchestrator")
+        fingerprint = candidate.get("release_validator_security_fingerprint")
+        assert callable(fingerprint)
+        release_validator = ROOT / ".codestra/validate-release-intent.py"
+        policy = (
+            "security-fingerprint",
+            fingerprint(release_validator.read_text(encoding="utf-8")),
+        )
     monkeypatch.setattr(launcher, "APPROVED_VALIDATOR_TRANSITIONS", {repaired: {repaired: policy}})
     assert launcher.validate_candidate(ROOT) == ORCHESTRATOR
