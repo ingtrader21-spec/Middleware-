@@ -17,6 +17,8 @@ vite.config.js
 vite.config.d.ts
 *.dump
 *.sql
+!migrations/[0-9][0-9][0-9][0-9]_*.sql
+!migrations/automation/[0-9][0-9][0-9][0-9]_*.sql
 *.rdb
 *.tgz
 *.tar.gz

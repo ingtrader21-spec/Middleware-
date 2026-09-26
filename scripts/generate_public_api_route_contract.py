@@ -52,10 +52,23 @@ def _schema(operation_id: str, operation: dict[str, Any], *, request: bool) -> s
 
 KERNEL_ROUTE_SCOPES = {
     ("POST", "/platform/v1/commands"): "platform.command",
+    ("GET", "/platform/v1/operations"): "platform.command.read",
     ("GET", "/platform/v1/operations/{operation_id}"): "platform.command.read",
+    ("GET", "/platform/v1/operations/{operation_id}/attempts"): "platform.command.read",
     ("GET", "/platform/v1/operations/{operation_id}/timeline"): "platform.command.read",
     ("POST", "/platform/v1/operations/{operation_id}/cancel"): "platform.command",
     ("POST", "/platform/v1/operations/{operation_id}/replay"): "platform.command.replay",
+    ("GET", "/platform/v1/adapters"): "platform.command.read",
+    ("GET", "/platform/v1/adapters/{adapter_id}"): "platform.command.read",
+    ("GET", "/platform/v1/connectors"): "platform.command.read",
+    ("GET", "/platform/v1/connectors/{connector_id}"): "platform.command.read",
+    ("GET", "/platform/v1/dead-letters"): "platform.command.read",
+    ("GET", "/platform/v1/dead-letters/{operation_id}"): "platform.command.read",
+    ("POST", "/platform/v1/dead-letters/{operation_id}/replay"): "platform.command.replay",
+    ("GET", "/platform/v1/reconciliation"): "platform.command.read",
+    ("GET", "/platform/v1/reconciliation/{operation_id}"): "platform.command.read",
+    ("POST", "/platform/v1/reconciliation/{operation_id}/readback"): "platform.command.replay",
+    ("POST", "/platform/v1/reconciliation/{operation_id}/resolve"): "platform.command.replay",
     ("GET", "/platform/v1/kernel/describe"): "platform.command.read",
 }
 # The registered workload callers (config/control-plane-callers.v1.json) that

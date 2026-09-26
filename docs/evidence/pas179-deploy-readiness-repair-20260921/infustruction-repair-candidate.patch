@@ -1,0 +1,139 @@
+From 018e4d04fed88fcbbafd8cf1695bc35c15f462a6 Mon Sep 17 00:00:00 2001
+From: Ralph Appolon <appolon1908@gmail.com>
+Date: Mon, 21 Sep 2026 10:04:52 -0400
+Subject: [PATCH] fix(governance): re-pin post-transfer required-check workflow
+ and release policy review identity
+
+---
+ ...lidate-production-orchestrator-contract.py | 10 +++++++++-
+ .codestra/validate-release-intent.py          | 19 +++++++++++++++++--
+ scripts/validate_release_policy_review.py     |  4 +++-
+ tests/test_release_policy_review.py           |  9 +++++++++
+ 4 files changed, 38 insertions(+), 4 deletions(-)
+
+diff --git a/.codestra/validate-production-orchestrator-contract.py b/.codestra/validate-production-orchestrator-contract.py
+index 8c2158b..966fbd6 100644
+--- a/.codestra/validate-production-orchestrator-contract.py
++++ b/.codestra/validate-production-orchestrator-contract.py
+@@ -29,6 +29,7 @@ RELEASE_VALIDATOR_NON_SELF_REFERENTIAL_BINDINGS = frozenset(
+         "KEYCLOAK_PRODUCTION_VALIDATOR_SHA256",
+         "MIDDLEWARE_PRODUCTION_VALIDATOR_SHA256",
+         "BACKEND_PRODUCTION_VALIDATOR_SHA256",
++        "INFUSTRUCTION_PRODUCTION_VALIDATOR_SHA256",
+         "EXPECTED_REQUIRED_CHECK_SOURCE_CLOSURE_SHA256",
+     }
+ )
+@@ -36,6 +37,13 @@ STANDARD_RELEASE_VALIDATOR_SECURITY_SHA256 = (
+     "15dbaa6d571a1d1e72c09ca417cc9419"
+     "8d8f21260babfae5eaedbdd46472b1ec"
+ )
++# Infustruction-repo pins its post-transfer required-check workflow bytes in
++# its release validator, so its security fingerprint diverges from the
++# standard one shared by the untransferred catalog entries.
++INFUSTRUCTION_RELEASE_VALIDATOR_SECURITY_SHA256 = (
++    "13c559edd5a0b41c33f1840c888c0257"
++    "a3dcc11be761b5cd06f771c37d9f4d3c"
++)
+ MIDDLEWARE_RELEASE_VALIDATOR_SECURITY_SHA256 = (
+     "15dbaa6d571a1d1e72c09ca417cc9419"
+     "8d8f21260babfae5eaedbdd46472b1ec"
+@@ -49,7 +57,7 @@ MONEYBEE_RELEASE_VALIDATOR_SECURITY_SHA256 = (
+     "8d8f21260babfae5eaedbdd46472b1ec"
+ )
+ EXPECTED_RELEASE_VALIDATOR_SECURITY_SHA256 = {
+-    "appolon1908-hue/Infustruction-repo": STANDARD_RELEASE_VALIDATOR_SECURITY_SHA256,
++    "appolon1908-hue/Infustruction-repo": INFUSTRUCTION_RELEASE_VALIDATOR_SECURITY_SHA256,
+     "appolon1908-hue/Keycloak": STANDARD_RELEASE_VALIDATOR_SECURITY_SHA256,
+     "appolon1908-hue/Middleware-": MIDDLEWARE_RELEASE_VALIDATOR_SECURITY_SHA256,
+     "appolon1908-hue/codestra": STANDARD_RELEASE_VALIDATOR_SECURITY_SHA256,
+diff --git a/.codestra/validate-release-intent.py b/.codestra/validate-release-intent.py
+index d8680e1..0e915d8 100644
+--- a/.codestra/validate-release-intent.py
++++ b/.codestra/validate-release-intent.py
+@@ -160,9 +160,17 @@ EXPECTED_CHECK_WORKFLOWS = {
+ ORCHESTRATOR_CONTRACT_WORKFLOW_SHA256 = (
+     "5d5f118c8089a7298cc7439327689f862bf669bad46ec9160a0b5763fa11e869"
+ )
++# Infustruction-repo now lives under the ingtrader21-spec owner. Its copy of
++# the canonical required-check workflow invokes the shared validator with the
++# mutable GITHUB_REPOSITORY slug unset (PR #126, merge 5b8cdbb8) so the
++# contract's own repository and the immutable GITHUB_REPOSITORY_ID bind the
++# check. Only the workflow bytes differ; the executable stays the shared one.
++INFUSTRUCTION_ORCHESTRATOR_CONTRACT_WORKFLOW_SHA256 = (
++    "b1c377b62731748bfcce00394612a7c67bab1e34d01037f4d8dc4a60faee9fa4"
++)
+ EXPECTED_CHECK_WORKFLOW_SHA256 = {
+     "appolon1908-hue/Infustruction-repo": {
+-        ".github/workflows/production-orchestrator-contract.yml": ORCHESTRATOR_CONTRACT_WORKFLOW_SHA256,
++        ".github/workflows/production-orchestrator-contract.yml": INFUSTRUCTION_ORCHESTRATOR_CONTRACT_WORKFLOW_SHA256,
+         ".github/workflows/source-authority-matrix.yml": "1ca826d1f37c06b0ad2bc5a94a5b19516ad24fce486bdaa1b5b384e62f759221",
+     },
+     "appolon1908-hue/Keycloak": {
+@@ -216,6 +224,13 @@ SHARED_PRODUCTION_VALIDATOR_SHA256 = (
+     "6006bbc7850ce7666de926b6cad2585b"
+     "83d2fce102104543b871530f11115f20"
+ )
++# This repository's own orchestrator validator binds this file by an
++# independent security fingerprint; its digest is a normalized
++# non-self-referential trust binding like SHARED_PRODUCTION_VALIDATOR_SHA256.
++INFUSTRUCTION_PRODUCTION_VALIDATOR_SHA256 = (
++    "910d111c2a2e16518de7b6019b5c14e6"
++    "cc81a432196240dc4325e07ae55c7cb6"
++)
+ KEYCLOAK_PRODUCTION_VALIDATOR_SHA256 = (
+     "6006bbc7850ce7666de926b6cad2585b"
+     "83d2fce102104543b871530f11115f20"
+@@ -231,7 +246,7 @@ BACKEND_PRODUCTION_VALIDATOR_SHA256 = (
+ EXPECTED_CHECK_WORKFLOW_EXECUTABLE_SHA256 = {
+     "appolon1908-hue/Infustruction-repo": {
+         ".github/workflows/production-orchestrator-contract.yml": {
+-            ".codestra/validate-production-orchestrator-contract.py": SHARED_PRODUCTION_VALIDATOR_SHA256,
++            ".codestra/validate-production-orchestrator-contract.py": INFUSTRUCTION_PRODUCTION_VALIDATOR_SHA256,
+         },
+     },
+     "appolon1908-hue/Keycloak": {
+diff --git a/scripts/validate_release_policy_review.py b/scripts/validate_release_policy_review.py
+index 4436971..9f8ff84 100644
+--- a/scripts/validate_release_policy_review.py
++++ b/scripts/validate_release_policy_review.py
+@@ -10,7 +10,7 @@ from pathlib import Path
+ import re
+ import subprocess
+ 
+-REPOSITORY = "appolon1908-hue/Infustruction-repo"
++REPOSITORY = "ingtrader21-spec/Infustruction-repo"
+ REPOSITORY_ID = 1350724865
+ REVIEWER_ID = 77101516
+ SHA = re.compile(r"[0-9a-f]{40}\Z")
+@@ -100,6 +100,8 @@ def main() -> None:
+     require(Path(__file__).resolve() == base_root / "scripts/validate_release_policy_review.py",
+             "validator must execute from the protected checkout")
+     require(os.environ.get("GITHUB_REPOSITORY") == REPOSITORY, "workflow repository mismatch")
++    require(os.environ.get("GITHUB_REPOSITORY_ID") == str(REPOSITORY_ID),
++            "workflow repository ID mismatch")
+     require(os.environ.get("GITHUB_SHA") == args.base_sha, "workflow source is not the protected base")
+     base_fingerprint = source_fingerprint(base_root, args.base_sha)
+     pr = json.loads(args.pr.read_text())
+diff --git a/tests/test_release_policy_review.py b/tests/test_release_policy_review.py
+index 29f144d..61d4fff 100644
+--- a/tests/test_release_policy_review.py
++++ b/tests/test_release_policy_review.py
+@@ -86,6 +86,15 @@ class ReviewTests(unittest.TestCase):
+             with self.subTest(field=field), self.assertRaises(policy.ReviewError):
+                 policy.validate_subject({**self.pr, field: value}, 108, self.base)
+ 
++    def test_post_transfer_repository_identity(self):
++        # The repository moved to the ingtrader21-spec owner; the immutable ID is the authority.
++        self.assertEqual(policy.REPOSITORY, "ingtrader21-spec/Infustruction-repo")
++        self.assertEqual(policy.REPOSITORY_ID, 1350724865)
++        stale = copy.deepcopy(self.pr)
++        stale["base"]["repo"]["full_name"] = "appolon1908-hue/Infustruction-repo"
++        with self.assertRaises(policy.ReviewError):
++            policy.validate_subject(stale, 108, self.base)
++
+     def test_invalid_candidate_sha(self):
+         self.pr["head"]["sha"] = "main"
+         with self.assertRaises(policy.ReviewError):
+-- 
+2.53.0
+

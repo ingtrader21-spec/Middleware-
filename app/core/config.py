@@ -1461,8 +1461,12 @@ class Settings(BaseSettings):
             )
         if profile.get("environment") != self.app_env:
             raise ConfigurationError("runtime profile does not match APP_ENV")
-        self._validate_database_profile(profile["database"])
-        self._validate_redis_profile(profile["redis"])
+        self._validate_database_profile(
+            profile["database"], profile.get("database_alternates", [])
+        )
+        self._validate_redis_profile(
+            profile["redis"], profile.get("redis_alternates", [])
+        )
         nats_profile = profile["nats"]
         assert isinstance(nats_profile, dict)
         if self.nats_stream != nats_profile["stream"]:
@@ -1534,49 +1538,82 @@ class Settings(BaseSettings):
                 "PRODUCTION_ACTIVATION_ID is forbidden by the runtime profile"
             )
 
-    def _validate_database_profile(self, raw_profile: object) -> None:
+    def _validate_database_profile(
+        self, raw_profile: object, raw_alternates: object = ()
+    ) -> None:
         assert isinstance(raw_profile, dict)
+        if not isinstance(raw_alternates, (list, tuple)):
+            raise ConfigurationError("database alternate profiles are invalid")
+        candidates = [raw_profile, *raw_alternates]
         try:
             parsed = urlparse(self.database_url or "")
             port = parsed.port
             query = parse_qs(parsed.query, strict_parsing=True) if parsed.query else {}
         except ValueError as exc:
             raise ConfigurationError("DATABASE_URL is malformed") from exc
-        if (
-            parsed.scheme != raw_profile["scheme"]
-            or parsed.hostname != raw_profile["host"]
-            or port != raw_profile["port"]
-            or unquote(parsed.path.lstrip("/")) != raw_profile["name"]
-            or unquote(parsed.username or "") != raw_profile["username"]
-            or not parsed.password
-            or query
-            != ({"sslmode": [raw_profile["sslmode"]]} if raw_profile.get("sslmode") else {})
-            or parsed.params
-            or parsed.fragment
-        ):
+
+        def matches(candidate: object) -> bool:
+            if not isinstance(candidate, dict):
+                return False
+            expected_query = {
+                key: [str(candidate[key])]
+                for key in ("sslmode", "sslrootcert", "sslcert", "sslkey")
+                if candidate.get(key)
+            }
+            usernames = candidate.get("usernames")
+            if usernames is None:
+                allowed_usernames = {str(candidate["username"])}
+            elif isinstance(usernames, list) and usernames:
+                allowed_usernames = {str(value) for value in usernames}
+            else:
+                return False
+            return (
+                parsed.scheme == candidate["scheme"]
+                and parsed.hostname == candidate["host"]
+                and port == candidate["port"]
+                and unquote(parsed.path.lstrip("/")) == candidate["name"]
+                and unquote(parsed.username or "") in allowed_usernames
+                and bool(parsed.password)
+                and query == expected_query
+                and not parsed.params
+                and not parsed.fragment
+            )
+
+        if not any(matches(candidate) for candidate in candidates):
             raise ConfigurationError(
                 "DATABASE_URL does not match the locked runtime profile"
             )
 
-    def _validate_redis_profile(self, raw_profile: object) -> None:
+    def _validate_redis_profile(
+        self, raw_profile: object, raw_alternates: object = ()
+    ) -> None:
         assert isinstance(raw_profile, dict)
+        if not isinstance(raw_alternates, (list, tuple)):
+            raise ConfigurationError("Redis alternate profiles are invalid")
+        candidates = [raw_profile, *raw_alternates]
         try:
             parsed = urlparse(self.redis_url or "")
             port = parsed.port
             database = int(unquote(parsed.path.lstrip("/")))
         except ValueError as exc:
             raise ConfigurationError("REDIS_URL is malformed") from exc
-        if (
-            parsed.scheme != raw_profile["scheme"]
-            or parsed.hostname != raw_profile["host"]
-            or port != raw_profile["port"]
-            or unquote(parsed.username or "") != raw_profile["username"]
-            or not parsed.password
-            or database != raw_profile["database"]
-            or parsed.query
-            or parsed.params
-            or parsed.fragment
-        ):
+
+        def matches(candidate: object) -> bool:
+            if not isinstance(candidate, dict):
+                return False
+            return (
+                parsed.scheme == candidate["scheme"]
+                and parsed.hostname == candidate["host"]
+                and port == candidate["port"]
+                and unquote(parsed.username or "") == candidate["username"]
+                and bool(parsed.password)
+                and database == candidate["database"]
+                and not parsed.query
+                and not parsed.params
+                and not parsed.fragment
+            )
+
+        if not any(matches(candidate) for candidate in candidates):
             raise ConfigurationError(
                 "REDIS_URL does not match the locked runtime profile"
             )

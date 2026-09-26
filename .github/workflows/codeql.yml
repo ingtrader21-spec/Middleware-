@@ -23,12 +23,15 @@ on:
 jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
+    # Self-hosted execution is limited to trusted branches from this repository.
+    # Fork PRs must never execute arbitrary code on Codestra-owned runners.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     # Runner size impacts CodeQL analysis time. To learn more, please see:
     #   - https://gh.io/recommended-hardware-resources-for-running-codeql
     #   - https://gh.io/supported-runners-and-hardware-resources
     #   - https://gh.io/using-larger-runners (GitHub.com only)
     # Consider using larger runners or machines with greater resources for possible analysis time improvements.
-    runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
+    runs-on: [self-hosted, Linux, X64, middleware-ci]
     permissions:
       # required for all workflows
       security-events: write

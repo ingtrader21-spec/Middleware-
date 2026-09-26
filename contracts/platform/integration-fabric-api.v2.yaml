@@ -874,6 +874,70 @@ paths:
           description: Required durable dependency unavailable
       security:
       - bearerAuth: []
+  /platform/v1/operations:
+    get:
+      tags:
+      - platform-command-kernel
+      summary: List Operations
+      operationId: list_operations_platform_v1_operations_get
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 100
+          title: Limit
+      - name: state
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: State
+      - name: command_type
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Command Type
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Cursor
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationList'
+        '400':
+          description: Invalid canonical request
+          content:
+            application/json:
+              schema: *id001
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+      security:
+      - bearerAuth: []
   /platform/v1/operations/{operation_id}:
     get:
       tags:
@@ -935,6 +999,53 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Timeline'
+        '400':
+          description: Invalid canonical request
+          content:
+            application/json:
+              schema: *id001
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+      security:
+      - bearerAuth: []
+  /platform/v1/operations/{operation_id}/attempts:
+    get:
+      tags:
+      - platform-command-kernel
+      summary: Get Attempts
+      operationId: get_attempts_platform_v1_operations__operation_id__attempts_get
+      parameters:
+      - name: operation_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Operation Id
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 100
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttemptList'
         '400':
           description: Invalid canonical request
           content:
@@ -1022,6 +1133,446 @@ paths:
               $ref: '#/components/schemas/ReplayRequest'
       responses:
         '202':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationStatus'
+        '400':
+          description: Invalid canonical request
+          content:
+            application/json:
+              schema: *id001
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+      security:
+      - bearerAuth: []
+  /platform/v1/adapters:
+    get:
+      tags:
+      - platform-command-kernel
+      summary: List Adapters
+      operationId: list_adapters_platform_v1_adapters_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Response List Adapters Platform V1 Adapters Get
+        '400':
+          description: Invalid canonical request
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+      security:
+      - bearerAuth: []
+  /platform/v1/adapters/{adapter_id}:
+    get:
+      tags:
+      - platform-command-kernel
+      summary: Get Adapter
+      operationId: get_adapter_platform_v1_adapters__adapter_id__get
+      parameters:
+      - name: adapter_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Adapter Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Response Get Adapter Platform V1 Adapters  Adapter Id  Get
+        '400':
+          description: Invalid canonical request
+          content:
+            application/json:
+              schema: *id001
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+      security:
+      - bearerAuth: []
+  /platform/v1/connectors:
+    get:
+      tags:
+      - platform-command-kernel
+      summary: List Connectors
+      operationId: list_connectors_platform_v1_connectors_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Response List Connectors Platform V1 Connectors Get
+        '400':
+          description: Invalid canonical request
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+      security:
+      - bearerAuth: []
+  /platform/v1/connectors/{connector_id}:
+    get:
+      tags:
+      - platform-command-kernel
+      summary: Get Connector
+      operationId: get_connector_platform_v1_connectors__connector_id__get
+      parameters:
+      - name: connector_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Connector Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Response Get Connector Platform V1 Connectors  Connector Id  Get
+        '400':
+          description: Invalid canonical request
+          content:
+            application/json:
+              schema: *id001
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+      security:
+      - bearerAuth: []
+  /platform/v1/dead-letters:
+    get:
+      tags:
+      - platform-command-kernel
+      summary: List Dead Letters
+      operationId: list_dead_letters_platform_v1_dead_letters_get
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 100
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Response List Dead Letters Platform V1 Dead Letters Get
+        '400':
+          description: Invalid canonical request
+          content:
+            application/json:
+              schema: *id001
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+      security:
+      - bearerAuth: []
+  /platform/v1/dead-letters/{operation_id}:
+    get:
+      tags:
+      - platform-command-kernel
+      summary: Get Dead Letter
+      operationId: get_dead_letter_platform_v1_dead_letters__operation_id__get
+      parameters:
+      - name: operation_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Operation Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationStatus'
+        '400':
+          description: Invalid canonical request
+          content:
+            application/json:
+              schema: *id001
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+      security:
+      - bearerAuth: []
+  /platform/v1/dead-letters/{operation_id}/replay:
+    post:
+      tags:
+      - platform-command-kernel
+      summary: Replay Dead Letter
+      operationId: replay_dead_letter_platform_v1_dead_letters__operation_id__replay_post
+      parameters:
+      - name: operation_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Operation Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReplayRequest'
+      responses:
+        '202':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationStatus'
+        '400':
+          description: Invalid canonical request
+          content:
+            application/json:
+              schema: *id001
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+      security:
+      - bearerAuth: []
+  /platform/v1/reconciliation:
+    get:
+      tags:
+      - platform-command-kernel
+      summary: List Reconciliation
+      operationId: list_reconciliation_platform_v1_reconciliation_get
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 100
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Response List Reconciliation Platform V1 Reconciliation Get
+        '400':
+          description: Invalid canonical request
+          content:
+            application/json:
+              schema: *id001
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+      security:
+      - bearerAuth: []
+  /platform/v1/reconciliation/{operation_id}:
+    get:
+      tags:
+      - platform-command-kernel
+      summary: Get Reconciliation
+      operationId: get_reconciliation_platform_v1_reconciliation__operation_id__get
+      parameters:
+      - name: operation_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Operation Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationStatus'
+        '400':
+          description: Invalid canonical request
+          content:
+            application/json:
+              schema: *id001
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+      security:
+      - bearerAuth: []
+  /platform/v1/reconciliation/{operation_id}/readback:
+    post:
+      tags:
+      - platform-command-kernel
+      summary: Request Reconciliation Readback
+      operationId: request_reconciliation_readback_platform_v1_reconciliation__operation_id__readback_post
+      parameters:
+      - name: operation_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Operation Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReconciliationReadbackRequest'
+      responses:
+        '202':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationStatus'
+        '400':
+          description: Invalid canonical request
+          content:
+            application/json:
+              schema: *id001
+        '401':
+          description: Authentication failed
+        '403':
+          description: Scope or tenant denied
+        '404':
+          description: Resource not found
+        '409':
+          description: Version, state, or idempotency conflict
+        '429':
+          description: Rate limited
+        '503':
+          description: Required durable dependency unavailable
+      security:
+      - bearerAuth: []
+  /platform/v1/reconciliation/{operation_id}/resolve:
+    post:
+      tags:
+      - platform-command-kernel
+      summary: Resolve Reconciliation
+      operationId: resolve_reconciliation_platform_v1_reconciliation__operation_id__resolve_post
+      parameters:
+      - name: operation_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Operation Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReconciliationResolveRequest'
+      responses:
+        '200':
           description: Successful Response
           content:
             application/json:
@@ -15942,6 +16493,67 @@ components:
       - summary
       - expires_at
       title: ApprovalRequest
+    AttemptList:
+      properties:
+        operation_id:
+          type: string
+          format: uuid
+          title: Operation Id
+        items:
+          items:
+            $ref: '#/components/schemas/AttemptStatus'
+          type: array
+          title: Items
+      additionalProperties: false
+      type: object
+      required:
+      - operation_id
+      - items
+      title: AttemptList
+    AttemptStatus:
+      properties:
+        attempt_id:
+          type: integer
+          title: Attempt Id
+        operation_id:
+          type: string
+          format: uuid
+          title: Operation Id
+        attempt_number:
+          type: integer
+          title: Attempt Number
+        state:
+          type: string
+          title: State
+        provider_operation_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Provider Operation Id
+        error_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Error Code
+        started_at:
+          type: string
+          format: date-time
+          title: Started At
+        finished_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Finished At
+      additionalProperties: false
+      type: object
+      required:
+      - attempt_id
+      - operation_id
+      - attempt_number
+      - state
+      - started_at
+      title: AttemptStatus
     AuthorizeEmailProduction:
       properties:
         expectedVersion:
@@ -18735,6 +19347,23 @@ components:
       - safe_metadata
       - created_at
       title: OperationEventResponse
+    OperationList:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/OperationStatus'
+          type: array
+          title: Items
+        next_cursor:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Next Cursor
+      additionalProperties: false
+      type: object
+      required:
+      - items
+      title: OperationList
     OperationListResponse:
       properties:
         items:
@@ -19506,6 +20135,24 @@ components:
       - environment
       - service_ids
       title: Reconciliation
+    ReconciliationReadbackRequest:
+      properties:
+        expected_version:
+          type: integer
+          minimum: 1
+          title: Expected Version
+        reason:
+          type: string
+          maxLength: 500
+          minLength: 1
+          pattern: '^[A-Za-z0-9][A-Za-z0-9_.: -]*$'
+          title: Reason
+      additionalProperties: false
+      type: object
+      required:
+      - expected_version
+      - reason
+      title: ReconciliationReadbackRequest
     ReconciliationRequest:
       properties:
         tenant_id:
@@ -19570,6 +20217,37 @@ components:
       - action
       - reason
       title: ReconciliationResolution
+    ReconciliationResolveRequest:
+      properties:
+        expected_version:
+          type: integer
+          minimum: 1
+          title: Expected Version
+        matched:
+          type: boolean
+          title: Matched
+        reason:
+          type: string
+          maxLength: 500
+          minLength: 1
+          pattern: '^[A-Za-z0-9][A-Za-z0-9_.: -]*$'
+          title: Reason
+        provider_operation_id:
+          anyOf:
+          - type: string
+            maxLength: 256
+          - type: 'null'
+          title: Provider Operation Id
+        evidence:
+          type: object
+          title: Evidence
+      additionalProperties: false
+      type: object
+      required:
+      - expected_version
+      - matched
+      - reason
+      title: ReconciliationResolveRequest
     ReplayRequest:
       properties:
         mode:

@@ -11,10 +11,11 @@ classifies every operation:
 * ``INTERNAL_EVENT_INGRESS`` — inbound events, callbacks, provider/adapter
   reported state and Middleware-internal state mutations that never reach an
   external provider;
-* ``DURABLE_OUTBOX_INTENT`` — the handler persists a durable intent (the
-  runtime ``middleware_outbox`` or the ORM ``outbox_event``) that a worker
-  executes under the same Settings effect gates; effectful, asynchronous,
-  but not yet a CommandEnvelope through the kernel (convergence pending);
+* ``APPROVED_DURABLE_OUTBOX_EXCEPTION`` — a reviewed ingress/projection
+  handler persists a durable outbox intent that a worker executes under the
+  same Settings effect gates. These are narrow asynchronous exceptions to the
+  command kernel, not direct provider-effect bypasses; the exact allowed paths
+  are pinned below and tests prevent the set from widening;
 * ``DIRECT_INTERNAL_SERVICE`` — a synchronous call to a Codestra-internal
   control service (identity/session issuance); not an external provider
   effect, listed so the gap is visible and never silently widened;
@@ -60,6 +61,7 @@ KERNEL_CALLS = (
     ("platform.kernel.timeline(", "CommandKernel.timeline"),
     ("commands.submit(", "CommandService.submit"),
     ("commands.mutate_operation(", "CommandService.mutate_operation"),
+    ("runtime.commands.reconcile(", "CommandService.reconcile"),
     (".mutate_operation(", "CommandStore.mutate_operation"),
     ("active.commands", "CommandService"),
 )
@@ -79,6 +81,14 @@ INGRESS_PATTERNS = (
     r"/errors$",
     r"/reconciliation",
 )
+APPROVED_DURABLE_OUTBOX_EXCEPTIONS = {
+    "POST /api/v1/n8n/acknowledgements",
+    "POST /v1/observability/incidents",
+    "POST /v1/observability/kpis",
+    "POST /webhooks/sms/inbound/",
+    "POST /webhooks/vicidial/call-result/",
+}
+
 READ_ONLY_POSTS = (
     r"/policy/decisions$",
     r"/policy-check$",
@@ -166,15 +176,28 @@ def classify(method: str, path: str, route, overrides: dict[str, Any]) -> dict[s
             row["effectful"] = True
             if path.startswith("/platform/v1/commands") or path.startswith("/platform/v1/operations"):
                 row["scope"] = "platform.command.replay" if path.endswith("/replay") else "platform.command"
+            elif path.startswith("/platform/v1/reconciliation/"):
+                row["scope"] = "platform.command.replay"
             return row
     if any(re.search(pattern, path) for pattern in READ_ONLY_POSTS):
         row["classification"] = "READ_ONLY"
         row["justification"] = "computes or looks up; no durable mutation"
         return row
     if any(needle in source for needle in ("OutboxEvent(", "INSERT INTO middleware_outbox", "await _enqueue(", ".enqueue(")):
-        row["classification"] = "DURABLE_OUTBOX_INTENT"
         row["effectful"] = True
-        row["justification"] = "persists a durable outbox intent executed by a worker under the Settings effect gates; kernel convergence pending"
+        if key in APPROVED_DURABLE_OUTBOX_EXCEPTIONS:
+            row["classification"] = "APPROVED_DURABLE_OUTBOX_EXCEPTION"
+            row["justification"] = (
+                "reviewed narrow asynchronous ingress/projection exception: persists a durable "
+                "outbox intent executed by a worker under the Settings effect gates; no direct "
+                "provider transport in the handler"
+            )
+        else:
+            row["classification"] = "DURABLE_OUTBOX_INTENT"
+            row["justification"] = (
+                "persists a durable outbox intent executed by a worker under the Settings effect "
+                "gates; kernel convergence pending"
+            )
         return row
     if "_provisioning_call(" in source:
         row["classification"] = "DIRECT_INTERNAL_SERVICE"
@@ -232,7 +255,7 @@ def build() -> dict[str, Any]:
     bypasses = [
         f"{row['method']} {row['path']}"
         for row in rows
-        if row["effectful"] and row["classification"] not in {"KERNEL_WRAPPER", "DURABLE_OUTBOX_INTENT", "DIRECT_INTERNAL_SERVICE"}
+        if row["effectful"] and row["classification"] not in {"KERNEL_WRAPPER", "DURABLE_OUTBOX_INTENT", "APPROVED_DURABLE_OUTBOX_EXCEPTION", "DIRECT_INTERNAL_SERVICE"}
     ]
     internal_direct = [f"{row['method']} {row['path']}" for row in rows if row["classification"] == "DIRECT_INTERNAL_SERVICE"]
     pending = [f"{row['method']} {row['path']}" for row in rows if row["classification"] == "DURABLE_OUTBOX_INTENT"]

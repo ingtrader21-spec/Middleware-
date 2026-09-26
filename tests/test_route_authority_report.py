@@ -11,13 +11,17 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 REPORT = ROOT / "config" / "route-authority-report.v1.json"
 GENERATOR = ROOT / "scripts" / "generate_route_authority_report.py"
-ALLOWED = {"READ_ONLY", "KERNEL_WRAPPER", "INTERNAL_EVENT_INGRESS", "DURABLE_OUTBOX_INTENT", "DIRECT_INTERNAL_SERVICE", "DENIED_LEGACY"}
+ALLOWED = {"READ_ONLY", "KERNEL_WRAPPER", "INTERNAL_EVENT_INGRESS", "DURABLE_OUTBOX_INTENT", "APPROVED_DURABLE_OUTBOX_EXCEPTION", "DIRECT_INTERNAL_SERVICE", "DENIED_LEGACY"}
 KERNEL_ROUTES = {
     ("POST", "/platform/v1/commands"): "KERNEL_WRAPPER",
+    ("GET", "/platform/v1/operations"): "READ_ONLY",
     ("GET", "/platform/v1/operations/{operation_id}"): "READ_ONLY",
+    ("GET", "/platform/v1/operations/{operation_id}/attempts"): "READ_ONLY",
     ("GET", "/platform/v1/operations/{operation_id}/timeline"): "READ_ONLY",
     ("POST", "/platform/v1/operations/{operation_id}/cancel"): "KERNEL_WRAPPER",
     ("POST", "/platform/v1/operations/{operation_id}/replay"): "KERNEL_WRAPPER",
+    ("POST", "/platform/v1/reconciliation/{operation_id}/readback"): "KERNEL_WRAPPER",
+    ("POST", "/platform/v1/reconciliation/{operation_id}/resolve"): "KERNEL_WRAPPER",
     ("GET", "/platform/v1/kernel/describe"): "READ_ONLY",
 }
 
@@ -48,9 +52,23 @@ def test_every_operation_is_classified_and_no_direct_effect_bypass_exists() -> N
             assert row["classification"] in {"READ_ONLY", "DENIED_LEGACY"}, row
     assert report["summary"]["DIRECT_EFFECT_BYPASSES"] == 0
     assert report["summary"]["direct_effect_bypasses"] == []
-    # The kernel-convergence backlog may only shrink.
-    assert report["summary"]["KERNEL_CONVERGENCE_PENDING"] <= 5
-    assert report["summary"]["DIRECT_INTERNAL_SERVICE_CALLS"] <= 3
+    assert report["summary"]["KERNEL_CONVERGENCE_PENDING"] == 0
+    assert report["summary"]["kernel_convergence_pending"] == []
+    assert report["summary"]["DIRECT_INTERNAL_SERVICE_CALLS"] == 3
+
+    approved = {
+        ("POST", "/api/v1/n8n/acknowledgements"),
+        ("POST", "/v1/observability/incidents"),
+        ("POST", "/v1/observability/kpis"),
+        ("POST", "/webhooks/sms/inbound/"),
+        ("POST", "/webhooks/vicidial/call-result/"),
+    }
+    actual = {
+        (row["method"], row["path"])
+        for row in rows
+        if row["classification"] == "APPROVED_DURABLE_OUTBOX_EXCEPTION"
+    }
+    assert actual == approved
 
 
 def test_kernel_and_crm_routes_are_kernel_wrappers() -> None:

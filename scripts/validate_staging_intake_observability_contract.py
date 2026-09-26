@@ -1629,7 +1629,16 @@ def main() -> None:
     matches = [
         item for item in profiles["profiles"] if item["profile_id"] == EXPECTED_PROFILE["profile_id"]
     ]
-    require(matches == [EXPECTED_PROFILE], "staging runtime profile drift")
+    require(len(matches) == 1, "staging runtime profile is missing or ambiguous")
+    matched_profile = matches[0]
+    require(
+        all(matched_profile.get(key) == value for key, value in EXPECTED_PROFILE.items()),
+        "staging runtime profile drift",
+    )
+    require(
+        matched_profile.get("production_activation_allowed") is False,
+        "staging runtime profile must remain production-disabled",
+    )
     embedded = release["embedded_runtime_profile"]
     require(
         embedded
