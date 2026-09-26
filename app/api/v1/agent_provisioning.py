@@ -204,7 +204,8 @@ async def _append_audit(
     from_state: str, to_state: str, action: str, principal: ProvisioningPrincipal,
 ) -> None:
     session.add(AgentProvisioningAudit(
-        id=uuid4(), request_id=request.id, from_state=from_state, to_state=to_state,
+        id=uuid4(), request_id=request.id, tenant_id=request.tenant_id,
+        from_state=from_state, to_state=to_state,
         action=action, actor_subject=principal.subject, correlation_id=request.correlation_id,
         record_hash=_record_hash({
             "request_id": str(request.id), "from": from_state, "to": to_state,
@@ -220,7 +221,8 @@ async def _add_step(
     error_code: str | None = None, error_summary: str | None = None,
 ) -> None:
     session.add(AgentProvisioningStep(
-        id=uuid4(), request_id=request.id, system=system, operation=operation,
+        id=uuid4(), request_id=request.id, tenant_id=request.tenant_id,
+        system=system, operation=operation,
         attempt=1, state=state, external_reference=external_reference,
         started_at=_now(), completed_at=_now(), readback_state=readback_state,
         error_code=error_code, error_summary=error_summary,
