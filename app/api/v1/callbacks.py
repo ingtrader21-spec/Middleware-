@@ -324,6 +324,7 @@ async def _queue_email_command(
             CallbackDelivery(
                 id=uuid4(),
                 callback_id=row.id,
+                tenant_id=row.tenant_id,
                 callback_version=row.version,
                 channel="EMAIL",
                 stage=stage,
@@ -419,6 +420,7 @@ async def create(
             CallbackDelivery(
                 id=uuid4(),
                 callback_id=row.id,
+                tenant_id=row.tenant_id,
                 callback_version=row.version,
                 channel="POPUP",
                 stage="WARNING_15M",

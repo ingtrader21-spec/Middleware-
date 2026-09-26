@@ -70,6 +70,7 @@ async def claim_due(
                 CallbackDelivery(
                     id=uuid4(),
                     callback_id=row.id,
+                    tenant_id=row.tenant_id,
                     callback_version=row.version,
                     channel="POPUP",
                     stage="DUE",
@@ -82,6 +83,7 @@ async def claim_due(
                 CallbackDelivery(
                     id=uuid4(),
                     callback_id=row.id,
+                    tenant_id=row.tenant_id,
                     callback_version=row.version,
                     channel="POPUP",
                     stage="AGENT_REMINDER_10M",
@@ -145,6 +147,7 @@ async def mark_missed(
                 CallbackDelivery(
                     id=uuid4(),
                     callback_id=row.id,
+                    tenant_id=row.tenant_id,
                     callback_version=row.version,
                     channel="POPUP",
                     stage="MISSED",
@@ -204,6 +207,7 @@ async def escalate_missed(
                 CallbackDelivery(
                     id=uuid4(),
                     callback_id=row.id,
+                    tenant_id=row.tenant_id,
                     callback_version=row.version,
                     channel="POPUP",
                     stage="ESCALATED",
