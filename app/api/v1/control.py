@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.integration_admin_auth import IntegrationAdminPrincipal, require_integration_admin
 from app.db.session import get_session
 from app.db.models import (
     AuditEvent,
@@ -237,7 +238,7 @@ async def transfer_decision(
     db: AsyncSession = Depends(get_session),
     idempotency_key: str | None = Header(None, alias="Idempotency-Key"),
     x_correlation_id: str | None = Header(None, alias="X-Correlation-ID"),
-    x_codestra_role: str = Header("", alias="X-Codestra-Role"),
+    principal: IntegrationAdminPrincipal = Depends(require_integration_admin),
     x_do_not_call: bool = Header(False, alias="X-Do-Not-Call"),
 ):
     if decision not in ("approve", "deny"):
@@ -246,7 +247,7 @@ async def transfer_decision(
     allowed, reason = authorize_transfer(
         dnc=x_do_not_call,
         authenticated=True,
-        role=x_codestra_role,
+        role=principal.role,
         campaign_id="TEST_SYN",
         live_enabled=False,
     )

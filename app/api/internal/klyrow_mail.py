@@ -15,7 +15,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.db.session import get_session
+from app.db.session import get_session, set_transaction_tenant_context
 
 PATH = "/internal/provider-events/klyrow"
 router = APIRouter(tags=["klyrow-mail"])
@@ -233,6 +233,7 @@ async def receive_klyrow_mail(
     except ValueError as exc:
         raise HTTPException(422, "invalid_klyrow_mail_event") from exc
     _authenticate(request, body, event)
+    await set_transaction_tenant_context(db, event.tenant_id)
     if isinstance(event, KlyrowUsageEvent):
         payload_hash = hashlib.sha256(body).hexdigest()
         existing = ((await db.execute(text(

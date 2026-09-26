@@ -26,7 +26,7 @@ ROOT = Path(__file__).resolve().parents[2]
 RUNTIME_PROFILES_PATH = ROOT / "config" / "runtime-profiles.v1.json"
 SHA40 = re.compile(r"^[0-9a-f]{40}$")
 IMAGE_DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
-CANONICAL_SCHEMA_HEAD = "0067_service_catalog_monitoring_state"
+CANONICAL_SCHEMA_HEAD = "0070_agent_provisioning_lifecycle"
 PRODUCTION_ISSUER = "https://auth.codestra.co/realms/codestra"
 STAGING_ISSUER = "https://auth-staging.codestra.co/realms/codestra"
 CANONICAL_AUDIENCE = "middleware-api"
@@ -659,6 +659,7 @@ class Settings(BaseSettings):
     litellm_api_key_file: str = ""
     report_delivery_enabled: bool = False
     outbox_worker_enabled: bool = False
+    outbox_worker_tenant_ids: str = ""
     outbox_max_attempts: int = 5
     outbox_base_delay_seconds: int = 5
     outbox_max_delay_seconds: int = 300
@@ -811,8 +812,10 @@ class Settings(BaseSettings):
     social_odoo_write_enabled: bool = False
     social_analytics_sync_enabled: bool = False
     social_sql_repository_enabled: bool = False
+    legacy_telephony_command_api_enabled: bool = False
     social_worker_enabled: bool = False
     social_worker_id: str = "postly-social-01"
+    social_worker_tenant_ids: str = ""
     social_worker_concurrency: int = 1
     social_worker_lease_seconds: int = 60
     social_worker_poll_seconds: float = 1.0

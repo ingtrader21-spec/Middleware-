@@ -76,7 +76,7 @@ from app.db.models import (
     IdempotencyRecord,
     OutboxEvent,
 )
-from app.db.session import get_session
+from app.db.session import get_session, set_transaction_tenant_context
 
 router = APIRouter(prefix="/platform/v1/agent-provisioning", tags=["agent-provisioning"])
 
@@ -177,6 +177,24 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
+async def _set_provisioning_rls_context(
+    session: AsyncSession,
+    principal: ProvisioningPrincipal,
+    tenant_id: str | None = None,
+) -> str:
+    """Bind one verified tenant to the canonical transaction context.
+
+    Single-tenant service tokens remain backward compatible. Multi-tenant
+    tokens must name the tenant explicitly before an RLS-protected lookup.
+    """
+    if tenant_id is None:
+        if len(principal.tenant_ids) != 1:
+            raise HTTPException(422, "tenant_id is required for multi-tenant authority")
+        tenant_id = next(iter(principal.tenant_ids))
+    require_tenant_match(principal, tenant_id)
+    return await set_transaction_tenant_context(session, tenant_id)
+
+
 def _hash(value: str) -> str:
     return hashlib.sha256(value.encode()).hexdigest()
 
@@ -204,7 +222,8 @@ async def _append_audit(
     from_state: str, to_state: str, action: str, principal: ProvisioningPrincipal,
 ) -> None:
     session.add(AgentProvisioningAudit(
-        id=uuid4(), request_id=request.id, from_state=from_state, to_state=to_state,
+        id=uuid4(), request_id=request.id, tenant_id=request.tenant_id,
+        from_state=from_state, to_state=to_state,
         action=action, actor_subject=principal.subject, correlation_id=request.correlation_id,
         record_hash=_record_hash({
             "request_id": str(request.id), "from": from_state, "to": to_state,
@@ -220,7 +239,8 @@ async def _add_step(
     error_code: str | None = None, error_summary: str | None = None,
 ) -> None:
     session.add(AgentProvisioningStep(
-        id=uuid4(), request_id=request.id, system=system, operation=operation,
+        id=uuid4(), request_id=request.id, tenant_id=request.tenant_id,
+        system=system, operation=operation,
         attempt=1, state=state, external_reference=external_reference,
         started_at=_now(), completed_at=_now(), readback_state=readback_state,
         error_code=error_code, error_summary=error_summary,
@@ -818,6 +838,7 @@ async def create_provisioning_request(
 ):
     require_tenant_match(principal, body.tenant_id)
     require_current_policy_revision(x_policy_revision)
+    await _set_provisioning_rls_context(session, principal, body.tenant_id)
 
     correlation_id = x_correlation_id or str(uuid4())
     request_payload = body.model_dump(mode="json")
@@ -877,9 +898,11 @@ async def create_provisioning_request(
 @router.get("/requests/{request_id}")
 async def get_provisioning_request(
     request_id: UUID,
+    tenant_id: str | None = None,
     principal: ProvisioningPrincipal = Depends(require_provisioning_scope("identity.request")),
     session: AsyncSession = Depends(get_session),
 ):
+    await _set_provisioning_rls_context(session, principal, tenant_id)
     request = await _get_request(request_id, session)
     require_tenant_match(principal, request.tenant_id)
     steps = await _steps_for(session, request)
@@ -887,9 +910,11 @@ async def get_provisioning_request(
 
 
 async def _transition(
-    request_id: UUID, body: TransitionRequest, action: Literal["reconcile", "suspend", "reactivate", "revoke"],
+    request_id: UUID, body: TransitionRequest, tenant_id: str | None,
+    action: Literal["reconcile", "suspend", "reactivate", "revoke"],
     principal: ProvisioningPrincipal, session: AsyncSession,
 ) -> dict:
+    await _set_provisioning_rls_context(session, principal, tenant_id)
     request = await _get_request(request_id, session, for_update=True)
     require_tenant_match(principal, request.tenant_id)
     if request.state in TERMINAL_REVOKED_STATES:
@@ -960,35 +985,59 @@ async def _transition(
 
 @router.post("/requests/{request_id}/reconcile")
 async def reconcile_provisioning_request(
-    request_id: UUID, body: TransitionRequest,
-    principal: ProvisioningPrincipal = Depends(require_provisioning_scope("identity.request")),
+    request_id: UUID,
+    body: TransitionRequest,
+    tenant_id: str | None = None,
+    principal: ProvisioningPrincipal = Depends(
+        require_provisioning_scope("identity.request")
+    ),
     session: AsyncSession = Depends(get_session),
 ):
-    return await _transition(request_id, body, "reconcile", principal, session)
+    return await _transition(
+        request_id, body, tenant_id, "reconcile", principal, session
+    )
 
 
 @router.post("/requests/{request_id}/suspend")
 async def suspend_provisioning_request(
-    request_id: UUID, body: TransitionRequest,
-    principal: ProvisioningPrincipal = Depends(require_provisioning_scope("identity.request")),
+    request_id: UUID,
+    body: TransitionRequest,
+    tenant_id: str | None = None,
+    principal: ProvisioningPrincipal = Depends(
+        require_provisioning_scope("identity.request")
+    ),
     session: AsyncSession = Depends(get_session),
 ):
-    return await _transition(request_id, body, "suspend", principal, session)
+    return await _transition(
+        request_id, body, tenant_id, "suspend", principal, session
+    )
 
 
 @router.post("/requests/{request_id}/reactivate")
 async def reactivate_provisioning_request(
-    request_id: UUID, body: TransitionRequest,
-    principal: ProvisioningPrincipal = Depends(require_provisioning_scope("identity.request")),
+    request_id: UUID,
+    body: TransitionRequest,
+    tenant_id: str | None = None,
+    principal: ProvisioningPrincipal = Depends(
+        require_provisioning_scope("identity.request")
+    ),
     session: AsyncSession = Depends(get_session),
 ):
-    return await _transition(request_id, body, "reactivate", principal, session)
+    return await _transition(
+        request_id, body, tenant_id, "reactivate", principal, session
+    )
 
 
 @router.post("/requests/{request_id}/revoke")
 async def revoke_provisioning_request(
-    request_id: UUID, body: TransitionRequest,
-    principal: ProvisioningPrincipal = Depends(require_provisioning_scope("identity.request")),
+    request_id: UUID,
+    body: TransitionRequest,
+    tenant_id: str | None = None,
+    principal: ProvisioningPrincipal = Depends(
+        require_provisioning_scope("identity.request")
+    ),
     session: AsyncSession = Depends(get_session),
 ):
-    return await _transition(request_id, body, "revoke", principal, session)
+    return await _transition(
+        request_id, body, tenant_id, "revoke", principal, session
+    )

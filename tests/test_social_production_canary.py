@@ -1,3 +1,4 @@
+import os
 from uuid import uuid4
 
 import pytest
@@ -193,7 +194,13 @@ def test_settings_accept_only_complete_protected_canary_configuration(tmp_path):
             "postly_webhook_secret_file": str(webhook),
         }
     )
-    config.validate_safety()
+    if os.name == "nt":
+        # Windows cannot prove the POSIX group/other mode bits required for
+        # production secret-file certification, so the runtime must fail closed.
+        with pytest.raises(ValueError, match="secret file is unavailable or unsafe"):
+            config.validate_safety()
+    else:
+        config.validate_safety()
 
 
 def test_openapi_exposes_dry_run_without_provider_secrets():
@@ -214,17 +221,28 @@ def test_openapi_exposes_dry_run_without_provider_secrets():
 def test_dry_run_fails_closed_outside_sql_production_mode(monkeypatch):
     from fastapi.testclient import TestClient
 
+    from app.api.v1.social import require_social_principal
+    from app.core.social_auth import SocialPrincipal
     from app.main import app
 
     monkeypatch.setattr(settings, "middleware_secret", "synthetic-phase4-auth")
-    response = TestClient(app).post(
-        f"/api/v1/social/posts/{uuid4()}/publish?dry_run=true",
-        headers={
-            "Authorization": "Bearer synthetic-phase4-auth",
-            "Idempotency-Key": "synthetic-dry-run",
-            "X-Codestra-Permissions": "social.publish",
-            "X-Social-Content-Approved": "true",
-        },
+    principal = SocialPrincipal(
+        subject="synthetic-social-user",
+        authorized_party="synthetic-test-client",
+        tenant_ids=frozenset({"tenant-a"}),
+        scopes=frozenset({"social.publish"}),
     )
+    app.dependency_overrides[require_social_principal] = lambda: principal
+    try:
+        response = TestClient(app).post(
+            f"/api/v1/social/posts/{uuid4()}/publish?dry_run=true",
+            headers={
+                "Authorization": "Bearer synthetic-phase4-auth",
+                "Idempotency-Key": "synthetic-dry-run",
+                "X-Social-Content-Approved": "true",
+            },
+        )
+    finally:
+        app.dependency_overrides.pop(require_social_principal, None)
     assert response.status_code == 403
     assert response.json()["detail"]["code"] == "SOCIAL_PRODUCTION_CANARY_DISABLED"

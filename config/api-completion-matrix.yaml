@@ -623,6 +623,12 @@ operations:
   runtime_state: IMPLEMENTED
 - domain: platform
   method: POST
+  path: /platform/v1/agent-provisioning/adopt-extension
+  canonical_operation_id: adopt_agent_extension_platform_v1_agent_provisioning_adopt_extension_post
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: platform
+  method: POST
   path: /platform/v1/agent-provisioning/requests
   canonical_operation_id: create_provisioning_request_platform_v1_agent_provisioning_requests_post
   implementation_file: registered FastAPI runtime
@@ -631,6 +637,12 @@ operations:
   method: GET
   path: /platform/v1/agent-provisioning/requests/{request_id}
   canonical_operation_id: get_provisioning_request_platform_v1_agent_provisioning_requests__request_id__get
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: platform
+  method: GET
+  path: /platform/v1/agent-provisioning/requests/{request_id}/history
+  canonical_operation_id: provisioning_history_platform_v1_agent_provisioning_requests__request_id__history_get
   implementation_file: registered FastAPI runtime
   runtime_state: IMPLEMENTED
 - domain: platform
@@ -655,6 +667,54 @@ operations:
   method: POST
   path: /platform/v1/agent-provisioning/requests/{request_id}/suspend
   canonical_operation_id: suspend_provisioning_request_platform_v1_agent_provisioning_requests__request_id__suspend_post
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: platform
+  method: POST
+  path: /platform/v1/agent-provisioning/reserve-extension
+  canonical_operation_id: reserve_agent_extension_platform_v1_agent_provisioning_reserve_extension_post
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: platform
+  method: POST
+  path: /platform/v1/agent-provisioning/webrtc/tickets
+  canonical_operation_id: issue_webrtc_ticket_platform_v1_agent_provisioning_webrtc_tickets_post
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: platform
+  method: POST
+  path: /platform/v1/agent-provisioning/{request_id}/disable
+  canonical_operation_id: disable_agent_platform_v1_agent_provisioning__request_id__disable_post
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: platform
+  method: GET
+  path: /platform/v1/agent-provisioning/{request_id}/readback
+  canonical_operation_id: provisioning_readback_platform_v1_agent_provisioning__request_id__readback_get
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: platform
+  method: POST
+  path: /platform/v1/agent-provisioning/{request_id}/release-extension
+  canonical_operation_id: release_agent_extension_platform_v1_agent_provisioning__request_id__release_extension_post
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: platform
+  method: POST
+  path: /platform/v1/agent-provisioning/{request_id}/repair-intents
+  canonical_operation_id: create_repair_intent_platform_v1_agent_provisioning__request_id__repair_intents_post
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: platform
+  method: POST
+  path: /platform/v1/agent-provisioning/{request_id}/sync
+  canonical_operation_id: sync_agent_platform_v1_agent_provisioning__request_id__sync_post
+  implementation_file: registered FastAPI runtime
+  runtime_state: IMPLEMENTED
+- domain: platform
+  method: POST
+  path: /platform/v1/agent-provisioning/{request_id}/webrtc/revoke
+  canonical_operation_id: revoke_webrtc_session_platform_v1_agent_provisioning__request_id__webrtc_revoke_post
   implementation_file: registered FastAPI runtime
   runtime_state: IMPLEMENTED
 - domain: platform

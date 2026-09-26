@@ -500,45 +500,56 @@ class SqlSocialRepository:
         return job_id, True
 
     async def claim_jobs(
-        self, *, worker_id: str, limit: int, lease_seconds: int
+        self,
+        *,
+        worker_id: str,
+        tenant_id: str,
+        limit: int,
+        lease_seconds: int,
+        job_id: UUID | None = None,
     ) -> list[dict[str, Any]]:
         rows = await self.session.execute(
             text("""WITH claimable AS (
               SELECT id FROM social_publish_jobs
-              WHERE state IN ('queued','retry') AND (next_attempt_at IS NULL OR next_attempt_at<=now())
+              WHERE tenant_id=:tenant
+                AND (:job_id IS NULL OR id=:job_id)
+                AND state IN ('queued','retry')
+                AND (next_attempt_at IS NULL OR next_attempt_at<=now())
                 AND (lease_expires_at IS NULL OR lease_expires_at<=now())
               ORDER BY created_at,id FOR UPDATE SKIP LOCKED LIMIT :limit)
             UPDATE social_publish_jobs j SET state='processing',lease_owner=:worker,
               lease_expires_at=now()+make_interval(secs=>:lease),fencing_token=fencing_token+1,updated_at=now()
             FROM claimable WHERE j.id=claimable.id RETURNING j.*"""),
-            {"worker": worker_id, "lease": lease_seconds, "limit": limit},
+            {"worker": worker_id, "tenant": tenant_id, "job_id": job_id, "lease": lease_seconds, "limit": limit},
         )
         await self.session.commit()
         return [dict(row) for row in rows.mappings()]
 
-    async def recover_stale_jobs(self) -> list[tuple[UUID, str]]:
+    async def recover_stale_jobs(self, tenant_id: str) -> list[tuple[UUID, str, str]]:
         rows = await self.session.execute(
             text("""UPDATE social_publish_jobs SET state='retry',lease_owner=NULL,lease_expires_at=NULL,
             next_attempt_at=now(),last_error_code=COALESCE(last_error_code,'SOCIAL_WORKER_LEASE_EXPIRED'),updated_at=now()
-            WHERE state='processing' AND lease_expires_at<=now() RETURNING id,correlation_id""")
+            WHERE tenant_id=:tenant AND state='processing' AND lease_expires_at<=now()
+            RETURNING id,correlation_id,tenant_id"""),
+            {"tenant": tenant_id},
         )
         await self.session.commit()
         return [
-            (UUID(str(row["id"])), str(row["correlation_id"]))
+            (UUID(str(row["id"])), str(row["correlation_id"]), str(row["tenant_id"]))
             for row in rows.mappings()
         ]
 
-    async def signalable_jobs(self, limit: int = 100) -> list[tuple[UUID, str]]:
+    async def signalable_jobs(self, tenant_id: str, limit: int = 100) -> list[tuple[UUID, str, str]]:
         rows = await self.session.execute(
-            text("""SELECT id,correlation_id FROM social_publish_jobs
-            WHERE state IN ('queued','retry')
+            text("""SELECT id,correlation_id,tenant_id FROM social_publish_jobs
+            WHERE tenant_id=:tenant AND state IN ('queued','retry')
               AND (next_attempt_at IS NULL OR next_attempt_at<=now())
               AND (lease_expires_at IS NULL OR lease_expires_at<=now())
             ORDER BY created_at,id LIMIT :limit"""),
-            {"limit": limit},
+            {"tenant": tenant_id, "limit": limit},
         )
         return [
-            (UUID(str(row["id"])), str(row["correlation_id"]))
+            (UUID(str(row["id"])), str(row["correlation_id"]), str(row["tenant_id"]))
             for row in rows.mappings()
         ]
 

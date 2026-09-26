@@ -5,11 +5,13 @@ from __future__ import annotations
 import asyncio
 import time
 from typing import Any
+from uuid import UUID
 
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.config import settings
+from app.db.session import set_transaction_tenant_context
 from app.social.adapters import HootsuiteProviderAdapter, PostlyProviderAdapter
 from app.social.domain import JobType, ProviderName
 from app.social.providers import SocialError, SocialProviderRegistry
@@ -127,17 +129,21 @@ async def process_claimed_job(
 
 
 async def recover_and_signal(
-    session_factory: async_sessionmaker[AsyncSession], queue: RedisSocialQueue
+    session_factory: async_sessionmaker[AsyncSession],
+    queue: RedisSocialQueue,
+    tenant_ids: tuple[str, ...],
 ) -> int:
-    async with session_factory() as session:
-        repository = SqlSocialRepository(session)
-        recovered = await repository.recover_stale_jobs()
-        signalable = await repository.signalable_jobs()
-    unique = {
-        job_id: correlation_id for job_id, correlation_id in recovered + signalable
-    }
-    for job_id, correlation_id in unique.items():
-        await queue.enqueue(job_id, correlation_id)
+    unique: dict[UUID, tuple[str, str]] = {}
+    for tenant_id in tenant_ids:
+        async with session_factory() as session:
+            await set_transaction_tenant_context(session, tenant_id)
+            repository = SqlSocialRepository(session)
+            recovered = await repository.recover_stale_jobs(tenant_id)
+            signalable = await repository.signalable_jobs(tenant_id)
+        for job_id, correlation_id, owned_tenant in recovered + signalable:
+            unique[job_id] = (correlation_id, owned_tenant)
+    for job_id, (correlation_id, tenant_id) in unique.items():
+        await queue.enqueue(job_id, correlation_id, tenant_id)
     return len(unique)
 
 
@@ -148,17 +154,32 @@ async def run_forever(
         raise RuntimeError("social worker and SQL repository must be enabled")
     if settings.social_worker_concurrency != 1:
         raise RuntimeError("social worker concurrency must equal 1")
+    tenant_ids = tuple(
+        dict.fromkeys(
+            item.strip()
+            for item in settings.social_worker_tenant_ids.split(",")
+            if item.strip()
+        )
+    )
+    if not tenant_ids:
+        raise RuntimeError("social worker requires explicit social_worker_tenant_ids")
     queue = RedisSocialQueue(redis)
     registry = build_registry()
     while True:
-        await recover_and_signal(session_factory, queue)
+        await recover_and_signal(session_factory, queue, tenant_ids)
         signal = await queue.claim(timeout_seconds=1)
         if signal is None:
             await asyncio.sleep(settings.social_worker_poll_seconds)
             continue
+        tenant_id = str(signal.get("tenant_id", "")).strip()
+        if tenant_id not in tenant_ids:
+            continue
         async with session_factory() as session:
+            await set_transaction_tenant_context(session, tenant_id)
             jobs = await SqlSocialRepository(session).claim_jobs(
                 worker_id=settings.social_worker_id,
+                tenant_id=tenant_id,
+                job_id=UUID(str(signal["job_id"])),
                 limit=1,
                 lease_seconds=settings.social_worker_lease_seconds,
             )

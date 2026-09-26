@@ -14,7 +14,10 @@ working.
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
+from uuid import UUID
+import re
 
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -24,6 +27,78 @@ from sqlalchemy.ext.asyncio import (
 
 from app.core.config import Settings, settings
 
+
+TENANT_CONTEXT_GUC = "app.tenant_id"
+
+
+TENANT_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
+
+
+def _canonical_tenant_id(tenant_id: str | UUID) -> str:
+    """Validate and normalize the scalar tenant identifier used by PostgreSQL RLS.
+
+    Middleware currently has both UUID-backed and text-backed tenant columns.
+    The transaction context therefore carries a canonical scalar string; each
+    RLS policy owns any table-specific type cast it requires.
+    """
+    value = str(tenant_id).strip()
+    if not value:
+        raise ValueError("tenant_id is required")
+    if not TENANT_ID_PATTERN.fullmatch(value):
+        raise ValueError("tenant_id contains unsupported characters")
+    return value
+
+
+async def set_transaction_tenant_context(
+    session: AsyncSession,
+    tenant_id: str | UUID,
+) -> str:
+    """Set the tenant identifier for the current PostgreSQL transaction only.
+
+    ``set_config(..., true)`` is PostgreSQL's transaction-local equivalent of
+    ``SET LOCAL``. The value is discarded on COMMIT/ROLLBACK, preventing
+    tenant context from leaking through pooled connections.
+    """
+    normalized = _canonical_tenant_id(tenant_id)
+    await session.execute(
+        text("SELECT set_config(:setting_name, :tenant_id, true)"),
+        {"setting_name": TENANT_CONTEXT_GUC, "tenant_id": normalized},
+    )
+    return normalized
+
+
+
+def resolve_tenant_id(
+    authorized_tenants: tuple[str, ...] | frozenset[str] | set[str] | list[str],
+    requested_tenant_id: str | None = None,
+) -> str:
+    """Resolve exactly one tenant from verified authority.
+
+    Explicit tenant selection is required for multi-tenant callers. Wildcards
+    are never accepted. This helper is transport-agnostic so HTTP routes and
+    background workers can share the same fail-closed rule.
+    """
+    tenants = tuple(dict.fromkeys(str(item).strip() for item in authorized_tenants if str(item).strip()))
+    if "*" in tenants:
+        raise ValueError("wildcard tenant authorization is prohibited")
+    if requested_tenant_id is not None:
+        requested = _canonical_tenant_id(requested_tenant_id)
+        if requested not in tenants:
+            raise ValueError("tenant authority does not cover requested tenant")
+        return requested
+    if len(tenants) != 1:
+        raise ValueError("explicit tenant_id is required for multi-tenant authority")
+    return _canonical_tenant_id(tenants[0])
+
+
+async def bind_transaction_tenant(
+    session: AsyncSession,
+    authorized_tenants: tuple[str, ...] | frozenset[str] | set[str] | list[str],
+    requested_tenant_id: str | None = None,
+) -> str:
+    """Resolve verified authority and install the transaction-local RLS GUC."""
+    tenant_id = resolve_tenant_id(authorized_tenants, requested_tenant_id)
+    return await set_transaction_tenant_context(session, tenant_id)
 
 def _native_asyncpg_dsn(database_url: str) -> str:
     """Return a native asyncpg DSN while preserving libpq TLS query policy."""

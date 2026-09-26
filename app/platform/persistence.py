@@ -20,6 +20,7 @@ import asyncpg
 from app.commands import ADAPTER_COMMAND_DESTINATION
 from app.platform.kernel import DenialAudit, DenialAuditSink
 from app.platform.reconciler import ReconciliationClaim
+from app.storage import set_connection_tenant_context
 
 RECONCILIATION_RESOURCE_KIND = "outbox_reconciliation"
 
@@ -39,7 +40,9 @@ class PostgresDenialAuditSink(DenialAuditSink):
             "version": audit.version,
         }
         async with self.pool.acquire() as conn:
-            await conn.execute(
+            async with conn.transaction():
+                await set_connection_tenant_context(conn, audit.tenant_id)
+                await conn.execute(
                 """
                 INSERT INTO middleware_control_audit (
                     tenant_id, resource_kind, resource_id, action, actor_id, reason,
@@ -59,17 +62,19 @@ class PostgresReconciliationSource:
     def __init__(self, pool: asyncpg.Pool) -> None:
         self.pool = pool
 
-    async def claim(self, *, reconciler_id: str, lease_seconds: float) -> ReconciliationClaim | None:
+    async def claim(self, *, tenant_id: str, reconciler_id: str, lease_seconds: float) -> ReconciliationClaim | None:
         if lease_seconds <= 0:
             raise ValueError("lease_seconds must be positive")
         async with self.pool.acquire() as conn:
             async with conn.transaction():
+                await set_connection_tenant_context(conn, tenant_id)
                 row = await conn.fetchrow(
                     """
                     WITH candidate AS (
                         SELECT id
                         FROM middleware_outbox
-                        WHERE destination=$3
+                        WHERE tenant_id=$4
+                          AND destination=$3
                           AND reconciliation_required_at IS NOT NULL
                           AND completed_at IS NULL
                           AND dead_lettered_at IS NULL
@@ -90,6 +95,7 @@ class PostgresReconciliationSource:
                     reconciler_id,
                     lease_seconds,
                     ADAPTER_COMMAND_DESTINATION,
+                    tenant_id,
                 )
                 if row is None:
                     return None
@@ -126,6 +132,7 @@ class PostgresReconciliationSource:
         safe_reason = reason.strip()[:2048] or action
         async with self.pool.acquire() as conn:
             async with conn.transaction():
+                await set_connection_tenant_context(conn, claim.tenant_id)
                 row = await conn.fetchrow(
                     """
                     SELECT id, tenant_id, attempt_count FROM middleware_outbox
@@ -186,6 +193,8 @@ class PostgresReconciliationSource:
 
     async def release(self, claim: ReconciliationClaim, *, reconciler_id: str, reason: str) -> None:
         async with self.pool.acquire() as conn:
+            async with conn.transaction():
+                await set_connection_tenant_context(conn, claim.tenant_id)
             result = await conn.execute(
                 """
                 UPDATE middleware_outbox
@@ -199,14 +208,17 @@ class PostgresReconciliationSource:
             if result != "UPDATE 1":
                 raise RuntimeError("reconciliation lease ownership lost before release")
 
-    async def backlog(self) -> int:
+    async def backlog(self, tenant_id: str) -> int:
         async with self.pool.acquire() as conn:
+            async with conn.transaction():
+                await set_connection_tenant_context(conn, tenant_id)
             value = await conn.fetchval(
                 """
                 SELECT count(*) FROM middleware_outbox
-                WHERE destination=$1 AND reconciliation_required_at IS NOT NULL
+                WHERE tenant_id=$2 AND destination=$1 AND reconciliation_required_at IS NOT NULL
                   AND completed_at IS NULL AND dead_lettered_at IS NULL AND cancelled_at IS NULL
                 """,
                 ADAPTER_COMMAND_DESTINATION,
+                tenant_id,
             )
         return int(value or 0)

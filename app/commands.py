@@ -15,6 +15,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 from .canonical_contracts import validate_contract
 from .provider_canary import provider_evidence_digest
+from .storage import set_connection_tenant_context
 
 ROOT = Path(__file__).resolve().parents[1]
 TEMPORAL_COMMAND_DESTINATION = "temporal-command"
@@ -920,6 +921,7 @@ class PostgresCommandStore:
     ) -> CommandOperation:
         async with self.pool.acquire() as conn:
             async with conn.transaction():
+                await set_connection_tenant_context(conn, command.tenant_id)
                 return await self.submit_on_connection(
                     conn,
                     command,
@@ -947,6 +949,7 @@ class PostgresCommandStore:
         roll back together.
         """
 
+        await set_connection_tenant_context(conn, command.tenant_id)
         if destination not in COMMAND_DESTINATIONS:
             raise CommandConflict(f"unsupported command destination {destination}")
         digest = authenticated_command_digest(command, authenticated_client_id)
@@ -1044,6 +1047,7 @@ class PostgresCommandStore:
 
     async def get(self, tenant_id: str, command_id: UUID) -> CommandOperation:
         async with self.pool.acquire() as conn:
+            await set_connection_tenant_context(conn, tenant_id)
             row = await conn.fetchrow(
                 "SELECT * FROM middleware_commands WHERE tenant_id=$1 AND command_id=$2",
                 tenant_id,
@@ -1080,6 +1084,7 @@ class PostgresCommandStore:
 
     async def list_operations(self, tenant_id: str, *, limit: int, position: tuple[datetime, UUID] | None = None, state: str | None = None, command_type: str | None = None) -> list[CommandOperation]:
         async with self.pool.acquire() as conn:
+            await set_connection_tenant_context(conn, tenant_id)
             rows = await conn.fetch(
                 """SELECT * FROM middleware_commands WHERE tenant_id=$1
                    AND ($2::text IS NULL OR state=$2)
@@ -1094,6 +1099,7 @@ class PostgresCommandStore:
     async def list_events(self, tenant_id: str, command_id: UUID, *, limit: int, position: tuple[datetime, int] | None = None) -> list[OperationEvent]:
         await self.get(tenant_id, command_id)
         async with self.pool.acquire() as conn:
+            await set_connection_tenant_context(conn, tenant_id)
             rows = await conn.fetch(
                 """SELECT id, command_id, previous_state, new_state, actor_id, reason, metadata, created_at
                    FROM middleware_command_audit WHERE tenant_id=$1 AND command_id=$2
@@ -1106,6 +1112,7 @@ class PostgresCommandStore:
     async def list_attempts(self, tenant_id: str, command_id: UUID, *, limit: int, position: tuple[int, int] | None = None) -> list[OperationAttempt]:
         await self.get(tenant_id, command_id)
         async with self.pool.acquire() as conn:
+            await set_connection_tenant_context(conn, tenant_id)
             rows = await conn.fetch(
                 """SELECT id, command_id, attempt_number, state, provider_operation_id, error_code, started_at, finished_at
                    FROM middleware_command_attempts WHERE tenant_id=$1 AND command_id=$2
@@ -1119,6 +1126,7 @@ class PostgresCommandStore:
         request_digest = hashlib.sha256(json.dumps({"expected_version": expected_version, "reason": reason}, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
         async with self.pool.acquire() as conn:
             async with conn.transaction():
+                await set_connection_tenant_context(conn, tenant_id)
                 current = await conn.fetchrow("SELECT * FROM middleware_commands WHERE tenant_id=$1 AND command_id=$2 FOR UPDATE", tenant_id, str(command_id))
                 if current is None:
                     raise CommandNotFound("command operation was not found")
@@ -1232,6 +1240,7 @@ class PostgresCommandStore:
         )
         async with self.pool.acquire() as conn:
             async with conn.transaction():
+                await set_connection_tenant_context(conn, tenant_id)
                 current = await conn.fetchrow(
                     """
                     SELECT * FROM middleware_commands
@@ -1370,6 +1379,7 @@ class PostgresCommandStore:
         assert row is not None
         if safe_readback is None:
             async with self.pool.acquire() as conn:
+                await set_connection_tenant_context(conn, tenant_id)
                 persisted = await conn.fetchrow(
                     """
                     SELECT
@@ -1400,6 +1410,7 @@ class PostgresCommandStore:
 
     async def latest_attempt(self, tenant_id: str, command_id: UUID) -> int:
         async with self.pool.acquire() as conn:
+            await set_connection_tenant_context(conn, tenant_id)
             exists = await conn.fetchval(
                 "SELECT 1 FROM middleware_commands WHERE tenant_id=$1 AND command_id=$2",
                 tenant_id,
@@ -1420,6 +1431,7 @@ class PostgresCommandStore:
 
     async def load_envelope(self, tenant_id: str, command_id: UUID) -> CommandEnvelope:
         async with self.pool.acquire() as conn:
+            await set_connection_tenant_context(conn, tenant_id)
             raw = await conn.fetchval(
                 "SELECT payload FROM middleware_commands WHERE tenant_id=$1 AND command_id=$2",
                 tenant_id,
@@ -1432,17 +1444,18 @@ class PostgresCommandStore:
 
     async def backlog(self, tenant_id: str) -> tuple[int, int]:
         async with self.pool.acquire() as conn:
+            await set_connection_tenant_context(conn, tenant_id)
             row = await conn.fetchrow(
                 """
-                SELECT count(*) FILTER (WHERE tenant_id=$1) AS tenant_active,
-                       count(*) AS global_active
+                SELECT count(*) AS tenant_active
                 FROM middleware_commands
-                WHERE state = ANY($2::text[])
+                WHERE tenant_id=$1 AND state = ANY($2::text[])
                 """,
                 tenant_id,
                 list(ACTIVE_COMMAND_STATES),
             )
-        return int(row["tenant_active"] or 0), int(row["global_active"] or 0)
+        tenant_active = int(row["tenant_active"] or 0)
+        return tenant_active, tenant_active
 
     async def reconcile(
         self,
@@ -1468,6 +1481,7 @@ class PostgresCommandStore:
         next_state = "completed" if matched else "reconciliation_required"
         async with self.pool.acquire() as conn:
             async with conn.transaction():
+                await set_connection_tenant_context(conn, tenant_id)
                 current = await conn.fetchrow(
                     "SELECT state FROM middleware_commands WHERE tenant_id=$1 AND command_id=$2 FOR UPDATE",
                     tenant_id,

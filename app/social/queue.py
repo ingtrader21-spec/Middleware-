@@ -35,12 +35,12 @@ class RedisSocialQueue:
     def __init__(self, redis: Redis) -> None:
         self.redis = redis
 
-    async def enqueue(self, job_id: UUID, correlation_id: str) -> None:
+    async def enqueue(self, job_id: UUID, correlation_id: str, tenant_id: str) -> None:
         await cast(
             Awaitable[int],
             self.redis.rpush(
                 self.queue_key,
-                json.dumps({"job_id": str(job_id), "correlation_id": correlation_id}),
+                json.dumps({"job_id": str(job_id), "correlation_id": correlation_id, "tenant_id": tenant_id}),
             ),
         )
 

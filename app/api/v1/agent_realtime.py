@@ -30,7 +30,7 @@ from app.db.models import (
     AgentProvisioningStep,
     TelephonyExtensionReservation,
 )
-from app.db.session import SessionFactory, get_session
+from app.db.session import SessionFactory, get_session, set_transaction_tenant_context
 
 router = APIRouter(tags=["agent-realtime"])
 
@@ -182,6 +182,7 @@ async def _authorize_agent_event(
     granting another agent's extension.
     """
     require_tenant_match(principal, event.tenant_id)
+    await set_transaction_tenant_context(db, event.tenant_id)
     if (
         event.campaign_id == settings.webphone_staging_campaign
         and event.extension == settings.webphone_staging_endpoint
@@ -253,6 +254,8 @@ async def ingest_agent_event(
 ) -> dict[str, Any]:
     if not settings.agent_websocket_enabled:
         raise HTTPException(503, "agent realtime disabled")
+    require_tenant_match(principal, event.tenant_id)
+    await set_transaction_tenant_context(db, event.tenant_id)
     await _authorize_agent_event(db, principal, event)
     duplicate = await db.scalar(
         select(AgentCallEvent).where(
@@ -361,6 +364,7 @@ async def agent_websocket(websocket: WebSocket) -> None:
             return
         await websocket.accept()
         async with SessionFactory() as db:
+            await set_transaction_tenant_context(db, identity.tenant_id)
             states = (
                 await db.scalars(
                     select(AgentCallState).where(

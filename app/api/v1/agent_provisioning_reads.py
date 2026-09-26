@@ -47,13 +47,12 @@ from app.api.v1.agent_provisioning import (
     AgentProvisioningRequest,
     AgentProvisioningStep,
     ProvisioningPrincipal,
-    _append_audit,
     _public_view,
     _steps_for,
     require_provisioning_scope,
     require_tenant_match,
 )
-from app.db.session import get_session
+from app.db.session import get_session, set_transaction_tenant_context
 
 router = APIRouter(prefix="/platform/v1", tags=["agent-provisioning-reads"])
 
@@ -203,8 +202,9 @@ async def get_user(
     principal: ProvisioningPrincipal = Depends(require_provisioning_scope("identity.request")),
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
+    require_tenant_match(principal, tenant_id)
+    await set_transaction_tenant_context(session, tenant_id)
     request = await _latest_request(session, tenant_id, employee_id)
-    require_tenant_match(principal, request.tenant_id)
     steps = await _steps_for(session, request)
     view = _public_view(request, steps)
     view["employee_id"] = request.employee_id
@@ -219,8 +219,9 @@ async def get_user_campaigns(
     principal: ProvisioningPrincipal = Depends(require_provisioning_scope("identity.request")),
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
+    require_tenant_match(principal, tenant_id)
+    await set_transaction_tenant_context(session, tenant_id)
     request = await _latest_request(session, tenant_id, employee_id)
-    require_tenant_match(principal, request.tenant_id)
     return {
         "employee_id": request.employee_id,
         "tenant_id": request.tenant_id,
@@ -236,8 +237,9 @@ async def get_user_entitlements(
     principal: ProvisioningPrincipal = Depends(require_provisioning_scope("identity.request")),
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
+    require_tenant_match(principal, tenant_id)
+    await set_transaction_tenant_context(session, tenant_id)
     request = await _latest_request(session, tenant_id, employee_id)
-    require_tenant_match(principal, request.tenant_id)
     steps = await _steps_for(session, request)
     return {
         "employee_id": request.employee_id,
@@ -260,6 +262,7 @@ async def list_telephony_assignments(
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
     require_tenant_match(principal, tenant_id)
+    await set_transaction_tenant_context(session, tenant_id)
     rows, next_cursor = await _list_by_channel(
         session, tenant_id=tenant_id, channels=("phone", "webrtc"),
         employee_id=employee_id, limit=limit, cursor=cursor,
@@ -314,6 +317,7 @@ async def list_email_identities(
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
     require_tenant_match(principal, tenant_id)
+    await set_transaction_tenant_context(session, tenant_id)
     _rate_limit_sender_identity_read(f"{tenant_id}:{principal.subject}")
     rows, next_cursor = await _list_by_channel(
         session, tenant_id=tenant_id, channels=("email",),
@@ -333,12 +337,6 @@ async def list_email_identities(
             "campaign_email": campaign.get("campaign_email"),
             **state,
         })
-        await _append_audit(
-            session, request, from_state=request.state, to_state=request.state,
-            action="email_identity.read", principal=principal,
-        )
-    if items:
-        await session.commit()
     return {"items": items, "next_cursor": next_cursor}
 
 
@@ -353,6 +351,7 @@ async def list_sms_identities(
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
     require_tenant_match(principal, tenant_id)
+    await set_transaction_tenant_context(session, tenant_id)
     _rate_limit_sender_identity_read(f"{tenant_id}:{principal.subject}")
     rows, next_cursor = await _list_by_channel(
         session, tenant_id=tenant_id, channels=("sms",),
@@ -372,10 +371,4 @@ async def list_sms_identities(
             "sms_sender": campaign.get("sms_sender"),
             **state,
         })
-        await _append_audit(
-            session, request, from_state=request.state, to_state=request.state,
-            action="sms_identity.read", principal=principal,
-        )
-    if items:
-        await session.commit()
     return {"items": items, "next_cursor": next_cursor}

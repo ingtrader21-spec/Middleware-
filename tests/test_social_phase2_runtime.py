@@ -84,8 +84,9 @@ def test_redis_queue_contains_only_minimal_references():
 
     redis = FakeRedis()
     job_id = uuid4()
-    asyncio.run(RedisSocialQueue(redis).enqueue(job_id, "correlation"))  # type: ignore[arg-type]
+    asyncio.run(RedisSocialQueue(redis).enqueue(job_id, "correlation", "tenant-a"))  # type: ignore[arg-type]
     assert str(job_id) in redis.values[0][1]
+    assert "tenant-a" in redis.values[0][1]
     assert "content" not in redis.values[0][1]
     assert "account" not in redis.values[0][1]
     assert "token" not in redis.values[0][1]
