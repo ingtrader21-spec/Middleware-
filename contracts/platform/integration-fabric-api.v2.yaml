@@ -3502,6 +3502,14 @@ paths:
           type: string
           format: uuid
           title: Request Id
+      - name: X-Codestra-Tenant-ID
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Codestra-Tenant-Id
       responses:
         '200':
           description: Successful Response
@@ -3544,6 +3552,14 @@ paths:
           type: string
           format: uuid
           title: Request Id
+      - name: X-Codestra-Tenant-ID
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Codestra-Tenant-Id
       requestBody:
         required: true
         content:
@@ -3592,6 +3608,14 @@ paths:
           type: string
           format: uuid
           title: Request Id
+      - name: X-Codestra-Tenant-ID
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Codestra-Tenant-Id
       requestBody:
         required: true
         content:
@@ -3640,6 +3664,14 @@ paths:
           type: string
           format: uuid
           title: Request Id
+      - name: X-Codestra-Tenant-ID
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Codestra-Tenant-Id
       requestBody:
         required: true
         content:
@@ -3688,6 +3720,14 @@ paths:
           type: string
           format: uuid
           title: Request Id
+      - name: X-Codestra-Tenant-ID
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Codestra-Tenant-Id
       requestBody:
         required: true
         content:

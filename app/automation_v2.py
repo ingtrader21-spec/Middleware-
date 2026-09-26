@@ -14,6 +14,11 @@ from typing import Any, Literal, Mapping, Protocol
 from uuid import UUID, uuid5, NAMESPACE_URL
 
 import asyncpg
+
+from app.db.tenant_context import (
+    asyncpg_tenant_connection,
+    set_asyncpg_transaction_tenant_context,
+)
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -1267,14 +1272,13 @@ class PostgresAutomationStore:
         *,
         source_client_id: str,
     ) -> None:
-        async with self.pool.acquire() as conn:
-            async with conn.transaction():
-                await self.enqueue_event_on_connection(
-                    conn,
-                    envelope,
-                    route,
-                    source_client_id=source_client_id,
-                )
+        async with asyncpg_tenant_connection(self.pool, envelope.tenant_id) as conn:
+            await self.enqueue_event_on_connection(
+                conn,
+                envelope,
+                route,
+                source_client_id=source_client_id,
+            )
 
     async def enqueue_event_on_connection(
         self,
@@ -1284,6 +1288,7 @@ class PostgresAutomationStore:
         *,
         source_client_id: str,
     ) -> None:
+        await set_asyncpg_transaction_tenant_context(conn, envelope.tenant_id)
         job_id = _job_id(envelope.tenant_id, envelope.event_id, route)
         delivery_token = secrets.token_urlsafe(32)
         now = _utcnow()
@@ -1369,8 +1374,7 @@ class PostgresAutomationStore:
         lease_hash = _token_digest(lease_token)
         now = _utcnow()
         expires = now + timedelta(seconds=LEASE_SECONDS)
-        async with self.pool.acquire() as conn:
-            async with conn.transaction():
+        async with asyncpg_tenant_connection(self.pool, body.tenant_id) as conn:
                 current = await conn.fetchrow(
                     """
                     SELECT * FROM middleware_automation_jobs
@@ -1460,7 +1464,7 @@ class PostgresAutomationStore:
                 )
 
     async def get_job(self, tenant_id: str, job_id: UUID) -> AutomationJob:
-        async with self.pool.acquire() as conn:
+        async with asyncpg_tenant_connection(self.pool, tenant_id) as conn:
             row = await conn.fetchrow(
                 "SELECT * FROM middleware_automation_jobs WHERE tenant_id=$1 AND job_id=$2",
                 tenant_id,
@@ -1516,8 +1520,7 @@ class PostgresAutomationStore:
     ) -> AutomationJob:
         now = _utcnow()
         expires = now + timedelta(seconds=LEASE_SECONDS)
-        async with self.pool.acquire() as conn:
-            async with conn.transaction():
+        async with asyncpg_tenant_connection(self.pool, body.tenant_id) as conn:
                 current = await self._lease_row(
                     conn,
                     tenant_id=body.tenant_id,
@@ -1570,8 +1573,7 @@ class PostgresAutomationStore:
                 "safe_metadata": body.safe_metadata,
             }
         )
-        async with self.pool.acquire() as conn:
-            async with conn.transaction():
+        async with asyncpg_tenant_connection(self.pool, body.tenant_id) as conn:
                 await self._lease_row(
                     conn,
                     tenant_id=body.tenant_id,
@@ -1666,8 +1668,7 @@ class PostgresAutomationStore:
                 "safe_result": body.safe_result,
             }
         )
-        async with self.pool.acquire() as conn:
-            async with conn.transaction():
+        async with asyncpg_tenant_connection(self.pool, body.tenant_id) as conn:
                 current = await conn.fetchrow(
                     "SELECT * FROM middleware_automation_jobs WHERE tenant_id=$1 AND job_id=$2 FOR UPDATE",
                     body.tenant_id,
@@ -1740,8 +1741,7 @@ class PostgresAutomationStore:
                 "safe_error": body.safe_error,
             }
         )
-        async with self.pool.acquire() as conn:
-            async with conn.transaction():
+        async with asyncpg_tenant_connection(self.pool, body.tenant_id) as conn:
                 current = await conn.fetchrow(
                     "SELECT * FROM middleware_automation_jobs WHERE tenant_id=$1 AND job_id=$2 FOR UPDATE",
                     body.tenant_id,
@@ -1899,8 +1899,7 @@ class PostgresAutomationStore:
             NAMESPACE_URL,
             f"codestra-approval:{body.tenant_id}:{body.job_id}:{body.idempotency_key}",
         )
-        async with self.pool.acquire() as conn:
-            async with conn.transaction():
+        async with asyncpg_tenant_connection(self.pool, body.tenant_id) as conn:
                 job = await conn.fetchrow(
                     "SELECT * FROM middleware_automation_jobs WHERE tenant_id=$1 AND job_id=$2 FOR UPDATE",
                     body.tenant_id,
@@ -1958,8 +1957,7 @@ class PostgresAutomationStore:
         return self._approval_from_row(row, duplicate=duplicate)
 
     async def get_approval(self, tenant_id: str, approval_id: UUID) -> ApprovalRecord:
-        async with self.pool.acquire() as conn:
-            async with conn.transaction():
+        async with asyncpg_tenant_connection(self.pool, tenant_id) as conn:
                 await conn.execute(
                     """
                     UPDATE middleware_automation_approvals
@@ -1979,7 +1977,7 @@ class PostgresAutomationStore:
         return self._approval_from_row(row)
 
     async def get_dead_letter(self, tenant_id: str, dead_letter_id: UUID) -> DeadLetterRecord:
-        async with self.pool.acquire() as conn:
+        async with asyncpg_tenant_connection(self.pool, tenant_id) as conn:
             row = await conn.fetchrow(
                 "SELECT * FROM middleware_automation_dead_letters WHERE tenant_id=$1 AND dead_letter_id=$2",
                 tenant_id,
@@ -1999,8 +1997,7 @@ class PostgresAutomationStore:
         if client_id != "n8n-operations-automation":
             raise AutomationAuthorizationDenied("only operations automation may request replay")
         request_digest = _digest(body.model_dump(mode="json"))
-        async with self.pool.acquire() as conn:
-            async with conn.transaction():
+        async with asyncpg_tenant_connection(self.pool, body.tenant_id) as conn:
                 prior = await conn.fetchrow(
                     """
                     SELECT request_sha256,response_payload FROM middleware_automation_replay_requests
@@ -2136,8 +2133,7 @@ class PostgresAutomationStore:
             NAMESPACE_URL,
             f"codestra-automation-reconcile:{body.tenant_id}:{body.idempotency_key}",
         )
-        async with self.pool.acquire() as conn:
-            async with conn.transaction():
+        async with asyncpg_tenant_connection(self.pool, body.tenant_id) as conn:
                 existing = await conn.fetchrow(
                     """
                     SELECT * FROM middleware_automation_reconciliation_runs

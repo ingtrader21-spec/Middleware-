@@ -51,7 +51,7 @@ from app.core.provisioning_auth import (
     require_provisioning_scope,
     require_tenant_match,
 )
-from app.db.session import get_session
+from app.db.session import get_session, set_transaction_tenant_context
 
 router = APIRouter(prefix="/platform/v1/session", tags=["session-context"])
 
@@ -90,6 +90,7 @@ async def _resolve_context(
     session: AsyncSession, principal: ProvisioningPrincipal, tenant_id: str, http: httpx.AsyncClient,
 ) -> dict[str, Any]:
     require_tenant_match(principal, tenant_id)
+    await set_transaction_tenant_context(session, tenant_id)
 
     foundation = FoundationClient(settings)
     tenant_status = "UNKNOWN"

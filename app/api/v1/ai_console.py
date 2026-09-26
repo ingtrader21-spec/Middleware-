@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+from collections.abc import AsyncIterator
 from functools import lru_cache
 from typing import Any
 from typing import Annotated, Literal
@@ -18,7 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core import ai_jobs
 from app.core.config import settings
 from app.core.jwt_auth import JWTAuthError, KeycloakValidator, identity_validator_kwargs
-from app.db.session import get_session
+from app.db.session import get_session, set_transaction_tenant_context
 
 
 class StrictModel(BaseModel):
@@ -77,6 +78,15 @@ def tenant(
     return Tenant(organization_id, workspace_id, user_id, roles)
 
 
+async def tenant_db_session(
+    subject: Tenant = Depends(tenant),
+    db: AsyncSession = Depends(get_session),
+) -> AsyncIterator[AsyncSession]:
+    """Bind the verified Keycloak organization to the DB transaction."""
+    await set_transaction_tenant_context(db, subject.organization_id)
+    yield db
+
+
 # Every current and future route on this router is authenticated independently
 # of the outer compatibility middleware. FastAPI caches the repeated dependency
 # call per request, so endpoint parameters receive the same validated principal.
@@ -105,7 +115,7 @@ async def create_conversation(
     _: None = Depends(require_ai_submissions_available),
     subject: Tenant = Depends(tenant),
     correlation_id: str = Depends(request_context),
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(tenant_db_session),
 ) -> dict[str, object]:
     return await ai_jobs.create_conversation(
         db,
@@ -127,7 +137,7 @@ async def create_message(
     _: None = Depends(require_ai_submissions_available),
     subject: Tenant = Depends(tenant),
     correlation_id: str = Depends(request_context),
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(tenant_db_session),
 ) -> dict[str, object]:
     if len(body.content.encode()) > settings.ai_job_max_context_bytes:
         raise HTTPException(413, "context limit exceeded")
@@ -170,7 +180,7 @@ async def create_message(
 async def stream(
     job_id: UUID,
     subject: Tenant = Depends(tenant),
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(tenant_db_session),
 ) -> StreamingResponse:
     async def events():
         last = -1
@@ -251,7 +261,7 @@ async def cancel(
     job_id: UUID,
     subject: Tenant = Depends(tenant),
     correlation_id: str = Depends(request_context),
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(tenant_db_session),
 ) -> dict[str, object]:
     row = (
         (

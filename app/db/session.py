@@ -14,49 +14,70 @@ working.
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from uuid import UUID
 
-from sqlalchemy import text
+from sqlalchemy import event, text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
     async_sessionmaker,
     create_async_engine,
 )
+from sqlalchemy.orm import Session as SyncSession
 
 from app.core.config import Settings, settings
+from app.db.tenant_context import (
+    TENANT_CONTEXT_GUC,
+    TENANT_CONTEXT_INFO_KEY,
+    canonical_tenant_id,
+)
 
 
-TENANT_CONTEXT_GUC = "app.tenant_id"
+@event.listens_for(SyncSession, "after_begin")
+def _restore_transaction_tenant_context(session, transaction, connection) -> None:
+    """Re-apply bound tenant context whenever SQLAlchemy opens a transaction.
 
-
-def _canonical_tenant_id(tenant_id: str | UUID) -> str:
-    """Validate and normalize the tenant identifier used by PostgreSQL RLS."""
-    value = str(tenant_id).strip()
-    if not value:
-        raise ValueError("tenant_id is required")
-    try:
-        return str(UUID(value))
-    except (TypeError, ValueError, AttributeError) as exc:
-        raise ValueError("tenant_id must be a UUID") from exc
+    A route may commit and continue using the same session. PostgreSQL clears
+    SET LOCAL state at commit/rollback, so storing the validated tenant in
+    ``session.info`` lets every subsequent transaction restore the same
+    transaction-local context without making it connection-persistent.
+    """
+    tenant_id = session.info.get(TENANT_CONTEXT_INFO_KEY)
+    if tenant_id:
+        connection.execute(
+            text("SELECT set_config(:setting_name, :tenant_id, true)"),
+            {"setting_name": TENANT_CONTEXT_GUC, "tenant_id": tenant_id},
+        )
 
 
 async def set_transaction_tenant_context(
     session: AsyncSession,
     tenant_id: str | UUID,
 ) -> str:
-    """Set the tenant identifier for the current PostgreSQL transaction only.
+    """Bind validated tenant authority to the session and current transaction.
 
     ``set_config(..., true)`` is PostgreSQL's transaction-local equivalent of
-    ``SET LOCAL``. The value is discarded on COMMIT/ROLLBACK, preventing
-    tenant context from leaking through pooled connections.
+    ``SET LOCAL``. The value is discarded on COMMIT/ROLLBACK. The validated
+    tenant is retained only in the SQLAlchemy session's in-memory ``info``
+    map so subsequent transactions on the same request/worker session restore
+    the same transaction-local authority.
     """
-    normalized = _canonical_tenant_id(tenant_id)
+    normalized = canonical_tenant_id(tenant_id)
+    session.info[TENANT_CONTEXT_INFO_KEY] = normalized
     await session.execute(
         text("SELECT set_config(:setting_name, :tenant_id, true)"),
         {"setting_name": TENANT_CONTEXT_GUC, "tenant_id": normalized},
     )
     return normalized
+
+
+@asynccontextmanager
+async def tenant_session(tenant_id: str | UUID):
+    """Open a process-wide session already bound to one validated tenant."""
+    async with SessionFactory() as session:
+        await set_transaction_tenant_context(session, tenant_id)
+        yield session
 
 
 def _native_asyncpg_dsn(database_url: str) -> str:

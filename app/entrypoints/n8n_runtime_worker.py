@@ -8,7 +8,7 @@ import signal
 import httpx
 
 from app.core.config import settings
-from app.db.session import SessionFactory
+from app.db.session import SessionFactory, tenant_session
 from app.workers.n8n_runtime import (
     claim,
     dispatch_one,
@@ -34,7 +34,7 @@ async def run() -> None:
                 await expire_running(session)
                 rows = await claim(session, min(settings.n8n_concurrency, 25))
             for row in rows:
-                async with SessionFactory() as session:
+                async with tenant_session(row.tenant_id) as session:
                     await dispatch_one(session, row, client)
             try:
                 await asyncio.wait_for(stop.wait(), timeout=1.0 if rows else 2.0)

@@ -275,6 +275,27 @@ def test_safety_gate_requires_synthetic_tenant_registered_and_ready_adapter(test
     assert gate.evaluate(_subject(capability="UNLISTED_THING"), SafetyContext(adapter_registered=True, adapter_ready=True)).reason_code == "capability_without_safety_gate"
 
 
+def test_external_effect_denies_when_backlog_evidence_is_unavailable(
+    test_settings: Settings,
+) -> None:
+    gate = SafetyGate(test_settings, command_policies(test_settings))
+    decision = gate.evaluate(
+        _subject(
+            command_type="crm.contact.create.v1",
+            target="odoo-19",
+            capability="ODOO_WRITE",
+        ),
+        SafetyContext(
+            adapter_registered=True,
+            adapter_ready=True,
+            tenant_backlog=0,
+            global_backlog=None,
+        ),
+    )
+    assert not decision.allow
+    assert "global_backlog_unavailable" in decision.reason_codes
+
+
 def test_safety_gate_bounds_backlog_and_tenant_rate(test_settings: Settings) -> None:
     clock = [0.0]
     gate = SafetyGate(test_settings, command_policies(test_settings), clock=lambda: clock[0])

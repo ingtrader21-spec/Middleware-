@@ -151,6 +151,11 @@
           "request": {
             "header": [
               {
+                "key": "X-Codestra-Tenant-ID",
+                "type": "text",
+                "value": "{{x_codestra_tenant_id}}"
+              },
+              {
                 "key": "Authorization",
                 "type": "text",
                 "value": "Bearer {{bearer_token}}"
@@ -186,6 +191,11 @@
               "raw": "{\n  \"reason\": \"\"\n}"
             },
             "header": [
+              {
+                "key": "X-Codestra-Tenant-ID",
+                "type": "text",
+                "value": "{{x_codestra_tenant_id}}"
+              },
               {
                 "key": "Authorization",
                 "type": "text",
@@ -229,6 +239,11 @@
             },
             "header": [
               {
+                "key": "X-Codestra-Tenant-ID",
+                "type": "text",
+                "value": "{{x_codestra_tenant_id}}"
+              },
+              {
                 "key": "Authorization",
                 "type": "text",
                 "value": "Bearer {{bearer_token}}"
@@ -271,6 +286,11 @@
             },
             "header": [
               {
+                "key": "X-Codestra-Tenant-ID",
+                "type": "text",
+                "value": "{{x_codestra_tenant_id}}"
+              },
+              {
                 "key": "Authorization",
                 "type": "text",
                 "value": "Bearer {{bearer_token}}"
@@ -312,6 +332,11 @@
               "raw": "{\n  \"reason\": \"\"\n}"
             },
             "header": [
+              {
+                "key": "X-Codestra-Tenant-ID",
+                "type": "text",
+                "value": "{{x_codestra_tenant_id}}"
+              },
               {
                 "key": "Authorization",
                 "type": "text",
