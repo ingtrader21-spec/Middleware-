@@ -736,7 +736,7 @@ APPROVED_JOB_EXECUTABLE_CONFIGURATION_SHA256: dict[str, dict[str, str]] = {
         ".github/workflows/connector-runtime-api-ci.yml": "81f2f839027549babbfe716279aade07fc8fec43db5a403203030e3e4f54591a",
         ".github/workflows/connector-storage-ci.yml": "eada698e8756b76431a43f8d54d1aa192b9d964bca9a5e76d90476f35135bc7a",
         ".github/workflows/lead-automation-v1.yml": "9cdf5b9ce21f528bb8d0cb29b170586d212f5dfeb0e4ad237bb531a41bd89274",
-        ".github/workflows/integrated-monitoring.yml": "fe6e01bdd31ba806981128c0a55e20d33a605509e5d56584433f82203203d193",
+        ".github/workflows/integrated-monitoring.yml": "5ff25b02bf824ebf3f2bedae3542cc8b13fac6b44f7f46d18086d5b8b73cc35e",
         ".github/workflows/odoo-calling-contract.yml": (
             "03d93c41717cf69ac764a9665eb42fb71"
             "7d342aef6ff1fc52f8d050f7feb580d"
