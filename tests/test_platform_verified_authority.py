@@ -22,7 +22,7 @@ AUDIENCE = "platform-test-api"
 REQUEST = "d335d985-287e-4e13-a76a-19d651fb566e"
 SERVICE = {
     "service_id": "sample-api", "owner": "platform", "tenant_mode": "multi-tenant",
-    "type": "api", "repository": "appolon1908-hue/sample-api", "environments": ["staging"],
+    "type": "api", "repository": "ingtrader21-spec/sample-api", "environments": ["staging"],
     "dependencies": [], "data_classification": "confidential", "slo_profile": "customer-api",
     "alert_profile": "business-critical",
 }
@@ -130,6 +130,21 @@ def test_missing_identity_configuration_and_anonymous_fail_closed(authority, cli
     db.execute.assert_not_awaited()
 
 
+@pytest.mark.parametrize("action", ["activate", "decommission"])
+def test_missing_service_lifecycle_rolls_back_before_404(authority, client_and_db, action):
+    client, db = client_and_db
+    db.execute.return_value = Result(None)
+
+    response = client.post(
+        f"/platform/v1/services/missing-service/{action}",
+        headers={"Authorization": "Bearer " + authority(scope="platform.services.write")},
+    )
+
+    assert response.status_code == 404
+    db.rollback.assert_awaited_once()
+    db.commit.assert_not_awaited()
+
+
 def test_verified_catalog_write_and_read_only_denial(authority, client_and_db):
     client, db = client_and_db
     response = client.post("/platform/v1/services", json=SERVICE, headers={"Authorization": "Bearer " + authority()})
@@ -193,5 +208,18 @@ def test_validation_evidence_failure_never_updates_state(authority, client_and_d
     body = {key: True for key in CertificationSubmission.model_fields if key != "reason"}
     body.update(reason="Reviewed immutable no-effect evidence", tenant_isolation=False)
     response = client.post(f"/platform/v1/provisioning/requests/{REQUEST}/validate", json=body, headers={"Authorization": "Bearer " + authority(scope="platform.provisioning.validate")})
+    assert response.status_code == 422
+    db.execute.assert_not_awaited()
+
+
+def test_legacy_repository_owner_is_rejected(authority, client_and_db):
+    client, db = client_and_db
+    body = dict(SERVICE)
+    body["repository"] = "appolon1908-hue/sample-api"
+    response = client.post(
+        "/platform/v1/services",
+        json=body,
+        headers={"Authorization": "Bearer " + authority()},
+    )
     assert response.status_code == 422
     db.execute.assert_not_awaited()

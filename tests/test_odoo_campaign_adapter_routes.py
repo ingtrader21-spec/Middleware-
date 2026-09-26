@@ -426,6 +426,28 @@ def test_n8n_submit_fails_closed_when_writes_are_disabled(
     assert db.added == []
 
 
+def test_split_runtime_rejects_malformed_legacy_n8n_result_with_422(
+    integration_client,
+):
+    response = integration_client.post(
+        "/api/v1/integrations/n8n/results",
+        json={},
+        headers={
+            "Authorization": "Bearer synthetic",
+            "Idempotency-Key": "malformed-result-1",
+        },
+    )
+
+    assert response.status_code == 422, response.text
+    detail = response.json()["detail"]
+    assert {item["loc"][-1] for item in detail} == {
+        "command_id",
+        "status",
+        "correlation_id",
+        "trace_id",
+    }
+
+
 def test_monolith_routes_n8n_submit_to_the_jwt_standard_result_handler(
     client, monkeypatch
 ):

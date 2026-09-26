@@ -31,7 +31,7 @@ from app.secret_reference import SecretReferenceError, parse_references, referen
 
 router = APIRouter(prefix="/platform/v1", tags=["platform-service-catalog"])
 SERVICE_ID = re.compile(r"^[a-z][a-z0-9-]{1,62}$")
-REPOSITORY = re.compile(r"^appolon1908-hue/[A-Za-z0-9._-]+$")
+REPOSITORY = re.compile(r"^ingtrader21-spec/[A-Za-z0-9._-]+$")
 ENVIRONMENTS = {"development", "test", "staging", "production"}
 ADMIN_ROLES = {"platform_admin", "platform_reviewer"}
 
@@ -62,7 +62,7 @@ class ServiceCreate(MonitoringDescriptor):
     @classmethod
     def repository_is_governed(cls, value: str) -> str:
         if not REPOSITORY.fullmatch(value):
-            raise ValueError("repository must belong to appolon1908-hue")
+            raise ValueError("repository must belong to ingtrader21-spec")
         return value
 
     @field_validator("environments")
@@ -387,9 +387,10 @@ async def service_state(service_id: str, target: str, role: str, db: AsyncSessio
     require_role(role, {"platform_admin"})
     result = await db.execute(text("UPDATE platform_services SET state=:state,updated_at=:now WHERE service_id=:id RETURNING id"), {"state": target, "now": now(), "id": service_id})
     updated = result.scalar_one_or_none()
-    await db.commit()
     if updated is None:
+        await db.rollback()
         raise HTTPException(404, "service not found")
+    await db.commit()
     return {"service_id": service_id, "state": target}
 
 

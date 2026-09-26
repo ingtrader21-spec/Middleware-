@@ -17,6 +17,7 @@ import os
 import runpy
 import shutil
 import subprocess
+import stat
 import sys
 from pathlib import Path
 
@@ -661,3 +662,18 @@ def test_trust_derivation_check_passes() -> None:
     assert "ACTIVE_STALE_AFTER=0" in result.stdout
     assert "STRUCTURAL_EXCEPTION_COUNT=1" in result.stdout
     assert "UNKNOWN_TRUST_TABLES=0" in result.stdout
+
+
+def test_trust_derivation_atomic_apply_preserves_executable_mode(tmp_path: Path) -> None:
+    target = tmp_path / "validator.py"
+    target.write_text("print(old)\n", encoding="utf-8")
+    target.chmod(0o755)
+
+    changed = derive.atomic_apply(
+        tmp_path,
+        {"validator.py": b"print(new)\n"},
+    )
+
+    assert changed == ["validator.py"]
+    assert target.read_text(encoding="utf-8") == "print(new)\n"
+    assert stat.S_IMODE(target.stat().st_mode) == 0o755

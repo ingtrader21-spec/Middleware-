@@ -688,7 +688,10 @@ async def test_reexecute_creates_a_new_governed_operation(harness: Harness) -> N
     with pytest.raises(ReplayNotAllowed, match="new idempotency key"):
         await harness.kernel.replay(TENANT, command.command_id, principal=operator, mode=ReplayMode.REEXECUTE, idempotency_key="replay-0003", expected_version=1, reason="r")
     replayed = await harness.kernel.replay(TENANT, command.command_id, principal=operator, mode=ReplayMode.REEXECUTE, idempotency_key="replay-0003", expected_version=1, reason="r", new_idempotency_key="idem-new-00000002")
+    retry = await harness.kernel.replay(TENANT, command.command_id, principal=operator, mode=ReplayMode.REEXECUTE, idempotency_key="replay-0003", expected_version=1, reason="r", new_idempotency_key="idem-new-00000002")
     assert replayed.command_id != command.command_id
+    assert retry.command_id == replayed.command_id
+    assert retry.duplicate is True
     events = await harness.commands.list_events(TENANT, replayed.command_id, limit=5)
     assert events[0].safe_metadata["replay_mode"] == "REEXECUTE"
     assert events[0].safe_metadata["replay_of"] == str(command.command_id)
@@ -729,3 +732,22 @@ def test_test_syn_policy_is_never_registered_in_production(test_settings: Settin
     registry = command_policies(production, CommandPolicyRegistry((CommandPolicy("crm.", "odoo-19", "ODOO_WRITE", True),), {"ODOO_WRITE": False}))
     assert registry.resolve("test.syn.execute.v1") is None
     assert "TEST_SYN_EXECUTE" not in registry.capabilities
+
+
+def test_postgres_reconciliation_resolution_action_matches_runtime_schema() -> None:
+    import re
+    from pathlib import Path
+
+    from app import commands
+
+    allowed: set[str] | None = None
+    root = Path(__file__).resolve().parents[1]
+    for path in sorted((root / "migrations").glob("[0-9][0-9][0-9][0-9]_*.sql")):
+        for statement in path.read_text(encoding="utf-8").split(";"):
+            if "middleware_operation_mutations" not in statement:
+                continue
+            for match in re.finditer(r"CHECK\s*\(\s*action\s+IN\s*\(([^)]*)\)", statement):
+                allowed = {item.strip().strip("'") for item in match.group(1).split(",")}
+    assert allowed == {"cancel", "reconcile", "retry"}
+    assert commands.RESOLVE_RECONCILIATION_ACTION in allowed
+    assert commands.RESOLVE_RECONCILIATION_KEY_PREFIX == "resolve:"

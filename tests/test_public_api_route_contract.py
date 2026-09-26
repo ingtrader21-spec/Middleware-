@@ -155,6 +155,33 @@ def test_contract_declares_the_four_canonical_routes_with_exact_scopes():
     assert FORBIDDEN_SCOPE not in CONTRACT.read_text(encoding="utf-8")
 
 
+def test_kernel_operational_routes_use_kernel_clients_and_scopes():
+    rows = {(r["method"], r["path"]): r for r in contract()["routes"]}
+    read_paths = (
+        "/platform/v1/adapters",
+        "/platform/v1/adapters/{adapter_id}",
+        "/platform/v1/connectors",
+        "/platform/v1/connectors/{connector_id}",
+        "/platform/v1/dead-letters",
+        "/platform/v1/dead-letters/{operation_id}",
+        "/platform/v1/reconciliation",
+        "/platform/v1/reconciliation/{operation_id}",
+    )
+    replay_paths = (
+        "/platform/v1/dead-letters/{operation_id}/replay",
+        "/platform/v1/reconciliation/{operation_id}/readback",
+        "/platform/v1/reconciliation/{operation_id}/resolve",
+    )
+    for path in read_paths:
+        row = rows[("GET", path)]
+        assert row["calling_client"] == "platform-command-client"
+        assert row["scope"] == "platform.command.read"
+    for path in replay_paths:
+        row = rows[("POST", path)]
+        assert row["calling_client"] == "platform-command-client"
+        assert row["scope"] == "platform.command.replay"
+
+
 def test_contract_and_shared_route_policy_are_the_same_table():
     rows = {
         (r["method"], r["path"]): r.get("scope")
