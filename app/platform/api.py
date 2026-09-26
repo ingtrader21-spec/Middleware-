@@ -32,8 +32,8 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 from app.api_inputs import optional_header, required_header
 from app.commands import API_OPERATION_STATES, CommandCapabilityDisabled, CommandCapabilityUnknown, CommandEnvelope, CommandNotFound, CommandOperation, OperationEvent, redact_metadata
-from app.platform.kernel import PLATFORM_OPERATOR_ROLE, SCOPE_COMMAND, SCOPE_COMMAND_READ, SCOPE_COMMAND_REPLAY, AdapterNotFound, CapabilityUnknown
-from app.platform.principal import KernelPrincipal, authorize, authenticate
+from app.platform.kernel import PLATFORM_OPERATOR_ROLE, SCOPE_COMMAND, SCOPE_COMMAND_READ, SCOPE_COMMAND_REPLAY, AdapterNotFound
+from app.platform.principal import AuthorizationDecision, KernelPrincipal, authorize, authenticate
 from app.platform.resilience import ReplayMode
 from app.security import AuthorizationError, RequestValidationError
 from app.storage import RUNTIME_SCHEMA_VERSION, StorageError
@@ -437,6 +437,50 @@ def _respond(
 def _request_correlation(request: Request) -> str:
     return optional_header(request, "X-Correlation-ID", minimum=1, maximum=180) or f"request-{uuid4()}"
 
+
+async def _authorize_and_audit(
+    request: Request,
+    principal: KernelPrincipal,
+    *,
+    action: str,
+    resource: str,
+    tenant_id: str,
+    required_scopes: tuple[str, ...] = (),
+    effect_class: str = "read",
+    environment: str = "production",
+) -> AuthorizationDecision:
+    decision = authorize(
+        principal,
+        action=action,
+        resource=resource,
+        tenant_id=tenant_id,
+        required_scopes=required_scopes,
+        effect_class=effect_class,
+        environment=environment,
+    )
+    runtime = getattr(request.app.state, "runtime", None)
+    pool = getattr(runtime, "pool", None)
+    if pool is not None:
+        from app.platform.persistence import record_authorization_decision
+
+        correlation_id = getattr(request.state, "correlation_id", None)
+        if not isinstance(correlation_id, str) or not correlation_id:
+            correlation_id = _request_correlation(request)
+        await record_authorization_decision(
+            pool,
+            tenant_id=decision.tenant_id,
+            resource=decision.resource,
+            action=decision.action,
+            principal_id=decision.principal_id,
+            decision_code=decision.decision_code,
+            allowed=decision.allowed,
+            correlation_id=correlation_id,
+            effect_class=decision.effect_class,
+            matched_policy=decision.matched_policy,
+        )
+    return decision
+
+
 def _trace(request: Request) -> dict[str, str]:
     trace: dict[str, str] = {}
     for name in TRACE_HEADERS:
@@ -472,7 +516,8 @@ async def submit_command(body: KernelCommandRequest, request: Request) -> JSONRe
     command = body.envelope(target=policy.target, capability=policy.capability)
     # Authentication-derived facts are never trusted from the body. The
     # centralized default-deny decision model is the one admission authority.
-    decision = authorize(
+    decision = await _authorize_and_audit(
+        request,
         principal,
         action="command.create",
         resource=f"command:{command.command_type}",
@@ -937,7 +982,8 @@ async def list_adapters(request: Request) -> JSONResponse:
     principal = await authenticate(request, required_scope=SCOPE_COMMAND_READ)
     runtime, platform = _runtime(request)
     tenant_id = _tenant_for_read(request, principal)
-    decision = authorize(
+    decision = await _authorize_and_audit(
+        request,
         principal,
         action="connector.read",
         resource="connector:*",
@@ -959,7 +1005,8 @@ async def get_adapter(adapter_id: Annotated[str, Path(pattern=ADAPTER_ID_PATTERN
     principal = await authenticate(request, required_scope=SCOPE_COMMAND_READ)
     runtime, platform = _runtime(request)
     tenant_id = _tenant_for_read(request, principal)
-    decision = authorize(
+    decision = await _authorize_and_audit(
+        request,
         principal,
         action="connector.read",
         resource=f"connector:{adapter_id}",
