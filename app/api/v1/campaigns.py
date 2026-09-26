@@ -56,7 +56,7 @@ from app.db.models import (
     CampaignRegistry,
     TelephonyCallLifecycle,
 )
-from app.db.session import get_session
+from app.db.session import get_session, set_transaction_tenant_context
 
 router = APIRouter(prefix="/platform/v1/campaigns", tags=["campaigns"])
 
@@ -102,6 +102,7 @@ async def list_campaigns(
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
     require_tenant_match(principal, tenant_id)
+    await set_transaction_tenant_context(session, tenant_id)
     stmt = (
         select(CampaignRegistry)
         .where(CampaignRegistry.campaign_code == tenant_id)
@@ -141,6 +142,7 @@ async def get_campaign(
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
     require_tenant_match(principal, tenant_id)
+    await set_transaction_tenant_context(session, tenant_id)
     registry = await _registry_row(session, campaign_id, tenant_id)
     return _campaign_out(registry)
 
@@ -159,6 +161,7 @@ async def list_campaign_members(
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
     require_tenant_match(principal, tenant_id)
+    await set_transaction_tenant_context(session, tenant_id)
     await _registry_row(session, campaign_id, tenant_id)
 
     since = datetime.now(UTC) - RECENT_ACTIVE_WINDOW
@@ -200,6 +203,7 @@ async def get_campaign_channels(
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
     require_tenant_match(principal, tenant_id)
+    await set_transaction_tenant_context(session, tenant_id)
     await _registry_row(session, campaign_id, tenant_id)
 
     latest = (
@@ -259,6 +263,7 @@ async def get_campaign_health(
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
     require_tenant_match(principal, tenant_id)
+    await set_transaction_tenant_context(session, tenant_id)
     await _registry_row(session, campaign_id, tenant_id)
 
     since = datetime.now(UTC) - RECENT_HEALTH_WINDOW

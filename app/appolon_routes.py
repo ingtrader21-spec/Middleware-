@@ -77,6 +77,7 @@ router = APIRouter(tags=["appolon-control-plane"])
 
 class TicketConsumeRequest(BaseModel):
     ticket: str = Field(min_length=32, max_length=512)
+    tenant_id: str = Field(min_length=1, max_length=128)
 
 
 # ----------------------------------------------------------------------
@@ -321,8 +322,11 @@ def install_canonical_openapi(app: FastAPI) -> None:
 # ----------------------------------------------------------------------
 @router.post("/internal/v1/realtime/tickets/consume", include_in_schema=False)
 async def consume_realtime_ticket(body: TicketConsumeRequest, request: Request) -> JSONResponse:
-    await authorize_realtime(request, "realtime.ticket.consume")
-    principal = await realtime_store(request).consume_ticket(body.ticket, datetime.now(UTC))
+    claims = await authorize_realtime(request, "realtime.ticket.consume")
+    authorize_tenant(claims, body.tenant_id)
+    principal = await realtime_store(request).consume_ticket(
+        body.ticket, datetime.now(UTC), body.tenant_id
+    )
     if principal is None:
         raise AuthenticationError("ticket is invalid, expired, or already consumed")
     return JSONResponse(
@@ -460,6 +464,7 @@ async def get_communication_by_idempotency(request: Request) -> CommunicationMes
 async def list_communication_messages(request: Request) -> JSONResponse:
     tenant_id = await _authorize_communication_read(request)
     service = communications_service(request)
+    await service.store.load_tenant(tenant_id)
     return JSONResponse(
         status_code=200,
         content=Paged(
@@ -552,9 +557,11 @@ async def get_communication_usage(
     to: AwareDatetime | None = Query(None),
 ) -> JSONResponse:
     tenant_id = await _authorize_communication_read(request)
+    service = communications_service(request)
+    await service.store.load_tenant(tenant_id)
     messages = [
         item
-        for item in communications_service(request).list_messages(tenant_id)
+        for item in service.list_messages(tenant_id)
         if item.direction == "outbound"
     ]
     return JSONResponse(

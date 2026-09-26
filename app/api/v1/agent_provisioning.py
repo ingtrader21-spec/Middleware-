@@ -68,6 +68,7 @@ from app.core.provisioning_auth import (
     require_current_policy_revision,
     require_provisioning_scope,
     require_tenant_match,
+    resolve_tenant_context,
 )
 from app.db.models import (
     AgentProvisioningAudit,
@@ -76,7 +77,7 @@ from app.db.models import (
     IdempotencyRecord,
     OutboxEvent,
 )
-from app.db.session import get_session
+from app.db.session import get_session, set_transaction_tenant_context
 
 router = APIRouter(prefix="/platform/v1/agent-provisioning", tags=["agent-provisioning"])
 
@@ -818,7 +819,8 @@ async def create_provisioning_request(
     principal: ProvisioningPrincipal = Depends(require_provisioning_scope("identity.request")),
     session: AsyncSession = Depends(get_session),
 ):
-    require_tenant_match(principal, body.tenant_id)
+    tenant_id = resolve_tenant_context(principal, body.tenant_id)
+    await set_transaction_tenant_context(session, tenant_id)
     require_current_policy_revision(x_policy_revision)
 
     correlation_id = x_correlation_id or str(uuid4())
@@ -879,9 +881,12 @@ async def create_provisioning_request(
 @router.get("/requests/{request_id}")
 async def get_provisioning_request(
     request_id: UUID,
+    x_tenant_id: str | None = Header(default=None, alias="X-Codestra-Tenant-ID"),
     principal: ProvisioningPrincipal = Depends(require_provisioning_scope("identity.request")),
     session: AsyncSession = Depends(get_session),
 ):
+    tenant_id = resolve_tenant_context(principal, x_tenant_id)
+    await set_transaction_tenant_context(session, tenant_id)
     request = await _get_request(request_id, session)
     require_tenant_match(principal, request.tenant_id)
     steps = await _steps_for(session, request)
@@ -890,8 +895,9 @@ async def get_provisioning_request(
 
 async def _transition(
     request_id: UUID, body: TransitionRequest, action: Literal["reconcile", "suspend", "reactivate", "revoke"],
-    principal: ProvisioningPrincipal, session: AsyncSession,
+    principal: ProvisioningPrincipal, session: AsyncSession, tenant_id: str,
 ) -> dict:
+    await set_transaction_tenant_context(session, tenant_id)
     request = await _get_request(request_id, session, for_update=True)
     require_tenant_match(principal, request.tenant_id)
     if request.state in TERMINAL_REVOKED_STATES:
@@ -963,34 +969,42 @@ async def _transition(
 @router.post("/requests/{request_id}/reconcile")
 async def reconcile_provisioning_request(
     request_id: UUID, body: TransitionRequest,
+    x_tenant_id: str | None = Header(default=None, alias="X-Codestra-Tenant-ID"),
     principal: ProvisioningPrincipal = Depends(require_provisioning_scope("identity.request")),
     session: AsyncSession = Depends(get_session),
 ):
-    return await _transition(request_id, body, "reconcile", principal, session)
+    tenant_id = resolve_tenant_context(principal, x_tenant_id)
+    return await _transition(request_id, body, "reconcile", principal, session, tenant_id)
 
 
 @router.post("/requests/{request_id}/suspend")
 async def suspend_provisioning_request(
     request_id: UUID, body: TransitionRequest,
+    x_tenant_id: str | None = Header(default=None, alias="X-Codestra-Tenant-ID"),
     principal: ProvisioningPrincipal = Depends(require_provisioning_scope("identity.request")),
     session: AsyncSession = Depends(get_session),
 ):
-    return await _transition(request_id, body, "suspend", principal, session)
+    tenant_id = resolve_tenant_context(principal, x_tenant_id)
+    return await _transition(request_id, body, "suspend", principal, session, tenant_id)
 
 
 @router.post("/requests/{request_id}/reactivate")
 async def reactivate_provisioning_request(
     request_id: UUID, body: TransitionRequest,
+    x_tenant_id: str | None = Header(default=None, alias="X-Codestra-Tenant-ID"),
     principal: ProvisioningPrincipal = Depends(require_provisioning_scope("identity.request")),
     session: AsyncSession = Depends(get_session),
 ):
-    return await _transition(request_id, body, "reactivate", principal, session)
+    tenant_id = resolve_tenant_context(principal, x_tenant_id)
+    return await _transition(request_id, body, "reactivate", principal, session, tenant_id)
 
 
 @router.post("/requests/{request_id}/revoke")
 async def revoke_provisioning_request(
     request_id: UUID, body: TransitionRequest,
+    x_tenant_id: str | None = Header(default=None, alias="X-Codestra-Tenant-ID"),
     principal: ProvisioningPrincipal = Depends(require_provisioning_scope("identity.request")),
     session: AsyncSession = Depends(get_session),
 ):
-    return await _transition(request_id, body, "revoke", principal, session)
+    tenant_id = resolve_tenant_context(principal, x_tenant_id)
+    return await _transition(request_id, body, "revoke", principal, session, tenant_id)

@@ -11,6 +11,8 @@ import json
 from typing import Any
 from uuid import UUID
 
+from app.db.tenant_context import asyncpg_tenant_connection
+
 from .calling_contract import (
     CAPABILITY, CLIENT_ID, HANGUP, ORIGINATE, TARGET, TERMINAL_CALL_STATES,
     CallPrincipal, CallingGrant, OriginateRequest, operation_identity,
@@ -78,7 +80,7 @@ class CallingLedger:
         document: CommandEnvelope | None
         original: CommandEnvelope | None
         if isinstance(self.store, PostgresCommandStore):
-            async with self.store.pool.acquire() as conn:
+            async with asyncpg_tenant_connection(self.store.pool, principal.tenant_id) as conn:
                 row = await conn.fetchrow(
                     "SELECT payload,payload_sha256 FROM middleware_commands "
                     "WHERE tenant_id=$1 AND command_id=$2", principal.tenant_id, str(operation_id),
@@ -103,7 +105,7 @@ class CallingLedger:
         except (KeyError, TypeError, ValueError):
             raise CommandNotFound("calling request was not found") from None
         if isinstance(self.store, PostgresCommandStore):
-            async with self.store.pool.acquire() as conn:
+            async with asyncpg_tenant_connection(self.store.pool, principal.tenant_id) as conn:
                 original_row = await conn.fetchrow(
                     "SELECT payload,payload_sha256 FROM middleware_commands "
                     "WHERE tenant_id=$1 AND command_id=$2",
@@ -182,7 +184,7 @@ class CallingLedger:
                         for value in (f"calling:{principal.tenant_id}:{principal.employee_id}",
                                       f"calling-phone:{principal.tenant_id}:{principal.extension}",
                                       f"calling-grant:{principal.tenant_id}:{grant.authorization_reference}")})
-        async with self.store.pool.acquire() as conn:
+        async with asyncpg_tenant_connection(self.store.pool, principal.tenant_id) as conn:
             async with conn.transaction():
                 for lock in locks:
                     await conn.execute("SELECT pg_advisory_xact_lock($1)", lock)

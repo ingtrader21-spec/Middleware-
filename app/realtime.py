@@ -9,6 +9,7 @@ from typing import Any, AsyncIterator, Protocol
 
 import asyncpg
 
+from app.db.tenant_context import asyncpg_tenant_connection
 from .storage import StorageError
 
 
@@ -44,7 +45,7 @@ class RealtimeEvent:
 
 
 class RealtimeStore(Protocol):
-    async def consume_ticket(self, ticket: str, now: datetime) -> RealtimePrincipal | None: ...
+    async def consume_ticket(self, ticket: str, now: datetime, tenant_id: str) -> RealtimePrincipal | None: ...
     async def events_after(self, *, tenant_id: str, campaign_id: str,
                            agent_id: str, after: int, limit: int) -> list[RealtimeEvent]: ...
     async def ready(self) -> bool: ...
@@ -71,11 +72,16 @@ class MemoryRealtimeStore:
         async with self._lock:
             self._events.append(event)
 
-    async def consume_ticket(self, ticket: str, now: datetime) -> RealtimePrincipal | None:
+    async def consume_ticket(self, ticket: str, now: datetime, tenant_id: str) -> RealtimePrincipal | None:
         digest = ticket_sha256(ticket)
         async with self._lock:
             item = self._tickets.get(digest)
-            if item is None or item[1] or item[0].expires_at <= now:
+            if (
+                item is None
+                or item[1]
+                or item[0].expires_at <= now
+                or item[0].tenant_id != tenant_id
+            ):
                 return None
             self._tickets[digest] = (item[0], True)
             return item[0]
@@ -102,14 +108,18 @@ class PostgresRealtimeStore:
     async def connect(cls, database_url: str) -> PostgresRealtimeStore:
         return cls(await asyncpg.create_pool(database_url, min_size=1, max_size=5))
 
-    async def consume_ticket(self, ticket: str, now: datetime) -> RealtimePrincipal | None:
+    async def consume_ticket(
+        self, ticket: str, now: datetime, tenant_id: str
+    ) -> RealtimePrincipal | None:
         try:
-            row = await self.pool.fetchrow(
-                """UPDATE middleware_realtime_tickets SET consumed_at=$2
-                   WHERE ticket_sha256=$1 AND consumed_at IS NULL AND expires_at>$2
-                   RETURNING tenant_id,campaign_id,agent_id,role,expires_at""",
-                ticket_sha256(ticket), now,
-            )
+            async with asyncpg_tenant_connection(self.pool, tenant_id) as conn:
+                row = await conn.fetchrow(
+                    """UPDATE middleware_realtime_tickets SET consumed_at=$3
+                       WHERE ticket_sha256=$1 AND tenant_id=$2
+                         AND consumed_at IS NULL AND expires_at>$3
+                       RETURNING tenant_id,campaign_id,agent_id,role,expires_at""",
+                    ticket_sha256(ticket), tenant_id, now,
+                )
         except Exception as exc:
             raise StorageError("realtime ticket store is unavailable") from exc
         if row is None:
@@ -119,13 +129,14 @@ class PostgresRealtimeStore:
     async def events_after(self, *, tenant_id: str, campaign_id: str,
                            agent_id: str, after: int, limit: int) -> list[RealtimeEvent]:
         try:
-            rows = await self.pool.fetch(
-                """SELECT sequence,tenant_id,campaign_id,agent_id,event_type,payload,occurred_at
-                   FROM middleware_realtime_events
-                   WHERE tenant_id=$1 AND campaign_id=$2 AND agent_id=$3 AND sequence>$4
-                   ORDER BY sequence LIMIT $5""",
-                tenant_id, campaign_id, agent_id, after, limit,
-            )
+            async with asyncpg_tenant_connection(self.pool, tenant_id) as conn:
+                rows = await conn.fetch(
+                    """SELECT sequence,tenant_id,campaign_id,agent_id,event_type,payload,occurred_at
+                       FROM middleware_realtime_events
+                       WHERE tenant_id=$1 AND campaign_id=$2 AND agent_id=$3 AND sequence>$4
+                       ORDER BY sequence LIMIT $5""",
+                    tenant_id, campaign_id, agent_id, after, limit,
+                )
         except Exception as exc:
             raise StorageError("realtime event store is unavailable") from exc
         return [RealtimeEvent(**dict(row)) for row in rows]
