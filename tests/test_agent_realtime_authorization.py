@@ -224,10 +224,11 @@ async def _seed_provisioning_extension_step(
         await session.execute(
             text(
                 """INSERT INTO agent_provisioning_step
-                   (id, request_id, system, operation, attempt, state,
+                   (id, request_id, tenant_id, system, operation, attempt, state,
                     external_reference, created_at)
-                   VALUES (gen_random_uuid(), :request_id, 'vicidial', :operation,
-                           1, 'succeeded', :extension, now())"""
+                   SELECT gen_random_uuid(), id, tenant_id, 'vicidial', :operation,
+                          1, 'succeeded', :extension, now()
+                   FROM agent_provisioning_request WHERE id=:request_id"""
             ),
             {
                 "request_id": request_id,

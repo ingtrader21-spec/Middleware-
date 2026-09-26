@@ -48,7 +48,7 @@ from app.core.provisioning_auth import (
     require_tenant_match,
 )
 from app.db.models import AgentProvisioningAudit, AuditEvent
-from app.db.session import get_session
+from app.db.session import get_session, set_transaction_tenant_context
 
 router = APIRouter(prefix="/platform/v1/activity", tags=["activity"])
 
@@ -114,6 +114,7 @@ async def list_activity(
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
     require_tenant_match(principal, tenant_id)
+    await set_transaction_tenant_context(session, tenant_id)
 
     fetch_n = max(limit * 3, limit)  # over-fetch each source before merge/sort
 
@@ -182,6 +183,7 @@ async def get_activity(
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
     require_tenant_match(principal, tenant_id)
+    await set_transaction_tenant_context(session, tenant_id)
 
     if ":" not in activity_id:
         raise HTTPException(422, "malformed activity_id")

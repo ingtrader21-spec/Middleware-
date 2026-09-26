@@ -277,9 +277,9 @@ async def test_denials_are_audited_and_backlog_is_bounded(pool: asyncpg.Pool, mo
     assert row["action"] == "safety_deny" and row["new_state"] == "denied"
     assert "capability" in row["metadata"] and "secret" not in row["metadata"].lower()
     tenant_active, global_active = await stack.commands.backlog(TENANT)
-    assert tenant_active == 0 and global_active == 0
+    assert tenant_active == 0 and global_active is None
     await stack.submit(_envelope())
-    assert await stack.commands.backlog(TENANT) == (1, 1)
+    assert await stack.commands.backlog(TENANT) == (1, None)
 
 
 @pytest.mark.asyncio

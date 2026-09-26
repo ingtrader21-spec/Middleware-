@@ -101,6 +101,25 @@ def require_tenant_match(principal: ProvisioningPrincipal, tenant_id: str) -> No
         raise HTTPException(403, "tenant claim does not cover the requested tenant")
 
 
+def resolve_tenant_context(
+    principal: ProvisioningPrincipal,
+    requested_tenant: str | None = None,
+) -> str:
+    """Resolve exactly one verified tenant for PostgreSQL transaction binding.
+
+    Explicit tenant selection must be covered by the verified token. A
+    single-tenant token may omit the selector. Multi-tenant tokens must state
+    which authorized tenant is being addressed; no wildcard or implicit
+    first-tenant fallback is permitted.
+    """
+    if requested_tenant is not None:
+        require_tenant_match(principal, requested_tenant)
+        return requested_tenant
+    if len(principal.tenant_ids) == 1:
+        return next(iter(principal.tenant_ids))
+    raise HTTPException(403, "explicit authorized tenant context required")
+
+
 def require_current_policy_revision(policy_revision: str) -> None:
     if policy_revision != settings.agent_provisioning_policy_revision:
         raise HTTPException(409, "stale policy revision")

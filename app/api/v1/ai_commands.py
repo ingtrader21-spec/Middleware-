@@ -10,12 +10,11 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.ai_console import Tenant, tenant
+from app.api.v1.ai_console import Tenant, tenant, tenant_db_session
 from app.core import ai_orchestration
 from app.core.ai_contracts import AICommand
 from app.core.config import settings
 from app.core.ai_metrics import COMMANDS, QUOTA_REJECTIONS
-from app.db.session import get_session
 
 
 class StrictModel(BaseModel):
@@ -43,7 +42,7 @@ def correlation(value: Annotated[str, Header(alias="X-Correlation-ID")]) -> str:
 async def submit_command(
     command: AICommand,
     subject: Tenant = Depends(tenant),
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(tenant_db_session),
 ) -> dict[str, Any]:
     if not settings.ai_submissions_enabled or not settings.ai_orchestration_enabled:
         raise HTTPException(503, "AI_TEMPORARILY_UNAVAILABLE")
@@ -67,7 +66,7 @@ async def submit_command(
 async def get_command(
     command_id: UUID,
     subject: Tenant = Depends(tenant),
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(tenant_db_session),
 ) -> dict[str, Any]:
     try:
         return await ai_orchestration.get(
@@ -82,7 +81,7 @@ async def cancel_command(
     command_id: UUID,
     subject: Tenant = Depends(tenant),
     correlation_id: str = Depends(correlation),
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(tenant_db_session),
 ) -> dict[str, Any]:
     try:
         state = await ai_orchestration.cancel(
@@ -102,7 +101,7 @@ async def cancel_command(
 async def get_result(
     command_id: UUID,
     subject: Tenant = Depends(tenant),
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(tenant_db_session),
 ) -> dict[str, Any]:
     try:
         return await ai_orchestration.result(
@@ -146,7 +145,7 @@ async def approve(
     body: Decision,
     subject: Tenant = Depends(tenant),
     correlation_id: str = Depends(correlation),
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(tenant_db_session),
 ) -> dict[str, Any]:
     return await _decision(command_id, body, subject, correlation_id, db, True)
 
@@ -157,14 +156,14 @@ async def reject(
     body: Decision,
     subject: Tenant = Depends(tenant),
     correlation_id: str = Depends(correlation),
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(tenant_db_session),
 ) -> dict[str, Any]:
     return await _decision(command_id, body, subject, correlation_id, db, False)
 
 
 @router.get("/capabilities")
 async def capabilities(
-    _: Tenant = Depends(tenant), db: AsyncSession = Depends(get_session)
+    _: Tenant = Depends(tenant), db: AsyncSession = Depends(tenant_db_session)
 ) -> dict[str, Any]:
     rows = (
         (
@@ -184,7 +183,7 @@ async def capabilities(
 
 @router.get("/usage")
 async def usage(
-    subject: Tenant = Depends(tenant), db: AsyncSession = Depends(get_session)
+    subject: Tenant = Depends(tenant), db: AsyncSession = Depends(tenant_db_session)
 ) -> dict[str, Any]:
     row = (
         (

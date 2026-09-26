@@ -64,6 +64,7 @@ async def test_communication_projection_survives_restart() -> None:
 
     reopened = await PostgresCommunicationsStore.connect(database_url)
     try:
+        await reopened.load_tenant(tenant_id)
         assert reopened.messages[(tenant_id, message_id)].status == "queued"
         assert [event.type for event in reopened.events[(tenant_id, message_id)]] == [
             "queued"
@@ -95,6 +96,7 @@ async def test_stale_worker_cannot_overwrite_newer_projection() -> None:
         )
         await writer.persist()
         stale = await PostgresCommunicationsStore.connect(database_url)
+        await stale.load_tenant(tenant_id)
 
         writer.messages[(tenant_id, message_id)] = writer.messages[
             (tenant_id, message_id)

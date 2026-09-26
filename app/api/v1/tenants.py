@@ -31,7 +31,7 @@ from app.core.provisioning_auth import (
     require_tenant_match,
 )
 from app.db.models import AgentCallState, CampaignRegistry
-from app.db.session import get_session
+from app.db.session import get_session, set_transaction_tenant_context
 
 router = APIRouter(prefix="/platform/v1/tenants", tags=["tenants"])
 TENANT_DIRECTORY_ROLES = frozenset({"platform_admin", "platform_operator"})
@@ -148,6 +148,7 @@ async def list_tenant_campaigns(
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
     require_tenant_match(principal, tenant_id)
+    await set_transaction_tenant_context(session, tenant_id)
     rows = (
         (
             await session.execute(
@@ -197,6 +198,7 @@ async def get_tenant_health(
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
     require_tenant_match(principal, tenant_id)
+    await set_transaction_tenant_context(session, tenant_id)
     campaign_ids = list(
         (
             await session.execute(

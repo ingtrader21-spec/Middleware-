@@ -11,6 +11,8 @@ from typing import Any, Literal, Mapping, Protocol
 
 import asyncpg
 
+from app.db.tenant_context import asyncpg_tenant_connection
+
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -342,6 +344,9 @@ class MemoryCommunicationsStore:
     async def ready(self) -> bool:
         return True
 
+    async def load_tenant(self, tenant_id: str) -> None:
+        return None
+
     async def persist(self) -> None:
         return None
 
@@ -424,7 +429,7 @@ class PostgresCommunicationsStore(MemoryCommunicationsStore):
     async def refresh_idempotency(
         self, tenant_id: str, route: str, idempotency_key: str
     ) -> None:
-        async with self.pool.acquire() as conn:
+        async with asyncpg_tenant_connection(self.pool, tenant_id) as conn:
             row = await conn.fetchrow(
                 "SELECT i.request_sha256,i.message_id,m.payload "
                 "FROM middleware_communication_idempotency i "
@@ -454,7 +459,7 @@ class PostgresCommunicationsStore(MemoryCommunicationsStore):
         existing = await super().message_by_operation(tenant_id, operation_id)
         if existing is not None:
             return existing
-        async with self.pool.acquire() as conn:
+        async with asyncpg_tenant_connection(self.pool, tenant_id) as conn:
             row = await conn.fetchrow(
                 "SELECT payload FROM middleware_communication_messages "
                 "WHERE tenant_id=$1 AND payload->>'operationId'=$2 LIMIT 1",
@@ -476,7 +481,7 @@ class PostgresCommunicationsStore(MemoryCommunicationsStore):
     ) -> CommunicationMessage:
         # Read the durable projection for every reconciliation. A different API
         # process or event worker may have accepted or updated this message.
-        async with self.pool.acquire() as conn:
+        async with asyncpg_tenant_connection(self.pool, tenant_id) as conn:
             raw = await conn.fetchval(
                 "SELECT m.payload FROM middleware_communication_idempotency i "
                 "JOIN middleware_communication_messages m "
@@ -494,91 +499,198 @@ class PostgresCommunicationsStore(MemoryCommunicationsStore):
     @classmethod
     async def connect(cls, database_url: str) -> "PostgresCommunicationsStore":
         pool = await asyncpg.create_pool(database_url, min_size=1, max_size=5)
-        store = cls(pool)
-        await store._load()
-        return store
+        return cls(pool)
 
-    async def _load(self) -> None:
-        async with self.pool.acquire() as conn:
-            for row in await conn.fetch("SELECT payload FROM middleware_communication_messages"):
+    async def load_tenant(self, tenant_id: str) -> None:
+        """Hydrate only the authenticated tenant's durable projection."""
+        async with asyncpg_tenant_connection(self.pool, tenant_id) as conn:
+            for row in await conn.fetch(
+                "SELECT payload FROM middleware_communication_messages WHERE tenant_id=$1",
+                tenant_id,
+            ):
                 raw = row["payload"]
-                message = (CommunicationMessage.model_validate_json(raw) if isinstance(raw, str) else CommunicationMessage.model_validate(raw))
+                message = (
+                    CommunicationMessage.model_validate_json(raw)
+                    if isinstance(raw, str)
+                    else CommunicationMessage.model_validate(raw)
+                )
                 self.synchronize_durable_message(message)
-            for row in await conn.fetch("SELECT tenant_id,payload FROM middleware_communication_events ORDER BY occurred_at,id"):
+            for row in await conn.fetch(
+                """SELECT tenant_id,payload FROM middleware_communication_events
+                   WHERE tenant_id=$1 ORDER BY occurred_at,id""",
+                tenant_id,
+            ):
                 raw = row["payload"]
-                event = (MessageEvent.model_validate_json(raw) if isinstance(raw, str) else MessageEvent.model_validate(raw))
-                self.events.setdefault((row["tenant_id"], event.messageId), []).append(event)
-            for row in await conn.fetch("SELECT tenant_id,route,idempotency_key,request_sha256,message_id FROM middleware_communication_idempotency"):
-                self.idempotency[(row["tenant_id"], row["route"], row["idempotency_key"])] = (row["request_sha256"], row["message_id"])
-            for row in await conn.fetch("SELECT tenant_id,provider_event_id,request_sha256 FROM middleware_communication_provider_events"):
-                self.provider_event_digests[(row["tenant_id"], row["provider_event_id"])] = row["request_sha256"]
-            for row in await conn.fetch("SELECT tenant_id,channel,subject FROM middleware_communication_suppressions"):
-                self.suppressions.add((row["tenant_id"], row["channel"], row["subject"]))
-            for row in await conn.fetch("SELECT tenant_id,message_id,idempotency_key FROM middleware_communication_cancellations"):
-                self.cancellations.add((row["tenant_id"], row["message_id"], row["idempotency_key"]))
+                event = (
+                    MessageEvent.model_validate_json(raw)
+                    if isinstance(raw, str)
+                    else MessageEvent.model_validate(raw)
+                )
+                key = (row["tenant_id"], event.messageId)
+                timeline = self.events.setdefault(key, [])
+                if not any(item.eventId == event.eventId for item in timeline):
+                    timeline.append(event)
+            for row in await conn.fetch(
+                """SELECT tenant_id,route,idempotency_key,request_sha256,message_id
+                   FROM middleware_communication_idempotency WHERE tenant_id=$1""",
+                tenant_id,
+            ):
+                self.idempotency[
+                    (row["tenant_id"], row["route"], row["idempotency_key"])
+                ] = (row["request_sha256"], row["message_id"])
+            for row in await conn.fetch(
+                """SELECT tenant_id,provider_event_id,request_sha256
+                   FROM middleware_communication_provider_events WHERE tenant_id=$1""",
+                tenant_id,
+            ):
+                self.provider_event_digests[
+                    (row["tenant_id"], row["provider_event_id"])
+                ] = row["request_sha256"]
+            for row in await conn.fetch(
+                """SELECT tenant_id,channel,subject
+                   FROM middleware_communication_suppressions WHERE tenant_id=$1""",
+                tenant_id,
+            ):
+                self.suppressions.add(
+                    (row["tenant_id"], row["channel"], row["subject"])
+                )
+            for row in await conn.fetch(
+                """SELECT tenant_id,message_id,idempotency_key
+                   FROM middleware_communication_cancellations WHERE tenant_id=$1""",
+                tenant_id,
+            ):
+                self.cancellations.add(
+                    (row["tenant_id"], row["message_id"], row["idempotency_key"])
+                )
 
     async def persist(self) -> None:
-        persisted_messages: list[tuple[CommunicationMessage, tuple[datetime, str]]] = []
-        async with self.pool.acquire() as conn, conn.transaction():
-            for (tenant, message_id), message in self.messages.items():
-                snapshot = _message_snapshot(message)
-                previous = message._persisted_snapshot
-                if previous == snapshot:
-                    continue
-                if previous is None:
-                    written_at = await conn.fetchval(
-                        "INSERT INTO middleware_communication_messages"
-                        "(tenant_id,message_id,payload,updated_at) "
-                        "VALUES($1,$2,$3::jsonb,$4) "
-                        "ON CONFLICT(tenant_id,message_id) DO NOTHING "
-                        "RETURNING updated_at",
-                        tenant,
-                        message_id,
-                        message.model_dump_json(),
-                        message.updatedAt,
-                    )
-                else:
-                    written_at = await conn.fetchval(
-                        "UPDATE middleware_communication_messages "
-                        "SET payload=$3::jsonb,updated_at=$4 "
-                        "WHERE tenant_id=$1 AND message_id=$2 AND updated_at=$5 "
-                        "RETURNING updated_at",
-                        tenant,
-                        message_id,
-                        message.model_dump_json(),
-                        message.updatedAt,
-                        previous[0],
-                    )
-                if written_at is None:
-                    current = await conn.fetchval(
-                        "SELECT payload FROM middleware_communication_messages "
-                        "WHERE tenant_id=$1 AND message_id=$2",
-                        tenant,
-                        message_id,
-                    )
-                    if current is not None:
-                        durable = (
-                            CommunicationMessage.model_validate_json(current)
-                            if isinstance(current, str)
-                            else CommunicationMessage.model_validate(current)
+        """Persist cached state one tenant-bound transaction at a time."""
+        tenants = {
+            tenant for tenant, _ in self.messages
+        }
+        tenants.update(tenant for tenant, _ in self.events)
+        tenants.update(tenant for tenant, _, _ in self.idempotency)
+        tenants.update(tenant for tenant, _ in self.provider_event_digests)
+        tenants.update(
+            item[0] for item in self.suppressions if len(item) == 3
+        )
+        tenants.update(tenant for tenant, _, _ in self.cancellations)
+
+        persisted_messages: list[
+            tuple[CommunicationMessage, tuple[datetime, str]]
+        ] = []
+        for tenant in sorted(tenants):
+            async with asyncpg_tenant_connection(self.pool, tenant) as conn:
+                for (row_tenant, message_id), message in self.messages.items():
+                    if row_tenant != tenant:
+                        continue
+                    snapshot = _message_snapshot(message)
+                    previous = message._persisted_snapshot
+                    if previous == snapshot:
+                        continue
+                    if previous is None:
+                        written_at = await conn.fetchval(
+                            "INSERT INTO middleware_communication_messages"
+                            "(tenant_id,message_id,payload,updated_at) "
+                            "VALUES($1,$2,$3::jsonb,$4) "
+                            "ON CONFLICT(tenant_id,message_id) DO NOTHING "
+                            "RETURNING updated_at",
+                            tenant,
+                            message_id,
+                            message.model_dump_json(),
+                            message.updatedAt,
                         )
-                        self.synchronize_durable_message(durable)
-                    raise CommunicationsConflict(
-                        "communication message changed in another worker"
+                    else:
+                        written_at = await conn.fetchval(
+                            "UPDATE middleware_communication_messages "
+                            "SET payload=$3::jsonb,updated_at=$4 "
+                            "WHERE tenant_id=$1 AND message_id=$2 AND updated_at=$5 "
+                            "RETURNING updated_at",
+                            tenant,
+                            message_id,
+                            message.model_dump_json(),
+                            message.updatedAt,
+                            previous[0],
+                        )
+                    if written_at is None:
+                        current = await conn.fetchval(
+                            "SELECT payload FROM middleware_communication_messages "
+                            "WHERE tenant_id=$1 AND message_id=$2",
+                            tenant,
+                            message_id,
+                        )
+                        if current is not None:
+                            durable = (
+                                CommunicationMessage.model_validate_json(current)
+                                if isinstance(current, str)
+                                else CommunicationMessage.model_validate(current)
+                            )
+                            self.synchronize_durable_message(durable)
+                        raise CommunicationsConflict(
+                            "communication message changed in another worker"
+                        )
+                    persisted_messages.append((message, snapshot))
+                for (row_tenant, _), timeline in self.events.items():
+                    if row_tenant != tenant:
+                        continue
+                    for event in timeline:
+                        await conn.execute(
+                            "INSERT INTO middleware_communication_events"
+                            "(tenant_id,event_id,message_id,occurred_at,payload) "
+                            "VALUES($1,$2,$3,$4,$5::jsonb) "
+                            "ON CONFLICT(tenant_id,event_id) DO NOTHING",
+                            tenant,
+                            event.eventId,
+                            event.messageId,
+                            event.occurredAt,
+                            event.model_dump_json(),
+                        )
+                for (row_tenant, route, key), (
+                    digest,
+                    message_id,
+                ) in self.idempotency.items():
+                    if row_tenant != tenant:
+                        continue
+                    await conn.execute(
+                        "INSERT INTO middleware_communication_idempotency"
+                        "(tenant_id,route,idempotency_key,request_sha256,message_id) "
+                        "VALUES($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING",
+                        tenant,
+                        route,
+                        key,
+                        digest,
+                        message_id,
                     )
-                persisted_messages.append((message, snapshot))
-            for (tenant, _), timeline in self.events.items():
-                for event in timeline:
-                    await conn.execute("INSERT INTO middleware_communication_events(tenant_id,event_id,message_id,occurred_at,payload) VALUES($1,$2,$3,$4,$5::jsonb) ON CONFLICT(tenant_id,event_id) DO NOTHING", tenant, event.eventId, event.messageId, event.occurredAt, event.model_dump_json())
-            for (tenant, route, key), (digest, message_id) in self.idempotency.items():
-                await conn.execute("INSERT INTO middleware_communication_idempotency(tenant_id,route,idempotency_key,request_sha256,message_id) VALUES($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING", tenant, route, key, digest, message_id)
-            for (tenant, event_id), digest in self.provider_event_digests.items():
-                await conn.execute("INSERT INTO middleware_communication_provider_events(tenant_id,provider_event_id,request_sha256) VALUES($1,$2,$3) ON CONFLICT DO NOTHING", tenant, event_id, digest)
-            for item in self.suppressions:
-                if len(item) == 3:
-                    await conn.execute("INSERT INTO middleware_communication_suppressions(tenant_id,channel,subject) VALUES($1,$2,$3) ON CONFLICT DO NOTHING", *item)
-            for tenant, message_id, key in self.cancellations:
-                await conn.execute("INSERT INTO middleware_communication_cancellations(tenant_id,message_id,idempotency_key) VALUES($1,$2,$3) ON CONFLICT DO NOTHING", tenant, message_id, key)
+                for (row_tenant, event_id), digest in self.provider_event_digests.items():
+                    if row_tenant != tenant:
+                        continue
+                    await conn.execute(
+                        "INSERT INTO middleware_communication_provider_events"
+                        "(tenant_id,provider_event_id,request_sha256) "
+                        "VALUES($1,$2,$3) ON CONFLICT DO NOTHING",
+                        tenant,
+                        event_id,
+                        digest,
+                    )
+                for item in self.suppressions:
+                    if len(item) == 3 and item[0] == tenant:
+                        await conn.execute(
+                            "INSERT INTO middleware_communication_suppressions"
+                            "(tenant_id,channel,subject) "
+                            "VALUES($1,$2,$3) ON CONFLICT DO NOTHING",
+                            *item,
+                        )
+                for row_tenant, message_id, key in self.cancellations:
+                    if row_tenant != tenant:
+                        continue
+                    await conn.execute(
+                        "INSERT INTO middleware_communication_cancellations"
+                        "(tenant_id,message_id,idempotency_key) "
+                        "VALUES($1,$2,$3) ON CONFLICT DO NOTHING",
+                        tenant,
+                        message_id,
+                        key,
+                    )
         for message, snapshot in persisted_messages:
             message._persisted_snapshot = snapshot
 
@@ -664,6 +776,7 @@ class CommunicationsService:
     ) -> tuple[CommunicationMessage, bool]:
         route = "POST /v1/communications/messages"
         async with self.store.submission_lock(tenant_id, route, idempotency_key):
+            await self.store.load_tenant(tenant_id)
             await self.store.refresh_idempotency(tenant_id, route, idempotency_key)
             return await self._submit_message_unlocked(
                 request,
@@ -958,6 +1071,7 @@ class CommunicationsService:
         tenant_id: str,
         message_id: uuid.UUID,
     ) -> CommunicationMessage:
+        await self.store.load_tenant(tenant_id)
         message = self.get_message(tenant_id, message_id)
         if message.operationId is None:
             return message
@@ -1031,6 +1145,7 @@ class CommunicationsService:
         authorize_tenant(claims, tenant_id)
         if claims.get("sub") != actor:
             raise AuthorizationError("requested actor must equal token subject")
+        await self.store.load_tenant(tenant_id)
         message = self.get_cancellable_message_for_caller(
             tenant_id,
             message_id,

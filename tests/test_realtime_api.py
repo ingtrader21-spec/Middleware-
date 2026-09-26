@@ -44,12 +44,27 @@ def test_ticket_is_consumed_exactly_once(test_settings) -> None:
         role="agent", expires_at=datetime.now(UTC) + timedelta(minutes=1))))
     with TestClient(create_app(settings=test_settings, runtime=_runtime(test_settings, store))) as client:
         headers = {"Authorization": "Bearer gateway-token"}
-        first = client.post("/internal/v1/realtime/tickets/consume", json={"ticket": ticket}, headers=headers)
-        second = client.post("/internal/v1/realtime/tickets/consume", json={"ticket": ticket}, headers=headers)
+        first = client.post("/internal/v1/realtime/tickets/consume", json={"ticket": ticket, "tenant_id": "tenant-1"}, headers=headers)
+        second = client.post("/internal/v1/realtime/tickets/consume", json={"ticket": ticket, "tenant_id": "tenant-1"}, headers=headers)
     assert first.status_code == 200
     assert first.json()["campaign_id"] == "campaign-1"
     assert first.headers["cache-control"] == "no-store"
     assert second.status_code == 401
+
+
+def test_ticket_consume_rejects_token_tenant_mismatch(test_settings) -> None:
+    store = MemoryRealtimeStore()
+    ticket = "c" * 32
+    asyncio.run(store.issue_for_test(ticket, RealtimePrincipal(
+        tenant_id="tenant-1", campaign_id="campaign-1", agent_id="agent-1",
+        role="agent", expires_at=datetime.now(UTC) + timedelta(minutes=1))))
+    with TestClient(create_app(settings=test_settings, runtime=_runtime(test_settings, store))) as client:
+        response = client.post(
+            "/internal/v1/realtime/tickets/consume",
+            json={"ticket": ticket, "tenant_id": "tenant-2"},
+            headers={"Authorization": "Bearer gateway-token"},
+        )
+    assert response.status_code == 403
 
 
 def test_concurrent_ticket_consumption_has_one_winner() -> None:
@@ -59,7 +74,7 @@ def test_concurrent_ticket_consumption_has_one_winner() -> None:
         await store.issue_for_test(ticket, RealtimePrincipal(
             "tenant-1", "campaign-1", "agent-1", "agent",
             datetime.now(UTC) + timedelta(minutes=1)))
-        return await asyncio.gather(*(store.consume_ticket(ticket, datetime.now(UTC)) for _ in range(20)))
+        return await asyncio.gather(*(store.consume_ticket(ticket, datetime.now(UTC), "tenant-1") for _ in range(20)))
     assert sum(item is not None for item in asyncio.run(scenario())) == 1
 
 
