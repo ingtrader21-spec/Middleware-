@@ -1,8 +1,11 @@
 """Private read-only PostgreSQL operational evidence API.
 
 No handler accepts SQL and no route applies migrations, backups, restores, or
-business/provider mutations. The surface is mounted only on the integration
-profile and must remain unreachable at the public edge.
+business/provider mutations. The router is part of the canonical application
+profiles for local/private operations, but every endpoint authenticates its
+caller and the public edge must deny ``/internal/*``. Authentication is
+evaluated before runtime/database availability so unauthenticated callers do
+not learn internal dependency state.
 """
 
 from __future__ import annotations
@@ -54,10 +57,13 @@ def _runtime(request: Request):
 
 
 async def _authorize(request: Request, required_scope: str) -> str:
-    runtime = _runtime(request)
+    # Authenticate before touching runtime/database state. This keeps private
+    # route existence and dependency availability non-disclosing when the
+    # runtime is unavailable, and matches the public-edge fail-closed contract.
     authorization = authorization_header(request)
+    caller = caller_for_authorization(authorization)
+    runtime = _runtime(request)
     try:
-        caller = caller_for_authorization(authorization)
         await runtime.tokens.verify(
             authorization,
             expected_client_id=caller.client_id,
