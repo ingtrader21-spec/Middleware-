@@ -20,7 +20,7 @@ tenant, scope, correlation ID, transport idempotency key, and
 ## Durable incident lifecycle
 
 Apply numbered migrations through the canonical head
-`0067_service_catalog_monitoring_state` before starting this service (the
+`0069_agent_provisioning_rls` before starting this service (the
 incident lifecycle tables were introduced in `0059_integrated_monitoring`). One PostgreSQL transaction records the incident projection,
 immutable timeline event, immutable audit evidence, durable command/outbox, and
 notification intent. Alert transition identity is derived from Alertmanager's

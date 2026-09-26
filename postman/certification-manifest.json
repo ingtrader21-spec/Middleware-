@@ -2,7 +2,7 @@
   "mission": "PAS-102 Middleware DB Postman staging certification",
   "repository": "ingtrader21-spec/Middleware-",
   "base_sha": "2862af0aa97367b18cb360af69212abe4243a1ac",
-  "expected_alembic_head": "0067_service_catalog_monitoring_state",
+  "expected_alembic_head": "0069_agent_provisioning_rls",
   "openapi": "contracts/platform/middleware-openapi.generated.json",
   "generated_collection": "postman/generated/Middleware-OpenAPI.postman_collection.json",
   "database_collection": "postman/collections/Middleware-V3-Database-Certification.postman_collection.json",

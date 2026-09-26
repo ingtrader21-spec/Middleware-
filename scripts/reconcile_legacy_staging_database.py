@@ -35,7 +35,7 @@ from sqlalchemy.engine import Connection
 LEGACY_SOURCE_SHA = "b29db772ed82c0d2f1adfdb8e6da58d4baa77524"
 LEGACY_HEAD = "0058_odoo_delivery_sources"
 SHARED_HEAD = "0056_klyrow_delivery_events"
-TARGET_HEAD = "0067_service_catalog_monitoring_state"
+TARGET_HEAD = "0069_agent_provisioning_rls"
 LEGACY_ENDPOINT_ID = "55000000-0000-4000-8000-000000000021"
 CANONICAL_ENDPOINT_ID = "66000000-0000-4000-8000-000000000012"
 PROVIDER_ENDPOINT_KEY = "odoo.provider_activities.create"

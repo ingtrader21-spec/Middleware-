@@ -37,14 +37,14 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Any, Literal
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -71,7 +71,10 @@ from app.core.provisioning_auth import (
 )
 from app.db.models import (
     AgentProvisioningAudit,
+    AgentProvisioningRepairIntent,
     AgentProvisioningRequest,
+    AgentWebrtcSession,
+    TelephonyExtensionReservation,
     AgentProvisioningStep,
     IdempotencyRecord,
     OutboxEvent,
@@ -175,6 +178,21 @@ class TransitionRequest(BaseModel):
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
+
+
+async def _set_provisioning_rls_context(
+    session: AsyncSession, principal: ProvisioningPrincipal
+) -> None:
+    """Bind verified provisioning tenant authority to the DB transaction.
+
+    PostgreSQL RLS consumes only this transaction-local setting.  An empty
+    tenant set is never converted into an all-tenant wildcard.
+    """
+    tenant_ids = json.dumps(sorted(principal.tenant_ids), separators=(",", ":"))
+    await session.execute(
+        text("SELECT set_config('app.tenant_ids', :tenant_ids, true)"),
+        {"tenant_ids": tenant_ids},
+    )
 
 
 def _hash(value: str) -> str:
@@ -818,6 +836,7 @@ async def create_provisioning_request(
 ):
     require_tenant_match(principal, body.tenant_id)
     require_current_policy_revision(x_policy_revision)
+    await _set_provisioning_rls_context(session, principal)
 
     correlation_id = x_correlation_id or str(uuid4())
     request_payload = body.model_dump(mode="json")
@@ -880,6 +899,7 @@ async def get_provisioning_request(
     principal: ProvisioningPrincipal = Depends(require_provisioning_scope("identity.request")),
     session: AsyncSession = Depends(get_session),
 ):
+    await _set_provisioning_rls_context(session, principal)
     request = await _get_request(request_id, session)
     require_tenant_match(principal, request.tenant_id)
     steps = await _steps_for(session, request)
@@ -890,6 +910,7 @@ async def _transition(
     request_id: UUID, body: TransitionRequest, action: Literal["reconcile", "suspend", "reactivate", "revoke"],
     principal: ProvisioningPrincipal, session: AsyncSession,
 ) -> dict:
+    await _set_provisioning_rls_context(session, principal)
     request = await _get_request(request_id, session, for_update=True)
     require_tenant_match(principal, request.tenant_id)
     if request.state in TERMINAL_REVOKED_STATES:
@@ -992,3 +1013,468 @@ async def revoke_provisioning_request(
     session: AsyncSession = Depends(get_session),
 ):
     return await _transition(request_id, body, "revoke", principal, session)
+
+class ExtensionActionRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    tenant_id: str = Field(min_length=1, max_length=64)
+    employee_id: str = Field(min_length=1, max_length=128)
+    campaign_id: str = Field(min_length=1, max_length=64)
+    extension_pool: str | None = Field(default=None, max_length=32)
+    extension: str | None = Field(default=None, pattern=r"^[0-9]{3,6}$")
+
+
+@router.get("/requests/{request_id}/history")
+async def provisioning_history(
+    request_id: UUID,
+    principal: ProvisioningPrincipal = Depends(
+        require_provisioning_scope("identity.request")
+    ),
+    session: AsyncSession = Depends(get_session),
+):
+    await _set_provisioning_rls_context(session, principal)
+    request = await _get_request(request_id, session)
+    require_tenant_match(principal, request.tenant_id)
+    steps = await _steps_for(session, request)
+    return {
+        "request_id": str(request.id),
+        "items": [
+            {
+                "system": step.system,
+                "operation": step.operation,
+                "attempt": step.attempt,
+                "state": step.state,
+                "provider_reference": step.external_reference,
+                "readback_state": step.readback_state,
+                "error_code": step.error_code,
+                "started_at": step.started_at,
+                "completed_at": step.completed_at,
+            }
+            for step in steps
+        ],
+    }
+
+
+@router.post("/{request_id}/sync")
+async def sync_agent(
+    request_id: UUID,
+    body: TransitionRequest,
+    principal: ProvisioningPrincipal = Depends(
+        require_provisioning_scope("identity.request")
+    ),
+    session: AsyncSession = Depends(get_session),
+):
+    return await _transition(request_id, body, "reconcile", principal, session)
+
+
+@router.post("/{request_id}/disable")
+async def disable_agent(
+    request_id: UUID,
+    body: TransitionRequest,
+    principal: ProvisioningPrincipal = Depends(
+        require_provisioning_scope("identity.request")
+    ),
+    session: AsyncSession = Depends(get_session),
+):
+    return await _transition(request_id, body, "revoke", principal, session)
+
+
+@router.get("/{request_id}/readback")
+async def provisioning_readback(
+    request_id: UUID,
+    principal: ProvisioningPrincipal = Depends(
+        require_provisioning_scope("identity.request")
+    ),
+    session: AsyncSession = Depends(get_session),
+):
+    await _set_provisioning_rls_context(session, principal)
+    request = await _get_request(request_id, session)
+    require_tenant_match(principal, request.tenant_id)
+    steps = await _steps_for(session, request)
+
+    latest: dict[str, dict[str, Any]] = {}
+    for step in steps:
+        latest[step.system] = {
+            "operation": step.operation,
+            "state": step.state,
+            "provider_reference": step.external_reference,
+            "readback_state": step.readback_state,
+            "observed_at": step.completed_at,
+        }
+
+    failed = [step for step in steps if step.state in {"failed", "blocked"}]
+    if not failed and request.state == "EFFECTIVE":
+        drift_class = "CONSISTENT"
+    elif any(step.readback_state in {None, "unknown"} for step in failed):
+        drift_class = "REMOTE_UNKNOWN"
+    else:
+        drift_class = "REPAIR_REQUIRED"
+
+    repairs: list[dict[str, Any]] = []
+    if drift_class != "CONSISTENT":
+        existing = (
+            await session.execute(
+                select(AgentProvisioningRepairIntent).where(
+                    AgentProvisioningRepairIntent.request_id == request.id,
+                    AgentProvisioningRepairIntent.state == "PROPOSED",
+                )
+            )
+        ).scalars().all()
+        if not existing:
+            intent = AgentProvisioningRepairIntent(
+                id=uuid4(),
+                request_id=request.id,
+                drift_class=drift_class,
+                proposed_action="sync_provider_state",
+            )
+            session.add(intent)
+            await session.commit()
+            existing = [intent]
+        repairs = [
+            {
+                "id": str(intent.id),
+                "drift_class": intent.drift_class,
+                "proposed_action": intent.proposed_action,
+                "state": intent.state,
+                "effect_class": intent.effect_class,
+            }
+            for intent in existing
+        ]
+
+    return {
+        "request_id": str(request.id),
+        "tenant_id": request.tenant_id,
+        "state": request.state,
+        "drift_class": drift_class,
+        "providers": latest,
+        "repair_intents": repairs,
+        "correlation_id": request.correlation_id,
+        "updated_at": request.updated_at,
+    }
+
+
+@router.post("/reserve-extension")
+async def reserve_agent_extension(
+    body: ExtensionActionRequest,
+    idempotency_key: str = Header(
+        ..., alias="Idempotency-Key", min_length=16, max_length=256
+    ),
+    principal: ProvisioningPrincipal = Depends(
+        require_provisioning_scope("integration.configure")
+    ),
+    session: AsyncSession = Depends(get_session),
+):
+    require_tenant_match(principal, body.tenant_id)
+    await _set_provisioning_rls_context(session, principal)
+
+    # Canonical telephony allocator remains the authority; provisioning only delegates.
+    from app.api.v1.telephony import ReserveRequest, reserve
+
+    if not body.extension_pool:
+        raise HTTPException(422, "extension_pool is required")
+
+    payload = ReserveRequest(
+        employee_id=body.employee_id,
+        request_id=f"agent:{body.employee_id}:{body.campaign_id}",
+        business_unit=body.campaign_id,
+        role_class=body.extension_pool,
+        idempotency_key=idempotency_key,
+        evidence_by_extension={},
+    )
+    return await reserve(payload, session)
+
+
+class WebRtcTicketRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    provisioning_request_id: UUID
+    campaign_id: str = Field(min_length=1, max_length=64)
+    extension: str = Field(pattern=r"^[0-9]{3,6}$")
+
+
+@router.post("/adopt-extension")
+async def adopt_agent_extension(
+    body: ExtensionActionRequest,
+    principal: ProvisioningPrincipal = Depends(
+        require_provisioning_scope("integration.configure")
+    ),
+    session: AsyncSession = Depends(get_session),
+):
+    require_tenant_match(principal, body.tenant_id)
+    await _set_provisioning_rls_context(session, principal)
+
+    if not body.extension:
+        raise HTTPException(422, "extension is required")
+
+    row = (
+        await session.execute(
+            select(AgentProvisioningRequest)
+            .where(
+                AgentProvisioningRequest.tenant_id == body.tenant_id,
+                AgentProvisioningRequest.employee_id == body.employee_id,
+            )
+            .order_by(AgentProvisioningRequest.created_at.desc())
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+    if row is None:
+        raise HTTPException(404, "provisioning request not found")
+    if not (settings.vicidial_write_enabled and settings.live_writes_enabled):
+        raise HTTPException(403, "EFFECT_DISABLED")
+
+    campaign = (row.campaigns_json or [{}])[0]
+    user_id = campaign.get("vicidial_user_id")
+    supervisor = campaign.get("vicidial_supervisor_subject")
+    if not user_id or not supervisor:
+        raise HTTPException(409, "VICIDIAL_PROVISIONING_FAILED")
+
+    result = VicidialMtlsClient(settings).adopt_extension(
+        {
+            "context": {
+                "tenant_id": row.tenant_id,
+                "business_unit": body.campaign_id,
+                "supervisor_subject": supervisor,
+            },
+            "reservation": {
+                "user_id": user_id,
+                "extension": body.extension,
+                "webrtc_enabled": bool(row.channels_json.get("webrtc")),
+            },
+        },
+        correlation_id=row.correlation_id,
+        request_id=row.request_id,
+    )
+    await _add_step(
+        session,
+        row,
+        system="vicidial",
+        operation="adopt_extension",
+        state="succeeded",
+        external_reference=str(body.extension),
+        readback_state="adopted",
+    )
+    await session.commit()
+    return {
+        "request_id": str(row.id),
+        "extension": body.extension,
+        "state": "ADOPTED",
+        "provider_reference": (
+            result.get("operation_id") if isinstance(result, dict) else None
+        ),
+    }
+
+
+@router.post("/{request_id}/release-extension")
+async def release_agent_extension(
+    request_id: UUID,
+    body: TransitionRequest,
+    principal: ProvisioningPrincipal = Depends(
+        require_provisioning_scope("integration.configure")
+    ),
+    session: AsyncSession = Depends(get_session),
+):
+    await _set_provisioning_rls_context(session, principal)
+    request = await _get_request(request_id, session, for_update=True)
+    require_tenant_match(principal, request.tenant_id)
+
+    active_session = (
+        await session.execute(
+            select(AgentWebrtcSession).where(
+                AgentWebrtcSession.request_id == request.id,
+                AgentWebrtcSession.state.in_(("ISSUED", "REGISTERING", "REGISTERED")),
+            )
+        )
+    ).scalar_one_or_none()
+    if active_session:
+        raise HTTPException(409, "EXTENSION_CONFLICT: active WebRTC session")
+
+    reservation = (
+        await session.execute(
+            select(TelephonyExtensionReservation)
+            .where(
+                TelephonyExtensionReservation.employee_id == request.employee_id,
+                TelephonyExtensionReservation.state.in_(
+                    ("RESERVED", "DISABLED_READY", "SUSPENDED")
+                ),
+            )
+            .with_for_update()
+        )
+    ).scalar_one_or_none()
+    if reservation is None:
+        return {"request_id": str(request.id), "state": "RELEASED", "replayed": True}
+
+    reservation.state = "RELEASED"
+    reservation.released_at = _now()
+    await _add_step(
+        session,
+        request,
+        system="vicidial",
+        operation="release_extension",
+        state="succeeded",
+        external_reference=str(reservation.extension),
+        readback_state="released",
+    )
+    await session.commit()
+    return {
+        "request_id": str(request.id),
+        "extension": reservation.extension,
+        "state": "RELEASED",
+        "replayed": False,
+    }
+
+
+@router.post("/webrtc/tickets", status_code=201)
+async def issue_webrtc_ticket(
+    body: WebRtcTicketRequest,
+    principal: ProvisioningPrincipal = Depends(
+        require_provisioning_scope("integration.configure")
+    ),
+    session: AsyncSession = Depends(get_session),
+):
+    await _set_provisioning_rls_context(session, principal)
+    request = await _get_request(body.provisioning_request_id, session, for_update=True)
+    require_tenant_match(principal, request.tenant_id)
+
+    if request.state not in {"EFFECTIVE", "PARTIAL"}:
+        raise HTTPException(409, "WEBRTC_PROVISIONING_FAILED: agent is not enabled")
+
+    campaigns = {campaign.get("campaign_id") for campaign in request.campaigns_json}
+    if body.campaign_id not in campaigns:
+        raise HTTPException(403, "CAMPAIGN_INVALID")
+
+    existing = (
+        await session.execute(
+            select(AgentWebrtcSession).where(
+                AgentWebrtcSession.tenant_id == request.tenant_id,
+                AgentWebrtcSession.employee_id == request.employee_id,
+                AgentWebrtcSession.state.in_(("ISSUED", "REGISTERING", "REGISTERED")),
+            )
+        )
+    ).scalar_one_or_none()
+    if existing:
+        raise HTTPException(409, "WEBRTC_SESSION_ALREADY_ACTIVE")
+    if not (settings.vicidial_write_enabled and settings.live_writes_enabled):
+        raise HTTPException(403, "EFFECT_DISABLED")
+
+    campaign = next(
+        campaign
+        for campaign in request.campaigns_json
+        if campaign.get("campaign_id") == body.campaign_id
+    )
+    user_id = campaign.get("vicidial_user_id")
+    supervisor = campaign.get("vicidial_supervisor_subject")
+    if not user_id or not supervisor:
+        raise HTTPException(409, "VICIDIAL_PROVISIONING_FAILED")
+
+    result = VicidialMtlsClient(settings).provision_webrtc(
+        {
+            "context": {
+                "tenant_id": request.tenant_id,
+                "business_unit": body.campaign_id,
+                "supervisor_subject": supervisor,
+            },
+            "webrtc": {"user_id": user_id},
+        },
+        correlation_id=request.correlation_id,
+        request_id=request.request_id,
+    )
+    ref = (
+        str(result.get("operation_id") or result.get("session_id") or uuid4())
+        if isinstance(result, dict)
+        else str(uuid4())
+    )
+    row = AgentWebrtcSession(
+        id=uuid4(),
+        request_id=request.id,
+        tenant_id=request.tenant_id,
+        employee_id=request.employee_id,
+        campaign_id=body.campaign_id,
+        extension=body.extension,
+        provider_reference=ref,
+        state="ISSUED",
+        expires_at=_now() + timedelta(minutes=5),
+        correlation_id=request.correlation_id,
+    )
+    session.add(row)
+    await _add_step(
+        session,
+        request,
+        system="vicidial",
+        operation="issue_webrtc_ticket",
+        state="succeeded",
+        external_reference=ref,
+        readback_state="issued",
+    )
+    await session.commit()
+
+    # Never persist or replay credential material; return one-time ticket fields only.
+    return {
+        "session_id": str(row.id),
+        "provider_reference": ref,
+        "expires_at": row.expires_at,
+        "ticket": result.get("ticket") if isinstance(result, dict) else None,
+    }
+
+
+@router.post("/{request_id}/webrtc/revoke")
+async def revoke_webrtc_session(
+    request_id: UUID,
+    body: TransitionRequest,
+    principal: ProvisioningPrincipal = Depends(
+        require_provisioning_scope("integration.configure")
+    ),
+    session: AsyncSession = Depends(get_session),
+):
+    await _set_provisioning_rls_context(session, principal)
+    request = await _get_request(request_id, session, for_update=True)
+    require_tenant_match(principal, request.tenant_id)
+
+    rows = list(
+        (
+            await session.execute(
+                select(AgentWebrtcSession)
+                .where(
+                    AgentWebrtcSession.request_id == request.id,
+                    AgentWebrtcSession.state.in_(
+                        ("ISSUED", "REGISTERING", "REGISTERED")
+                    ),
+                )
+                .with_for_update()
+            )
+        ).scalars().all()
+    )
+    if not rows:
+        return {"request_id": str(request.id), "state": "REVOKED", "replayed": True}
+
+    if settings.vicidial_write_enabled and settings.live_writes_enabled:
+        campaign = (request.campaigns_json or [{}])[0]
+        user_id = campaign.get("vicidial_user_id")
+        supervisor = campaign.get("vicidial_supervisor_subject")
+        if user_id and supervisor:
+            VicidialMtlsClient(settings).revoke_webrtc(
+                {
+                    "context": {
+                        "tenant_id": request.tenant_id,
+                        "business_unit": campaign.get("campaign_id"),
+                        "supervisor_subject": supervisor,
+                    },
+                    "user_id": user_id,
+                },
+                correlation_id=request.correlation_id,
+                request_id=request.request_id,
+            )
+
+    for row in rows:
+        row.state = "REVOKED"
+        row.revoked_at = _now()
+
+    await _add_step(
+        session,
+        request,
+        system="vicidial",
+        operation="revoke_webrtc",
+        state="succeeded",
+        readback_state="revoked",
+    )
+    await session.commit()
+    return {"request_id": str(request.id), "state": "REVOKED", "replayed": False}

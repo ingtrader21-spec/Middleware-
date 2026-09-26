@@ -267,7 +267,7 @@ def fake():
         {
             "git_sha": "a" * 40,
             "image_digest": "sha256:" + "b" * 64,
-            "schema_version": "0067_service_catalog_monitoring_state",
+            "schema_version": "0069_agent_provisioning_rls",
         },
     )
     yield server
@@ -447,7 +447,7 @@ def test_full_run_reads_actual_configuration_and_posts_observations(tmp_path, fa
         len(observed) == 1
         and observed[0]["body"]["observed_git_sha"] == "a" * 40
         and observed[0]["body"]["observed_migration_head"]
-        == "0067_service_catalog_monitoring_state"
+        == "0069_agent_provisioning_rls"
     )
     assert (
         observed[0]["body"]["source"] == "monitoring-collector-staging"
@@ -705,7 +705,7 @@ def test_version_endpoint_values_are_shape_checked(tmp_path, fake):
         {
             "git_sha": "not-a-sha",
             "image_digest": "latest",
-            "schema_version": "0067_service_catalog_monitoring_state",
+            "schema_version": "0069_agent_provisioning_rls",
         },
     )
     config = CollectorConfig.load(write_config(tmp_path, fake))
@@ -719,7 +719,7 @@ def test_version_endpoint_values_are_shape_checked(tmp_path, fake):
     )
     assert (
         observed[0]["body"]["observed_migration_head"]
-        == "0067_service_catalog_monitoring_state"
+        == "0069_agent_provisioning_rls"
     )
 
 
