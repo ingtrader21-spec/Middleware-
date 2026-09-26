@@ -506,8 +506,12 @@ async def replay_operation(operation_id: UUID, body: ReplayRequest, request: Req
 # ----------------------------------------------------------------------
 @router.get("/adapters")
 async def adapters(request: Request) -> JSONResponse:
-    await authenticate(request, required_scope=SCOPE_COMMAND_READ)
+    principal = await authenticate(request, required_scope=SCOPE_COMMAND_READ)
     _, platform = _runtime(request)
+    tenant_id = _tenant_for_read(request, principal)
+    decision = authorize(principal, action="connector.read", resource="connector:*", tenant_id=tenant_id, required_scopes=(SCOPE_COMMAND_READ,), environment=platform.settings.app_env)
+    if not decision.allowed:
+        raise AuthorizationError(decision.decision_code)
     body = await platform.adapter_readback()
     correlation_id = _request_correlation(request)
     return JSONResponse(status_code=200, content=body, headers={**_response_headers(correlation_id=correlation_id), "Cache-Control": "no-store"})
@@ -515,8 +519,12 @@ async def adapters(request: Request) -> JSONResponse:
 
 @router.get("/adapters/{adapter_id}")
 async def adapter(request: Request, adapter_id: str) -> JSONResponse:
-    await authenticate(request, required_scope=SCOPE_COMMAND_READ)
+    principal = await authenticate(request, required_scope=SCOPE_COMMAND_READ)
     _, platform = _runtime(request)
+    tenant_id = _tenant_for_read(request, principal)
+    decision = authorize(principal, action="connector.read", resource=f"connector:{adapter_id}", tenant_id=tenant_id, required_scopes=(SCOPE_COMMAND_READ,), environment=platform.settings.app_env)
+    if not decision.allowed:
+        raise AuthorizationError(decision.decision_code)
     body = await platform.adapter_readback()
     if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", adapter_id):
         raise RequestValidationError("invalid adapter id")
