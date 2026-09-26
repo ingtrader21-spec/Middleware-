@@ -23,12 +23,12 @@
     },
     {
       "family": "provisioning",
-      "ownership": "tenant_owned_inherited",
-      "parent_table": "agent_provisioning_request",
-      "remediation": "add explicit tenant_id and tenant-matching parent constraint",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
       "source": "migrations/versions/0060_agent_provisioning.py",
       "table": "agent_provisioning_audit",
-      "tenant_representation": "parent_join"
+      "tenant_representation": "tenant_id_not_null"
     },
     {
       "family": "provisioning",
@@ -41,12 +41,12 @@
     },
     {
       "family": "provisioning",
-      "ownership": "tenant_owned_inherited",
-      "parent_table": "agent_provisioning_request",
-      "remediation": "add explicit tenant_id and tenant-matching parent constraint",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
       "source": "migrations/versions/0060_agent_provisioning.py",
       "table": "agent_provisioning_step",
-      "tenant_representation": "parent_join"
+      "tenant_representation": "tenant_id_not_null"
     },
     {
       "family": "ai",
@@ -221,12 +221,12 @@
     },
     {
       "family": "telephony",
-      "ownership": "tenant_owned_inherited",
-      "parent_table": "callback_record",
-      "remediation": "add explicit tenant_id and tenant-matching parent constraint",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
       "source": "migrations/versions/0051_callback_management.py",
       "table": "callback_delivery",
-      "tenant_representation": "parent_join"
+      "tenant_representation": "tenant_id_not_null"
     },
     {
       "family": "telephony",
@@ -239,12 +239,12 @@
     },
     {
       "family": "telephony",
-      "ownership": "tenant_owned_inherited",
-      "parent_table": "callback_record",
-      "remediation": "add explicit tenant_id and tenant-matching parent constraint",
+      "ownership": "tenant_owned",
+      "parent_table": null,
+      "remediation": null,
       "source": "migrations/versions/0052_callback_rls_hardening.py",
       "table": "callback_popup_ack",
-      "tenant_representation": "parent_join"
+      "tenant_representation": "tenant_id_not_null"
     },
     {
       "family": "telephony",
