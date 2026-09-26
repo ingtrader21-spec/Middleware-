@@ -1,4 +1,4 @@
-﻿"""Command-kernel DLQ persistence/readback and guarded redrive."""
+"""Command-kernel DLQ persistence/readback and guarded redrive."""
 from __future__ import annotations
 from typing import Any
 from uuid import UUID

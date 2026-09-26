@@ -1,4 +1,4 @@
-﻿"""Deterministic command idempotency, retry classification, and dead-letter policy."""
+"""Deterministic command idempotency, retry classification, and dead-letter policy."""
 from __future__ import annotations
 import hashlib, json
 from dataclasses import dataclass
