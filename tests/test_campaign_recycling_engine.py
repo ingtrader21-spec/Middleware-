@@ -2,8 +2,11 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
+import pytest
+
 from app.core.campaign_recycling import (
     CampaignRecyclingEngine,
+    CampaignRecyclingPolicyError,
     Candidate,
     ChannelHealth,
     Exposure,
@@ -281,23 +284,14 @@ def test_next_action_document_redacts_candidates_without_changing_decision() -> 
     assert NEXT_ACTION_VALIDATOR.is_valid(document)
 
 
-def test_next_action_document_enforces_candidate_disclosure_limit() -> None:
+def test_next_action_document_allows_exact_candidate_disclosure_limit() -> None:
     lead = snapshot()
     candidates = [
-        candidate(
-            campaign_id=f"klyrow:cmp-{index:03d}",
-            priority=index,
-            active=False,
-        )
+        candidate(campaign_id=f"klyrow:cmp-{index:03d}", priority=index)
         for index in range(200)
     ]
-    candidates.append(
-        candidate(campaign_id="klyrow:cmp-selected", priority=200, active=True)
-    )
     decision = engine().evaluate(lead, candidates, now=NOW)
-    assert decision.selected is not None
-    assert decision.selected.campaign_id == "klyrow:cmp-selected"
-    assert decision.max_candidates_disclosed == 200
+    assert PolicyProfile.load("test").max_candidates_disclosed == 200
 
     document = next_action_document(
         decision,
@@ -307,14 +301,21 @@ def test_next_action_document_enforces_candidate_disclosure_limit() -> None:
         correlation_id="corr-mcr-contract-disclosure-limit",
     )
     assert len(document["candidates"]) == 200
-    assert document["selected"]["campaign_id"] == "klyrow:cmp-selected"
-    assert all(
-        item["campaign_id"] != "klyrow:cmp-selected"
-        for item in document["candidates"]
-    )
     assert NEXT_ACTION_VALIDATOR.is_valid(document), list(
         NEXT_ACTION_VALIDATOR.iter_errors(document)
     )
+
+
+def test_candidate_set_above_disclosure_limit_fails_closed() -> None:
+    candidates = [
+        candidate(campaign_id=f"klyrow:cmp-{index:03d}", priority=index)
+        for index in range(201)
+    ]
+    with pytest.raises(
+        CampaignRecyclingPolicyError,
+        match="candidate set exceeds decision.max_candidates_disclosed",
+    ):
+        engine().evaluate(snapshot(), candidates, now=NOW)
 
 
 def test_global_suppression_precedes_channel_suppression() -> None:

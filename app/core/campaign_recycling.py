@@ -178,7 +178,6 @@ class NextActionDecision:
     candidates: tuple[CandidateDecision, ...]
     next_eligible_at: datetime | None
     policy_version: str
-    max_candidates_disclosed: int | None
     decision_hash: str
 
 
@@ -242,6 +241,13 @@ class CampaignRecyclingEngine:
         evidence_stale_or_conflicting: bool = False,
     ) -> NextActionDecision:
         now = _utc(now or datetime.now(UTC))
+        if (
+            self.policy.max_candidates_disclosed is not None
+            and len(candidates) > self.policy.max_candidates_disclosed
+        ):
+            raise CampaignRecyclingPolicyError(
+                "candidate set exceeds decision.max_candidates_disclosed"
+            )
         ordered = sorted(
             candidates,
             key=lambda item: (
@@ -627,7 +633,6 @@ class CampaignRecyclingEngine:
             candidates=tuple(candidates),
             next_eligible_at=next_eligible_at,
             policy_version=self.policy.policy_version,
-            max_candidates_disclosed=self.policy.max_candidates_disclosed,
             decision_hash=digest,
         )
 
@@ -842,8 +847,6 @@ def next_action_document(
         }
     candidates = []
     if not candidates_redacted:
-        disclosure_limit = decision.max_candidates_disclosed or 0
-        visible_candidates = list(decision.candidates[:disclosure_limit])
         candidates = [
             {
                 "campaign_id": item.campaign_id,
@@ -852,7 +855,7 @@ def next_action_document(
                 "disposition": item.disposition,
                 "reason_codes": list(item.reason_codes),
             }
-            for item in visible_candidates
+            for item in decision.candidates
         ]
     return {
         "schema_version": "1.0",
