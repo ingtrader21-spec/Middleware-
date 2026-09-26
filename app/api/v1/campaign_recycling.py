@@ -519,8 +519,69 @@ def _handler(operation: dict):
     return handle
 
 
-for _path, _methods in API['paths'].items():
-    for _method, _operation in _methods.items():
-        router.add_api_route(_path, _handler(_operation), methods=[_method.upper()],
-            operation_id=_operation['operationId'], response_model=None,
-            openapi_extra=operation_contract(_path, _method))
+router.add_api_route(
+    "/platform/v1/campaign-engine/plan",
+    _handler(API["paths"]["/platform/v1/campaign-engine/plan"]["post"]),
+    methods=["POST"],
+    operation_id=API["paths"]["/platform/v1/campaign-engine/plan"]["post"]["operationId"],
+    response_model=None,
+    openapi_extra=operation_contract("/platform/v1/campaign-engine/plan", "post"),
+)
+router.add_api_route(
+    "/platform/v1/campaign-engine/execute",
+    _handler(API["paths"]["/platform/v1/campaign-engine/execute"]["post"]),
+    methods=["POST"],
+    operation_id=API["paths"]["/platform/v1/campaign-engine/execute"]["post"]["operationId"],
+    response_model=None,
+    openapi_extra=operation_contract("/platform/v1/campaign-engine/execute", "post"),
+)
+router.add_api_route(
+    "/platform/v1/leads/{lead_id}/journey",
+    _handler(API["paths"]["/platform/v1/leads/{lead_id}/journey"]["get"]),
+    methods=["GET"],
+    operation_id=API["paths"]["/platform/v1/leads/{lead_id}/journey"]["get"]["operationId"],
+    response_model=None,
+    openapi_extra=operation_contract("/platform/v1/leads/{lead_id}/journey", "get"),
+)
+router.add_api_route(
+    "/platform/v1/leads/{lead_id}/next-action",
+    _handler(API["paths"]["/platform/v1/leads/{lead_id}/next-action"]["get"]),
+    methods=["GET"],
+    operation_id=API["paths"]["/platform/v1/leads/{lead_id}/next-action"]["get"]["operationId"],
+    response_model=None,
+    openapi_extra=operation_contract("/platform/v1/leads/{lead_id}/next-action", "get"),
+)
+router.add_api_route(
+    "/platform/v1/campaigns/{campaign_id}/eligible-leads",
+    _handler(API["paths"]["/platform/v1/campaigns/{campaign_id}/eligible-leads"]["get"]),
+    methods=["GET"],
+    operation_id=API["paths"]["/platform/v1/campaigns/{campaign_id}/eligible-leads"]["get"]["operationId"],
+    response_model=None,
+    openapi_extra=operation_contract(
+        "/platform/v1/campaigns/{campaign_id}/eligible-leads", "get"
+    ),
+)
+router.add_api_route(
+    "/platform/v1/delivery-events",
+    _handler(API["paths"]["/platform/v1/delivery-events"]["post"]),
+    methods=["POST"],
+    operation_id=API["paths"]["/platform/v1/delivery-events"]["post"]["operationId"],
+    response_model=None,
+    openapi_extra=operation_contract("/platform/v1/delivery-events", "post"),
+)
+router.add_api_route(
+    "/platform/v1/suppressions",
+    _handler(API["paths"]["/platform/v1/suppressions"]["post"]),
+    methods=["POST"],
+    operation_id=API["paths"]["/platform/v1/suppressions"]["post"]["operationId"],
+    response_model=None,
+    openapi_extra=operation_contract("/platform/v1/suppressions", "post"),
+)
+router.add_api_route(
+    "/platform/v1/campaign-engine/status",
+    _handler(API["paths"]["/platform/v1/campaign-engine/status"]["get"]),
+    methods=["GET"],
+    operation_id=API["paths"]["/platform/v1/campaign-engine/status"]["get"]["operationId"],
+    response_model=None,
+    openapi_extra=operation_contract("/platform/v1/campaign-engine/status", "get"),
+)
