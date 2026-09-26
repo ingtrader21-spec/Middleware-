@@ -10,6 +10,8 @@ import re
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
+from app.api_inputs import required_header
+from app.core.header_authority import CORRELATION_ID, IDEMPOTENCY_KEY
 from fastapi.responses import StreamingResponse
 from fastapi.routing import APIRoute
 from sqlalchemy.exc import SQLAlchemyError
@@ -72,8 +74,8 @@ def get_backends(config=Depends(load_config)):
 
 
 def headers(request: Request):
-    key = request.headers.get("Idempotency-Key", "")
-    correlation = request.headers.get("X-Correlation-ID", "")
+    key = required_header(request, IDEMPOTENCY_KEY, minimum=1, maximum=128)
+    correlation = required_header(request, CORRELATION_ID, minimum=1, maximum=128)
     if not ID.fullmatch(key) or not ID.fullmatch(correlation):
         raise HTTPException(
             422, "bounded Idempotency-Key and X-Correlation-ID required"

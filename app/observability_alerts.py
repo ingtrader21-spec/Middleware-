@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from .api_inputs import authorization_header, optional_header, required_header
+from .core.header_authority import TENANT_ID, CORRELATION_ID, IDEMPOTENCY_KEY
+
 import hashlib
 import re
 import uuid
@@ -99,15 +102,15 @@ async def authorize(
     policy: AlertPolicy,
     correlation_fallback: str = "",
 ) -> tuple[str, str]:
-    tenant_id = request.headers.get("X-Tenant-ID", "").strip()
+    tenant_id = optional_header(request, TENANT_ID, minimum=1, maximum=128) or ""
     correlation_id = (
-        request.headers.get("X-Correlation-ID", "").strip() or correlation_fallback
+        optional_header(request, CORRELATION_ID, minimum=1, maximum=180) or correlation_fallback
     )
     if tenant_id != policy.tenant_id:
         raise AuthorizationError("observability tenant does not match the fixed policy")
     if not correlation_id or len(correlation_id) > 180:
         raise RequestValidationError("X-Correlation-ID is required")
-    authorization = request.headers.get("Authorization", "")
+    authorization = authorization_header(request)
     caller = caller_for_authorization(authorization)
     if caller.client_id != expected_client_id:
         raise AuthorizationError("caller is not authorized for observability alerts")
@@ -140,7 +143,7 @@ def problem(
     code: str,
 ) -> JSONResponse:
     correlation_id = (
-        request.headers.get("X-Correlation-ID", "").strip()
+        optional_header(request, CORRELATION_ID, minimum=1, maximum=180)
         or getattr(request.state, "correlation_id", "")
     )
     headers = {"X-Correlation-ID": correlation_id} if correlation_id else None
@@ -312,7 +315,7 @@ def create_app(
         native = native_header == "v4"
         if native:
             request.state.correlation_id = (
-                request.headers.get("X-Correlation-ID", "").strip()
+                optional_header(request, CORRELATION_ID, minimum=1, maximum=180)
                 or "alertmanager-native-" + uuid.uuid4().hex
             )
         actor, correlation_id = await authorize(
@@ -325,7 +328,7 @@ def create_app(
             else "",
         )
         request.state.correlation_id = correlation_id
-        supplied_idempotency = request.headers.get("Idempotency-Key", "").strip()
+        supplied_idempotency = optional_header(request, IDEMPOTENCY_KEY, minimum=1, maximum=180) or ""
         if (supplied_idempotency or not native) and not IDEMPOTENCY_RE.fullmatch(
             supplied_idempotency
         ):
@@ -493,7 +496,7 @@ def create_app(
             scope_kind="command",
             policy=active_policy,
         )
-        supplied_idempotency = request.headers.get("Idempotency-Key", "").strip()
+        supplied_idempotency = optional_header(request, IDEMPOTENCY_KEY, minimum=1, maximum=180) or ""
         if not IDEMPOTENCY_RE.fullmatch(supplied_idempotency):
             raise RequestValidationError("Idempotency-Key is required and malformed")
         raw = await read_bounded_json(request, maximum=active_policy.max_body_bytes)
@@ -668,7 +671,7 @@ def create_app(
             scope_kind="command",
             policy=active_policy,
         )
-        supplied_idempotency = request.headers.get("Idempotency-Key", "").strip()
+        supplied_idempotency = optional_header(request, IDEMPOTENCY_KEY, minimum=1, maximum=180) or ""
         if not IDEMPOTENCY_RE.fullmatch(supplied_idempotency):
             raise RequestValidationError("Idempotency-Key is required and malformed")
         raw = await read_bounded_json(request, maximum=16_384)
@@ -716,7 +719,7 @@ def create_app(
             scope_kind="command",
             policy=active_policy,
         )
-        supplied_idempotency = request.headers.get("Idempotency-Key", "").strip()
+        supplied_idempotency = optional_header(request, IDEMPOTENCY_KEY, minimum=1, maximum=180) or ""
         if not IDEMPOTENCY_RE.fullmatch(supplied_idempotency):
             raise RequestValidationError("Idempotency-Key is required and malformed")
         raw = await read_bounded_json(request, maximum=65_536)

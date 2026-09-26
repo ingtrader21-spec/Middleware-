@@ -7,6 +7,8 @@ from typing import Any
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
+from app.api_inputs import optional_header
+from app.core.header_authority import CORRELATION_ID, REQUEST_ID
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -88,8 +90,8 @@ def _require(permission: str, supplied: str | None) -> None:
 
 def _ids(request: Request) -> tuple[str, str]:
     return (
-        request.headers.get("X-Correlation-ID") or str(uuid4()),
-        request.headers.get("X-Request-ID") or str(uuid4()),
+        optional_header(request, CORRELATION_ID, minimum=1, maximum=180) or str(uuid4()),
+        optional_header(request, REQUEST_ID, minimum=1, maximum=180) or str(uuid4()),
     )
 
 
