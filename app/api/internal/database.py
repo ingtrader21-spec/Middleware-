@@ -342,6 +342,105 @@ async def rls(request: Request) -> dict[str, Any]:
     }
 
 
+_ROLE_ISOLATION_QUERY = """
+WITH me AS (SELECT * FROM pg_catalog.pg_roles WHERE rolname = current_user),
+public_tables AS (
+  SELECT c.relowner, c.relrowsecurity, c.relforcerowsecurity
+  FROM pg_catalog.pg_class c
+  JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+  WHERE n.nspname = 'public' AND c.relkind IN ('r', 'p')
+)
+SELECT me.rolname AS role_name,
+  session_user AS session_role_name,
+  current_user = session_user AS session_user_matches,
+  me.rolsuper AS superuser,
+  me.rolbypassrls AS bypassrls,
+  me.rolcreaterole AS createrole,
+  me.rolcreatedb AS createdb,
+  me.rolreplication AS replication,
+  (SELECT count(*) FROM pg_catalog.pg_roles r
+    WHERE r.oid <> me.oid AND (r.rolsuper OR r.rolbypassrls)
+      AND pg_catalog.pg_has_role(me.oid, r.oid, 'MEMBER')) AS elevated_role_memberships,
+  (SELECT count(*) FROM public_tables t
+    WHERE pg_catalog.pg_has_role(me.oid, t.relowner, 'USAGE')) AS owned_public_tables,
+  (SELECT count(DISTINCT t.relowner) FROM public_tables t
+    WHERE t.relowner <> me.oid
+      AND pg_catalog.pg_has_role(me.oid, t.relowner, 'SET')) AS settable_public_owner_roles,
+  (SELECT count(*) FROM public_tables t
+    WHERE t.relrowsecurity AND NOT t.relforcerowsecurity
+      AND pg_catalog.pg_has_role(me.oid, t.relowner, 'USAGE')) AS owned_rls_tables_without_force,
+  (SELECT count(DISTINCT t.relowner) FROM public_tables t
+    WHERE t.relowner <> me.oid
+      AND t.relrowsecurity AND NOT t.relforcerowsecurity
+      AND pg_catalog.pg_has_role(me.oid, t.relowner, 'SET')) AS settable_rls_owner_roles_without_force,
+  (SELECT count(*) FROM public_tables t
+    WHERE t.relrowsecurity AND t.relforcerowsecurity) AS forced_rls_tables,
+  pg_catalog.has_schema_privilege(me.oid, 'public', 'CREATE') AS public_schema_create
+FROM me
+"""
+
+
+@router.get("/security/roles")
+async def roles(request: Request) -> dict[str, Any]:
+    """Runtime-role isolation evidence (DB-19/DB-20 ROLE_ISOLATION precheck).
+
+    A superuser or BYPASSRLS role, a member of one, or the owner of a table
+    without FORCE ROW LEVEL SECURITY is not bound by tenant RLS policies; a
+    role that owns tables or may CREATE in ``public`` can run DDL. Any of these
+    means the runtime shares migration authority and is not isolated.
+    """
+    await _authorize(request, READ_SCOPE)
+    async with _runtime(request).pool.acquire() as conn:
+        row = await conn.fetchrow(_ROLE_ISOLATION_QUERY)
+    if row is None:
+        raise HTTPException(503, "database role unavailable")
+    flags = {
+        key: bool(row[key])
+        for key in (
+            "superuser",
+            "bypassrls",
+            "createrole",
+            "createdb",
+            "replication",
+            "public_schema_create",
+        )
+    }
+    counts = {
+        key: int(row[key] or 0)
+        for key in (
+            "elevated_role_memberships",
+            "owned_public_tables",
+            "settable_public_owner_roles",
+            "owned_rls_tables_without_force",
+            "settable_rls_owner_roles_without_force",
+            "forced_rls_tables",
+        )
+    }
+    session_user_matches = bool(row["session_user_matches"])
+    isolated = session_user_matches and not any(flags.values()) and not (
+        counts["elevated_role_memberships"]
+        or counts["owned_public_tables"]
+        or counts["settable_public_owner_roles"]
+    )
+    return {
+        "role_name": str(row["role_name"]),
+        "session_role_name": str(row["session_role_name"]),
+        "session_user_matches": session_user_matches,
+        **flags,
+        **counts,
+        "rls_bypass_possible": bool(
+            not session_user_matches
+            or flags["superuser"]
+            or flags["bypassrls"]
+            or counts["elevated_role_memberships"]
+            or counts["owned_rls_tables_without_force"]
+            or counts["settable_rls_owner_roles_without_force"]
+        ),
+        "runtime_role_isolated": isolated,
+        "evidence_only": True,
+    }
+
+
 @router.get("/performance")
 async def performance(request: Request) -> dict[str, Any]:
     await _authorize(request, READ_SCOPE)
