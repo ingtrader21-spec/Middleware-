@@ -12,7 +12,7 @@
     "imageRepository": "ghcr.io/ingtrader21-spec/codestra-middleware",
     "releaseWorkflow": ".github/workflows/release.yml",
     "releaseManifestSchema": "contracts/release-manifest.v1.schema.json",
-    "requiredSchemaHead": "0067_service_catalog_monitoring_state",
+    "requiredSchemaHead": "0068_explicit_tenant_child_columns",
     "candidateStatus": "PENDING_EXACT_PROTECTED_MERGE_BUILD",
     "currentSignedCandidate": null,
     "latestVerifiedSignedEvidence": {
@@ -84,7 +84,7 @@
       "vulnerabilityGate": "PASS",
       "verification": "PASS"
     },
-    "requiredMigrationHistorySha256": "sha256:c06b02314be3bfe8639248421775d9f919c0f62cc1c5c52d85fe59575ba75832"
+    "requiredMigrationHistorySha256": "sha256:dd050373f50657198fc9a5188825068ded0a487f5d4449702e7828aa46e99929"
   },
   "runtimeAuthority": {
     "runtimeState": "must_be_proven_at_execution",
@@ -93,7 +93,7 @@
     "requiredEvidence": [
       "signed release manifest bound to exact protected-main source",
       "immutable image digest and verified provenance",
-      "schema head 0067_service_catalog_monitoring_state",
+      "schema head 0068_explicit_tenant_child_columns",
       "effective source, digest, schema, profile, and capability read-back",
       "backup and isolated restore evidence",
       "rollback rehearsal and data-integrity evidence",
