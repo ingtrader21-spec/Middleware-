@@ -205,6 +205,11 @@
       "path": "tests/test_release_authority.py",
       "gate": "GIT_METADATA+SYMLINK_SUPPORT",
       "required_job": "docker-test-build"
+    },
+    {
+      "path": "tests/test_database_connection_authority.py",
+      "gate": "POSIX_PRIVATE_KEY_PERMISSIONS",
+      "required_job": "docker-test-build"
     }
   ],
   "policy": {
