@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   verify:
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, Linux, X64, ubuntu-24.04, middleware-ci]
     timeout-minutes: 15
     services:
       postgres:
@@ -26,7 +26,7 @@ jobs:
           POSTGRES_DB: monitoring_test_ci
           POSTGRES_USER: monitoring_ci
           POSTGRES_PASSWORD: isolated-ci-only
-        ports: ['5432:5432']
+        ports: ['5432/tcp']
         options: >-
           --health-cmd "pg_isready -U monitoring_ci -d monitoring_test_ci"
           --health-interval 5s --health-timeout 5s --health-retries 12

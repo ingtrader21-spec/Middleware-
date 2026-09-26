@@ -39,7 +39,7 @@ defaults:
 
 jobs:
   repository-authority-contract:
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, Linux, X64, ubuntu-24.04, middleware-ci]
     timeout-minutes: 5
     steps:
       - name: Check out exact source

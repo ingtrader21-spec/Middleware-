@@ -25,7 +25,7 @@ concurrency:
 jobs:
   validate:
     name: validate (${{ matrix.component }})
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, ubuntu-24.04, middleware-ci]
     timeout-minutes: 60
     strategy:
       fail-fast: false
@@ -87,7 +87,7 @@ jobs:
           docker build --build-arg VCS_REF=${GITHUB_SHA} --tag codestra-websocket-gateway:${GITHUB_SHA} websocket_gateway
 
   source-security:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, ubuntu-24.04, middleware-ci]
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
