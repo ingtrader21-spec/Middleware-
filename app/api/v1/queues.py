@@ -57,7 +57,7 @@ from app.db.models import (
     IntegrationEvent,
     TelephonyCallLifecycle,
 )
-from app.db.session import get_session
+from app.db.session import get_session, set_transaction_tenant_context
 
 router = APIRouter(prefix="/platform/v1/queues", tags=["queues"])
 
@@ -130,6 +130,7 @@ async def list_queues(
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
     require_tenant_match(principal, tenant_id)
+    await set_transaction_tenant_context(session, tenant_id)
 
     stmt = select(CampaignRegistry).where(CampaignRegistry.campaign_code == tenant_id)
     registries = (await session.execute(stmt)).scalars().all()
@@ -151,6 +152,7 @@ async def get_queue(
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
     require_tenant_match(principal, tenant_id)
+    await set_transaction_tenant_context(session, tenant_id)
 
     registry = await _registry_row(session, queue_id)
     if registry is None or registry.campaign_code != tenant_id:
@@ -170,6 +172,7 @@ async def list_queue_members(
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
     require_tenant_match(principal, tenant_id)
+    await set_transaction_tenant_context(session, tenant_id)
 
     registry = await _registry_row(session, queue_id)
     if registry is None or registry.campaign_code != tenant_id:
@@ -203,6 +206,7 @@ async def list_queue_calls(
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
     require_tenant_match(principal, tenant_id)
+    await set_transaction_tenant_context(session, tenant_id)
 
     registry = await _registry_row(session, queue_id)
     if registry is None or registry.campaign_code != tenant_id:
@@ -236,6 +240,7 @@ async def get_queue_metrics(
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
     require_tenant_match(principal, tenant_id)
+    await set_transaction_tenant_context(session, tenant_id)
 
     registry = await _registry_row(session, queue_id)
     if registry is None or registry.campaign_code != tenant_id:

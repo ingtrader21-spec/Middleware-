@@ -250,7 +250,7 @@ def test_kernel_describe_is_authenticated_and_secret_free(stack: Stack) -> None:
         assert described.status_code == 200
         body = described.json()
         assert body["canonical_service"] == "middleware-integration-api" and body["canonical_port"] == 8095
-        assert body["runtime_schema_version"] == 11
+        assert body["runtime_schema_version"] == 12
         assert body["alembic_schema_head"] == stack.runtime.settings.schema_head
         assert body["provider_effects_enabled"] is False
         assert body["public_contract_digest"]

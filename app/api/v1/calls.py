@@ -37,7 +37,7 @@ from app.core.provisioning_auth import (
     require_tenant_match,
 )
 from app.db.models import AuditEvent, TelephonyCallLifecycle
-from app.db.session import get_session
+from app.db.session import get_session, set_transaction_tenant_context
 
 router = APIRouter(prefix="/platform/v1/calls", tags=["calls"])
 
@@ -103,6 +103,7 @@ async def list_calls(
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
     require_tenant_match(principal, tenant_id)
+    await set_transaction_tenant_context(session, tenant_id)
 
     stmt = (
         select(TelephonyCallLifecycle)
@@ -155,6 +156,7 @@ async def get_call(
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
     require_tenant_match(principal, tenant_id)
+    await set_transaction_tenant_context(session, tenant_id)
 
     stmt = (
         select(TelephonyCallLifecycle)

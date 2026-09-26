@@ -281,6 +281,11 @@ class SafetyGate:
             reasons.append("adapter_not_ready")
 
         limits = self.switches.limits
+        if classification == "external_effect":
+            if context.global_backlog is None:
+                reasons.append("global_backlog_unavailable")
+            if context.tenant_backlog is None:
+                reasons.append("tenant_backlog_unavailable")
         if context.global_backlog is not None and context.global_backlog >= limits.global_backlog_bound:
             reasons.append("global_backlog_saturated")
             saturated = True

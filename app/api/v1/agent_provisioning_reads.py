@@ -52,8 +52,9 @@ from app.api.v1.agent_provisioning import (
     _steps_for,
     require_provisioning_scope,
     require_tenant_match,
+    resolve_tenant_context,
 )
-from app.db.session import get_session
+from app.db.session import get_session, set_transaction_tenant_context
 
 router = APIRouter(prefix="/platform/v1", tags=["agent-provisioning-reads"])
 
@@ -203,6 +204,8 @@ async def get_user(
     principal: ProvisioningPrincipal = Depends(require_provisioning_scope("identity.request")),
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
+    tenant_id = resolve_tenant_context(principal, tenant_id)
+    await set_transaction_tenant_context(session, tenant_id)
     request = await _latest_request(session, tenant_id, employee_id)
     require_tenant_match(principal, request.tenant_id)
     steps = await _steps_for(session, request)
@@ -219,6 +222,8 @@ async def get_user_campaigns(
     principal: ProvisioningPrincipal = Depends(require_provisioning_scope("identity.request")),
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
+    tenant_id = resolve_tenant_context(principal, tenant_id)
+    await set_transaction_tenant_context(session, tenant_id)
     request = await _latest_request(session, tenant_id, employee_id)
     require_tenant_match(principal, request.tenant_id)
     return {
@@ -236,6 +241,8 @@ async def get_user_entitlements(
     principal: ProvisioningPrincipal = Depends(require_provisioning_scope("identity.request")),
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
+    tenant_id = resolve_tenant_context(principal, tenant_id)
+    await set_transaction_tenant_context(session, tenant_id)
     request = await _latest_request(session, tenant_id, employee_id)
     require_tenant_match(principal, request.tenant_id)
     steps = await _steps_for(session, request)
@@ -259,7 +266,8 @@ async def list_telephony_assignments(
     principal: ProvisioningPrincipal = Depends(require_provisioning_scope("identity.request")),
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
-    require_tenant_match(principal, tenant_id)
+    tenant_id = resolve_tenant_context(principal, tenant_id)
+    await set_transaction_tenant_context(session, tenant_id)
     rows, next_cursor = await _list_by_channel(
         session, tenant_id=tenant_id, channels=("phone", "webrtc"),
         employee_id=employee_id, limit=limit, cursor=cursor,
@@ -313,7 +321,8 @@ async def list_email_identities(
     principal: ProvisioningPrincipal = Depends(require_provisioning_scope("identity.request")),
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
-    require_tenant_match(principal, tenant_id)
+    tenant_id = resolve_tenant_context(principal, tenant_id)
+    await set_transaction_tenant_context(session, tenant_id)
     _rate_limit_sender_identity_read(f"{tenant_id}:{principal.subject}")
     rows, next_cursor = await _list_by_channel(
         session, tenant_id=tenant_id, channels=("email",),
@@ -352,7 +361,8 @@ async def list_sms_identities(
     principal: ProvisioningPrincipal = Depends(require_provisioning_scope("identity.request")),
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
-    require_tenant_match(principal, tenant_id)
+    tenant_id = resolve_tenant_context(principal, tenant_id)
+    await set_transaction_tenant_context(session, tenant_id)
     _rate_limit_sender_identity_read(f"{tenant_id}:{principal.subject}")
     rows, next_cursor = await _list_by_channel(
         session, tenant_id=tenant_id, channels=("sms",),

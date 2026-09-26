@@ -134,15 +134,15 @@ class _BacklogCache:
     def __init__(self, ttl_seconds: float = 2.0, *, clock=time.monotonic) -> None:
         self.ttl = ttl_seconds
         self.clock = clock
-        self._values: dict[str, tuple[float, tuple[int, int]]] = {}
+        self._values: dict[str, tuple[float, tuple[int, int | None]]] = {}
 
-    def get(self, tenant_id: str) -> tuple[int, int] | None:
+    def get(self, tenant_id: str) -> tuple[int, int | None] | None:
         item = self._values.get(tenant_id)
         if item is None or self.clock() - item[0] > self.ttl:
             return None
         return item[1]
 
-    def put(self, tenant_id: str, value: tuple[int, int]) -> None:
+    def put(self, tenant_id: str, value: tuple[int, int | None]) -> None:
         if len(self._values) > 10_000:
             self._values.clear()
         self._values[tenant_id] = (self.clock(), value)
