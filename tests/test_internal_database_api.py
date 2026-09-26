@@ -19,6 +19,8 @@ class _Acquire:
 
 ISOLATED_ROLE = {
     "role_name": "middleware_runtime",
+    "session_role_name": "middleware_runtime",
+    "session_user_matches": True,
     "superuser": False,
     "bypassrls": False,
     "createrole": False,
@@ -253,6 +255,8 @@ def test_role_isolation_reports_isolated_runtime_role(monkeypatch):
     ).json()
     assert body["runtime_role_isolated"] is True
     assert body["rls_bypass_possible"] is False
+    assert body["session_user_matches"] is True
+    assert body["session_role_name"] == "middleware_runtime"
     assert body["forced_rls_tables"] == 4
     assert body["evidence_only"] is True
     assert tokens.scopes == [database_api.READ_SCOPE]
@@ -317,3 +321,20 @@ def test_role_isolation_query_is_catalog_read_only():
     query = database_api._ROLE_ISOLATION_QUERY.upper()
     for verb in ("INSERT", "UPDATE", "DELETE", "ALTER", "CREATE ", "DROP", "GRANT", "SET ROLE"):
         assert verb not in query.replace("'CREATE'", "")
+
+
+def test_role_isolation_fails_closed_when_session_role_is_more_privileged(monkeypatch):
+    client, _tokens = _client(monkeypatch)
+    conn = client.app.state.runtime.pool.conn
+    conn.role.update(
+        session_role_name="middleware_owner",
+        session_user_matches=False,
+    )
+    body = client.get(
+        "/internal/v1/database/security/roles",
+        headers={"Authorization": "Bearer test"},
+    ).json()
+    assert body["runtime_role_isolated"] is False
+    assert body["rls_bypass_possible"] is True
+    assert body["role_name"] == "middleware_runtime"
+    assert body["session_role_name"] == "middleware_owner"

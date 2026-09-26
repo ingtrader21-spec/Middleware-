@@ -351,6 +351,8 @@ public_tables AS (
   WHERE n.nspname = 'public' AND c.relkind IN ('r', 'p')
 )
 SELECT me.rolname AS role_name,
+  session_user AS session_role_name,
+  current_user = session_user AS session_user_matches,
   me.rolsuper AS superuser,
   me.rolbypassrls AS bypassrls,
   me.rolcreaterole AS createrole,
@@ -414,17 +416,21 @@ async def roles(request: Request) -> dict[str, Any]:
             "forced_rls_tables",
         )
     }
-    isolated = not any(flags.values()) and not (
+    session_user_matches = bool(row["session_user_matches"])
+    isolated = session_user_matches and not any(flags.values()) and not (
         counts["elevated_role_memberships"]
         or counts["owned_public_tables"]
         or counts["settable_public_owner_roles"]
     )
     return {
         "role_name": str(row["role_name"]),
+        "session_role_name": str(row["session_role_name"]),
+        "session_user_matches": session_user_matches,
         **flags,
         **counts,
         "rls_bypass_possible": bool(
-            flags["superuser"]
+            not session_user_matches
+            or flags["superuser"]
             or flags["bypassrls"]
             or counts["elevated_role_memberships"]
             or counts["owned_rls_tables_without_force"]
