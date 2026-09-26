@@ -17,8 +17,30 @@ class _Acquire:
         return False
 
 
+ISOLATED_ROLE = {
+    "role_name": "middleware_runtime",
+    "superuser": False,
+    "bypassrls": False,
+    "createrole": False,
+    "createdb": False,
+    "replication": False,
+    "elevated_role_memberships": 0,
+    "owned_public_tables": 0,
+    "settable_public_owner_roles": 0,
+    "owned_rls_tables_without_force": 0,
+    "settable_rls_owner_roles_without_force": 0,
+    "forced_rls_tables": 4,
+    "public_schema_create": False,
+}
+
+
 class FakeConn:
+    def __init__(self):
+        self.role = dict(ISOLATED_ROLE)
+
     async def fetchrow(self, query, *args):
+        if "rolbypassrls" in query:
+            return self.role
         if "current_database()" in query and "pg_is_in_recovery" in query:
             return {
                 "database_name": "middleware_staging",
@@ -69,7 +91,7 @@ class FakeConn:
 
     async def fetch(self, query, *args):
         if "alembic_version" in query:
-            return [{"version_num": "0069_progressive_tenant_rls"}]
+            return [{"version_num": "0067_service_catalog_monitoring_state"}]
         if "pg_catalog.pg_tables" in query:
             return [
                 {"tablename": name}
@@ -123,7 +145,7 @@ def _client(monkeypatch):
             "middleware_staging?sslmode=verify-full"
             "&sslrootcert=/run/secrets/ca.pem"
         ),
-        schema_head="0069_progressive_tenant_rls",
+        schema_head="0067_service_catalog_monitoring_state",
         database_certification_evidence_dir="",
     )
     runtime = SimpleNamespace(
@@ -153,7 +175,7 @@ def test_readiness_schema_and_verify_are_read_only(monkeypatch):
     assert ready.json()["ready"] is True
     assert (
         ready.json()["alembic_head"]
-        == "0069_progressive_tenant_rls"
+        == "0067_service_catalog_monitoring_state"
     )
     assert ready.json()["tls_active"] is True
 
@@ -221,3 +243,77 @@ def test_canonical_registry_owns_private_database_router():
     from app.router_registry import CANONICAL_ROUTERS
 
     assert database_api.router in CANONICAL_ROUTERS
+
+
+def test_role_isolation_reports_isolated_runtime_role(monkeypatch):
+    client, tokens = _client(monkeypatch)
+    body = client.get(
+        "/internal/v1/database/security/roles",
+        headers={"Authorization": "Bearer test"},
+    ).json()
+    assert body["runtime_role_isolated"] is True
+    assert body["rls_bypass_possible"] is False
+    assert body["forced_rls_tables"] == 4
+    assert body["evidence_only"] is True
+    assert tokens.scopes == [database_api.READ_SCOPE]
+
+
+def test_role_isolation_fails_closed_for_migration_owner_role(monkeypatch):
+    """The canary compose shares one DSN between migrate and API containers;
+    that role owns the schema, so it must never report isolation."""
+    client, _tokens = _client(monkeypatch)
+    conn = client.app.state.runtime.pool.conn
+    conn.role.update(
+        owned_public_tables=170,
+        owned_rls_tables_without_force=0,
+        public_schema_create=True,
+    )
+    body = client.get(
+        "/internal/v1/database/security/roles",
+        headers={"Authorization": "Bearer test"},
+    ).json()
+    assert body["runtime_role_isolated"] is False
+    assert body["rls_bypass_possible"] is False
+    conn.role.update(owned_rls_tables_without_force=2)
+    assert client.get(
+        "/internal/v1/database/security/roles",
+        headers={"Authorization": "Bearer test"},
+    ).json()["rls_bypass_possible"] is True
+    for attribute in ("superuser", "bypassrls"):
+        conn.role = dict(ISOLATED_ROLE, **{attribute: True})
+        body = client.get(
+            "/internal/v1/database/security/roles",
+            headers={"Authorization": "Bearer test"},
+        ).json()
+        assert body["runtime_role_isolated"] is False
+        assert body["rls_bypass_possible"] is True
+
+
+def test_role_isolation_fails_closed_when_runtime_can_set_role_to_owner(monkeypatch):
+    client, _tokens = _client(monkeypatch)
+    conn = client.app.state.runtime.pool.conn
+    conn.role.update(settable_public_owner_roles=1)
+    body = client.get(
+        "/internal/v1/database/security/roles",
+        headers={"Authorization": "Bearer test"},
+    ).json()
+    assert body["runtime_role_isolated"] is False
+    assert body["rls_bypass_possible"] is False
+
+    conn.role = dict(
+        ISOLATED_ROLE,
+        settable_public_owner_roles=1,
+        settable_rls_owner_roles_without_force=1,
+    )
+    body = client.get(
+        "/internal/v1/database/security/roles",
+        headers={"Authorization": "Bearer test"},
+    ).json()
+    assert body["runtime_role_isolated"] is False
+    assert body["rls_bypass_possible"] is True
+
+
+def test_role_isolation_query_is_catalog_read_only():
+    query = database_api._ROLE_ISOLATION_QUERY.upper()
+    for verb in ("INSERT", "UPDATE", "DELETE", "ALTER", "CREATE ", "DROP", "GRANT", "SET ROLE"):
+        assert verb not in query.replace("'CREATE'", "")
