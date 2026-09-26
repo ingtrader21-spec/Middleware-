@@ -187,6 +187,11 @@
       "required_job": "Disposable PostgreSQL Redis integration"
     },
     {
+      "path": "tests/integration/test_tenant_context_pooling.py",
+      "gate": "RUNTIME_INTEGRATION_TESTS",
+      "required_job": "Disposable PostgreSQL Redis integration"
+    },
+    {
       "path": "tests/test_campaign_design.py",
       "gate": "TEST_DATABASE_URL",
       "required_job": "Run migration chain and database tests"

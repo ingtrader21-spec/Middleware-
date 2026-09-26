@@ -280,8 +280,14 @@ def main() -> int:
         fail("monolith entry module mounts routers outside the registry")
     # 4. The deployed integration API builds a non-monolith profile and mounts
     # nothing itself, so it can never serve the aliases.
-    if "create_app(profile=AppProfile.INTEGRATION" not in deployed_source:
-        fail("deployed entrypoint does not build the integration profile")
+    if not any(
+        marker in deployed_source
+        for marker in (
+            "create_app(profile=AppProfile.CANONICAL_8095",
+            "create_app(profile=AppProfile.INTEGRATION",
+        )
+    ):
+        fail("deployed entrypoint does not build the canonical integration profile")
     for forbidden in (
         "mount_legacy_monolith_routers",
         "LEGACY_MONOLITH_ONLY_ROUTERS",

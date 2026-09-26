@@ -43,6 +43,14 @@ class KernelMetrics:
         self.reconciliation_backlog = Gauge("middleware_reconciliation_backlog", "Operations awaiting reconciliation", registry=r)
         self.reconciliation_decisions = Counter("middleware_reconciliation_decisions_total", "Reconciler decisions", ["adapter", "result"], registry=r)
         self.provider_effect_attempts = Counter("middleware_provider_effect_attempts_total", "Adapter execute calls that could create an external effect", ["adapter"], registry=r)
+        self.provider_requests = Counter("middleware_provider_requests_total", "Provider boundary requests", ["connector", "provider", "operation", "result"], registry=r)
+        self.provider_failures = Counter("middleware_provider_failures_total", "Provider boundary failures", ["connector", "provider", "operation", "error"], registry=r)
+        self.provider_timeouts = Counter("middleware_provider_timeout_total", "Provider boundary timeouts", ["connector", "provider", "operation"], registry=r)
+        self.provider_rate_limits = Counter("middleware_provider_rate_limit_total", "Provider rate limits", ["connector", "provider", "operation"], registry=r)
+        self.provider_readbacks = Counter("middleware_provider_readback_total", "Provider readback outcomes", ["connector", "provider", "result"], registry=r)
+        self.provider_reconciles = Counter("middleware_provider_reconcile_total", "Provider reconciliation outcomes", ["connector", "provider", "result"], registry=r)
+        self.provider_unknown_states = Counter("middleware_provider_unknown_state_total", "Provider outcomes requiring reconciliation", ["connector", "provider", "operation"], registry=r)
+        self.effect_denied = Counter("middleware_effect_denied_total", "Provider effects denied before dispatch", ["connector", "provider", "reason"], registry=r)
 
     def render(self) -> bytes:
         return generate_latest(self.registry)

@@ -21,6 +21,7 @@ def validate() -> None:
     ownership = load("config/system-ownership.v2.json")
     capabilities = load("config/capabilities.v2.json")
     registry = load("config/adapter-registry.v2.json")
+    authorities = load("config/repository-authorities.v1.json")
     command = load("contracts/platform/command-envelope.v1.schema.json")
     command_registry = load("connectors/generated/command-registry.v1.json")
     event = load("contracts/platform/event-envelope.v1.schema.json")
@@ -75,6 +76,11 @@ def validate() -> None:
             'integration fabric invariant failed: policy["unknown_outcome_requires_readback"] is True',
         )
 
+    # Adapter repositories must be canonical principals recorded in the
+    # repository authority registry, not merely any repository under an owner.
+    principal_repositories = {
+        authority["principal_repository"] for authority in authorities["authorities"]
+    }
     adapter_prefixes: dict[str, set[str]] = {}
     for adapter in registry["adapters"]:
         adapter_id = adapter.get("id")
@@ -95,16 +101,16 @@ def validate() -> None:
             isinstance(command_prefixes, list)
             and bool(command_prefixes)
             and all(
-                isinstance(prefix, str) and bool(prefix)
-                for prefix in command_prefixes
+                isinstance(prefix, str) and bool(prefix) for prefix in command_prefixes
             )
             and len(command_prefixes) == len(set(command_prefixes)),
             'integration fabric invariant failed: adapter["command_prefixes"]',
         )
         adapter_prefixes[adapter_id] = set(command_prefixes)
         require(
-            adapter["repository"].startswith("appolon1908-hue/"),
-            'integration fabric invariant failed: adapter["repository"].startswith("appolon1908-hue/")',
+            adapter.get("repository") in principal_repositories,
+            "integration fabric invariant failed: adapter repository has no canonical principal authority: "
+            + str(adapter_id),
         )
 
     for policy in command_registry["commands"]:

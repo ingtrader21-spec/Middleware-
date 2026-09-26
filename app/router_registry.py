@@ -58,7 +58,6 @@ from app.api.v1.callbacks import router as callbacks_router
 from app.api.v1.calls import router as calls_router
 from app.api.v1.campaign_search import router as campaign_search_router
 from app.api.v1.campaigns import router as campaigns_router
-from app.api.v1.commands import router as commands_router
 from app.api.v1.contacts import router as contacts_router
 from app.api.v1.control import legacy_events_router as control_legacy_events_router
 from app.api.v1.control import router as control_router
@@ -159,7 +158,9 @@ COMMON_ROUTERS: tuple[APIRouter, ...] = (
 )
 
 INTEGRATION_ROUTERS: tuple[APIRouter, ...] = (
-    commands_router,
+    # AUTH-01: the tenantless legacy telephony command journal is intentionally
+    # not mounted in the deployed integration profile. Canonical command
+    # acceptance/readback lives under /platform/v1 in app.platform.api.
     control_router,
     reports_router,
     operations_router,

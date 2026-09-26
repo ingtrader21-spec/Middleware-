@@ -14,8 +14,16 @@ Adapter set per environment (fail closed):
 * ``staging``/``preproduction``: the TEST_SYN fixture plus every provider
   adapter whose configuration validates (an unconfigured provider leaves its
   capability unavailable);
-* ``production``: no adapter until a separate production mission registers
-  them — every external-effect capability is ``false`` anyway.
+* ``production``: the adapters of ``config/production-adapters.v1.json``
+  whose configuration validates, and only while every capability they serve
+  is known, gated and ``false`` (:mod:`app.platform.production`). Any
+  violation registers no adapter at all and fails readiness. Registration
+  never activates an effect.
+
+``PlatformRuntime.adapter_readback`` is the read-only evidence behind
+``GET /platform/v1/adapters``: registration outcome per adapter, the state of
+every capability, and readiness — probing only adapters that own an enabled
+capability, so with every capability off no provider is contacted.
 """
 
 from __future__ import annotations
@@ -33,6 +41,7 @@ from app.platform.adapter import AdapterContext
 from app.platform.bus import AdapterDispatch, BusSettings
 from app.platform.kernel import CommandKernel, DenialAuditSink, MemoryDenialAuditSink
 from app.platform.metrics import KernelMetrics
+from app.platform.production import RegistrationReport, production_candidates, register_production_adapters
 from app.platform.reconciler import Reconciler, ReconciliationSource
 from app.platform.registry import AdapterRegistry, AdapterRegistryError
 from app.platform.safety import SafetyGate
@@ -43,6 +52,11 @@ SYNTHETIC_ENVIRONMENTS = frozenset({"development", "test", "staging", "preproduc
 TEST_SYN_CAPABILITY = "TEST_SYN_EXECUTE"
 TEST_SYN_TARGET = "test-syn"
 TEST_SYN_PREFIX = "test.syn."
+
+# How the adapter set was chosen (reported by the readback).
+MODE_PRODUCTION_MANIFEST = "production_manifest"
+MODE_ENVIRONMENT_DEFAULTS = "environment_defaults"
+MODE_EXPLICIT = "explicit"
 
 
 def synthetic_policy() -> CommandPolicy:
@@ -73,6 +87,8 @@ class PlatformRuntime:
     reconciler: Reconciler | None
     denials: DenialAuditSink
     registry_error: str | None = None
+    registration_mode: str = MODE_EXPLICIT
+    registration: RegistrationReport | None = None
 
     async def registry_ready(self) -> bool:
         return self.registry_error is None and self.registry.validated
@@ -96,6 +112,74 @@ class PlatformRuntime:
         report = await self.registry.readiness(context)
         return all(report[adapter_id].ready for adapter_id in enabled if adapter_id in report)
 
+    async def adapter_readback(self) -> dict[str, Any]:
+        """Registration, capability and readiness evidence; never an effect."""
+        policies = self.registry.policies
+        capability_owners = self.registry.capability_owners()
+        registered = set(self.registry.ids())
+        described = self.registry.describe()
+        # Every capability a policy, a registered adapter or the manifest names.
+        referenced = {policy.capability for policy in policies.policies}
+        referenced.update(name for row in described for name in row["capabilities"])
+        if self.registration is not None:
+            referenced.update(name for row in self.registration.rows for name in row.capabilities)
+        rows: list[dict[str, Any]] = []
+        for row in described:
+            manifest_row = self.registration.row(row["adapter_id"]) if self.registration else None
+            rows.append(
+                {
+                    **row,
+                    "registered": True,
+                    "reason": manifest_row.reason if manifest_row else "registered",
+                    "capability_states": {name: policies.capabilities.get(name) is True for name in row["capabilities"]},
+                }
+            )
+        if self.registration is not None:
+            for manifest_row in self.registration.rows:
+                if manifest_row.adapter_id in registered:
+                    continue
+                rows.append(
+                    {
+                        **manifest_row.describe(),
+                        "registered": False,
+                        "command_prefixes": [],
+                        "capability_states": {name: policies.capabilities.get(name) is True for name in manifest_row.capabilities},
+                    }
+                )
+        rows.sort(key=lambda item: item["adapter_id"])
+        capabilities = {
+            name: {
+                "known": True,
+                "enabled": value is True,
+                "classification": self.safety.classification(name),
+                "adapter_ids": list(capability_owners.get(name, ())),
+            }
+            for name, value in sorted(policies.capabilities.items())
+        }
+        effectful_enabled = sorted(
+            name for name, state in capabilities.items() if state["enabled"] and state["classification"] != "synthetic"
+        )
+        probed = list(self.registry.enabled_adapter_ids())
+        registry_valid = await self.registry_ready()
+        return {
+            "environment": self.settings.app_env,
+            "source_sha": self.settings.source_sha,
+            "registration_mode": self.registration_mode,
+            "registration": self.registration.describe() if self.registration else None,
+            "registry_valid": registry_valid,
+            "registry_error": self.registry_error,
+            "adapters": rows,
+            "capabilities": capabilities,
+            "unknown_capabilities": sorted(name for name in referenced if name not in policies.capabilities),
+            "effectful_capabilities_enabled": effectful_enabled,
+            "provider_effects_enabled": bool(effectful_enabled),
+            "readiness": {
+                "adapter_registry": registry_valid,
+                "platform_adapters": await self.adapters_ready(),
+                "probed_adapter_ids": probed,
+            },
+        }
+
 
 def default_adapters(settings: Settings, *, http: httpx.AsyncClient | None) -> tuple[object, ...]:
     from app.platform.adapters.fixtures import development_fixtures, test_syn_adapter
@@ -115,6 +199,7 @@ def default_adapters(settings: Settings, *, http: httpx.AsyncClient | None) -> t
         if n8n is not None:
             adapters.append(n8n)
         return tuple(adapters)
+    # Production registers through the manifest (build_platform_runtime).
     return ()
 
 
@@ -126,6 +211,7 @@ def build_platform_runtime(
     pool: asyncpg.Pool | None,
     service_id: str,
     adapters: Iterable[object] | None = None,
+    candidates: Iterable[object] | None = None,
     denials: DenialAuditSink | None = None,
     reconciliation_source: ReconciliationSource | None = None,
     metrics: KernelMetrics | None = None,
@@ -136,13 +222,33 @@ def build_platform_runtime(
     safety = safety or SafetyGate(settings, commands.policies)
     registry = AdapterRegistry(commands.policies)
     registry_error: str | None = None
+    registration: RegistrationReport | None = None
+    production = settings.app_env == "production" and adapters is None
+    if production:
+        mode = MODE_PRODUCTION_MANIFEST
+    else:
+        mode = MODE_ENVIRONMENT_DEFAULTS if adapters is None else MODE_EXPLICIT
     try:
-        registry.register_all(default_adapters(settings, http=http) if adapters is None else adapters)
+        if production:
+            registration = register_production_adapters(
+                commands.policies,
+                safety.switches,
+                candidates=production_candidates(settings, http=http) if candidates is None else candidates,
+            )
+            if registration.refused:
+                raise AdapterRegistryError("production adapter registration refused: " + "; ".join(registration.violations))
+            chosen: Iterable[object] = registration.adapters
+        else:
+            chosen = default_adapters(settings, http=http) if adapters is None else adapters
+        registry.register_all(chosen)
         registry.validate()
     except AdapterRegistryError as exc:
         # Readiness reports it; the kernel refuses commands for unowned prefixes.
         registry_error = str(exc)
         logger.error("adapter_registry_invalid", extra={"error": registry_error})
+        if production:
+            # Fail closed: a partially registered production set routes nothing.
+            registry = AdapterRegistry(commands.policies)
 
     if denials is None:
         if pool is not None:
@@ -194,6 +300,8 @@ def build_platform_runtime(
         reconciler=reconciler,
         denials=denials,
         registry_error=registry_error,
+        registration_mode=mode,
+        registration=registration,
     )
 
 
@@ -202,4 +310,5 @@ def describe_runtime(runtime: PlatformRuntime) -> dict[str, Any]:
         "adapters": runtime.registry.ids(),
         "owners": runtime.registry.owners(),
         "registry_error": runtime.registry_error,
+        "registration_mode": runtime.registration_mode,
     }

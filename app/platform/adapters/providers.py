@@ -59,6 +59,32 @@ _EXECUTE_OUTCOMES: Mapping[str, Outcome] = {
     "dispatch_unknown": Outcome.UNKNOWN,
     "unknown": Outcome.UNKNOWN,
 }
+def _http_error_code(status_code: int) -> str:
+    if status_code in {401, 403}:
+        return "PROVIDER_AUTH_FAILED"
+    if status_code == 429:
+        return "PROVIDER_RATE_LIMITED"
+    if status_code in {408, 504}:
+        return "PROVIDER_TIMEOUT"
+    if 400 <= status_code < 500:
+        return "PROVIDER_REJECTED"
+    if status_code >= 500:
+        return "REMOTE_STATE_UNKNOWN"
+    return "PROVIDER_ERROR"
+
+
+def _exception_error_code(error: BaseException, *, before_effect: bool = False) -> str:
+    if isinstance(error, (httpx.ConnectTimeout, httpx.ReadTimeout, httpx.WriteTimeout, TimeoutError)):
+        return "PROVIDER_TIMEOUT"
+    if isinstance(error, httpx.ConnectError):
+        return "DEPENDENCY_UNAVAILABLE"
+    if isinstance(error, httpx.HTTPStatusError):
+        return _http_error_code(error.response.status_code)
+    if before_effect:
+        return "DEPENDENCY_UNAVAILABLE"
+    return "REMOTE_STATE_UNKNOWN"
+
+
 _READBACK_STATUSES: Mapping[str, ReadbackStatus] = {
     "matched": ReadbackStatus.MATCHED,
     "completed": ReadbackStatus.MATCHED,
@@ -158,15 +184,15 @@ class LegacyBridge(BaseAdapter):
         request = _execution_request(command, client_id=self.client_id_of(command), payload=command.payload)
         try:
             raw = await self.legacy.execute(request)
-        except self.rejected_errors as exc:
-            return AdapterResult(Outcome.REJECTED, error_class=ErrorClass.NON_RETRYABLE, safe_error_code=type(exc).__name__)
+        except self.rejected_errors:
+            return AdapterResult(Outcome.REJECTED, error_class=ErrorClass.NON_RETRYABLE, safe_error_code="PROVIDER_REJECTED")
         except self.transient_errors as exc:
-            return AdapterResult(Outcome.TRANSIENT, error_class=ErrorClass.RETRYABLE_BEFORE_EFFECT, safe_error_code=type(exc).__name__)
+            return AdapterResult(Outcome.TRANSIENT, error_class=ErrorClass.RETRYABLE_BEFORE_EFFECT, safe_error_code=_exception_error_code(exc, before_effect=True))
         except (httpx.ConnectError, httpx.ConnectTimeout) as exc:
-            return AdapterResult(Outcome.TRANSIENT, error_class=ErrorClass.RETRYABLE_BEFORE_EFFECT, safe_error_code=type(exc).__name__)
+            return AdapterResult(Outcome.TRANSIENT, error_class=ErrorClass.RETRYABLE_BEFORE_EFFECT, safe_error_code=_exception_error_code(exc, before_effect=True))
         except Exception as exc:  # noqa: BLE001 - the provider outcome is unknown; the kernel reads back
             logger.warning("legacy adapter %s raised %s", self.adapter_id, type(exc).__name__)
-            return AdapterResult(Outcome.UNKNOWN, error_class=ErrorClass.AMBIGUOUS, safe_error_code=type(exc).__name__)
+            return AdapterResult(Outcome.UNKNOWN, error_class=ErrorClass.AMBIGUOUS, safe_error_code=_exception_error_code(exc))
         return self.normalize_result(raw)
 
     async def status(self, operation: CommandOperation, context: AdapterContext) -> AdapterResult:
@@ -182,7 +208,7 @@ class LegacyBridge(BaseAdapter):
         try:
             raw = await self.legacy.readback(request)
         except Exception as exc:  # noqa: BLE001 - still unknown; the kernel keeps the operation open
-            return ReadbackResult(ReadbackStatus.UNAVAILABLE, safe_error_code=type(exc).__name__)
+            return ReadbackResult(ReadbackStatus.UNAVAILABLE, safe_error_code=_exception_error_code(exc))
         status, reference, evidence = _activity_status(raw)
         return ReadbackResult(
             _READBACK_STATUSES.get(status, ReadbackStatus.UNAVAILABLE),
@@ -208,7 +234,7 @@ class LegacyBridge(BaseAdapter):
                 if outcome is Outcome.UNKNOWN
                 else ErrorClass.NON_RETRYABLE
             ),
-            safe_error_code=None if outcome in {Outcome.ACCEPTED, Outcome.COMPLETED} else f"provider_{status}",
+            safe_error_code=None if outcome in {Outcome.ACCEPTED, Outcome.COMPLETED} else "REMOTE_STATE_UNKNOWN" if outcome is Outcome.UNKNOWN else "PROVIDER_REJECTED",
             safe_details={"legacy_status": status},
         )
 
@@ -274,10 +300,10 @@ class OdooAdapter(LegacyBridge):
 
     async def _execute_crm(self, command: CommandEnvelope, context: AdapterContext, binding: tuple[str, str | None]) -> AdapterResult:
         if self.crm_bridge is None:
-            return AdapterResult(Outcome.REJECTED, error_class=ErrorClass.NON_RETRYABLE, safe_error_code="crm_bridge_not_configured")
+            return AdapterResult(Outcome.REJECTED, error_class=ErrorClass.NON_RETRYABLE, safe_error_code="DEPENDENCY_UNAVAILABLE")
         configured = getattr(self.crm_bridge, "configured_tenant_id", None)
         if isinstance(configured, str) and configured and configured != command.tenant_id:
-            return AdapterResult(Outcome.REJECTED, error_class=ErrorClass.NON_RETRYABLE, safe_error_code="crm_bridge_tenant_mismatch")
+            return AdapterResult(Outcome.REJECTED, error_class=ErrorClass.NON_RETRYABLE, safe_error_code="PROVIDER_REFERENCE_MISMATCH")
         method_name, key = binding
         payload = dict(command.payload)
         record = dict(payload.get("record") or {})
@@ -295,13 +321,13 @@ class OdooAdapter(LegacyBridge):
                 *args, correlation_id=command.correlation_id, idempotency_key=command.idempotency_key
             )
         except CrmBridgeNotFound:
-            return AdapterResult(Outcome.REJECTED, error_class=ErrorClass.NON_RETRYABLE, safe_error_code="crm_record_not_found")
+            return AdapterResult(Outcome.REJECTED, error_class=ErrorClass.NON_RETRYABLE, safe_error_code="PROVIDER_REJECTED")
         except CrmBridgeUnavailable as exc:
             # The bridge raises this for transport errors and 5xx alike; a 5xx
             # after the request reached Odoo is ambiguous.
-            return AdapterResult(Outcome.UNKNOWN, error_class=ErrorClass.AMBIGUOUS, safe_error_code=type(exc).__name__)
+            return AdapterResult(Outcome.UNKNOWN, error_class=ErrorClass.AMBIGUOUS, safe_error_code=_exception_error_code(exc))
         except (httpx.ConnectError, httpx.ConnectTimeout) as exc:
-            return AdapterResult(Outcome.TRANSIENT, error_class=ErrorClass.RETRYABLE_BEFORE_EFFECT, safe_error_code=type(exc).__name__)
+            return AdapterResult(Outcome.TRANSIENT, error_class=ErrorClass.RETRYABLE_BEFORE_EFFECT, safe_error_code=_exception_error_code(exc))
         return self.normalize_result({"status_code": response.status_code, "body": response.body})
 
     def normalize_result(self, raw: Any) -> AdapterResult:
@@ -326,7 +352,7 @@ class OdooAdapter(LegacyBridge):
                 outcome,
                 provider_operation_id=reference,
                 error_class=None if outcome is Outcome.ACCEPTED else ErrorClass.NON_RETRYABLE if outcome is Outcome.REJECTED else ErrorClass.AMBIGUOUS,
-                safe_error_code=None if outcome is Outcome.ACCEPTED else f"odoo_http_{status_code}",
+                safe_error_code=None if outcome is Outcome.ACCEPTED else _http_error_code(status_code),
             )
         return LegacyBridge.normalize_result(self, raw)
 
@@ -339,7 +365,7 @@ class OdooAdapter(LegacyBridge):
 
     async def _readback_crm(self, operation: CommandOperation, context: AdapterContext) -> ReadbackResult:
         if self.crm_bridge is None:
-            return ReadbackResult(ReadbackStatus.UNAVAILABLE, safe_error_code="crm_bridge_not_configured")
+            return ReadbackResult(ReadbackStatus.UNAVAILABLE, safe_error_code="DEPENDENCY_UNAVAILABLE")
         entity = operation.command_type.split(".")[1]
         reference = operation.provider_operation_id or ""
         if entity in CRM_LIST_READBACK:
@@ -350,17 +376,17 @@ class OdooAdapter(LegacyBridge):
         method_name, key, cast = reader
         ref_key, _, ref_value = reference.partition(":")
         if ref_key != key:
-            return ReadbackResult(ReadbackStatus.MISMATCH, safe_error_code="crm_reference_mismatch")
+            return ReadbackResult(ReadbackStatus.MISMATCH, safe_error_code="PROVIDER_REFERENCE_MISMATCH")
         from app.adapters.odoo.crm_bridge_client import CrmBridgeNotFound, CrmBridgeUnavailable
 
         try:
             response = await getattr(self.crm_bridge, method_name)(cast(ref_value), correlation_id=operation.correlation_id)
         except CrmBridgeNotFound:
-            return ReadbackResult(ReadbackStatus.NOT_FOUND, safe_error_code="crm_record_not_found")
+            return ReadbackResult(ReadbackStatus.NOT_FOUND, safe_error_code="PROVIDER_REJECTED")
         except (CrmBridgeUnavailable, httpx.HTTPError) as exc:
-            return ReadbackResult(ReadbackStatus.UNAVAILABLE, safe_error_code=type(exc).__name__)
+            return ReadbackResult(ReadbackStatus.UNAVAILABLE, safe_error_code=_exception_error_code(exc))
         except (TypeError, ValueError):
-            return ReadbackResult(ReadbackStatus.MISMATCH, safe_error_code="crm_reference_invalid")
+            return ReadbackResult(ReadbackStatus.MISMATCH, safe_error_code="PROVIDER_REFERENCE_MISMATCH")
         body = response.body if isinstance(response.body, Mapping) else {}
         observed = body.get(key)
         if response.status_code == 200 and observed is not None and str(observed) == ref_value:
@@ -384,7 +410,7 @@ class OdooAdapter(LegacyBridge):
         own, _, parent = reference.partition(PARENT_REFERENCE_SEPARATOR)
         ref_key, _, ref_value = own.partition(":")
         if ref_key != key or not ref_value:
-            return ReadbackResult(ReadbackStatus.MISMATCH, safe_error_code="crm_reference_mismatch")
+            return ReadbackResult(ReadbackStatus.MISMATCH, safe_error_code="PROVIDER_REFERENCE_MISMATCH")
         parent_value: Any = None
         if parent.startswith("profile_id:"):
             parent_value = parent.partition(":")[2]
@@ -406,11 +432,11 @@ class OdooAdapter(LegacyBridge):
         except CrmBridgeNotFound:
             return ReadbackResult(ReadbackStatus.NOT_FOUND, safe_error_code="crm_parent_profile_not_found")
         except (CrmBridgeUnavailable, httpx.HTTPError) as exc:
-            return ReadbackResult(ReadbackStatus.UNAVAILABLE, safe_error_code=type(exc).__name__)
+            return ReadbackResult(ReadbackStatus.UNAVAILABLE, safe_error_code=_exception_error_code(exc))
         body = response.body if isinstance(response.body, Mapping) else {}
         items = body.get("items") if response.status_code == 200 else None
         if not isinstance(items, list):
-            return ReadbackResult(ReadbackStatus.UNAVAILABLE, provider_operation_id=reference, safe_error_code=f"odoo_http_{response.status_code}")
+            return ReadbackResult(ReadbackStatus.UNAVAILABLE, provider_operation_id=reference, safe_error_code=_http_error_code(response.status_code))
         listed = next((item for item in items if isinstance(item, Mapping) and str(item.get(key)) == ref_value), None)
         evidence: dict[str, Any] = {key: ref_value, "profile_id": str(profile_id), "listed": listed is not None}
         if action == "complete":
@@ -447,6 +473,7 @@ def provider_adapters(settings: Settings, *, http: httpx.AsyncClient | None) -> 
     from app.postly_social_adapter import PostlySocialAdapter, PostlySocialAdapterError
     from app.telnexa_provider_adapter import TelnexaProviderAdapterError, TelnexaSmsAdapter
     from app.vicidial_internal_call_adapter import VicidialInternalCallAdapter, VicidialInternalCallPreDispatchRejected
+    from app.platform.adapters.whatsapp import WhatsAppProviderAdapter
 
     def odoo() -> BaseAdapter:
         crm_bridge = None
@@ -472,6 +499,7 @@ def provider_adapters(settings: Settings, *, http: httpx.AsyncClient | None) -> 
 
     candidates: tuple[tuple[str, Callable[[], BaseAdapter]], ...] = (
         ("odoo-19", odoo),
+        ("evolution-whatsapp", lambda: WhatsAppProviderAdapter(settings)),
         (
             "klyrow-email",
             lambda: LegacyBridge(

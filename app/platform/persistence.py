@@ -210,3 +210,40 @@ class PostgresReconciliationSource:
                 ADAPTER_COMMAND_DESTINATION,
             )
         return int(value or 0)
+
+async def record_authorization_decision(
+    pool: asyncpg.Pool,
+    *,
+    tenant_id: str,
+    resource: str,
+    action: str,
+    principal_id: str,
+    decision_code: str,
+    allowed: bool,
+    correlation_id: str,
+    effect_class: str = "read",
+    matched_policy: str | None = None,
+) -> None:
+    """Persist one bounded authorization decision without credentials or raw JWT data."""
+    metadata = {
+        "correlation_id": correlation_id[:180],
+        "decision_code": decision_code[:128],
+        "effect_class": effect_class[:64],
+        "matched_policy": matched_policy[:128] if matched_policy is not None else None,
+    }
+    async with pool.acquire() as conn:
+        await conn.execute(
+            """
+            INSERT INTO middleware_control_audit (
+                tenant_id, resource_kind, resource_id, action, actor_id, reason,
+                previous_state, new_state, metadata
+            ) VALUES ($1,'authorization_decision',$2,$3,$4,$5,NULL,$6,$7::jsonb)
+            """,
+            tenant_id,
+            resource[:180],
+            action[:180],
+            principal_id[:180],
+            decision_code[:2048],
+            "allowed" if allowed else "denied",
+            json.dumps(metadata, separators=(",", ":"), sort_keys=True),
+        )

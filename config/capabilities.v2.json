@@ -19,7 +19,19 @@
     "PROVISIONING_WRITE": false,
     "SMS_DELIVERY": false,
     "SOCIAL_PUBLISH": false,
-    "TELEPHONY_ADMIN_WRITE": false
+    "TELEPHONY_ADMIN_WRITE": false,
+    "WHATSAPP_DELIVERY": false,
+    "FACE_ID_VERIFY": false,
+    "FACE_LIVENESS_VERIFY": false,
+    "CAMERA_CAPTURE": false,
+    "POSTGRESQL_BACKUP": false,
+    "FACE_ID_ACCESS_EVALUATE": false,
+    "CAMERA_PTZ": false,
+    "FACE_ID_PRESENCE_EVENT": false,
+    "FACE_ID_WATCHLIST_REFERENCE": false,
+    "FACE_ID_ENROLLMENT_REVIEW": false,
+    "CAMERA_EVENT_NORMALIZATION": false,
+    "CAMERA_MAINTENANCE_METADATA": false
   },
   "activation_requirements": [
     "protected_merged_sha",

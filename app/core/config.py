@@ -26,7 +26,7 @@ ROOT = Path(__file__).resolve().parents[2]
 RUNTIME_PROFILES_PATH = ROOT / "config" / "runtime-profiles.v1.json"
 SHA40 = re.compile(r"^[0-9a-f]{40}$")
 IMAGE_DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
-CANONICAL_SCHEMA_HEAD = "0067_service_catalog_monitoring_state"
+CANONICAL_SCHEMA_HEAD = "0070_agent_provisioning_lifecycle"
 PRODUCTION_ISSUER = "https://auth.codestra.co/realms/codestra"
 STAGING_ISSUER = "https://auth-staging.codestra.co/realms/codestra"
 CANONICAL_AUDIENCE = "middleware-api"
@@ -53,6 +53,7 @@ SUPPORTED_EXTERNAL_EFFECTS = frozenset(
         "CRAWLER_ODOO_DELIVERY_ENABLED",
         "SCRAPPER_ODOO_DELIVERY_ENABLED",
         "SMS_DELIVERY_ENABLED",
+        "WHATSAPP_DELIVERY_ENABLED",
         "EMAIL_DELIVERY_ENABLED",
         "SOCIAL_DELIVERY_ENABLED",
     }
@@ -64,6 +65,7 @@ EXTERNAL_DELIVERY_EFFECTS = frozenset(
         "CRAWLER_ODOO_DELIVERY_ENABLED",
         "SCRAPPER_ODOO_DELIVERY_ENABLED",
         "SMS_DELIVERY_ENABLED",
+        "WHATSAPP_DELIVERY_ENABLED",
         "EMAIL_DELIVERY_ENABLED",
     }
 )
@@ -95,6 +97,7 @@ EXTERNAL_EFFECT_FIELDS: dict[str, str] = {
     "CRAWLER_EXTERNAL_CONTACT_ENABLED": "crawler_external_contact_enabled",
     "SCRAPPER_EXTERNAL_CONTACT_ENABLED": "scrapper_external_contact_enabled",
     "SMS_DELIVERY_ENABLED": "effect_sms_delivery_enabled",
+    "WHATSAPP_DELIVERY_ENABLED": "effect_whatsapp_delivery_enabled",
     "EMAIL_DELIVERY_ENABLED": "effect_email_delivery_enabled",
     "SOCIAL_DELIVERY_ENABLED": "effect_social_delivery_enabled",
     "CRAWLER_EXECUTION_ENABLED": "crawler_execution_enabled",
@@ -312,6 +315,10 @@ class Settings(BaseSettings):
     effect_sms_delivery_enabled: bool = Field(
         default=False, validation_alias=AliasChoices("SMS_DELIVERY_ENABLED", "effect_sms_delivery_enabled")
     )
+    effect_whatsapp_delivery_enabled: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("WHATSAPP_DELIVERY_ENABLED", "effect_whatsapp_delivery_enabled"),
+    )
     effect_email_delivery_enabled: bool = Field(
         default=False, validation_alias=AliasChoices("EMAIL_DELIVERY_ENABLED", "effect_email_delivery_enabled")
     )
@@ -338,6 +345,19 @@ class Settings(BaseSettings):
     )
     umbrella_n8n_external_provider_writes: bool = Field(
         default=False, validation_alias=AliasChoices("N8N_EXTERNAL_PROVIDER_WRITES", "umbrella_n8n_external_provider_writes")
+    )
+    # Codestra Evolution WhatsApp provider adapter (internal, behind Middleware V3).
+    evolution_whatsapp_base_url: str = Field(
+        default="", validation_alias=AliasChoices("EVOLUTION_WHATSAPP_BASE_URL", "evolution_whatsapp_base_url")
+    )
+    evolution_whatsapp_service_token: str = Field(
+        default="", validation_alias=AliasChoices("EVOLUTION_WHATSAPP_SERVICE_TOKEN", "evolution_whatsapp_service_token")
+    )
+    evolution_whatsapp_provider: str = Field(
+        default="evolution", validation_alias=AliasChoices("EVOLUTION_WHATSAPP_PROVIDER", "evolution_whatsapp_provider")
+    )
+    evolution_whatsapp_instance_id: str = Field(
+        default="", validation_alias=AliasChoices("EVOLUTION_WHATSAPP_INSTANCE_ID", "evolution_whatsapp_instance_id")
     )
     # Odoo 19 CRM lead delivery (Appolon lineage). Distinct from the registry
     # backed ``odoo_base_url`` used by the outbox sync worker.

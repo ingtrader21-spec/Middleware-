@@ -18,6 +18,7 @@ import runpy
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -26,7 +27,7 @@ ROOT = Path(__file__).resolve().parents[1]
 REPOSITORY = "ingtrader21-spec/Middleware-"
 VALIDATOR = ROOT / ".codestra" / "validate-production-orchestrator-contract.py"
 RELEASE_WORKFLOW = ROOT / ".github" / "workflows" / "release.yml"
-CANONICAL_SCHEMA_HEAD = "0067_service_catalog_monitoring_state"
+CANONICAL_SCHEMA_HEAD = "0070_agent_provisioning_lifecycle"
 PUBLISHER_IDENTITY = "https://github.com/ingtrader21-spec/Middleware-/.github/workflows/release.yml@refs/heads/main"
 
 
@@ -505,14 +506,21 @@ def test_changed_allowed_argv_is_denied(validator: dict) -> None:
 
 
 def test_unsafe_working_directory_is_denied(validator: dict, tmp_path: Path) -> None:
+    del tmp_path  # The suite may intentionally place pytest basetemp inside the repo.
     relative = "scripts/audit_release_endpoints.py"
-    outside = tmp_path / "scripts"
-    outside.mkdir()
-    shutil.copy(ROOT / relative, outside / "audit_release_endpoints.py")
-    assert (
-        validator["approved_read_only_script_invocation"](relative, [], tmp_path)
-        is False
-    )
+    with tempfile.TemporaryDirectory(
+        prefix="middleware-release-authority-", dir="/tmp"
+    ) as temporary_directory:
+        unsafe_root = Path(temporary_directory)
+        outside = unsafe_root / "scripts"
+        outside.mkdir()
+        shutil.copy(ROOT / relative, outside / "audit_release_endpoints.py")
+        assert (
+            validator["approved_read_only_script_invocation"](
+                relative, [], unsafe_root
+            )
+            is False
+        )
 
 
 def test_symlinked_pinned_script_is_denied(validator: dict, tmp_path: Path) -> None:

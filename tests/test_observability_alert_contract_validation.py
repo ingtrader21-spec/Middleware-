@@ -17,6 +17,7 @@ BOUND_FILES = (
     "config/capabilities.v2.json",
     "config/control-plane-callers.v1.json",
     "config/adapter-registry.v2.json",
+    "config/repository-authorities.v1.json",
     "connectors/generated/command-registry.v1.json",
     "contracts/observability/alert-api.v1.openapi.yaml",
     "deploy/observability-alerts/compose.core-production.yaml",
@@ -67,7 +68,7 @@ class ObservabilityAlertContractValidationTests(unittest.TestCase):
             validator.validate(self.contract_root)
 
     def test_current_contract_passes(self) -> None:
-        self.assertEqual(validator.validate(ROOT), (21, 18))
+        self.assertEqual(validator.validate(ROOT), (21, 30))
 
     def test_duplicate_json_key_fails_closed(self) -> None:
         path = self.contract_root / "config/observability-alert-policy.v1.json"

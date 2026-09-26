@@ -31,6 +31,8 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.core.config import settings
 from app.core.jwt_auth import JWTAuthError, KeycloakValidator, identity_validator_kwargs
+from app.control_plane_auth import ControlPlaneCaller
+from app.platform.principal import KernelPrincipal, PrincipalType, authorize as authorize_resource
 
 BEARER = HTTPBearer(auto_error=False)
 
@@ -40,6 +42,11 @@ class ProvisioningPrincipal:
     subject: str
     authorized_party: str
     tenant_ids: frozenset[str]
+    scopes: frozenset[str] = frozenset()
+
+    def kernel_principal(self) -> KernelPrincipal:
+        caller = ControlPlaneCaller(self.authorized_party, "identity.request", "identity.request", (), frozenset(), False, False)
+        return KernelPrincipal(self.subject, self.authorized_party, tuple(sorted(self.tenant_ids)), (), tuple(sorted(self.scopes)), caller, PrincipalType.SERVICE, None, self.authorized_party)
 
 
 def require_provisioning_scope(
@@ -86,9 +93,16 @@ def require_provisioning_scope(
         return ProvisioningPrincipal(
             subject=subject, authorized_party=str(azp),
             tenant_ids=frozenset(tenant_claim),
+            scopes=frozenset(str(claims.get("scope", "")).split()),
         )
 
     return authorize
+
+
+def authorize_provisioning(principal: ProvisioningPrincipal, *, tenant_id: str, action: str, effect_class: str = "PROVISIONING") -> None:
+    decision = authorize_resource(principal.kernel_principal(), action=action, resource="agent-provisioning", tenant_id=tenant_id, required_scopes=("identity.request",), effect_class=effect_class, environment=settings.app_env)
+    if not decision.allowed:
+        raise HTTPException(403, decision.decision_code)
 
 
 def require_tenant_match(principal: ProvisioningPrincipal, tenant_id: str) -> None:

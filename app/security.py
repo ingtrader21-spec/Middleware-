@@ -58,9 +58,15 @@ class TokenVerifier(Protocol):
 class KeycloakJwtVerifier:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
+        # Keep the JWKS document cache bounded, but never use PyJWT's
+        # cache_keys=True path: that wraps get_signing_key() in an unbounded-
+        # lifetime lru_cache, so a removed signing key can remain trusted after
+        # the authoritative JWKS set refreshes. A 300-second set cache gives an
+        # explicit maximum refresh delay while allowing key removal/replacement
+        # to take effect on the next authority refresh.
         self._jwks = PyJWKClient(
             settings.jwks_uri,
-            cache_keys=True,
+            cache_keys=False,
             lifespan=300,
             timeout=settings.jwks_timeout_seconds,
         )

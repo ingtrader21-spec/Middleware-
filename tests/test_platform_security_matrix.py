@@ -84,7 +84,7 @@ def token(settings: Settings, **overrides: Any) -> str:
     if algorithm == "none":
         return jwt.encode(claims, key=None, algorithm="none")  # type: ignore[arg-type]
     if algorithm == "HS256":
-        return jwt.encode(claims, "shared-secret", algorithm="HS256")
+        return jwt.encode(claims, "shared-secret-key-material-32-bytes-minimum", algorithm="HS256")
     return jwt.encode(claims, key, algorithm=algorithm)
 
 
@@ -104,7 +104,12 @@ def body(**updates: Any) -> dict[str, Any]:
 
 
 def headers(request_body: dict[str, Any], bearer: str | None, **extra: str) -> dict[str, str]:
-    value = {"X-Correlation-ID": request_body["correlation_id"], "Idempotency-Key": request_body["idempotency_key"], "Content-Type": "application/json"}
+    value = {
+        "X-Command-ID": request_body["command_id"],
+        "X-Correlation-ID": request_body["correlation_id"],
+        "Idempotency-Key": request_body["idempotency_key"],
+        "Content-Type": "application/json",
+    }
     if bearer is not None:
         value["Authorization"] = f"Bearer {bearer}"
     value.update(extra)
@@ -195,7 +200,11 @@ def test_cancel_and_replay_authorization_and_state_negatives(stack) -> None:
         request_body = body()
         assert submit(client, stack.settings, request_body).status_code == 202
         operation = request_body["command_id"]
-        mutation = {"X-Correlation-ID": "c", "Idempotency-Key": "mutation-000001"}
+        mutation = {
+            "X-Command-ID": operation,
+            "X-Correlation-ID": request_body["correlation_id"],
+            "Idempotency-Key": "mutation-000001",
+        }
         # unauthorized cancel: read-only scope
         denied = client.post(f"/platform/v1/operations/{operation}/cancel", json={"expected_version": 1, "reason": "x"}, headers={**mutation, "Authorization": f"Bearer {token(stack.settings, scope='platform.command.read')}"})
         assert denied.status_code == 403  # scope missing -> authorization_denied
@@ -223,8 +232,13 @@ def test_cancel_and_replay_authorization_and_state_negatives(stack) -> None:
         asyncio.run(stack.bus.run_once())
         status = client.get(f"/platform/v1/operations/{uncertain['command_id']}", headers={"Authorization": f"Bearer {token(stack.settings)}"}).json()
         assert status["state"] == "RECONCILIATION_REQUIRED"
-        blind = client.post(f"/platform/v1/operations/{uncertain['command_id']}/replay", json={"mode": "REEXECUTE", "expected_version": 1, "reason": "x", "new_idempotency_key": "idem-new-000000002"}, headers={**mutation, "Idempotency-Key": "mutation-000003", "Authorization": f"Bearer {operator}"})
+        uncertain_mutation = {
+            "X-Command-ID": uncertain["command_id"],
+            "X-Correlation-ID": uncertain["correlation_id"],
+            "Idempotency-Key": "mutation-000003",
+        }
+        blind = client.post(f"/platform/v1/operations/{uncertain['command_id']}/replay", json={"mode": "REEXECUTE", "expected_version": 1, "reason": "x", "new_idempotency_key": "idem-new-000000002"}, headers={**uncertain_mutation, "Authorization": f"Bearer {operator}"})
         assert blind.status_code == 409 and "terminal" in blind.json()["error"]["message"]
-        reprocess = client.post(f"/platform/v1/operations/{uncertain['command_id']}/replay", json={"mode": "REPROCESS", "expected_version": 1, "reason": "x"}, headers={**mutation, "Idempotency-Key": "mutation-000004", "Authorization": f"Bearer {operator}"})
+        reprocess = client.post(f"/platform/v1/operations/{uncertain['command_id']}/replay", json={"mode": "REPROCESS", "expected_version": 1, "reason": "x"}, headers={**uncertain_mutation, "Idempotency-Key": "mutation-000004", "Authorization": f"Bearer {operator}"})
         assert reprocess.status_code == 202
         assert stack.runtime.platform.registry.adapter("test-syn").provider_effects == 1

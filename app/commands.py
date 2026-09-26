@@ -92,6 +92,11 @@ class CommandCapabilityDisabled(CommandError):
     code = "capability_disabled"
 
 
+class CommandCapabilityUnknown(CommandError):
+    status_code = 403
+    code = "capability_unknown"
+
+
 class CommandConflict(CommandError):
     status_code = 409
     code = "command_conflict"
@@ -137,6 +142,12 @@ class CommandEnvelope(BaseModel):
 
     @model_validator(mode="after")
     def enforce_canonical_contract(self) -> "CommandEnvelope":
+        from app.identity_service_contract import validate_service_command
+
+        validate_service_command(self.command_type, self.target, self.capability, self.payload)
+        from app.identity_missions import validate_event_idempotency
+
+        validate_event_idempotency(self.command_type, self.payload, self.idempotency_key)
         validate_contract("command", self.model_dump(mode="json"))
         return self
 
@@ -687,7 +698,7 @@ class MemoryCommandStore:
                     item.lease_owner = None
                     item.lease_until = None
         else:
-            if operation.state != "failed":
+            if operation.state not in {"failed", "dead_lettered"}:
                 raise CommandConflict("operation is not safely retryable")
             updates = {"state": "queued", "last_error": None}
             source = intents[-1] if intents else None

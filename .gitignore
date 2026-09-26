@@ -22,3 +22,7 @@ vite.config.d.ts
 *.tar.gz
 credentials/
 private_keys/
+
+# Local editor/build artifacts
+*.bak.*
+*.egg-info/

@@ -34,7 +34,13 @@ from uuid import UUID
 from app.commands import CommandNotFound, CommandService, redact_metadata
 from app.core.config import Settings
 from app.platform.adapter import AdapterContext, ReadbackResult, ReadbackStatus
+from app.platform.connector_bridge import (
+    KernelAdapterConnector,
+    connector_result_to_readback,
+    execution_context,
+)
 from app.platform.metrics import KernelMetrics
+from middleware.connector_runtime.execution import ConnectorRegistry as Section2ConnectorRegistry
 from app.platform.registry import AdapterRegistry
 from app.platform.bus import worker_identity
 
@@ -142,6 +148,12 @@ class Reconciler:
         adapter = self.registry.adapter(ownership.adapter_id)
         attempt = await self.commands.latest_attempt(claim.tenant_id, claim.command_id)
         envelope = await self.commands.load_envelope(claim.tenant_id, claim.command_id)
+        capabilities = adapter.capabilities()
+        if envelope.target not in capabilities.connector_ids:
+            reason = "connector unavailable during reconciliation"
+            await self.commands.transition(claim.tenant_id, claim.command_id, new_state="dead_lettered", actor_id=self.reconciler_id, reason=reason)
+            await self.source.resolve(claim, reconciler_id=self.reconciler_id, action="dead_letter", reason=reason)
+            return ReconciliationDecision(claim.command_id, adapter.adapter_id, None, "dead_letter", "dead_lettered")
         context = AdapterContext(
             tenant_id=operation.tenant_id,
             command_id=str(operation.command_id),
@@ -156,9 +168,36 @@ class Reconciler:
         self.metrics.adapter_requests.labels(adapter=adapter.adapter_id, operation="reconcile").inc()
         started = time.perf_counter()
         try:
-            readback = await asyncio.wait_for(adapter.reconcile(operation, context), timeout=self.timeout_seconds)
+            # A provider status endpoint is the cheapest recovery path for an
+            # asynchronous operation.  Terminal/failed status is normalized to
+            # readback semantics; otherwise the connector's reconciliation hook
+            # can perform callback lookup or a deeper provider query.
+            status_result = None
+            if capabilities.supports_status and operation.provider_operation_id:
+                status_result = await asyncio.wait_for(adapter.status(operation, context), timeout=self.timeout_seconds)
+                status_result = adapter.normalize_result(status_result)
+            if status_result is not None and status_result.provider_operation_id and status_result.provider_operation_id != operation.provider_operation_id:
+                readback = ReadbackResult(ReadbackStatus.MISMATCH, provider_operation_id=status_result.provider_operation_id, safe_error_code="provider_reference_mismatch")
+            elif status_result is not None and status_result.outcome.value in {"REJECTED", "CANCELLED"}:
+                readback = ReadbackResult(ReadbackStatus.MISMATCH, provider_operation_id=status_result.provider_operation_id or operation.provider_operation_id, evidence={"provider_state": status_result.outcome.value.lower()}, safe_error_code=status_result.safe_error_code or "provider_operation_failed")
+            else:
+                section2 = Section2ConnectorRegistry()
+            connector = KernelAdapterConnector(adapter, (ownership.prefix,))
+            section2.register(connector)
+            runtime_context = execution_context(
+                command=envelope,
+                adapter_context=context,
+                effect_class=connector.descriptor.capabilities[0].effect,
+                effects_allowed=False,
+                operation=operation,
+            )
+            runtime_result = await asyncio.wait_for(
+                connector.reconcile(operation.provider_operation_id or "", runtime_context),
+                timeout=self.timeout_seconds,
+            )
+            readback = connector_result_to_readback(runtime_result)
         except Exception as exc:  # noqa: BLE001
-            readback = ReadbackResult(ReadbackStatus.UNAVAILABLE, safe_error_code=type(exc).__name__)
+            readback = ReadbackResult(ReadbackStatus.UNAVAILABLE, provider_operation_id=operation.provider_operation_id, evidence={"retry_hint": "reconcile"}, safe_error_code=type(exc).__name__)
         finally:
             self.metrics.adapter_latency.labels(adapter=adapter.adapter_id, operation="reconcile").observe(time.perf_counter() - started)
 
@@ -168,6 +207,16 @@ class Reconciler:
             "provider_operation_id": readback.provider_operation_id or operation.provider_operation_id,
             **redact_metadata(dict(readback.evidence)),
         }
+        provider_family = adapter.capabilities().provider_family
+        self.metrics.provider_reconciles.labels(
+            connector=adapter.adapter_id,
+            provider=provider_family,
+            result=readback.status.value.lower(),
+        ).inc()
+        if readback.status in {ReadbackStatus.UNKNOWN, ReadbackStatus.UNAVAILABLE, ReadbackStatus.PENDING, ReadbackStatus.ACCEPTED, ReadbackStatus.RUNNING, ReadbackStatus.PARTIAL}:
+            self.metrics.provider_unknown_states.labels(
+                connector=adapter.adapter_id, provider=provider_family, operation="reconcile"
+            ).inc()
         actor = self.reconciler_id
         family = operation.command_type.split(".", 1)[0]
         exhausted = claim.reconciliation_attempts >= self.budget or readback.status is ReadbackStatus.UNSUPPORTED
