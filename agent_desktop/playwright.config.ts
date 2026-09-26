@@ -1,12 +1,15 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const port = process.env.PLAYWRIGHT_PORT ?? "4173";
+const baseURL = `http://127.0.0.1:${port}`;
+
 export default defineConfig({
   testDir: "./tests/browser",
   timeout: 30_000,
   retries: 0,
   reporter: [["line"], ["json", { outputFile: "test-results/playwright-results.json" }]],
   use: {
-    baseURL: "http://127.0.0.1:4173",
+    baseURL,
     trace: "retain-on-failure",
     video: "off",
     screenshot: "only-on-failure",
@@ -17,8 +20,8 @@ export default defineConfig({
     { name: "webkit", use: { ...devices["Desktop Safari"] } },
   ],
   webServer: {
-    command: "npm run build -- --mode staging && npx vite preview --host 127.0.0.1 --port 4173",
-    url: "http://127.0.0.1:4173",
+    command: `npm run build -- --mode staging && npx vite preview --host 127.0.0.1 --port ${port}`,
+    url: baseURL,
     reuseExistingServer: false,
     env: {
       VITE_APP_ENV: "staging",

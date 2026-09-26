@@ -22,7 +22,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.api_inputs import optional_header, required_header
 from app.commands import API_OPERATION_STATES, CommandCapabilityDisabled, CommandEnvelope, CommandNotFound, CommandOperation, OperationEvent, redact_metadata
@@ -66,6 +66,22 @@ class KernelCommandRequest(BaseModel):
     @classmethod
     def bound_payload(cls, value: dict[str, Any]) -> dict[str, Any]:
         return CommandEnvelope.bound_payload(value)
+
+    @model_validator(mode="after")
+    def service_payload_contract(self) -> "KernelCommandRequest":
+        from app.identity_service_contract import SERVICE_COMMANDS, validate_service_command
+
+        family = self.command_type.split(".", 1)[0]
+        from app.identity_missions import MISSION_COMMANDS, validate_event_idempotency
+
+        binding = MISSION_COMMANDS.get(self.command_type) or SERVICE_COMMANDS.get(family)
+        if binding is not None or self.target in SERVICE_COMMANDS:
+            validate_service_command(
+                self.command_type, self.target or family,
+                self.capability or (binding[0] if binding else ""), self.payload,
+            )
+        validate_event_idempotency(self.command_type, self.payload, self.idempotency_key)
+        return self
 
     def envelope(self, *, target: str, capability: str) -> CommandEnvelope:
         return CommandEnvelope(
@@ -422,7 +438,33 @@ async def describe_kernel(request: Request) -> JSONResponse:
         contract_digest=_public_contract_digest(),
         command_contract_version=COMMAND_CONTRACT_VERSION,
     )
+    description["identity_services"] = _identity_service_contracts()
     return JSONResponse(status_code=200, content=description)
+
+
+def _identity_service_contracts() -> dict[str, Any]:
+    from app.identity_missions import SERVICE_READBACKS
+
+    items = []
+    for name, contract in sorted(SERVICE_READBACKS.items()):
+        items.append(
+            {
+                "name": name,
+                "service_id": contract["service_id"],
+                "method": contract["method"],
+                "path": contract["path"],
+                "scope": contract["scope"],
+                "state": contract["state"],
+                "resource_param": contract["resource_param"],
+            }
+        )
+    return {
+        "contract_version": "identity-service-readbacks.v1",
+        "authority": "Middleware V3",
+        "caller_supplied_urls": False,
+        "raw_biometrics": False,
+        "readbacks": items,
+    }
 
 
 def _public_contract_digest() -> str | None:

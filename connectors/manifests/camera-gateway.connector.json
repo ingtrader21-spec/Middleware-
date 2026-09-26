@@ -1,0 +1,116 @@
+{
+  "$schema": "https://contracts.codestra.co/connectors/connector-manifest.v1.schema.json",
+  "manifest_version": "1.0",
+  "connector_id": "camera-gateway",
+  "display_name": "Codestra-Camera-Gateway",
+  "version": "1.0.0",
+  "cell": "core-communications",
+  "repository": "ingtrader21-spec/Codestra-Camera-Gateway",
+  "enabled_by_default": false,
+  "direct_n8n_access": false,
+  "runtime_binding": {
+    "status": "UNVERIFIED_TEMPLATE_ONLY",
+    "base_url": "https://camera-gateway.internal.invalid",
+    "health_path": "/health/ready",
+    "operation_path_template": "/internal/v1/commands/{operation_id}"
+  },
+  "authentication": {
+    "type": "oauth2-plus-mtls",
+    "audience": "camera-gateway",
+    "scopes": [
+      "connector.camera-gateway.command",
+      "connector.camera-gateway.read"
+    ],
+    "secret_references": [
+      "CONNECTOR_CAMERA_GATEWAY_CLIENT_SECRET",
+      "CONNECTOR_CAMERA_GATEWAY_MTLS_CERT"
+    ]
+  },
+  "commands": [
+    {
+      "prefix": "camera-gateway.capture.",
+      "required_capability": "CAMERA_CAPTURE",
+      "timeout_seconds": 30,
+      "readback_required": true,
+      "retry_policy": {
+        "maximum_attempts": 5,
+        "initial_backoff_seconds": 2,
+        "maximum_backoff_seconds": 120,
+        "jitter_ratio": 0.2,
+        "unknown_outcome_requires_readback": true
+      }
+    },
+    {
+      "prefix": "camera-gateway.ptz.",
+      "required_capability": "CAMERA_PTZ",
+      "timeout_seconds": 30,
+      "readback_required": true,
+      "retry_policy": {
+        "maximum_attempts": 5,
+        "initial_backoff_seconds": 2,
+        "maximum_backoff_seconds": 120,
+        "jitter_ratio": 0.2,
+        "unknown_outcome_requires_readback": true
+      }
+    },
+    {
+      "prefix": "camera-gateway.event.",
+      "required_capability": "CAMERA_EVENT_NORMALIZATION",
+      "timeout_seconds": 30,
+      "readback_required": true,
+      "retry_policy": {
+        "maximum_attempts": 5,
+        "initial_backoff_seconds": 2,
+        "maximum_backoff_seconds": 120,
+        "jitter_ratio": 0.2,
+        "unknown_outcome_requires_readback": true
+      }
+    },
+    {
+      "prefix": "camera-gateway.maintenance.",
+      "required_capability": "CAMERA_MAINTENANCE_METADATA",
+      "timeout_seconds": 30,
+      "readback_required": true,
+      "retry_policy": {
+        "maximum_attempts": 5,
+        "initial_backoff_seconds": 2,
+        "maximum_backoff_seconds": 120,
+        "jitter_ratio": 0.2,
+        "unknown_outcome_requires_readback": true
+      }
+    }
+  ],
+  "events": [],
+  "webhooks": [],
+  "forbidden_command_prefixes": [],
+  "forbidden_payload_keys": [
+    "access_token",
+    "client_secret",
+    "password",
+    "private_key",
+    "provider_token",
+    "refresh_token",
+    "sql",
+    "dsn",
+    "image",
+    "embedding",
+    "stream_url"
+  ],
+  "workflow_families": [
+    "camera-gateway.capture",
+    "camera-gateway.ptz",
+    "camera-gateway.event",
+    "camera-gateway.maintenance"
+  ],
+  "metadata": {
+    "source_only": true,
+    "runtime_activation_authorized": false,
+    "owner": "camera-gateway",
+    "internal_api_contract": "contracts/platform/identity-services-adapter.v1.openapi.json",
+    "operation_id_binding": "canonical Middleware command_id, not provider operation handle",
+    "source_revision": "af5e890a4935a2075088a379e3143d6d66c207f0",
+    "readiness_source_verified": true,
+    "live_endpoint_verified": false,
+    "service_catalog": "contracts/platform/identity-services.catalog.v1.json"
+  }
+}

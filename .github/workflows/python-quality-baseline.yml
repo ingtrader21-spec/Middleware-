@@ -31,7 +31,7 @@ concurrency:
 jobs:
   ruff-baseline:
     name: Ruff baseline (report only)
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, Linux, X64, ubuntu-24.04, middleware-ci]
     timeout-minutes: 15
     steps:
       - name: Check out exact source
@@ -84,7 +84,7 @@ jobs:
 
   mypy-core-baseline:
     name: mypy core baseline (report only)
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, Linux, X64, ubuntu-24.04, middleware-ci]
     timeout-minutes: 20
     steps:
       - name: Check out exact source
@@ -143,7 +143,7 @@ jobs:
 
   mypy-connector-baseline:
     name: mypy Connector Runtime baseline (report only)
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, Linux, X64, ubuntu-24.04, middleware-ci]
     timeout-minutes: 20
     steps:
       - name: Check out exact source

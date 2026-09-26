@@ -42,12 +42,33 @@ def test_nonisolated_connection_target_is_rejected(target):
         validate({**isolated(), "DATABASE_URL": target})
 
 
+def test_dynamic_local_service_ports_are_allowed():
+    validate({
+        **isolated(),
+        "DATABASE_URL": "postgresql+asyncpg://ci:synthetic@127.0.0.1:32815/middleware_rehearsal",
+        "TEST_DATABASE_URL": "postgresql+asyncpg://ci:synthetic@127.0.0.1:32815/middleware_rehearsal",
+        "REDIS_URL": "redis://127.0.0.1:32816/15",
+    })
+
+
+@pytest.mark.parametrize("target", [
+    "redis://production.invalid:6379/15",
+    "redis://127.0.0.1:6379/0",
+    "redis://user:pass@127.0.0.1:6379/15",
+    "redis://127.0.0.1:0/15",
+])
+def test_nonisolated_redis_target_is_rejected(target):
+    with pytest.raises(ValueError):
+        validate({**isolated(), "REDIS_URL": target})
+
+
 def test_workflow_blocks_real_runner_and_container_egress_without_rg_dependency():
     source = (ROOT / ".github/workflows/required-ci.yml").read_text()
     assert "python scripts/validate_ci_isolation.py" in source
-    assert "for chain in OUTPUT FORWARD" in source
-    assert 'iptables -I "$chain" 1 -d "$target" -j REJECT' in source
-    assert 'iptables -C "$chain" -d "$target" -j REJECT' in source
+    assert "/usr/local/sbin/codestra-ci-egress-guard apply" in source
+    assert "/usr/local/sbin/codestra-ci-egress-guard check" in source
+    assert "/usr/local/sbin/codestra-ci-egress-guard clear" in source
+    assert "trap cleanup_egress EXIT" in source
     assert "! rg -n" not in source
 
 

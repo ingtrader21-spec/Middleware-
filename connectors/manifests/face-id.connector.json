@@ -1,0 +1,144 @@
+{
+  "$schema": "https://contracts.codestra.co/connectors/connector-manifest.v1.schema.json",
+  "manifest_version": "1.0",
+  "connector_id": "face-id",
+  "display_name": "Codestra-FACE-ID",
+  "version": "1.0.0",
+  "cell": "core-communications",
+  "repository": "ingtrader21-spec/FACE-ID",
+  "enabled_by_default": false,
+  "direct_n8n_access": false,
+  "runtime_binding": {
+    "status": "UNVERIFIED_TEMPLATE_ONLY",
+    "base_url": "https://face-id.internal.invalid",
+    "health_path": "/health/ready",
+    "operation_path_template": "/internal/v1/commands/{operation_id}"
+  },
+  "authentication": {
+    "type": "oauth2-plus-mtls",
+    "audience": "face-id",
+    "scopes": [
+      "connector.face-id.command",
+      "connector.face-id.read"
+    ],
+    "secret_references": [
+      "CONNECTOR_FACE_ID_CLIENT_SECRET",
+      "CONNECTOR_FACE_ID_MTLS_CERT"
+    ]
+  },
+  "commands": [
+    {
+      "prefix": "face-id.verify.",
+      "required_capability": "FACE_ID_VERIFY",
+      "timeout_seconds": 30,
+      "readback_required": true,
+      "retry_policy": {
+        "maximum_attempts": 5,
+        "initial_backoff_seconds": 2,
+        "maximum_backoff_seconds": 120,
+        "jitter_ratio": 0.2,
+        "unknown_outcome_requires_readback": true
+      }
+    },
+    {
+      "prefix": "face-id.access.",
+      "required_capability": "FACE_ID_ACCESS_EVALUATE",
+      "timeout_seconds": 30,
+      "readback_required": true,
+      "retry_policy": {
+        "maximum_attempts": 5,
+        "initial_backoff_seconds": 2,
+        "maximum_backoff_seconds": 120,
+        "jitter_ratio": 0.2,
+        "unknown_outcome_requires_readback": true
+      }
+    },
+    {
+      "prefix": "face-id.presence.",
+      "required_capability": "FACE_ID_PRESENCE_EVENT",
+      "timeout_seconds": 30,
+      "readback_required": true,
+      "retry_policy": {
+        "maximum_attempts": 5,
+        "initial_backoff_seconds": 2,
+        "maximum_backoff_seconds": 120,
+        "jitter_ratio": 0.2,
+        "unknown_outcome_requires_readback": true
+      }
+    },
+    {
+      "prefix": "face-id.watchlist.",
+      "required_capability": "FACE_ID_WATCHLIST_REFERENCE",
+      "timeout_seconds": 30,
+      "readback_required": true,
+      "retry_policy": {
+        "maximum_attempts": 5,
+        "initial_backoff_seconds": 2,
+        "maximum_backoff_seconds": 120,
+        "jitter_ratio": 0.2,
+        "unknown_outcome_requires_readback": true
+      }
+    },
+    {
+      "prefix": "face-id.enrollment.",
+      "required_capability": "FACE_ID_ENROLLMENT_REVIEW",
+      "timeout_seconds": 30,
+      "readback_required": true,
+      "retry_policy": {
+        "maximum_attempts": 5,
+        "initial_backoff_seconds": 2,
+        "maximum_backoff_seconds": 120,
+        "jitter_ratio": 0.2,
+        "unknown_outcome_requires_readback": true
+      }
+    },
+    {
+      "prefix": "face-id.duplicate.",
+      "required_capability": "FACE_ID_ENROLLMENT_REVIEW",
+      "timeout_seconds": 30,
+      "readback_required": true,
+      "retry_policy": {
+        "maximum_attempts": 5,
+        "initial_backoff_seconds": 2,
+        "maximum_backoff_seconds": 120,
+        "jitter_ratio": 0.2,
+        "unknown_outcome_requires_readback": true
+      }
+    }
+  ],
+  "events": [],
+  "webhooks": [],
+  "forbidden_command_prefixes": [],
+  "forbidden_payload_keys": [
+    "access_token",
+    "client_secret",
+    "password",
+    "private_key",
+    "provider_token",
+    "refresh_token",
+    "sql",
+    "dsn",
+    "image",
+    "embedding",
+    "stream_url"
+  ],
+  "workflow_families": [
+    "face-id.verify",
+    "face-id.access",
+    "face-id.presence",
+    "face-id.watchlist",
+    "face-id.enrollment",
+    "face-id.duplicate"
+  ],
+  "metadata": {
+    "source_only": true,
+    "runtime_activation_authorized": false,
+    "owner": "face-id",
+    "internal_api_contract": "contracts/platform/identity-services-adapter.v1.openapi.json",
+    "operation_id_binding": "canonical Middleware command_id, not provider operation handle",
+    "source_revision": "459964b0e7a1c0e56fb4d83649f78753e4c09951",
+    "readiness_source_verified": true,
+    "live_endpoint_verified": false,
+    "service_catalog": "contracts/platform/identity-services.catalog.v1.json"
+  }
+}

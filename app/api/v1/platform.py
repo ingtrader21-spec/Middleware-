@@ -61,8 +61,10 @@ class ServiceCreate(MonitoringDescriptor):
     @field_validator("repository")
     @classmethod
     def repository_is_governed(cls, value: str) -> str:
-        if not REPOSITORY.fullmatch(value):
-            raise ValueError("repository must belong to appolon1908-hue")
+        from app.identity_service_contract import SERVICE_REPOSITORIES
+
+        if not REPOSITORY.fullmatch(value) and value not in SERVICE_REPOSITORIES.values():
+            raise ValueError("repository must belong to a governed service owner")
         return value
 
     @field_validator("environments")

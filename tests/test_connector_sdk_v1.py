@@ -281,6 +281,10 @@ class ConnectorSdkStandardsTests(unittest.TestCase):
             {
                 "ai-provider",
                 "beyvra-nonfinancial",
+                "face-id",
+                "face-liveness",
+                "camera-gateway",
+                "postgresql",
                 "klyrow-alert-email",
                 "klyrow-email",
                 "kyqra-crawler",

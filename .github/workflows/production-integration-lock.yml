@@ -20,7 +20,7 @@ defaults:
 jobs:
   validate:
     name: production-integration-lock
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, Linux, X64, ubuntu-24.04, middleware-ci]
     timeout-minutes: 15
     env:
       EXPECTED_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}

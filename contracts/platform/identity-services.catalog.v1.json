@@ -1,0 +1,1955 @@
+{
+  "schema_version": "1.0",
+  "state": "DESIRED_ONLY",
+  "registration_endpoint": "/platform/v1/services",
+  "entries": [
+    {
+      "service_id": "face-id",
+      "owner": "face-id",
+      "tenant_mode": "multi-tenant",
+      "type": "api",
+      "repository": "ingtrader21-spec/FACE-ID",
+      "environments": [
+        "test",
+        "staging"
+      ],
+      "health_path": "/health/ready",
+      "metrics_path": "/metrics",
+      "openapi_path": "/openapi.json",
+      "dependencies": [],
+      "data_classification": "restricted",
+      "slo_profile": "internal-service",
+      "alert_profile": "internal-service"
+    },
+    {
+      "service_id": "face-liveness",
+      "owner": "face-liveness",
+      "tenant_mode": "multi-tenant",
+      "type": "api",
+      "repository": "ingtrader21-spec/Codestra-Face-Liveness",
+      "environments": [
+        "test",
+        "staging"
+      ],
+      "health_path": "/health/ready",
+      "metrics_path": "/metrics",
+      "openapi_path": "/openapi.json",
+      "dependencies": [],
+      "data_classification": "restricted",
+      "slo_profile": "internal-service",
+      "alert_profile": "internal-service"
+    },
+    {
+      "service_id": "camera-gateway",
+      "owner": "camera-gateway",
+      "tenant_mode": "multi-tenant",
+      "type": "api",
+      "repository": "ingtrader21-spec/Codestra-Camera-Gateway",
+      "environments": [
+        "test",
+        "staging"
+      ],
+      "health_path": "/health/ready",
+      "metrics_path": "/metrics",
+      "openapi_path": "/openapi.json",
+      "dependencies": [],
+      "data_classification": "restricted",
+      "slo_profile": "internal-service",
+      "alert_profile": "internal-service"
+    },
+    {
+      "service_id": "postgresql",
+      "owner": "postgresql",
+      "tenant_mode": "multi-tenant",
+      "type": "api",
+      "repository": "ingtrader21-spec/Codestra-PostgreSQL",
+      "environments": [
+        "test",
+        "staging"
+      ],
+      "health_path": "/health/ready",
+      "metrics_path": "/metrics",
+      "openapi_path": "/openapi.json",
+      "dependencies": [],
+      "data_classification": "restricted",
+      "slo_profile": "internal-service",
+      "alert_profile": "internal-service"
+    }
+  ],
+  "readback_contracts": {
+    "backup-catalog": {
+      "service_id": "postgresql",
+      "method": "GET",
+      "path": "/internal/v1/observability/backup-catalog",
+      "scope": "connector.postgresql.read",
+      "state": "PROPOSED_NOT_IMPLEMENTED",
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tenant_id",
+          "database_ref",
+          "observed_at",
+          "status",
+          "evidence_refs",
+          "checks"
+        ],
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "database_ref": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "maxLength": 40
+          },
+          "status": {
+            "enum": [
+              "ready",
+              "not_ready",
+              "unknown"
+            ]
+          },
+          "evidence_refs": {
+            "type": "array",
+            "maxItems": 100,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          },
+          "checks": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "catalog_available",
+              "encrypted",
+              "offsite_verified"
+            ],
+            "properties": {
+              "catalog_available": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "encrypted": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "offsite_verified": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "status": {
+                  "const": "ready"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "checks": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "catalog_available",
+                    "encrypted",
+                    "offsite_verified"
+                  ],
+                  "properties": {
+                    "catalog_available": {
+                      "const": true
+                    },
+                    "encrypted": {
+                      "const": true
+                    },
+                    "offsite_verified": {
+                      "const": true
+                    }
+                  }
+                },
+                "evidence_refs": {
+                  "minItems": 1
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "restore-rehearsal": {
+      "service_id": "postgresql",
+      "method": "GET",
+      "path": "/internal/v1/observability/restore-rehearsal",
+      "scope": "connector.postgresql.read",
+      "state": "PROPOSED_NOT_IMPLEMENTED",
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tenant_id",
+          "database_ref",
+          "observed_at",
+          "status",
+          "evidence_refs",
+          "checks"
+        ],
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "database_ref": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "maxLength": 40
+          },
+          "status": {
+            "enum": [
+              "ready",
+              "not_ready",
+              "unknown"
+            ]
+          },
+          "evidence_refs": {
+            "type": "array",
+            "maxItems": 100,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          },
+          "checks": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "isolated_target",
+              "restore_verified",
+              "application_verified"
+            ],
+            "properties": {
+              "isolated_target": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "restore_verified": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "application_verified": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "status": {
+                  "const": "ready"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "checks": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "isolated_target",
+                    "restore_verified",
+                    "application_verified"
+                  ],
+                  "properties": {
+                    "isolated_target": {
+                      "const": true
+                    },
+                    "restore_verified": {
+                      "const": true
+                    },
+                    "application_verified": {
+                      "const": true
+                    }
+                  }
+                },
+                "evidence_refs": {
+                  "minItems": 1
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "tls-security": {
+      "service_id": "postgresql",
+      "method": "GET",
+      "path": "/internal/v1/observability/tls-security",
+      "scope": "connector.postgresql.read",
+      "state": "PROPOSED_NOT_IMPLEMENTED",
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tenant_id",
+          "database_ref",
+          "observed_at",
+          "status",
+          "evidence_refs",
+          "checks"
+        ],
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "database_ref": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "maxLength": 40
+          },
+          "status": {
+            "enum": [
+              "ready",
+              "not_ready",
+              "unknown"
+            ]
+          },
+          "evidence_refs": {
+            "type": "array",
+            "maxItems": 100,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          },
+          "checks": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "tls_required",
+              "certificate_valid",
+              "least_privilege_verified"
+            ],
+            "properties": {
+              "tls_required": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "certificate_valid": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "least_privilege_verified": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "status": {
+                  "const": "ready"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "checks": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "tls_required",
+                    "certificate_valid",
+                    "least_privilege_verified"
+                  ],
+                  "properties": {
+                    "tls_required": {
+                      "const": true
+                    },
+                    "certificate_valid": {
+                      "const": true
+                    },
+                    "least_privilege_verified": {
+                      "const": true
+                    }
+                  }
+                },
+                "evidence_refs": {
+                  "minItems": 1
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "replication-recovery": {
+      "service_id": "postgresql",
+      "method": "GET",
+      "path": "/internal/v1/observability/replication-recovery",
+      "scope": "connector.postgresql.read",
+      "state": "PROPOSED_NOT_IMPLEMENTED",
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tenant_id",
+          "database_ref",
+          "observed_at",
+          "status",
+          "evidence_refs",
+          "checks"
+        ],
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "database_ref": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "maxLength": 40
+          },
+          "status": {
+            "enum": [
+              "ready",
+              "not_ready",
+              "unknown"
+            ]
+          },
+          "evidence_refs": {
+            "type": "array",
+            "maxItems": 100,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          },
+          "checks": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "replication_healthy",
+              "recovery_tested",
+              "rpo_met",
+              "rto_met"
+            ],
+            "properties": {
+              "replication_healthy": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "recovery_tested": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "rpo_met": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "rto_met": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "status": {
+                  "const": "ready"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "checks": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "replication_healthy",
+                    "recovery_tested",
+                    "rpo_met",
+                    "rto_met"
+                  ],
+                  "properties": {
+                    "replication_healthy": {
+                      "const": true
+                    },
+                    "recovery_tested": {
+                      "const": true
+                    },
+                    "rpo_met": {
+                      "const": true
+                    },
+                    "rto_met": {
+                      "const": true
+                    }
+                  }
+                },
+                "evidence_refs": {
+                  "minItems": 1
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "pitr-readiness": {
+      "service_id": "postgresql",
+      "method": "GET",
+      "path": "/internal/v1/observability/pitr-readiness",
+      "scope": "connector.postgresql.read",
+      "state": "IMPLEMENTED_READ_ONLY",
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tenant_id",
+          "database_ref",
+          "observed_at",
+          "status",
+          "evidence_refs",
+          "checks"
+        ],
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "database_ref": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "maxLength": 40
+          },
+          "status": {
+            "enum": [
+              "ready",
+              "not_ready",
+              "unknown"
+            ]
+          },
+          "evidence_refs": {
+            "type": "array",
+            "maxItems": 100,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          },
+          "checks": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "wal_archiving",
+              "base_backup_recent",
+              "recovery_target_supported"
+            ],
+            "properties": {
+              "wal_archiving": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "base_backup_recent": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "recovery_target_supported": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "status": {
+                  "const": "ready"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "checks": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "wal_archiving",
+                    "base_backup_recent",
+                    "recovery_target_supported"
+                  ],
+                  "properties": {
+                    "wal_archiving": {
+                      "const": true
+                    },
+                    "base_backup_recent": {
+                      "const": true
+                    },
+                    "recovery_target_supported": {
+                      "const": true
+                    }
+                  }
+                },
+                "evidence_refs": {
+                  "minItems": 1
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "capacity-status": {
+      "service_id": "postgresql",
+      "method": "GET",
+      "path": "/internal/v1/observability/capacity-status",
+      "scope": "connector.postgresql.read",
+      "state": "IMPLEMENTED_READ_ONLY",
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tenant_id",
+          "database_ref",
+          "observed_at",
+          "status",
+          "evidence_refs",
+          "checks"
+        ],
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "database_ref": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "maxLength": 40
+          },
+          "status": {
+            "enum": [
+              "ready",
+              "not_ready",
+              "unknown"
+            ]
+          },
+          "evidence_refs": {
+            "type": "array",
+            "maxItems": 100,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          },
+          "checks": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "storage_within_threshold",
+              "growth_sample_recent",
+              "disk_free_known"
+            ],
+            "properties": {
+              "storage_within_threshold": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "growth_sample_recent": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "disk_free_known": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "status": {
+                  "const": "ready"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "checks": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "storage_within_threshold",
+                    "growth_sample_recent",
+                    "disk_free_known"
+                  ],
+                  "properties": {
+                    "storage_within_threshold": {
+                      "const": true
+                    },
+                    "growth_sample_recent": {
+                      "const": true
+                    },
+                    "disk_free_known": {
+                      "const": true
+                    }
+                  }
+                },
+                "evidence_refs": {
+                  "minItems": 1
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "maintenance-health": {
+      "service_id": "postgresql",
+      "method": "GET",
+      "path": "/internal/v1/observability/maintenance-health",
+      "scope": "connector.postgresql.read",
+      "state": "IMPLEMENTED_READ_ONLY",
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tenant_id",
+          "database_ref",
+          "observed_at",
+          "status",
+          "evidence_refs",
+          "checks"
+        ],
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "database_ref": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "maxLength": 40
+          },
+          "status": {
+            "enum": [
+              "ready",
+              "not_ready",
+              "unknown"
+            ]
+          },
+          "evidence_refs": {
+            "type": "array",
+            "maxItems": 100,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          },
+          "checks": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "autovacuum_healthy",
+              "analyze_recent",
+              "checkpoint_healthy"
+            ],
+            "properties": {
+              "autovacuum_healthy": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "analyze_recent": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "checkpoint_healthy": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "status": {
+                  "const": "ready"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "checks": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "autovacuum_healthy",
+                    "analyze_recent",
+                    "checkpoint_healthy"
+                  ],
+                  "properties": {
+                    "autovacuum_healthy": {
+                      "const": true
+                    },
+                    "analyze_recent": {
+                      "const": true
+                    },
+                    "checkpoint_healthy": {
+                      "const": true
+                    }
+                  }
+                },
+                "evidence_refs": {
+                  "minItems": 1
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "failover-rehearsal": {
+      "service_id": "postgresql",
+      "method": "GET",
+      "path": "/internal/v1/observability/failover-rehearsal",
+      "scope": "connector.postgresql.read",
+      "state": "IMPLEMENTED_READ_ONLY",
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tenant_id",
+          "database_ref",
+          "observed_at",
+          "status",
+          "evidence_refs",
+          "checks"
+        ],
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "database_ref": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "maxLength": 40
+          },
+          "status": {
+            "enum": [
+              "ready",
+              "not_ready",
+              "unknown"
+            ]
+          },
+          "evidence_refs": {
+            "type": "array",
+            "maxItems": 100,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          },
+          "checks": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "rehearsal_completed",
+              "integrity_verified",
+              "rto_recorded"
+            ],
+            "properties": {
+              "rehearsal_completed": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "integrity_verified": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "rto_recorded": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "status": {
+                  "const": "ready"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "checks": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "rehearsal_completed",
+                    "integrity_verified",
+                    "rto_recorded"
+                  ],
+                  "properties": {
+                    "rehearsal_completed": {
+                      "const": true
+                    },
+                    "integrity_verified": {
+                      "const": true
+                    },
+                    "rto_recorded": {
+                      "const": true
+                    }
+                  }
+                },
+                "evidence_refs": {
+                  "minItems": 1
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "source_reconciliation": {
+    "face-id": {
+      "repository": "ingtrader21-spec/FACE-ID",
+      "revision": "da213fdbdc301f6892bb276e9b715b4875d17d5a",
+      "branch": "mission/face-id-middleware-integration-20260924",
+      "readiness_path": "/health/ready",
+      "readiness_implemented": true,
+      "private_command_protocol_implemented": false,
+      "live_verified": false,
+      "implemented_routes": [
+        "/v1/zones",
+        "/v1/access-policies",
+        "/v1/visitor-passes",
+        "/v1/alert-rules",
+        "/v1/incidents",
+        "/v1/retention-policies",
+        "/v1/subjects/{subject_id}/labels",
+        "/v1/privacy/subjects/{subject_id}/export",
+        "/v1/privacy/subjects/{subject_id}",
+        "/v1/integrations/status"
+      ],
+      "missions_21_25": {
+        "21": {
+          "routes": {
+            "/v1/access/evaluate": [
+              "POST"
+            ]
+          },
+          "middleware_command": "face-id.access.evaluate.v1",
+          "field_mapping": {
+            "zone_ref": "zone_id",
+            "visitor_pass_ref": "visitor_pass_id",
+            "subject_ref": "subject_ref",
+            "occurred_at": "occurred_at"
+          },
+          "decision_only": true
+        },
+        "22": {
+          "routes": {
+            "/v1/presence/events": [
+              "POST"
+            ],
+            "/v1/presence/current": [
+              "GET"
+            ],
+            "/v1/presence/history": [
+              "GET"
+            ]
+          },
+          "middleware_commands": [
+            "face-id.presence.enter.v1",
+            "face-id.presence.exit.v1"
+          ],
+          "field_mapping": {
+            "camera_ref": "camera_id",
+            "zone_ref": "zone_id",
+            "subject_ref": "subject_ref",
+            "event_ref": "event_ref"
+          },
+          "direction_source": "command_type",
+          "idempotency_gap": "service event_ref deduplication is not tenant scoped"
+        },
+        "23": {
+          "routes": {
+            "/v1/unknown-clusters": [
+              "GET",
+              "POST"
+            ],
+            "/v1/unknown-clusters/{cluster_id}": [
+              "GET",
+              "PATCH"
+            ],
+            "/v1/unknown-clusters/{cluster_id}/events": [
+              "POST"
+            ],
+            "/v1/unknown-clusters/{cluster_id}/events/{event_id}": [
+              "DELETE"
+            ]
+          },
+          "middleware_activation": "NONE",
+          "identity_asserted": false
+        },
+        "24": {
+          "routes": {
+            "/v1/camera-zones": [
+              "GET",
+              "POST"
+            ],
+            "/v1/camera-zones/{mapping_id}": [
+              "PATCH",
+              "DELETE"
+            ]
+          },
+          "middleware_activation": "NONE",
+          "purpose": "metadata only; not PTZ"
+        },
+        "25": {
+          "routes": {
+            "/v1/review-queues": [
+              "GET",
+              "POST"
+            ],
+            "/v1/review-queues/{queue_id}": [
+              "GET",
+              "PATCH",
+              "DELETE"
+            ],
+            "/v1/review-queues/{queue_id}/items": [
+              "GET",
+              "POST"
+            ],
+            "/v1/review-queues/{queue_id}/items/{item_id}": [
+              "GET",
+              "PATCH"
+            ]
+          },
+          "middleware_activation": "NONE",
+          "assignee_ref": "opaque Keycloak reference; not authority"
+        }
+      },
+      "compatibility_gaps": [
+        "tenant-scoped authorization and data partitioning",
+        "workload JWT validation",
+        "canonical idempotent command envelope",
+        "command-id status/readback",
+        "normalized reference-only decision result"
+      ]
+    },
+    "face-liveness": {
+      "repository": "ingtrader21-spec/Codestra-Face-Liveness",
+      "revision": "e664aa4fe1153d59dd7a468b768e7bd0d10b92f8",
+      "branch": "mission/face-id-middleware-integration-20260924",
+      "readiness_path": "/health/ready",
+      "readiness_implemented": true,
+      "private_command_protocol_implemented": false,
+      "live_verified": false,
+      "compatibility_gaps": [
+        "tenant-bound workload authorization",
+        "private canonical command/readback protocol"
+      ]
+    },
+    "camera-gateway": {
+      "repository": "ingtrader21-spec/Codestra-Camera-Gateway",
+      "revision": "0dfa3c0c31c213a5d9518d0cbdc24eb11513455d",
+      "branch": "mission/face-id-middleware-integration-20260924",
+      "readiness_path": "/health/ready",
+      "readiness_implemented": true,
+      "private_command_protocol_implemented": false,
+      "live_verified": false,
+      "compatibility_gaps": [
+        "tenant-bound workload authorization",
+        "private canonical command/readback protocol",
+        "command_ref reservations do not provide canonical command-id readback",
+        "native completion acknowledges Stop, not verified physical stopped state",
+        "finally-block stop does not provide process-death or network-loss watchdog guarantee"
+      ],
+      "ptz_implemented": true,
+      "implemented_routes": {
+        "/v1/cameras/{camera_id}/ptz": [
+          "GET"
+        ],
+        "/v1/internal/cameras/{camera_id}/ptz/commands": [
+          "POST"
+        ]
+      },
+      "ptz_field_mapping": {
+        "camera_ref": "camera_id path parameter",
+        "command_id": "command_ref",
+        "move": "action=absolute",
+        "stop": "action=stop",
+        "duration_ms": "timeout_s=duration_ms/1000",
+        "pan": "pan [-1,1]",
+        "tilt": "tilt [-1,1]",
+        "zoom": "zoom [0,1]"
+      }
+    },
+    "postgresql": {
+      "repository": "ingtrader21-spec/Codestra-PostgreSQL",
+      "revision": "172b65f47820d5623e327bc35c3aa4a75098e624",
+      "branch": "mission/face-id-middleware-integration-20260924",
+      "readiness_path": "/health/ready",
+      "readiness_implemented": true,
+      "private_command_protocol_implemented": false,
+      "live_verified": false,
+      "implemented_routes": {
+        "/v1/postgresql/status": [
+          "GET"
+        ],
+        "/v1/capabilities": [
+          "GET"
+        ],
+        "/v1/backups": [
+          "GET"
+        ],
+        "/v1/backups/{backup_id}": [
+          "GET"
+        ],
+        "/v1/rehearsals": [
+          "GET"
+        ],
+        "/v1/rehearsals/{rehearsal_id}": [
+          "GET"
+        ],
+        "/v1/postgresql/connections": [
+          "GET"
+        ],
+        "/v1/postgresql/security": [
+          "GET"
+        ],
+        "/v1/postgresql/recovery": [
+          "GET"
+        ]
+      },
+      "compatibility_gaps": [
+        "tenant-bound workload authorization",
+        "private canonical command/readback protocol",
+        "native instance-wide metadata has no canonical tenant/database-ref binding; requires governed sanitized projection"
+      ],
+      "observability_projections_implemented": false,
+      "native_observability_implemented": true,
+      "native_projection_mapping": {
+        "backup-catalog": "/v1/backups",
+        "restore-rehearsal": "/v1/rehearsals",
+        "tls-security": "/v1/postgresql/security",
+        "replication-recovery": "/v1/postgresql/recovery"
+      }
+    }
+  },
+  "service_readback_contracts": {
+    "camera-contract-version": {
+      "service_id": "camera-gateway",
+      "method": "GET",
+      "path": "/v1/contract-version",
+      "scope": "connector.camera-gateway.read",
+      "resource_param": null,
+      "state": "IMPLEMENTED_READ_ONLY",
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "service",
+          "service_version",
+          "api_version",
+          "contract_revision",
+          "capability_sha256",
+          "middleware_authority"
+        ],
+        "properties": {
+          "service": {
+            "const": "camera-gateway"
+          },
+          "service_version": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+          },
+          "api_version": {
+            "const": "v1"
+          },
+          "contract_revision": {
+            "const": "camera-gateway.missions-11-22.v1"
+          },
+          "capability_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "middleware_authority": {
+            "const": true
+          }
+        }
+      }
+    },
+    "camera-configuration-snapshot": {
+      "service_id": "camera-gateway",
+      "method": "GET",
+      "path": "/v1/cameras/{camera_ref}/configuration-snapshot",
+      "scope": "connector.camera-gateway.read",
+      "resource_param": "camera_ref",
+      "state": "IMPLEMENTED_READ_ONLY",
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "camera_id",
+          "observed_at",
+          "config_sha256",
+          "enabled",
+          "vendor",
+          "rtsp_transport",
+          "onvif_enabled",
+          "credential_ref_present",
+          "labels_count"
+        ],
+        "properties": {
+          "camera_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "maxLength": 40
+          },
+          "config_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "vendor": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+          },
+          "rtsp_transport": {
+            "enum": [
+              "tcp",
+              "udp"
+            ]
+          },
+          "onvif_enabled": {
+            "type": "boolean"
+          },
+          "credential_ref_present": {
+            "type": "boolean"
+          },
+          "labels_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 32
+          }
+        }
+      }
+    },
+    "camera-connectivity-evidence": {
+      "service_id": "camera-gateway",
+      "method": "GET",
+      "path": "/v1/cameras/{camera_ref}/connectivity-evidence",
+      "scope": "connector.camera-gateway.read",
+      "resource_param": "camera_ref",
+      "state": "IMPLEMENTED_READ_ONLY",
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "camera_id",
+          "observed_at",
+          "status",
+          "last_success_at",
+          "last_error_code",
+          "recent_event_count"
+        ],
+        "properties": {
+          "camera_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "maxLength": 40
+          },
+          "status": {
+            "enum": [
+              "unknown",
+              "online",
+              "offline",
+              "auth_failed",
+              "error"
+            ]
+          },
+          "last_success_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "maxLength": 40
+          },
+          "last_error_code": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 128
+          },
+          "recent_event_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 200
+          }
+        }
+      }
+    },
+    "camera-stream-quality": {
+      "service_id": "camera-gateway",
+      "method": "GET",
+      "path": "/v1/cameras/{camera_ref}/stream-quality",
+      "scope": "connector.camera-gateway.read",
+      "resource_param": "camera_ref",
+      "state": "IMPLEMENTED_READ_ONLY",
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "camera_id",
+          "observed_at",
+          "status",
+          "codec",
+          "width",
+          "height",
+          "fps",
+          "last_frame_at",
+          "stale"
+        ],
+        "properties": {
+          "camera_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "maxLength": 40
+          },
+          "status": {
+            "enum": [
+              "known",
+              "unknown"
+            ]
+          },
+          "codec": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 64
+          },
+          "width": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1
+          },
+          "height": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1
+          },
+          "fps": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "last_frame_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "maxLength": 40
+          },
+          "stale": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "camera-maintenance-state": {
+      "service_id": "camera-gateway",
+      "method": "GET",
+      "path": "/v1/cameras/{camera_ref}/maintenance",
+      "scope": "connector.camera-gateway.read",
+      "resource_param": "camera_ref",
+      "state": "IMPLEMENTED_READ_ONLY",
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "camera_id",
+          "enabled",
+          "reason_ref",
+          "changed_at"
+        ],
+        "properties": {
+          "camera_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "reason_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "changed_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "maxLength": 40
+          }
+        }
+      }
+    },
+    "camera-inventory-search": {
+      "service_id": "camera-gateway",
+      "method": "GET",
+      "path": "/v1/camera-inventory/search",
+      "scope": "connector.camera-gateway.read",
+      "resource_param": null,
+      "state": "IMPLEMENTED_READ_ONLY",
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "total"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 200,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 200
+          }
+        }
+      }
+    },
+    "camera-compatibility": {
+      "service_id": "camera-gateway",
+      "method": "GET",
+      "path": "/v1/cameras/{camera_ref}/compatibility",
+      "scope": "connector.camera-gateway.read",
+      "resource_param": "camera_ref",
+      "state": "IMPLEMENTED_READ_ONLY",
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "camera_id",
+          "compatible",
+          "checks",
+          "warnings"
+        ],
+        "properties": {
+          "camera_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "compatible": {
+            "type": "boolean"
+          },
+          "checks": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "maxProperties": 32
+          },
+          "warnings": {
+            "type": "array",
+            "maxItems": 32,
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+            }
+          }
+        }
+      }
+    },
+    "camera-event-page": {
+      "service_id": "camera-gateway",
+      "method": "GET",
+      "path": "/v1/cameras/{camera_ref}/events/page",
+      "scope": "connector.camera-gateway.read",
+      "resource_param": "camera_ref",
+      "state": "IMPLEMENTED_READ_ONLY",
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "next_offset",
+          "limit",
+          "offset"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 200,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "camera_id",
+                "observed_at",
+                "kind",
+                "source",
+                "source_version",
+                "heuristic",
+                "confidence_kind",
+                "signal"
+              ],
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "camera_id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+                },
+                "observed_at": {
+                  "type": "string",
+                  "format": "date-time",
+                  "maxLength": 40
+                },
+                "kind": {
+                  "enum": [
+                    "motion",
+                    "scene_change",
+                    "tamper",
+                    "health"
+                  ]
+                },
+                "source": {
+                  "enum": [
+                    "gateway_health",
+                    "frame_delta",
+                    "camera_native"
+                  ]
+                },
+                "source_version": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+                },
+                "heuristic": {
+                  "type": "boolean"
+                },
+                "confidence_kind": {
+                  "enum": [
+                    "heuristic",
+                    "observed"
+                  ]
+                },
+                "score": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "signal": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                }
+              }
+            }
+          },
+          "next_offset": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "camera-health-slo": {
+      "service_id": "camera-gateway",
+      "method": "GET",
+      "path": "/v1/cameras/{camera_ref}/health/slo",
+      "scope": "connector.camera-gateway.read",
+      "resource_param": "camera_ref",
+      "state": "IMPLEMENTED_READ_ONLY",
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "camera_id",
+          "observed_at",
+          "health_fresh",
+          "frame_fresh",
+          "last_success_at",
+          "last_frame_at",
+          "status"
+        ],
+        "properties": {
+          "camera_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "maxLength": 40
+          },
+          "health_fresh": {
+            "type": "boolean"
+          },
+          "frame_fresh": {
+            "type": "boolean"
+          },
+          "last_success_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "maxLength": 40
+          },
+          "last_frame_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "maxLength": 40
+          },
+          "status": {
+            "enum": [
+              "healthy",
+              "degraded",
+              "unknown"
+            ]
+          }
+        }
+      }
+    },
+    "camera-secret-reference-health": {
+      "service_id": "camera-gateway",
+      "method": "GET",
+      "path": "/v1/cameras/{camera_ref}/credentials/reference-health",
+      "scope": "connector.camera-gateway.read",
+      "resource_param": "camera_ref",
+      "state": "IMPLEMENTED_READ_ONLY",
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "camera_id",
+          "configured",
+          "scheme",
+          "fingerprint",
+          "reference_valid",
+          "last_successful_auth"
+        ],
+        "properties": {
+          "camera_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "configured": {
+            "type": "boolean"
+          },
+          "scheme": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "openbao",
+              null
+            ]
+          },
+          "fingerprint": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[0-9a-f]{16}$"
+          },
+          "reference_valid": {
+            "type": "boolean"
+          },
+          "last_successful_auth": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "maxLength": 40
+          }
+        }
+      }
+    },
+    "camera-retention-policy": {
+      "service_id": "camera-gateway",
+      "method": "GET",
+      "path": "/v1/cameras/{camera_ref}/retention-policy",
+      "scope": "connector.camera-gateway.read",
+      "resource_param": "camera_ref",
+      "state": "IMPLEMENTED_READ_ONLY",
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "camera_id",
+          "clip_retention_s",
+          "rolling_buffer_retention_s",
+          "health_event_limit",
+          "normalized_event_limit",
+          "raw_frames_persisted"
+        ],
+        "properties": {
+          "camera_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "clip_retention_s": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "rolling_buffer_retention_s": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "health_event_limit": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "normalized_event_limit": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "raw_frames_persisted": {
+            "const": false
+          }
+        }
+      }
+    },
+    "camera-diagnostics": {
+      "service_id": "camera-gateway",
+      "method": "GET",
+      "path": "/v1/cameras/{camera_ref}/diagnostics",
+      "scope": "connector.camera-gateway.read",
+      "resource_param": "camera_ref",
+      "state": "IMPLEMENTED_READ_ONLY",
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "camera_id",
+          "observed_at",
+          "health_status",
+          "inventory_stale",
+          "credentials_configured",
+          "rolling_buffer_enabled",
+          "maintenance_enabled",
+          "clock_drift_ms",
+          "secrets_exposed"
+        ],
+        "properties": {
+          "camera_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "maxLength": 40
+          },
+          "health_status": {
+            "enum": [
+              "unknown",
+              "online",
+              "offline",
+              "auth_failed",
+              "error"
+            ]
+          },
+          "inventory_stale": {
+            "type": "boolean"
+          },
+          "credentials_configured": {
+            "type": "boolean"
+          },
+          "rolling_buffer_enabled": {
+            "type": "boolean"
+          },
+          "maintenance_enabled": {
+            "type": "boolean"
+          },
+          "clock_drift_ms": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "secrets_exposed": {
+            "const": false
+          }
+        }
+      }
+    }
+  }
+}

@@ -158,6 +158,7 @@ CONNECTOR_ID_PATTERN = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*\Z")
 COMMAND_PREFIX_PATTERN = re.compile(r"[a-z0-9]+(?:[.-][a-z0-9]+)*\.\Z")
 CAPABILITY_PATTERN = re.compile(r"[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)*\Z")
 
+
 def fail(message: str) -> Never:
     raise SystemExit(f"OBSERVABILITY_ALERT_CONTRACT=FAIL {message}")
 
@@ -462,7 +463,15 @@ def validate(root: Path = ROOT) -> tuple[int, int]:
         repository = require_string(
             candidate.get("repository"), f"invalid_adapter_repository:{connector_id}"
         )
-        if re.fullmatch(r"appolon1908-hue/[A-Za-z0-9_.-]+", repository) is None:
+        identity_service_repositories = {
+            "face-id": "ingtrader21-spec/FACE-ID",
+            "face-liveness": "ingtrader21-spec/Codestra-Face-Liveness",
+            "camera-gateway": "ingtrader21-spec/Codestra-Camera-Gateway",
+            "postgresql": "ingtrader21-spec/Codestra-PostgreSQL",
+        }
+        if re.fullmatch(
+            r"appolon1908-hue/[A-Za-z0-9_.-]+", repository
+        ) is None and repository != identity_service_repositories.get(connector_id):
             fail(f"invalid_adapter_repository:{connector_id}")
         prefixes = require_string_list(
             candidate.get("command_prefixes"),

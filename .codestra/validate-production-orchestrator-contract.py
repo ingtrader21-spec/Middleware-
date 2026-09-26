@@ -37,7 +37,7 @@ STANDARD_RELEASE_VALIDATOR_SECURITY_SHA256 = (
     "8d8f21260babfae5eaedbdd46472b1ec"
 )
 MIDDLEWARE_RELEASE_VALIDATOR_SECURITY_SHA256 = (
-    "63192fd83f7fc19fa624e2bf26d3b2ccc3941042e4e3c941ba378ff50581e565"
+    "39df71fef6b5f54b811ca8229f70740dba91bcfc1182db9f5bea5d48ea2c0524"
 )
 BACKEND_RELEASE_VALIDATOR_SECURITY_SHA256 = (
     "15dbaa6d571a1d1e72c09ca417cc9419"
@@ -671,8 +671,8 @@ APPROVED_CONTROL_PLANE_WORKFLOW_SHA256: dict[str, dict[str, str]] = {
             "50caaed769389cb30fc725766ea6bed6"
         ),
         ".github/workflows/middleware-ci.yml": (
-            "8cec813feb267b63f4f27807606237dbe"
-            "518f2fb94379062e447a6636fea2f16"
+            "fc228f866531bf8e1e5b1b47cb74cd367"
+            "cff2d868f9e60081a7257403c90a6c5"
         ),
         ".github/workflows/integration-main-release-authorities.yml": (
             "910acf0149a0b9060544817a71577222a"
@@ -683,17 +683,17 @@ APPROVED_CONTROL_PLANE_WORKFLOW_SHA256: dict[str, dict[str, str]] = {
             "394b93a7ac5290dd684e0ede090d58de"
         ),
         ".github/workflows/python-quality-baseline.yml": (
-            "cb89cb69636dc79a6a03e5df98abeb798"
-            "6a823e30c2d52b1d03980dddac58cca"
+            "ad974408f16adcd0823be5fa0ada6da47"
+            "4381e096454958aa683719b973f533a"
         ),
-        ".github/workflows/required-ci.yml": "e4a66dac0fab5ad51e6093067761a14fb489136fdc6871ae73e519ffe898e168",
+        ".github/workflows/required-ci.yml": "4ee2d0778d99f7cdfc24d2d4ed87176b1d22c417e66c8dc8ea41e6645f4211aa",
         ".github/workflows/production-route-contract.yml": (
-            "21595e66413a34de195d914405373b84"
-            "2c8f631d053973910e6b78f63c269c7c"
+            "4ba721212e5a31fc49b7fffc969c298d"
+            "09316656b92dc930370568de569fb7a9"
         ),
         ".github/workflows/release-component-ci.yml": (
-            "d3d6d5dd03cc9c8b2d0630ef6e1b9f"
-            "df31ff2da8175d2a63e881696b25b0ee63"
+            "ea8029de5554439b628f97a36a70cc"
+            "1eb907b99ef9889fa3f7e2f96ab0f4281f"
         ),
     },
     "appolon1908-hue/beyvra-backend": {
@@ -733,10 +733,10 @@ APPROVED_CONTROL_PLANE_WORKFLOW_SHA256: dict[str, dict[str, str]] = {
 }
 APPROVED_JOB_EXECUTABLE_CONFIGURATION_SHA256: dict[str, dict[str, str]] = {
     "ingtrader21-spec/Middleware-": {
-        ".github/workflows/connector-runtime-api-ci.yml": "917ab06febf30f0d81146fc147794dace9510f7bb0a6fb903dd69b2244d4e1d0",
+        ".github/workflows/connector-runtime-api-ci.yml": "81f2f839027549babbfe716279aade07fc8fec43db5a403203030e3e4f54591a",
         ".github/workflows/connector-storage-ci.yml": "eada698e8756b76431a43f8d54d1aa192b9d964bca9a5e76d90476f35135bc7a",
         ".github/workflows/lead-automation-v1.yml": "9cdf5b9ce21f528bb8d0cb29b170586d212f5dfeb0e4ad237bb531a41bd89274",
-        ".github/workflows/integrated-monitoring.yml": "a48fce82339f859f7d4c5b8a7e7f3fa6a0ed33bcbf7217232928629bc7c76fdf",
+        ".github/workflows/integrated-monitoring.yml": "5ff25b02bf824ebf3f2bedae3542cc8b13fac6b44f7f46d18086d5b8b73cc35e",
         ".github/workflows/odoo-calling-contract.yml": (
             "03d93c41717cf69ac764a9665eb42fb71"
             "7d342aef6ff1fc52f8d050f7feb580d"
@@ -9373,8 +9373,8 @@ APPROVED_NARROW_MUTATION_SHA256: dict[str, dict[str, str]] = {
         # The only external mutation is the required job posting its own exact
         # commit status through checks:write.
         ".github/workflows/required-ci.yml:test": (
-            "4d4e71b5b13e40a1b1b35a3502c7d3d8"
-            "d02f30c8692a398670c0cbb1ed9fc8c0"
+            "aeb6ee7bf5c49cfa49b0248b7da2cb17"
+            "2205ac5a13ce1440933e76668ec4961f"
         ),
         # The single forward Middleware production publisher: builds, scans,
         # signs and verifies one immutable image from the exact protected-main

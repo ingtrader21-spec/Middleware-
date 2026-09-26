@@ -95,16 +95,22 @@ def validate() -> None:
             isinstance(command_prefixes, list)
             and bool(command_prefixes)
             and all(
-                isinstance(prefix, str) and bool(prefix)
-                for prefix in command_prefixes
+                isinstance(prefix, str) and bool(prefix) for prefix in command_prefixes
             )
             and len(command_prefixes) == len(set(command_prefixes)),
             'integration fabric invariant failed: adapter["command_prefixes"]',
         )
         adapter_prefixes[adapter_id] = set(command_prefixes)
         require(
-            adapter["repository"].startswith("appolon1908-hue/"),
-            'integration fabric invariant failed: adapter["repository"].startswith("appolon1908-hue/")',
+            adapter["repository"].startswith("appolon1908-hue/")
+            or adapter["repository"]
+            == {
+                "face-id": "ingtrader21-spec/FACE-ID",
+                "face-liveness": "ingtrader21-spec/Codestra-Face-Liveness",
+                "camera-gateway": "ingtrader21-spec/Codestra-Camera-Gateway",
+                "postgresql": "ingtrader21-spec/Codestra-PostgreSQL",
+            }.get(adapter["id"]),
+            "integration fabric invariant failed: adapter repository is not governed",
         )
 
     for policy in command_registry["commands"]:

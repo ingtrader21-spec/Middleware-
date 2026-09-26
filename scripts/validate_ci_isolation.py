@@ -16,11 +16,23 @@ FLAGS = (
 def validate(environ: Mapping[str, str]) -> None:
     for name in ("DATABASE_URL", "TEST_DATABASE_URL"):
         target = urlsplit(environ.get(name, ""))
+        try:
+            port = target.port
+        except ValueError as exc:
+            raise ValueError(f"{name}: isolated rehearsal database required") from exc
         if (target.scheme not in {"postgresql", "postgresql+asyncpg"}
-                or target.hostname != "127.0.0.1" or target.port != 5432
+                or target.hostname != "127.0.0.1" or port is None or not 1 <= port <= 65535
                 or target.path != "/middleware_rehearsal" or target.query or target.fragment):
             raise ValueError(f"{name}: isolated rehearsal database required")
-    if environ.get("REDIS_URL") != "redis://127.0.0.1:6379/15":
+    redis = urlsplit(environ.get("REDIS_URL", ""))
+    try:
+        redis_port = redis.port
+    except ValueError as exc:
+        raise ValueError("REDIS_URL: isolated Redis namespace required") from exc
+    if (redis.scheme != "redis" or redis.hostname != "127.0.0.1"
+            or redis_port is None or not 1 <= redis_port <= 65535
+            or redis.path != "/15" or redis.query or redis.fragment
+            or redis.username is not None or redis.password is not None):
         raise ValueError("REDIS_URL: isolated Redis namespace required")
     if any(environ.get(name) != "false" for name in FLAGS):
         raise ValueError("all external effects and apply workers must remain disabled")
