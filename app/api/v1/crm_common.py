@@ -19,6 +19,8 @@ from fastapi import HTTPException, Request
 from fastapi.responses import JSONResponse
 
 from app.commands import API_OPERATION_STATES, CommandEnvelope
+from app.api_inputs import optional_header
+from app.core.header_authority import CORRELATION_ID, IDEMPOTENCY_KEY
 from app.control_plane_auth import ControlPlaneCaller
 from app.core.provisioning_auth import ProvisioningPrincipal, require_tenant_match
 from app.platform.principal import KernelPrincipal
@@ -32,7 +34,7 @@ from app.adapters.odoo.crm_bridge_client import (
 
 
 def correlation_id(request: Request) -> str:
-    return request.headers.get("X-Correlation-ID", "").strip() or str(uuid4())
+    return (optional_header(request, CORRELATION_ID, minimum=1, maximum=180) or str(uuid4()))
 
 
 def ensure_bridge_tenant(client: object, tenant_id: str) -> None:
@@ -53,7 +55,7 @@ def ensure_bridge_tenant(client: object, tenant_id: str) -> None:
 
 
 def idempotency_key(request: Request, correlation: str) -> str:
-    return request.headers.get("Idempotency-Key", "").strip() or correlation
+    return optional_header(request, IDEMPOTENCY_KEY, minimum=1, maximum=180) or correlation
 
 
 def command_identity(request: Request, *, tenant_id: str, command_type: str) -> tuple[str, str]:
@@ -66,8 +68,8 @@ def command_identity(request: Request, *, tenant_id: str, command_type: str) -> 
     instead of the documented ``200 duplicate=true``. With neither header the
     request claims no idempotency and both values are fresh.
     """
-    supplied_key = request.headers.get("Idempotency-Key", "").strip()
-    supplied_cid = request.headers.get("X-Correlation-ID", "").strip()
+    supplied_key = optional_header(request, IDEMPOTENCY_KEY, minimum=1, maximum=180) or ""
+    supplied_cid = optional_header(request, CORRELATION_ID, minimum=1, maximum=180) or ""
     if supplied_cid:
         cid = supplied_cid
     elif supplied_key:

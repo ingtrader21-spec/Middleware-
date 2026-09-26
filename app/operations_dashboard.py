@@ -8,6 +8,8 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
 from .runtime_safety import runtime_safety_readback
+from .api_inputs import authorization_header, required_header
+from .core.header_authority import TENANT_ID
 from .security import RequestValidationError, authorize_tenant
 
 
@@ -19,7 +21,7 @@ router = APIRouter(
 
 async def _authorize_dashboard(request: Request, tenant_id: str | None = None) -> dict[str, Any]:
     claims = await request.app.state.runtime.tokens.verify(
-        request.headers.get("Authorization", ""),
+        authorization_header(request),
         expected_client_id="monitoring-readonly",
         required_scope="health.read",
     )
@@ -29,10 +31,7 @@ async def _authorize_dashboard(request: Request, tenant_id: str | None = None) -
 
 
 def _tenant_from_header(request: Request) -> str:
-    tenant_id = request.headers.get("X-Tenant-ID", "")
-    if not tenant_id:
-        raise RequestValidationError("X-Tenant-ID is required")
-    return tenant_id
+    return required_header(request, TENANT_ID, minimum=1, maximum=128)
 
 
 def _checked_at() -> str:

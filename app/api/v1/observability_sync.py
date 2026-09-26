@@ -8,6 +8,9 @@ Odoo result-delivery queue in one database transaction.
 
 from __future__ import annotations
 
+from app.api_inputs import optional_header
+from app.core.header_authority import CORRELATION_ID
+
 from datetime import UTC, datetime
 import hashlib
 import json
@@ -457,7 +460,7 @@ async def list_kpis(
             for row in rows
         ],
         "next_cursor": rows[-1]["resource_key"] if more else None,
-        "correlation_id": request.headers.get("X-Correlation-ID"),
+        "correlation_id": optional_header(request, CORRELATION_ID, minimum=1, maximum=180),
     }
 
 
@@ -485,7 +488,7 @@ async def get_kpi(
         "event_id": event.original_event_id,
         "odoo_sync_state": delivery.status.lower() if delivery else "unknown",
         "delivery_id": str(delivery.result_delivery_id) if delivery else None,
-        "correlation_id": request.headers.get("X-Correlation-ID"),
+        "correlation_id": optional_header(request, CORRELATION_ID, minimum=1, maximum=180),
     }
 
 
@@ -520,7 +523,7 @@ async def odoo_sync_status(
         "delivery_counts": {str(status_value).lower(): count for status_value, count in rows},
         "latest_event_id": latest.original_event_id if latest else None,
         "latest_event_created_at": utc(latest.created_at).isoformat() if latest else None,
-        "correlation_id": request.headers.get("X-Correlation-ID"),
+        "correlation_id": optional_header(request, CORRELATION_ID, minimum=1, maximum=180),
     }
 
 

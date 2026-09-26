@@ -10,6 +10,8 @@ from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 
 from app.core.config import settings
+from app.api_inputs import authorization_header, optional_header
+from app.core.header_authority import CORRELATION_ID
 from app.core.jwt_auth import JWTAuthError, KeycloakValidator
 from app.metrics import AUTH_FAILURES, IDEMPOTENCY_CONFLICTS, IDEMPOTENT_REPLAYS
 from app.sales.auth import (
@@ -43,7 +45,7 @@ scraper_rate_windows: OrderedDict[tuple[str, str], deque[float]] = OrderedDict()
 
 
 def _correlation(request: Request) -> str:
-    return request.headers.get("X-Correlation-ID", "").strip() or str(uuid4())
+    return optional_header(request, CORRELATION_ID, minimum=1, maximum=180) or str(uuid4())
 
 
 def _error(
@@ -161,7 +163,7 @@ async def scraper_results(
             422,
         )
     scraper_id = request.headers.get("X-Codestra-Scraper-ID", "")
-    authorization = request.headers.get("Authorization", "")
+    authorization = authorization_header(request)
     if not authorization.startswith("Bearer ") or not authorization[7:].strip():
         AUTH_FAILURES.labels(kind="scraper_jwt_missing").inc()
         return _error(

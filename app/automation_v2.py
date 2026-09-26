@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from .api_inputs import authorization_header
+
 import asyncio
 import base64
 import hashlib
@@ -2467,7 +2469,7 @@ async def _authorized(
     service: AutomationService,
     required_scope: str,
 ) -> tuple[dict[str, Any], str, AutomationClientPolicy]:
-    authorization = request.headers.get("Authorization", "")
+    authorization = authorization_header(request)
     client_id = _peek_client_id(authorization)
     claims = await request.app.state.runtime.tokens.verify(
         authorization,
@@ -2591,7 +2593,7 @@ async def fail_automation_job(job_id: UUID, body: FailureResult, request: Reques
 async def submit_automation_command(body: AutomationCommandRequest, request: Request) -> JSONResponse:
     _assert_header_body_mirror(request, body)
     service = _automation(request)
-    authorization = request.headers.get("Authorization", "")
+    authorization = authorization_header(request)
     client_id = _peek_client_id(authorization)
     try:
         command_family = service.policy.resolve_command_family(body.command_type)
