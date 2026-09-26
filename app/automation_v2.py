@@ -24,6 +24,8 @@ from .automation_policy import (
     AutomationPolicy,
 )
 from .commands import CommandCapabilityDisabled, CommandEnvelope, CommandError, CommandOperation
+from .control_plane_auth import ControlPlaneCaller
+from .platform.principal import KernelPrincipal, PrincipalType, authorize as authorize_resource, roles_from_claims, tenants_from_claims
 from .models import EventEnvelope, IngressResult
 from .storage import (
     NATS_JETSTREAM_DESTINATION,
@@ -493,6 +495,15 @@ def _read_headers(request: Request) -> tuple[str, str]:
     correlation_id = _require_header(request, "X-Correlation-ID")
     _require_header(request, "X-Request-ID")
     return tenant_id, correlation_id
+
+
+def _authorize_automation_resource(request: Request, *, tenant_id: str, action: str, resource: str, scope: str) -> None:
+    principal = getattr(request.state, "automation_principal", None)
+    if principal is None:
+        raise AutomationAuthorizationDenied("canonical automation principal is unavailable")
+    decision = authorize_resource(principal, action=action, resource=resource, tenant_id=tenant_id, required_scopes=(scope,), effect_class="AUTOMATION" if not action.endswith(".read") else "read", environment=request.app.state.runtime.settings.app_env)
+    if not decision.allowed:
+        raise AutomationAuthorizationDenied(decision.decision_code)
 
 
 def _row_json(value: object) -> dict[str, Any]:
@@ -2478,6 +2489,13 @@ async def _authorized(
         policy = service.policy.authorize_token(claims, required_scope=required_scope)
     except AutomationAuthorizationError as exc:
         raise AutomationAuthorizationDenied(str(exc)) from exc
+    subject = _subject(claims)
+    tenants = tenants_from_claims(claims)
+    if not tenants:
+        raise AutomationAuthorizationDenied("automation token requires tenant authority")
+    caller = ControlPlaneCaller(client_id, required_scope, required_scope, (), frozenset(), False, False)
+    principal = KernelPrincipal(subject, client_id, tenants, roles_from_claims(claims, client_id), tuple(str(claims.get("scope", "")).split()), caller, PrincipalType.SERVICE, None, client_id)
+    request.state.automation_principal = principal
     return claims, client_id, policy
 
 
@@ -2538,6 +2556,7 @@ async def read_automation_job(job_id: UUID, request: Request) -> JSONResponse:
     tenant_id, correlation_id = _read_headers(request)
     service = _automation(request)
     claims, _, _ = await _authorized(request, service, "automation.job.read")
+    _authorize_automation_resource(request, tenant_id=tenant_id, action="automation.read", resource=f"automation-job:{job_id}", scope="automation.job.read")
     job = await service.store.get_job(tenant_id, job_id)
     _authorize_family(service, claims, "automation.job.read", job.workflow_family)
     return _json_response(job, correlation_id=correlation_id)

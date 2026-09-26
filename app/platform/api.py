@@ -934,8 +934,19 @@ _NO_STORE = {"Cache-Control": "no-store"}
 
 @router.get("/adapters", response_model=AdapterReadback)
 async def list_adapters(request: Request) -> JSONResponse:
-    await authenticate(request, required_scope=SCOPE_COMMAND_READ)
+    principal = await authenticate(request, required_scope=SCOPE_COMMAND_READ)
     runtime, platform = _runtime(request)
+    tenant_id = _tenant_for_read(request, principal)
+    decision = authorize(
+        principal,
+        action="connector.read",
+        resource="connector:*",
+        tenant_id=tenant_id,
+        required_scopes=(SCOPE_COMMAND_READ,),
+        environment=platform.settings.app_env,
+    )
+    if not decision.allowed:
+        raise AuthorizationError(decision.decision_code)
     readback = AdapterReadback.model_validate(await platform.adapter_readback())
     return JSONResponse(status_code=200, content=readback.model_dump(mode="json"), headers=_NO_STORE)
 
@@ -945,8 +956,19 @@ async def list_adapters(request: Request) -> JSONResponse:
 # ----------------------------------------------------------------------
 @router.get("/adapters/{adapter_id}", response_model=AdapterDetail)
 async def get_adapter(adapter_id: Annotated[str, Path(pattern=ADAPTER_ID_PATTERN, max_length=100)], request: Request) -> JSONResponse:
-    await authenticate(request, required_scope=SCOPE_COMMAND_READ)
+    principal = await authenticate(request, required_scope=SCOPE_COMMAND_READ)
     runtime, platform = _runtime(request)
+    tenant_id = _tenant_for_read(request, principal)
+    decision = authorize(
+        principal,
+        action="connector.read",
+        resource=f"connector:{adapter_id}",
+        tenant_id=tenant_id,
+        required_scopes=(SCOPE_COMMAND_READ,),
+        environment=platform.settings.app_env,
+    )
+    if not decision.allowed:
+        raise AuthorizationError(decision.decision_code)
     readback = AdapterReadback.model_validate(await platform.adapter_readback())
     row = next((item for item in readback.adapters if item.adapter_id == adapter_id), None)
     if row is None:
