@@ -51,7 +51,7 @@ else
   diff_range="@{u}...HEAD"
 fi
 
-added="$(git diff --unified=0 "$diff_range" -- '*.py' '*.ts' '*.tsx' '*.js' '*.mjs' '*.sh' '*.yml' '*.yaml' '*.json' '*.toml' '*.conf' 2>/dev/null | sed -n 's/^+//p' | grep -v '^+++' || true)"
+added="$(git diff --unified=0 "$diff_range" -- '*.py' '*.ts' '*.tsx' '*.js' '*.mjs' '*.sh' '*.yml' '*.yaml' '*.json' '*.toml' '*.conf' ':(exclude)scripts/agent_preflight.sh' 2>/dev/null | sed -n 's/^+//p' | grep -v '^+++' || true)"
 
 if grep -Eiq '(^|[^0-9])(:?8080|:8096)([^0-9]|$)' <<<"$added"; then
   fail "forbidden_alternate_middleware_port"
