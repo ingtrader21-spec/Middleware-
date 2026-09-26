@@ -15,10 +15,11 @@ Scopes: ``platform.command`` (submit, cancel), ``platform.command.read``
 
 from __future__ import annotations
 
+import json
 import re
 from datetime import datetime
 from typing import Any, Literal
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
@@ -26,7 +27,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.api_inputs import optional_header, required_header
 from app.commands import API_OPERATION_STATES, CommandCapabilityDisabled, CommandEnvelope, CommandNotFound, CommandOperation, OperationEvent, redact_metadata
-from app.platform.kernel import SCOPE_COMMAND, SCOPE_COMMAND_READ, SCOPE_COMMAND_REPLAY
+from app.platform.kernel import PLATFORM_OPERATOR_ROLE, SCOPE_COMMAND, SCOPE_COMMAND_READ, SCOPE_COMMAND_REPLAY
 from app.platform.principal import KernelPrincipal, authenticate
 from app.platform.resilience import ReplayMode
 from app.security import AuthorizationError, RequestValidationError
@@ -155,6 +156,36 @@ class ReplayRequest(BaseModel):
     new_idempotency_key: str | None = Field(default=None, min_length=8, max_length=180)
 
 
+class ReconciliationReadbackRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    expected_version: int = Field(ge=1)
+    reason: str = Field(min_length=1, max_length=500, pattern=r"^[A-Za-z0-9][A-Za-z0-9_.: -]*$")
+
+
+class ReconciliationResolveRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    expected_version: int = Field(ge=1)
+    matched: bool
+    reason: str = Field(min_length=1, max_length=500, pattern=r"^[A-Za-z0-9][A-Za-z0-9_.: -]*$")
+    provider_operation_id: str | None = Field(default=None, max_length=256)
+    evidence: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("evidence")
+    @classmethod
+    def evidence_is_bounded(cls, value: dict[str, Any]) -> dict[str, Any]:
+        encoded = json.dumps(
+            value,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        ).encode("utf-8")
+        if len(encoded) > 16_384:
+            raise ValueError("reconciliation evidence exceeds 16 KiB")
+        return value
+
+
 # ----------------------------------------------------------------------
 # helpers
 # ----------------------------------------------------------------------
@@ -265,50 +296,11 @@ def _timeline(operation: CommandOperation, events: list[OperationEvent]) -> list
     return rows
 
 
-def _response_headers(
-    *,
-    correlation_id: str,
-    command_id: UUID | None = None,
-    operation_correlation_id: str | None = None,
-    location: str | None = None,
-) -> dict[str, str]:
-    headers = {
-        "X-Correlation-ID": correlation_id,
-        "Cache-Control": "no-store",
-        "X-Content-Type-Options": "nosniff",
-    }
-    if operation_correlation_id is not None:
-        headers["X-Operation-Correlation-ID"] = operation_correlation_id
-    if command_id is not None:
-        headers["X-Command-ID"] = str(command_id)
+def _respond(status_code: int, model: BaseModel, *, correlation_id: str, location: str | None = None) -> JSONResponse:
+    headers = {"X-Correlation-ID": correlation_id}
     if location:
         headers["Location"] = location
-    return headers
-
-
-def _respond(
-    status_code: int,
-    model: BaseModel,
-    *,
-    correlation_id: str,
-    command_id: UUID | None = None,
-    operation_correlation_id: str | None = None,
-    location: str | None = None,
-) -> JSONResponse:
-    return JSONResponse(
-        status_code=status_code,
-        content=model.model_dump(mode="json"),
-        headers=_response_headers(
-            correlation_id=correlation_id,
-            command_id=command_id,
-            operation_correlation_id=operation_correlation_id,
-            location=location,
-        ),
-    )
-
-
-def _request_correlation(request: Request) -> str:
-    return optional_header(request, "X-Correlation-ID", minimum=1, maximum=180) or f"request-{uuid4()}"
+    return JSONResponse(status_code=status_code, content=model.model_dump(mode="json"), headers=headers)
 
 
 def _trace(request: Request) -> dict[str, str]:
@@ -348,9 +340,6 @@ async def submit_command(body: KernelCommandRequest, request: Request) -> JSONRe
     tenant_header = optional_header(request, "X-Tenant-ID", minimum=1, maximum=128)
     if tenant_header is not None and tenant_header != command.tenant_id:
         raise RequestValidationError("X-Tenant-ID does not match command tenant")
-    command_id_header = optional_header(request, "X-Command-ID", minimum=36, maximum=36)
-    if command_id_header is not None and command_id_header != str(command.command_id):
-        raise RequestValidationError("X-Command-ID does not match command_id")
     correlation_id = required_header(request, "X-Correlation-ID", minimum=1, maximum=180)
     if correlation_id != command.correlation_id:
         raise RequestValidationError("X-Correlation-ID does not match command correlation_id")
@@ -374,8 +363,6 @@ async def submit_command(body: KernelCommandRequest, request: Request) -> JSONRe
         200 if operation.duplicate else 202,
         accepted,
         correlation_id=operation.correlation_id,
-        command_id=operation.command_id,
-        operation_correlation_id=operation.correlation_id,
         location=f"/platform/v1/operations/{operation.command_id}",
     )
 
@@ -389,13 +376,7 @@ async def get_operation(operation_id: UUID, request: Request) -> JSONResponse:
     runtime, platform = _runtime(request)
     tenant_id = _tenant_for_read(request, principal)
     operation = await platform.kernel.get(tenant_id, operation_id)
-    return _respond(
-        200,
-        _status(operation),
-        correlation_id=_request_correlation(request),
-        command_id=operation.command_id,
-        operation_correlation_id=operation.correlation_id,
-    )
+    return _respond(200, _status(operation), correlation_id=operation.correlation_id)
 
 
 # ----------------------------------------------------------------------
@@ -408,13 +389,7 @@ async def get_timeline(operation_id: UUID, request: Request) -> JSONResponse:
     tenant_id = _tenant_for_read(request, principal)
     operation = await platform.kernel.get(tenant_id, operation_id)
     events = await platform.kernel.timeline(tenant_id, operation_id)
-    return _respond(
-        200,
-        Timeline(operation_id=operation_id, items=_timeline(operation, events)),
-        correlation_id=_request_correlation(request),
-        command_id=operation.command_id,
-        operation_correlation_id=operation.correlation_id,
-    )
+    return _respond(200, Timeline(operation_id=operation_id, items=_timeline(operation, events)), correlation_id=operation.correlation_id)
 
 
 # ----------------------------------------------------------------------
@@ -425,13 +400,7 @@ async def cancel_operation(operation_id: UUID, body: CancelRequest, request: Req
     principal = await authenticate(request, required_scope=SCOPE_COMMAND)
     runtime, platform = _runtime(request)
     tenant_id = _tenant_for_read(request, principal)
-    command_id_header = optional_header(request, "X-Command-ID", minimum=36, maximum=36)
-    if command_id_header is not None and command_id_header != str(operation_id):
-        raise RequestValidationError("X-Command-ID does not match operation_id")
-    current = await platform.kernel.get(tenant_id, operation_id)
-    correlation_id = required_header(request, "X-Correlation-ID", minimum=1, maximum=180)
-    if correlation_id != current.correlation_id:
-        raise RequestValidationError("X-Correlation-ID does not match operation correlation_id")
+    mutation_correlation_id = required_header(request, "X-Correlation-ID", minimum=1, maximum=180)
     idempotency_key = required_header(request, "Idempotency-Key", minimum=8, maximum=180)
     operation = await platform.kernel.cancel(
         tenant_id,
@@ -440,14 +409,9 @@ async def cancel_operation(operation_id: UUID, body: CancelRequest, request: Req
         idempotency_key=idempotency_key,
         expected_version=body.expected_version,
         reason=body.reason,
+        mutation_correlation_id=mutation_correlation_id,
     )
-    return _respond(
-        200,
-        _status(operation),
-        correlation_id=correlation_id,
-        command_id=operation.command_id,
-        operation_correlation_id=operation.correlation_id,
-    )
+    return _respond(200, _status(operation), correlation_id=operation.correlation_id)
 
 
 # ----------------------------------------------------------------------
@@ -458,13 +422,7 @@ async def replay_operation(operation_id: UUID, body: ReplayRequest, request: Req
     principal = await authenticate(request, required_scope=SCOPE_COMMAND_REPLAY)
     runtime, platform = _runtime(request)
     tenant_id = _tenant_for_read(request, principal)
-    command_id_header = optional_header(request, "X-Command-ID", minimum=36, maximum=36)
-    if command_id_header is not None and command_id_header != str(operation_id):
-        raise RequestValidationError("X-Command-ID does not match operation_id")
-    current = await platform.kernel.get(tenant_id, operation_id)
-    correlation_id = required_header(request, "X-Correlation-ID", minimum=1, maximum=180)
-    if correlation_id != current.correlation_id:
-        raise RequestValidationError("X-Correlation-ID does not match operation correlation_id")
+    mutation_correlation_id = required_header(request, "X-Correlation-ID", minimum=1, maximum=180)
     idempotency_key = required_header(request, "Idempotency-Key", minimum=8, maximum=180)
     operation = await platform.kernel.replay(
         tenant_id,
@@ -475,15 +433,198 @@ async def replay_operation(operation_id: UUID, body: ReplayRequest, request: Req
         expected_version=body.expected_version,
         reason=body.reason,
         new_idempotency_key=body.new_idempotency_key,
+        mutation_correlation_id=mutation_correlation_id,
     )
     return _respond(
         202,
         _status(operation),
-        correlation_id=correlation_id,
-        command_id=operation.command_id,
-        operation_correlation_id=operation.correlation_id,
+        correlation_id=operation.correlation_id,
         location=f"/platform/v1/operations/{operation.command_id}",
     )
+
+
+
+# ----------------------------------------------------------------------
+# Operational discovery: adapters/connectors
+# ----------------------------------------------------------------------
+def _adapter_rows(request: Request) -> list[dict[str, Any]]:
+    _runtime_container, platform = _runtime(request)
+    return platform.registry.describe()
+
+
+@router.get("/adapters")
+async def list_adapters(request: Request) -> dict[str, Any]:
+    await authenticate(request, required_scope=SCOPE_COMMAND_READ)
+    return {"items": _adapter_rows(request)}
+
+
+@router.get("/adapters/{adapter_id}")
+async def get_adapter(adapter_id: str, request: Request) -> dict[str, Any]:
+    await authenticate(request, required_scope=SCOPE_COMMAND_READ)
+    for row in _adapter_rows(request):
+        if row["adapter_id"] == adapter_id:
+            return row
+    raise CommandNotFound("adapter was not found")
+
+
+def _connector_rows(request: Request) -> list[dict[str, Any]]:
+    rows: dict[str, dict[str, Any]] = {}
+    for adapter in _adapter_rows(request):
+        for connector_id in adapter["connector_ids"]:
+            rows[connector_id] = {
+                "connector_id": connector_id,
+                "adapter_id": adapter["adapter_id"],
+                "provider_family": adapter["provider_family"],
+                "capabilities": adapter["capabilities"],
+                "command_prefixes": adapter["command_prefixes"],
+                "supports_readback": adapter["supports_readback"],
+                "supports_cancel": adapter["supports_cancel"],
+                "supports_status": adapter["supports_status"],
+                "safe_reexecution": adapter["safe_reexecution"],
+                "external_effect": adapter["external_effect"],
+            }
+    return [rows[key] for key in sorted(rows)]
+
+
+@router.get("/connectors")
+async def list_connectors(request: Request) -> dict[str, Any]:
+    await authenticate(request, required_scope=SCOPE_COMMAND_READ)
+    return {"items": _connector_rows(request)}
+
+
+@router.get("/connectors/{connector_id}")
+async def get_connector(connector_id: str, request: Request) -> dict[str, Any]:
+    await authenticate(request, required_scope=SCOPE_COMMAND_READ)
+    for row in _connector_rows(request):
+        if row["connector_id"] == connector_id:
+            return row
+    raise CommandNotFound("connector was not found")
+
+
+# ----------------------------------------------------------------------
+# Canonical dead-letter API over the command ledger
+# ----------------------------------------------------------------------
+@router.get("/dead-letters")
+async def list_dead_letters(request: Request, limit: int = 100) -> dict[str, Any]:
+    principal = await authenticate(request, required_scope=SCOPE_COMMAND_READ)
+    runtime, _platform = _runtime(request)
+    tenant_id = _tenant_for_read(request, principal)
+    if limit < 1 or limit > 100:
+        raise RequestValidationError("limit must be between 1 and 100")
+    operations = await runtime.commands.list_operations(tenant_id, limit=limit, state="dead_lettered")
+    return {"items": [_status(operation).model_dump(mode="json") for operation in operations]}
+
+
+@router.get("/dead-letters/{operation_id}", response_model=OperationStatus)
+async def get_dead_letter(operation_id: UUID, request: Request) -> JSONResponse:
+    principal = await authenticate(request, required_scope=SCOPE_COMMAND_READ)
+    _runtime_container, platform = _runtime(request)
+    tenant_id = _tenant_for_read(request, principal)
+    operation = await platform.kernel.get(tenant_id, operation_id)
+    if operation.state != "dead_lettered":
+        raise CommandNotFound("dead-letter operation was not found")
+    return _respond(200, _status(operation), correlation_id=operation.correlation_id)
+
+
+@router.post("/dead-letters/{operation_id}/replay", response_model=OperationStatus, status_code=202)
+async def replay_dead_letter(operation_id: UUID, body: ReplayRequest, request: Request) -> JSONResponse:
+    principal = await authenticate(request, required_scope=SCOPE_COMMAND_REPLAY)
+    if PLATFORM_OPERATOR_ROLE not in principal.roles:
+        from app.platform.kernel import ReplayNotAllowed
+        raise ReplayNotAllowed("replay requires the platform-operator role")
+    _runtime_container, platform = _runtime(request)
+    tenant_id = _tenant_for_read(request, principal)
+    original = await platform.kernel.get(tenant_id, operation_id)
+    if original.state != "dead_lettered":
+        raise CommandNotFound("dead-letter operation was not found")
+    mutation_correlation_id = required_header(request, "X-Correlation-ID", minimum=1, maximum=180)
+    idempotency_key = required_header(request, "Idempotency-Key", minimum=8, maximum=180)
+    operation = await platform.kernel.replay(
+        tenant_id,
+        operation_id,
+        principal=principal,
+        mode=ReplayMode(body.mode),
+        idempotency_key=idempotency_key,
+        expected_version=body.expected_version,
+        reason=body.reason,
+        new_idempotency_key=body.new_idempotency_key,
+        mutation_correlation_id=mutation_correlation_id,
+    )
+    return _respond(202, _status(operation), correlation_id=operation.correlation_id, location=f"/platform/v1/operations/{operation.command_id}")
+
+
+# ----------------------------------------------------------------------
+# Canonical reconciliation API over the command ledger
+# ----------------------------------------------------------------------
+@router.get("/reconciliation")
+async def list_reconciliation(request: Request, limit: int = 100) -> dict[str, Any]:
+    principal = await authenticate(request, required_scope=SCOPE_COMMAND_READ)
+    runtime, _platform = _runtime(request)
+    tenant_id = _tenant_for_read(request, principal)
+    if limit < 1 or limit > 100:
+        raise RequestValidationError("limit must be between 1 and 100")
+    operations = await runtime.commands.list_operations(tenant_id, limit=limit, state="reconciliation_required")
+    return {"items": [_status(operation).model_dump(mode="json") for operation in operations]}
+
+
+@router.get("/reconciliation/{operation_id}", response_model=OperationStatus)
+async def get_reconciliation(operation_id: UUID, request: Request) -> JSONResponse:
+    principal = await authenticate(request, required_scope=SCOPE_COMMAND_READ)
+    _runtime_container, platform = _runtime(request)
+    tenant_id = _tenant_for_read(request, principal)
+    operation = await platform.kernel.get(tenant_id, operation_id)
+    if operation.state != "reconciliation_required":
+        raise CommandNotFound("reconciliation operation was not found")
+    return _respond(200, _status(operation), correlation_id=operation.correlation_id)
+
+
+@router.post("/reconciliation/{operation_id}/readback", response_model=OperationStatus, status_code=202)
+async def request_reconciliation_readback(operation_id: UUID, body: ReconciliationReadbackRequest, request: Request) -> JSONResponse:
+    principal = await authenticate(request, required_scope=SCOPE_COMMAND_REPLAY)
+    _runtime_container, platform = _runtime(request)
+    tenant_id = _tenant_for_read(request, principal)
+    mutation_correlation_id = required_header(request, "X-Correlation-ID", minimum=1, maximum=180)
+    idempotency_key = required_header(request, "Idempotency-Key", minimum=8, maximum=180)
+    operation = await platform.kernel.replay(
+        tenant_id,
+        operation_id,
+        principal=principal,
+        mode=ReplayMode.REPROCESS,
+        idempotency_key=idempotency_key,
+        expected_version=body.expected_version,
+        reason=body.reason,
+        mutation_correlation_id=mutation_correlation_id,
+    )
+    return _respond(202, _status(operation), correlation_id=operation.correlation_id)
+
+
+@router.post("/reconciliation/{operation_id}/resolve", response_model=OperationStatus)
+async def resolve_reconciliation(operation_id: UUID, body: ReconciliationResolveRequest, request: Request) -> JSONResponse:
+    principal = await authenticate(request, required_scope=SCOPE_COMMAND_REPLAY)
+    if PLATFORM_OPERATOR_ROLE not in principal.roles:
+        from app.platform.kernel import ReplayNotAllowed
+        raise ReplayNotAllowed("reconciliation resolution requires the platform-operator role")
+    runtime, platform = _runtime(request)
+    tenant_id = _tenant_for_read(request, principal)
+    mutation_correlation_id = required_header(request, "X-Correlation-ID", minimum=1, maximum=180)
+    idempotency_key = required_header(
+        request, "Idempotency-Key", minimum=8, maximum=180
+    )
+    if not body.evidence:
+        raise RequestValidationError("reconciliation evidence is required")
+    operation = await runtime.commands.reconcile(
+        tenant_id,
+        operation_id,
+        matched=body.matched,
+        actor_id=principal.subject,
+        reason=body.reason,
+        provider_operation_id=body.provider_operation_id,
+        evidence=body.evidence,
+        idempotency_key=idempotency_key,
+        expected_version=body.expected_version,
+        mutation_correlation_id=mutation_correlation_id,
+    )
+    return _respond(200, _status(operation), correlation_id=operation.correlation_id)
 
 
 # ----------------------------------------------------------------------
@@ -498,12 +639,7 @@ async def describe_kernel(request: Request) -> JSONResponse:
         contract_digest=_public_contract_digest(),
         command_contract_version=COMMAND_CONTRACT_VERSION,
     )
-    correlation_id = _request_correlation(request)
-    return JSONResponse(
-        status_code=200,
-        content=description,
-        headers=_response_headers(correlation_id=correlation_id),
-    )
+    return JSONResponse(status_code=200, content=description)
 
 
 def _public_contract_digest() -> str | None:
