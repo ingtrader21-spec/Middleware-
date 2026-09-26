@@ -381,8 +381,8 @@ EXPECTED_REQUIRED_CHECK_SOURCE_CLOSURE_SHA256 = {
         "fcdd0d5c3832479b10deda8c6a6afca6"
     ),
     "ingtrader21-spec/Middleware-": (
-        "406cf2348914afc51ef60773fe8cd11d91e"
-        "1c9a5c4f8a2640842effe14d534c9"
+        "263e93d0630efdbaffd5824b62ff48e1b6f"
+        "6814bfdbfb69b1b06233f1d39b659"
     ),
     "appolon1908-hue/codestra": (
         "4e3ea69c3ec2a4bd6e4b50395672f44d"

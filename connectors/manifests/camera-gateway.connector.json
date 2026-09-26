@@ -52,6 +52,32 @@
         "jitter_ratio": 0.2,
         "unknown_outcome_requires_readback": true
       }
+    },
+    {
+      "prefix": "camera-gateway.event.",
+      "required_capability": "CAMERA_EVENT_NORMALIZATION",
+      "timeout_seconds": 30,
+      "readback_required": true,
+      "retry_policy": {
+        "maximum_attempts": 5,
+        "initial_backoff_seconds": 2,
+        "maximum_backoff_seconds": 120,
+        "jitter_ratio": 0.2,
+        "unknown_outcome_requires_readback": true
+      }
+    },
+    {
+      "prefix": "camera-gateway.maintenance.",
+      "required_capability": "CAMERA_MAINTENANCE_METADATA",
+      "timeout_seconds": 30,
+      "readback_required": true,
+      "retry_policy": {
+        "maximum_attempts": 5,
+        "initial_backoff_seconds": 2,
+        "maximum_backoff_seconds": 120,
+        "jitter_ratio": 0.2,
+        "unknown_outcome_requires_readback": true
+      }
     }
   ],
   "events": [],
@@ -72,7 +98,9 @@
   ],
   "workflow_families": [
     "camera-gateway.capture",
-    "camera-gateway.ptz"
+    "camera-gateway.ptz",
+    "camera-gateway.event",
+    "camera-gateway.maintenance"
   ],
   "metadata": {
     "source_only": true,
@@ -80,7 +108,7 @@
     "owner": "camera-gateway",
     "internal_api_contract": "contracts/platform/identity-services-adapter.v1.openapi.json",
     "operation_id_binding": "canonical Middleware command_id, not provider operation handle",
-    "source_revision": "0dfa3c0c31c213a5d9518d0cbdc24eb11513455d",
+    "source_revision": "af5e890a4935a2075088a379e3143d6d66c207f0",
     "readiness_source_verified": true,
     "live_endpoint_verified": false,
     "service_catalog": "contracts/platform/identity-services.catalog.v1.json"

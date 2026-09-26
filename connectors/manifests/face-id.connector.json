@@ -65,6 +65,45 @@
         "jitter_ratio": 0.2,
         "unknown_outcome_requires_readback": true
       }
+    },
+    {
+      "prefix": "face-id.watchlist.",
+      "required_capability": "FACE_ID_WATCHLIST_REFERENCE",
+      "timeout_seconds": 30,
+      "readback_required": true,
+      "retry_policy": {
+        "maximum_attempts": 5,
+        "initial_backoff_seconds": 2,
+        "maximum_backoff_seconds": 120,
+        "jitter_ratio": 0.2,
+        "unknown_outcome_requires_readback": true
+      }
+    },
+    {
+      "prefix": "face-id.enrollment.",
+      "required_capability": "FACE_ID_ENROLLMENT_REVIEW",
+      "timeout_seconds": 30,
+      "readback_required": true,
+      "retry_policy": {
+        "maximum_attempts": 5,
+        "initial_backoff_seconds": 2,
+        "maximum_backoff_seconds": 120,
+        "jitter_ratio": 0.2,
+        "unknown_outcome_requires_readback": true
+      }
+    },
+    {
+      "prefix": "face-id.duplicate.",
+      "required_capability": "FACE_ID_ENROLLMENT_REVIEW",
+      "timeout_seconds": 30,
+      "readback_required": true,
+      "retry_policy": {
+        "maximum_attempts": 5,
+        "initial_backoff_seconds": 2,
+        "maximum_backoff_seconds": 120,
+        "jitter_ratio": 0.2,
+        "unknown_outcome_requires_readback": true
+      }
     }
   ],
   "events": [],
@@ -86,7 +125,10 @@
   "workflow_families": [
     "face-id.verify",
     "face-id.access",
-    "face-id.presence"
+    "face-id.presence",
+    "face-id.watchlist",
+    "face-id.enrollment",
+    "face-id.duplicate"
   ],
   "metadata": {
     "source_only": true,
@@ -94,7 +136,7 @@
     "owner": "face-id",
     "internal_api_contract": "contracts/platform/identity-services-adapter.v1.openapi.json",
     "operation_id_binding": "canonical Middleware command_id, not provider operation handle",
-    "source_revision": "da213fdbdc301f6892bb276e9b715b4875d17d5a",
+    "source_revision": "459964b0e7a1c0e56fb4d83649f78753e4c09951",
     "readiness_source_verified": true,
     "live_endpoint_verified": false,
     "service_catalog": "contracts/platform/identity-services.catalog.v1.json"
