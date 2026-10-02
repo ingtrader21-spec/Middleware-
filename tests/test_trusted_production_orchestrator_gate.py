@@ -154,7 +154,7 @@ def test_governance_requires_independent_ownership_of_every_trust_path() -> None
     governance = load_governance_validator()
     text = "\n".join(
         [
-            "* @appolon1908-hue @kazan555",
+            "* @appolon1908 @kazan555",
             *(
                 f"{path} @kazan555"
                 for path in sorted(governance.EXPECTED_SECURITY_CODEOWNER_PATHS)
@@ -170,7 +170,7 @@ def test_governance_requires_independent_ownership_of_every_trust_path() -> None
         governance.validate_codeowners(
             text.replace(
                 "/.codestra/validate-release-intent.py @kazan555",
-                "/.codestra/validate-release-intent.py @appolon1908-hue",
+                "/.codestra/validate-release-intent.py @appolon1908",
             )
         )
 

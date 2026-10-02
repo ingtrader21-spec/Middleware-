@@ -120,7 +120,7 @@ def validate_control() -> None:
         fail("control schemaVersion must be 1.0")
     if control.get("status") != "SOURCE_WIRED_TARGETS_PENDING":
         fail("control status must remain SOURCE_WIRED_TARGETS_PENDING")
-    if control.get("authority") != "ingtrader21-spec/Middleware-":
+    if control.get("authority") != "appolon1908/Middleware-":
         fail("Middleware repository must remain the metrics authority")
 
     endpoint = control.get("metricsEndpoint", {})

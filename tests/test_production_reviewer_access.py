@@ -42,20 +42,20 @@ class ProductionReviewerAccessTests(unittest.TestCase):
         self.assertEqual(self.config["reviewer"], MODULE.EXPECTED_REVIEWER)
 
     def test_every_repository_is_owner_scoped(self) -> None:
-        transferred = {"ingtrader21-spec/Middleware-": "ingtrader21-spec"}
+        transferred = {"appolon1908/Middleware-": "appolon1908"}
         self.assertEqual(MODULE.BASE.TRANSFERRED_REPOSITORY_OWNERS, transferred)
         for repository in MODULE.validate_config(self.config):
-            owner = transferred.get(repository, "appolon1908-hue")
+            owner = transferred.get(repository, "appolon1908")
             self.assertTrue(repository.startswith(f"{owner}/"))
         self.assertEqual(
-            MODULE.EXPECTED_REPOSITORIES["ingtrader21-spec/Middleware-"], 1347559071
+            MODULE.EXPECTED_REPOSITORIES["appolon1908/Middleware-"], 1347559071
         )
 
     def test_transferred_repository_under_any_other_owner_fails(self) -> None:
         broken = copy.deepcopy(self.config)
         for row in broken["repositories"]:
-            if row["repository"] == "ingtrader21-spec/Middleware-":
-                row["repository"] = "appolon1908-hue/Middleware-"
+            if row["repository"] == "appolon1908/Middleware-":
+                row["repository"] = "appolon1908/Middleware-"
         with self.assertRaises(MODULE.AccessError):
             MODULE.validate_config(broken)
 
@@ -147,8 +147,8 @@ class ProductionReviewerAccessTests(unittest.TestCase):
         self.assertIn("CONTROL_PLANE_MUTATION=repository-administration", apply_condition)
         self.assertIn("github.event_name == 'issue_comment'", apply_condition)
         self.assertIn("github.event.repository.id == 1347559071", apply_condition)
-        self.assertIn("github.event.sender.id == 275410064", apply_condition)
-        self.assertIn("github.event.comment.user.id == 275410064", apply_condition)
+        self.assertIn("github.event.sender.id == 335843231", apply_condition)
+        self.assertIn("github.event.comment.user.id == 335843231", apply_condition)
         self.assertIn("/apply-production-reviewer-access v1", apply_condition)
         self.assertNotIn("github.event_name == 'push'", apply_condition)
         self.assertNotIn("if: ${{ false }}", apply_condition)

@@ -17,7 +17,7 @@ def test_tempo_registration_contract() -> None:
     registration = _load(REGISTRATION_PATH)
 
     assert registration["service_id"] == "tempo"
-    assert registration["repository"] == "appolon1908-hue/Codestra-Tempo"
+    assert registration["repository"] == "appolon1908/Codestra-Tempo"
     assert registration["environments"] == ["staging", "production"]
     assert registration["required_signals"] == ["traces"]
     assert registration["required_components"] == ["tempo", "alloy", "prometheus"]

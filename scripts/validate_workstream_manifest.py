@@ -39,7 +39,7 @@ EXPECTED_SYNC_POLICY = {
 }
 EXPECTED_EXTERNAL_AUTHORITIES = {
     "integration_and_release": {
-        "repository": "appolon1908-hue/codestra-production-platform",
+        "repository": "appolon1908/codestra-production-platform",
         "branch": "release/production-activation",
         "contract_catalog": "contracts/catalog.v1.json",
         "runtime_composition": "composition/runtime-composition.v1.json",
@@ -47,9 +47,9 @@ EXPECTED_EXTERNAL_AUTHORITIES = {
         "caddy_config_home": "operations/caddy",
     },
     "crawler_source": {
-        "repository": "appolon1908-hue/kyqra-crawler",
+        "repository": "appolon1908/kyqra-crawler",
         "branch": "main",
-        "retired_repository": "appolon1908-hue/kyqra",
+        "retired_repository": "appolon1908/kyqra",
     },
 }
 

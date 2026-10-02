@@ -4,7 +4,7 @@
   "purpose": "Deploy and certify one immutable Middleware image on a private staging network without enabling any external effect.",
   "immutable_release": {
     "source_sha": "f6748a58f8d2590520a4f28776770957061cdea1",
-    "image_reference": "ghcr.io/appolon1908-hue/codestra-middleware@sha256:695fa3ce3f50ba4d0ae0784976b946a0a683ca731155e4bd3bd9e90a4670b820",
+    "image_reference": "ghcr.io/appolon1908/codestra-middleware@sha256:695fa3ce3f50ba4d0ae0784976b946a0a683ca731155e4bd3bd9e90a4670b820",
     "image_digest": "sha256:695fa3ce3f50ba4d0ae0784976b946a0a683ca731155e4bd3bd9e90a4670b820",
     "release_run_id": 33314094004,
     "release_id": "f6748a58f8d2-695fa3ce3f50",
@@ -86,7 +86,7 @@
     "GENERAL_AI_DIALING": false
   },
   "evidence": {
-    "collector_repository": "appolon1908-hue/Codestra-Prometheus",
+    "collector_repository": "appolon1908/Codestra-Prometheus",
     "collector_path": "codestra/scripts/collect_staging_intake_evidence.py",
     "checksum_state": "PENDING_RUNTIME_EXECUTION",
     "prometheus_target_state": "pending",

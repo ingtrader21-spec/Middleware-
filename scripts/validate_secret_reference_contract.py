@@ -2,7 +2,7 @@
 """Fail-closed check that Middleware carries the exact OpenBao secret-reference contract.
 
 Middleware stores secret references, never values. The v1 schema is owned by
-``appolon1908-hue/Codestra-OpenBao`` (``contracts/secret-reference.v1.schema.json``)
+``appolon1908/Codestra-OpenBao`` (``contracts/secret-reference.v1.schema.json``)
 and vendored under ``contracts/secrets/`` with a canonical sha256 pin. This
 script proves the vendored copy matches its pin, that the model in
 ``app.secret_reference`` enforces the schema's forbidden keys, and, when an

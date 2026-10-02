@@ -1,6 +1,6 @@
 # Appolon integrated monitoring design
 
-**Owner:** Ralph Appolon / appolon1908-hue
+**Owner:** Ralph Appolon / appolon1908
 **Prepared:** 10 September 2026
 **Status:** Integration design with 36 Middleware operations implemented in a review branch. This document does not certify production integration.
 
@@ -16,7 +16,7 @@ SentinelX listed **four operational connected agent records** during this design
 
 The infrastructure repository already defines Prometheus → Alertmanager, Alloy/OTel → Loki/Tempo, Grafana datasource connections, and Superset read models. Middleware source contains the service catalog, provisioning transitions, incident lifecycle, alert events and delivery callbacks. The source certification document still distinguishes endpoint source coverage from runtime proof. No production service has been changed by this design.
 
-Sources: [Existing wiring](https://github.com/appolon1908-hue/Infustruction-repo/blob/main/docs/OBSERVABILITY-INTEGRATION-WIRING.md), [component ownership](https://github.com/appolon1908-hue/Infustruction-repo/blob/main/docs/OBSERVABILITY-AND-DASHBOARD-STACK.md), [source versus runtime certification](https://github.com/appolon1908-hue/codestra-production-platform/blob/release/production-activation/OBSERVABILITY-CERTIFICATION.md).
+Sources: [Existing wiring](https://github.com/appolon1908/Infustruction-repo/blob/main/docs/OBSERVABILITY-INTEGRATION-WIRING.md), [component ownership](https://github.com/appolon1908/Infustruction-repo/blob/main/docs/OBSERVABILITY-AND-DASHBOARD-STACK.md), [source versus runtime certification](https://github.com/appolon1908/codestra-production-platform/blob/release/production-activation/OBSERVABILITY-CERTIFICATION.md).
 
 ## 2. Integrated architecture
 
@@ -59,26 +59,26 @@ OTLP uses separate traces, metrics and logs services; standard HTTP paths are `/
 | 65.21.67.207 | VICIdial/Asterisk telephony target from the recent system map | Host/container metrics where applicable; read-only adapter health, queue/agent aggregates and trunk registration evidence |
 | Other connected agents and future hosts | Resolve identity, owner and placement before enrollment | Apply the appropriate profile; never infer a host solely from its hostname |
 
-The current infrastructure design locates the fourteen `codestra.media` names at 37.27.128.39. Keep Grafana and Superset behind authenticated HTTPS. Restrict native telemetry/exporter listeners to approved private sources. Local exporters on other hosts need per-host bindings; one `node.codestra.media` name is not a fleet inventory. [Network plan](https://github.com/appolon1908-hue/Infustruction-repo/blob/main/docs/OBSERVABILITY-NETWORK-INSTALL-PLAN.md)
+The current infrastructure design locates the fourteen `codestra.media` names at 37.27.128.39. Keep Grafana and Superset behind authenticated HTTPS. Restrict native telemetry/exporter listeners to approved private sources. Local exporters on other hosts need per-host bindings; one `node.codestra.media` name is not a fleet inventory. [Network plan](https://github.com/appolon1908/Infustruction-repo/blob/main/docs/OBSERVABILITY-NETWORK-INSTALL-PLAN.md)
 
 ## 3. The 17 monitoring repository responsibilities
 
 | Repository | Owns | Connection |
 | --- | --- | --- |
-| [Codestra-Grafana-](https://github.com/appolon1908-hue/Codestra-Grafana-) | Operational dashboards, datasource provisioning and drilldowns | Prometheus, Loki, Tempo → operators |
-| [Codestra-Prometheus](https://github.com/appolon1908-hue/Codestra-Prometheus) | Scrapes, metric storage, recording rules and alert rules | Exporters/apps → Prometheus → Grafana and Alertmanager |
-| [Codestra-Alertmanager](https://github.com/appolon1908-hue/Codestra-Alertmanager) | Grouping, inhibition, silences and receiver routing | Prometheus → durable Middleware incident API |
-| [Codestra-Loki](https://github.com/appolon1908-hue/Codestra-Loki) | Sanitized logs, tenancy and retention | Alloy/OTel → Loki → Grafana |
-| [Codestra-Telemetry](https://github.com/appolon1908-hue/Codestra-Telemetry) | Gateway pipelines, trace propagation, batching and redaction | SDKs/Alloy → OTel → Tempo; optional OTLP logs/metrics |
-| [Codestra-Tempo](https://github.com/appolon1908-hue/Codestra-Tempo) | Trace ingestion, storage and query | OTel → Tempo → Grafana |
-| [Codestra-Alloy](https://github.com/appolon1908-hue/Codestra-Alloy) | Host log collection and local OTLP forwarding | Each host → central telemetry services |
-| [Codestra-Node-Exporter](https://github.com/appolon1908-hue/Codestra-Node-Exporter) | CPU, RAM, filesystem, network and host pressure | Each host → Prometheus |
-| [Codestra-cAdvisor](https://github.com/appolon1908-hue/Codestra-cAdvisor) | Container resource use and runtime inventory | Each container host → Prometheus |
-| [Codestra-Redis-Exporter](https://github.com/appolon1908-hue/Codestra-Redis-Exporter) | Redis availability, memory, persistence and connections | Each Redis deployment → Prometheus |
-| [Codestra-Postgres-Exporter](https://github.com/appolon1908-hue/Codestra-Postgres-Exporter) | Database availability, pools, locks, replication and storage | Each PostgreSQL deployment → Prometheus |
-| [Codestra-Blackbox-Exporter](https://github.com/appolon1908-hue/Codestra-Blackbox-Exporter) | Registered HTTP/TLS/DNS/TCP availability probes | Approved website/API targets → Prometheus |
-| [Superset](https://github.com/appolon1908-hue/Superset) | Business analytics over curated read models | Read-only analytics views → business users |
-| [Codestra-OpenBao](https://github.com/appolon1908-hue/Codestra-OpenBao) | Workload secrets and PKI; non-secret health monitoring | Machine identities → secret references; health → Prometheus |
+| [Codestra-Grafana-](https://github.com/appolon1908/Codestra-Grafana-) | Operational dashboards, datasource provisioning and drilldowns | Prometheus, Loki, Tempo → operators |
+| [Codestra-Prometheus](https://github.com/appolon1908/Codestra-Prometheus) | Scrapes, metric storage, recording rules and alert rules | Exporters/apps → Prometheus → Grafana and Alertmanager |
+| [Codestra-Alertmanager](https://github.com/appolon1908/Codestra-Alertmanager) | Grouping, inhibition, silences and receiver routing | Prometheus → durable Middleware incident API |
+| [Codestra-Loki](https://github.com/appolon1908/Codestra-Loki) | Sanitized logs, tenancy and retention | Alloy/OTel → Loki → Grafana |
+| [Codestra-Telemetry](https://github.com/appolon1908/Codestra-Telemetry) | Gateway pipelines, trace propagation, batching and redaction | SDKs/Alloy → OTel → Tempo; optional OTLP logs/metrics |
+| [Codestra-Tempo](https://github.com/appolon1908/Codestra-Tempo) | Trace ingestion, storage and query | OTel → Tempo → Grafana |
+| [Codestra-Alloy](https://github.com/appolon1908/Codestra-Alloy) | Host log collection and local OTLP forwarding | Each host → central telemetry services |
+| [Codestra-Node-Exporter](https://github.com/appolon1908/Codestra-Node-Exporter) | CPU, RAM, filesystem, network and host pressure | Each host → Prometheus |
+| [Codestra-cAdvisor](https://github.com/appolon1908/Codestra-cAdvisor) | Container resource use and runtime inventory | Each container host → Prometheus |
+| [Codestra-Redis-Exporter](https://github.com/appolon1908/Codestra-Redis-Exporter) | Redis availability, memory, persistence and connections | Each Redis deployment → Prometheus |
+| [Codestra-Postgres-Exporter](https://github.com/appolon1908/Codestra-Postgres-Exporter) | Database availability, pools, locks, replication and storage | Each PostgreSQL deployment → Prometheus |
+| [Codestra-Blackbox-Exporter](https://github.com/appolon1908/Codestra-Blackbox-Exporter) | Registered HTTP/TLS/DNS/TCP availability probes | Approved website/API targets → Prometheus |
+| [Superset](https://github.com/appolon1908/Superset) | Business analytics over curated read models | Read-only analytics views → business users |
+| [Codestra-OpenBao](https://github.com/appolon1908/Codestra-OpenBao) | Workload secrets and PKI; non-secret health monitoring | Machine identities → secret references; health → Prometheus |
 
 Component repos remain authoritative for their own configuration. `Infustruction-repo` owns shared topology, networks, storage and placement. `Middleware-` owns the catalog, authorization and incident APIs. `SDK-repository` distributes application instrumentation helpers. `codestra-production-platform` and the existing runtime-authority repo bind approved release identities and deployment evidence. Do not copy competing versions of Prometheus rules or Grafana dashboards into the infrastructure repo.
 
@@ -88,7 +88,7 @@ Each app repo supplies a versioned `service.yaml` descriptor and a release-speci
 
 Use a stable `service_id` and separate `deployment_id`, `host_id`, `environment` and `instance_id`. Keep `repository_id` independent. Registration must identify actual origins from deployment configuration; do not derive a live URL from a repository name.
 
-Current `ServiceCreate` already supports service ID, owner, tenancy, type, repository, environments, health/metrics/OpenAPI paths, dependencies, data classification, SLO profile and alert profile. Its health default is `/health/ready`, while the incident service contract uses `/readiness`. Preserve actual paths in the catalog rather than renaming running services to fit an assumption. The current PATCH model updates only a subset of fields; broader descriptor changes need an explicit compatible API extension. [Service catalog source](https://github.com/ingtrader21-spec/Middleware-/blob/main/app/api/v1/platform.py)
+Current `ServiceCreate` already supports service ID, owner, tenancy, type, repository, environments, health/metrics/OpenAPI paths, dependencies, data classification, SLO profile and alert profile. Its health default is `/health/ready`, while the incident service contract uses `/readiness`. Preserve actual paths in the catalog rather than renaming running services to fit an assumption. The current PATCH model updates only a subset of fields; broader descriptor changes need an explicit compatible API extension. [Service catalog source](https://github.com/appolon1908/Middleware-/blob/main/app/api/v1/platform.py)
 
 Proposed extension records: approved public/private origins; host bindings; liveness and readiness paths separately; collection owner per signal; contract digest; expected and observed Git SHA/image digest/config digest/migration head; last successful observation; dashboard IDs; probe target IDs; and a reason for each non-applicable signal. Host, library and exporter resources may need separate resource types because the current service type enum is limited.
 
@@ -179,7 +179,7 @@ There are three distinct inventories: existing Middleware routes confirmed in so
 | POST | `/platform/v1/provisioning/requests/{request_id}/apply` | Record/execute the governed apply transition |
 | POST | `/platform/v1/provisioning/requests/{request_id}/rollback` | Record/execute the governed rollback transition |
 
-The exact alert schemas remain in [alert-api.v1.openapi.yaml](https://github.com/ingtrader21-spec/Middleware-/blob/main/contracts/observability/alert-api.v1.openapi.yaml). Preserve incident state, expected-version concurrency, delivery intent and replay behavior rather than replacing them with a second incident model.
+The exact alert schemas remain in [alert-api.v1.openapi.yaml](https://github.com/appolon1908/Middleware-/blob/main/contracts/observability/alert-api.v1.openapi.yaml). Preserve incident state, expected-version concurrency, delivery intent and replay behavior rather than replacing them with a second incident model.
 
 ### Extensions implemented in the review branch
 
@@ -293,9 +293,9 @@ OpenBao monitoring reads non-secret health and metrics only. It receives no unse
 
 ## 9. Alert delivery and monitoring the monitor
 
-Reuse the existing normal path: Prometheus → Alertmanager → `/v1/integrations/alertmanager/events` → durable Middleware incident/command/outbox → existing command executor/Temporal → Klyrow adapter → private email API → provider read-back. The current source policy fixes sender `alerts@codestra.co` and recipient `appolon@codestra.co`. No messages are sent by this design. [Alert delivery authority](https://github.com/ingtrader21-spec/Middleware-/blob/main/docs/observability/ALERT-DELIVERY-ARCHITECTURE.md)
+Reuse the existing normal path: Prometheus → Alertmanager → `/v1/integrations/alertmanager/events` → durable Middleware incident/command/outbox → existing command executor/Temporal → Klyrow adapter → private email API → provider read-back. The current source policy fixes sender `alerts@codestra.co` and recipient `appolon@codestra.co`. No messages are sent by this design. [Alert delivery authority](https://github.com/appolon1908/Middleware-/blob/main/docs/observability/ALERT-DELIVERY-ARCHITECTURE.md)
 
-The status collector separately reconciles native Alertmanager inhibition/silence evidence through `/v1/integrations/alertmanager/status-events`. A firing/resolved webhook alone cannot reproduce all suppression state. Keep source deployment, occurrence start time and observation ordering intact. A provider timeout remains unknown/reconciliation-required until read-back proves the outcome. [Incident authority](https://github.com/ingtrader21-spec/Middleware-/blob/main/docs/OBSERVABILITY-INCIDENTS-V1.md)
+The status collector separately reconciles native Alertmanager inhibition/silence evidence through `/v1/integrations/alertmanager/status-events`. A firing/resolved webhook alone cannot reproduce all suppression state. Keep source deployment, occurrence start time and observation ordering intact. A provider timeout remains unknown/reconciliation-required until read-back proves the outcome. [Incident authority](https://github.com/appolon1908/Middleware-/blob/main/docs/OBSERVABILITY-INCIDENTS-V1.md)
 
 Require `service`, `environment`, `severity`, `owner` and runbook metadata for production alert definitions. Reject incomplete rules in CI. If runtime alert labels are incomplete, retain the incident, mark its routing metadata invalid and route it to the platform fallback receiver under a restricted policy; never silently discard it or guess another tenant.
 
@@ -355,70 +355,70 @@ The repository names below were observed from GitHub. The group/profile is a pro
 
 | # | Repository | Design group | Monitoring profile |
 | --- | --- | --- | --- |
-| 1 | [Frontend-Resturant-](https://github.com/appolon1908-hue/Frontend-Resturant-) | Applications/websites | runtime-or-website |
-| 2 | [codestra-production-platform](https://github.com/appolon1908-hue/codestra-production-platform) | Runtime and shared source | runtime-or-website |
-| 3 | [Codestraxxxx](https://github.com/appolon1908-hue/Codestraxxxx) | Classification pending | classify-before-target-registration |
-| 4 | [codestra](https://github.com/appolon1908-hue/codestra) | Classification pending | classify-before-target-registration |
-| 5 | [beyvra-backend](https://github.com/appolon1908-hue/beyvra-backend) | Applications/websites | runtime-or-website |
-| 6 | [codestra-backend](https://github.com/appolon1908-hue/codestra-backend) | Applications/websites | runtime-or-website |
-| 7 | [backend2](https://github.com/appolon1908-hue/backend2) | Classification pending | classify-before-target-registration |
-| 8 | [beyvra-frontend](https://github.com/appolon1908-hue/beyvra-frontend) | Applications/websites | runtime-or-website |
-| 9 | [scrapper](https://github.com/appolon1908-hue/scrapper) | Archival source | release-and-dependency |
-| 10 | [Breero.com](https://github.com/appolon1908-hue/Breero.com) | Applications/websites | runtime-or-website |
-| 11 | [booked4seasons](https://github.com/appolon1908-hue/booked4seasons) | Classification pending | classify-before-target-registration |
-| 12 | [kyqra](https://github.com/appolon1908-hue/kyqra) | Archival source | release-and-dependency |
-| 13 | [telnexa](https://github.com/appolon1908-hue/telnexa) | Platform/integrations | runtime-or-website |
-| 14 | [kyqra-crawler](https://github.com/appolon1908-hue/kyqra-crawler) | Applications/websites | runtime-or-website |
-| 15 | [klyrow.com](https://github.com/appolon1908-hue/klyrow.com) | Platform/integrations | runtime-or-website |
-| 16 | [codestra-provisioning-service](https://github.com/appolon1908-hue/codestra-provisioning-service) | Platform/integrations | runtime-or-website |
-| 17 | [Moneybee-frontend-](https://github.com/appolon1908-hue/Moneybee-frontend-) | Applications/websites | runtime-or-website |
-| 18 | [Moneybee-Backend](https://github.com/appolon1908-hue/Moneybee-Backend) | Applications/websites | runtime-or-website |
-| 19 | [transportaion-Frontend](https://github.com/appolon1908-hue/transportaion-Frontend) | Applications/websites | runtime-or-website |
-| 20 | [transportation-backend-](https://github.com/appolon1908-hue/transportation-backend-) | Applications/websites | runtime-or-website |
-| 21 | [LARIM-A-Fornt-end](https://github.com/appolon1908-hue/LARIM-A-Fornt-end) | Applications/websites | runtime-or-website |
-| 22 | [LARIM-A-Backend](https://github.com/appolon1908-hue/LARIM-A-Backend) | Applications/websites | runtime-or-website |
-| 23 | [Telnexa-web](https://github.com/appolon1908-hue/Telnexa-web) | Applications/websites | runtime-or-website |
-| 24 | [klyrow-Website-](https://github.com/appolon1908-hue/klyrow-Website-) | Applications/websites | runtime-or-website |
-| 25 | [Odoo](https://github.com/appolon1908-hue/Odoo) | Platform/integrations | runtime-or-website |
-| 26 | [Keycloak](https://github.com/appolon1908-hue/Keycloak) | Platform/integrations | runtime-or-website |
-| 27 | [Middleware-](https://github.com/ingtrader21-spec/Middleware-) | Platform/integrations | runtime-or-website |
-| 28 | [N8N](https://github.com/appolon1908-hue/N8N) | Platform/integrations | runtime-or-website |
-| 29 | [Vicidialer-Codestra](https://github.com/appolon1908-hue/Vicidialer-Codestra) | Platform/integrations | runtime-or-website |
-| 30 | [Kong](https://github.com/appolon1908-hue/Kong) | Platform/integrations | runtime-or-website |
-| 31 | [social.codestra.co](https://github.com/appolon1908-hue/social.codestra.co) | Platform/integrations | runtime-or-website |
-| 32 | [SDK-repository](https://github.com/appolon1908-hue/SDK-repository) | Runtime and shared source | runtime-or-website |
-| 33 | [Caddy](https://github.com/appolon1908-hue/Caddy) | Platform/integrations | runtime-or-website |
-| 34 | [documentaions](https://github.com/appolon1908-hue/documentaions) | Governance/shared source | release-and-dependency |
-| 35 | [Infustruction-repo](https://github.com/appolon1908-hue/Infustruction-repo) | Governance/shared source | release-and-dependency |
-| 36 | [communication-platform-](https://github.com/appolon1908-hue/communication-platform-) | Governance/shared source | release-and-dependency |
-| 37 | [Codestra-Grafana-](https://github.com/appolon1908-hue/Codestra-Grafana-) | Monitoring | native-component |
-| 38 | [Codestra-Prometheus](https://github.com/appolon1908-hue/Codestra-Prometheus) | Monitoring | native-component |
-| 39 | [Codestra-Alertmanager](https://github.com/appolon1908-hue/Codestra-Alertmanager) | Monitoring | native-component |
-| 40 | [Codestra-Loki](https://github.com/appolon1908-hue/Codestra-Loki) | Monitoring | native-component |
-| 41 | [Codestra-Telemetry](https://github.com/appolon1908-hue/Codestra-Telemetry) | Monitoring | native-component |
-| 42 | [Codestra-Tempo](https://github.com/appolon1908-hue/Codestra-Tempo) | Monitoring | native-component |
-| 43 | [Superset](https://github.com/appolon1908-hue/Superset) | Monitoring | native-component |
-| 44 | [Codestra-Node-Exporter](https://github.com/appolon1908-hue/Codestra-Node-Exporter) | Monitoring | native-component |
-| 45 | [Codestra-cAdvisor](https://github.com/appolon1908-hue/Codestra-cAdvisor) | Monitoring | native-component |
-| 46 | [Codestra-Redis-Exporter](https://github.com/appolon1908-hue/Codestra-Redis-Exporter) | Monitoring | native-component |
-| 47 | [Codestra-Blackbox-Exporter](https://github.com/appolon1908-hue/Codestra-Blackbox-Exporter) | Monitoring | native-component |
-| 48 | [Codestra-Alloy](https://github.com/appolon1908-hue/Codestra-Alloy) | Monitoring | native-component |
-| 49 | [Codestra-OpenBao](https://github.com/appolon1908-hue/Codestra-OpenBao) | Monitoring | native-component |
-| 50 | [Codestra-Postgres-Exporter](https://github.com/appolon1908-hue/Codestra-Postgres-Exporter) | Monitoring | native-component |
-| 51 | [Codestra-Marketing-](https://github.com/appolon1908-hue/Codestra-Marketing-) | Platform/integrations | runtime-or-website |
-| 52 | [Codestra-Communication-CC](https://github.com/appolon1908-hue/Codestra-Communication-CC) | Platform/integrations | runtime-or-website |
-| 53 | [Codesrea-Social-](https://github.com/appolon1908-hue/Codesrea-Social-) | Platform/integrations | runtime-or-website |
-| 54 | [Codestra-AI](https://github.com/appolon1908-hue/Codestra-AI) | Platform/integrations | runtime-or-website |
-| 55 | [codestra-foundation](https://github.com/appolon1908-hue/codestra-foundation) | Governance/shared source | release-and-dependency |
-| 56 | [codestra-production-runtime-authority](https://github.com/appolon1908-hue/codestra-production-runtime-authority) | Governance/shared source | release-and-dependency |
-| 57 | [Websocket-](https://github.com/appolon1908-hue/Websocket-) | Platform/integrations | runtime-or-website |
-| 58 | [Database-migrations-](https://github.com/appolon1908-hue/Database-migrations-) | Governance/shared source | release-and-dependency |
-| 59 | [codestra-server-c](https://github.com/appolon1908-hue/codestra-server-c) | Runtime and shared source | runtime-or-website |
-| 60 | [codestra-ruleset-toolkit](https://github.com/appolon1908-hue/codestra-ruleset-toolkit) | Governance/shared source | release-and-dependency |
+| 1 | [Frontend-Resturant-](https://github.com/appolon1908/Frontend-Resturant-) | Applications/websites | runtime-or-website |
+| 2 | [codestra-production-platform](https://github.com/appolon1908/codestra-production-platform) | Runtime and shared source | runtime-or-website |
+| 3 | [Codestraxxxx](https://github.com/appolon1908/Codestraxxxx) | Classification pending | classify-before-target-registration |
+| 4 | [codestra](https://github.com/appolon1908/codestra) | Classification pending | classify-before-target-registration |
+| 5 | [beyvra-backend](https://github.com/appolon1908/beyvra-backend) | Applications/websites | runtime-or-website |
+| 6 | [codestra-backend](https://github.com/appolon1908/codestra-backend) | Applications/websites | runtime-or-website |
+| 7 | [backend2](https://github.com/appolon1908/backend2) | Classification pending | classify-before-target-registration |
+| 8 | [beyvra-frontend](https://github.com/appolon1908/beyvra-frontend) | Applications/websites | runtime-or-website |
+| 9 | [scrapper](https://github.com/appolon1908/scrapper) | Archival source | release-and-dependency |
+| 10 | [Breero.com](https://github.com/appolon1908/Breero.com) | Applications/websites | runtime-or-website |
+| 11 | [booked4seasons](https://github.com/appolon1908/booked4seasons) | Classification pending | classify-before-target-registration |
+| 12 | [kyqra](https://github.com/appolon1908/kyqra) | Archival source | release-and-dependency |
+| 13 | [telnexa](https://github.com/appolon1908/telnexa) | Platform/integrations | runtime-or-website |
+| 14 | [kyqra-crawler](https://github.com/appolon1908/kyqra-crawler) | Applications/websites | runtime-or-website |
+| 15 | [klyrow.com](https://github.com/appolon1908/klyrow.com) | Platform/integrations | runtime-or-website |
+| 16 | [codestra-provisioning-service](https://github.com/appolon1908/codestra-provisioning-service) | Platform/integrations | runtime-or-website |
+| 17 | [Moneybee-frontend-](https://github.com/appolon1908/Moneybee-frontend-) | Applications/websites | runtime-or-website |
+| 18 | [Moneybee-Backend](https://github.com/appolon1908/Moneybee-Backend) | Applications/websites | runtime-or-website |
+| 19 | [transportaion-Frontend](https://github.com/appolon1908/transportaion-Frontend) | Applications/websites | runtime-or-website |
+| 20 | [transportation-backend-](https://github.com/appolon1908/transportation-backend-) | Applications/websites | runtime-or-website |
+| 21 | [LARIM-A-Fornt-end](https://github.com/appolon1908/LARIM-A-Fornt-end) | Applications/websites | runtime-or-website |
+| 22 | [LARIM-A-Backend](https://github.com/appolon1908/LARIM-A-Backend) | Applications/websites | runtime-or-website |
+| 23 | [Telnexa-web](https://github.com/appolon1908/Telnexa-web) | Applications/websites | runtime-or-website |
+| 24 | [klyrow-Website-](https://github.com/appolon1908/klyrow-Website-) | Applications/websites | runtime-or-website |
+| 25 | [Odoo](https://github.com/appolon1908/Odoo) | Platform/integrations | runtime-or-website |
+| 26 | [Keycloak](https://github.com/appolon1908/Keycloak) | Platform/integrations | runtime-or-website |
+| 27 | [Middleware-](https://github.com/appolon1908/Middleware-) | Platform/integrations | runtime-or-website |
+| 28 | [N8N](https://github.com/appolon1908/N8N) | Platform/integrations | runtime-or-website |
+| 29 | [Vicidialer-Codestra](https://github.com/appolon1908/Vicidialer-Codestra) | Platform/integrations | runtime-or-website |
+| 30 | [Kong](https://github.com/appolon1908/Kong) | Platform/integrations | runtime-or-website |
+| 31 | [social.codestra.co](https://github.com/appolon1908/social.codestra.co) | Platform/integrations | runtime-or-website |
+| 32 | [SDK-repository](https://github.com/appolon1908/SDK-repository) | Runtime and shared source | runtime-or-website |
+| 33 | [Caddy](https://github.com/appolon1908/Caddy) | Platform/integrations | runtime-or-website |
+| 34 | [documentaions](https://github.com/appolon1908/documentaions) | Governance/shared source | release-and-dependency |
+| 35 | [Infustruction-repo](https://github.com/appolon1908/Infustruction-repo) | Governance/shared source | release-and-dependency |
+| 36 | [communication-platform-](https://github.com/appolon1908/communication-platform-) | Governance/shared source | release-and-dependency |
+| 37 | [Codestra-Grafana-](https://github.com/appolon1908/Codestra-Grafana-) | Monitoring | native-component |
+| 38 | [Codestra-Prometheus](https://github.com/appolon1908/Codestra-Prometheus) | Monitoring | native-component |
+| 39 | [Codestra-Alertmanager](https://github.com/appolon1908/Codestra-Alertmanager) | Monitoring | native-component |
+| 40 | [Codestra-Loki](https://github.com/appolon1908/Codestra-Loki) | Monitoring | native-component |
+| 41 | [Codestra-Telemetry](https://github.com/appolon1908/Codestra-Telemetry) | Monitoring | native-component |
+| 42 | [Codestra-Tempo](https://github.com/appolon1908/Codestra-Tempo) | Monitoring | native-component |
+| 43 | [Superset](https://github.com/appolon1908/Superset) | Monitoring | native-component |
+| 44 | [Codestra-Node-Exporter](https://github.com/appolon1908/Codestra-Node-Exporter) | Monitoring | native-component |
+| 45 | [Codestra-cAdvisor](https://github.com/appolon1908/Codestra-cAdvisor) | Monitoring | native-component |
+| 46 | [Codestra-Redis-Exporter](https://github.com/appolon1908/Codestra-Redis-Exporter) | Monitoring | native-component |
+| 47 | [Codestra-Blackbox-Exporter](https://github.com/appolon1908/Codestra-Blackbox-Exporter) | Monitoring | native-component |
+| 48 | [Codestra-Alloy](https://github.com/appolon1908/Codestra-Alloy) | Monitoring | native-component |
+| 49 | [Codestra-OpenBao](https://github.com/appolon1908/Codestra-OpenBao) | Monitoring | native-component |
+| 50 | [Codestra-Postgres-Exporter](https://github.com/appolon1908/Codestra-Postgres-Exporter) | Monitoring | native-component |
+| 51 | [Codestra-Marketing-](https://github.com/appolon1908/Codestra-Marketing-) | Platform/integrations | runtime-or-website |
+| 52 | [Codestra-Communication-CC](https://github.com/appolon1908/Codestra-Communication-CC) | Platform/integrations | runtime-or-website |
+| 53 | [Codesrea-Social-](https://github.com/appolon1908/Codesrea-Social-) | Platform/integrations | runtime-or-website |
+| 54 | [Codestra-AI](https://github.com/appolon1908/Codestra-AI) | Platform/integrations | runtime-or-website |
+| 55 | [codestra-foundation](https://github.com/appolon1908/codestra-foundation) | Governance/shared source | release-and-dependency |
+| 56 | [codestra-production-runtime-authority](https://github.com/appolon1908/codestra-production-runtime-authority) | Governance/shared source | release-and-dependency |
+| 57 | [Websocket-](https://github.com/appolon1908/Websocket-) | Platform/integrations | runtime-or-website |
+| 58 | [Database-migrations-](https://github.com/appolon1908/Database-migrations-) | Governance/shared source | release-and-dependency |
+| 59 | [codestra-server-c](https://github.com/appolon1908/codestra-server-c) | Runtime and shared source | runtime-or-website |
+| 60 | [codestra-ruleset-toolkit](https://github.com/appolon1908/codestra-ruleset-toolkit) | Governance/shared source | release-and-dependency |
 
-| 61 | [Backstage](https://github.com/appolon1908-hue/Backstage) | Monitoring | native-component |
-| 62 | [Sentry](https://github.com/appolon1908-hue/Sentry) | Monitoring | native-component |
-| 63 | [Wazuh](https://github.com/appolon1908-hue/Wazuh) | Monitoring | native-component |
+| 61 | [Backstage](https://github.com/appolon1908/Backstage) | Monitoring | native-component |
+| 62 | [Sentry](https://github.com/appolon1908/Sentry) | Monitoring | native-component |
+| 63 | [Wazuh](https://github.com/appolon1908/Wazuh) | Monitoring | native-component |
 
 ## 14. Acceptance scenarios
 
@@ -436,15 +436,15 @@ The native endpoint inventory is limited to the monitoring interfaces needed for
 
 ## 15. Implemented API boundary and the three new repositories
 
-The [Middleware implementation](https://github.com/ingtrader21-spec/Middleware-/blob/main/app/monitoring) registers all 36 extensions on the aggregate API, integration entrypoint and canonical application factory. The [generated OpenAPI](https://github.com/ingtrader21-spec/Middleware-/blob/main/contracts/observability/integrated-monitoring.openapi.json) specifies request schemas and response envelopes. The original 32 source-confirmed operations remain separate existing contracts.
+The [Middleware implementation](https://github.com/appolon1908/Middleware-/blob/main/app/monitoring) registers all 36 extensions on the aggregate API, integration entrypoint and canonical application factory. The [generated OpenAPI](https://github.com/appolon1908/Middleware-/blob/main/contracts/observability/integrated-monitoring.openapi.json) specifies request schemas and response envelopes. The original 32 source-confirmed operations remain separate existing contracts.
 
 The persistence migration is `0058_integrated_monitoring`, following `0057_platform_service_catalog`. Resource projections, ordered events and replay responses commit together. JWT signature, issuer, audience, authorized client, tenant, role and route scope are checked. Collector identities are bound to services and source deployments; campaign supervisors see only authorized campaign evidence. Browser telemetry is accepted through an authorized same-origin BFF identity.
 
 | Added repository | Ownership | Native read operation | Previously verified CI |
 | --- | --- | --- | --- |
-| [Backstage](https://github.com/appolon1908-hue/Backstage) | Service and repository catalog; ownership and API discovery | `GET /api/catalog/entities/by-query` ([upstream contract](https://backstage.io/docs/features/software-catalog/software-catalog-api/)) | [validate: success, `7b42a705d1e2`](https://github.com/appolon1908-hue/Backstage/actions/runs/34493359172) |
-| [Sentry](https://github.com/appolon1908-hue/Sentry) | Application exceptions and release-level error evidence | `GET /api/0/projects/{organization}/{project}/issues/` ([upstream contract](https://docs.sentry.io/api/events/list-a-projects-issues/)) | [validate: success, `6848d9ff1836`](https://github.com/appolon1908-hue/Sentry/actions/runs/34493357611) |
-| [Wazuh](https://github.com/appolon1908-hue/Wazuh) | Security agent status and sanitized security observations | `GET /agents` ([upstream contract](https://documentation.wazuh.com/current/user-manual/api/reference.html)) | [validate: success, `97262b09cde9`](https://github.com/appolon1908-hue/Wazuh/actions/runs/34493360046) |
+| [Backstage](https://github.com/appolon1908/Backstage) | Service and repository catalog; ownership and API discovery | `GET /api/catalog/entities/by-query` ([upstream contract](https://backstage.io/docs/features/software-catalog/software-catalog-api/)) | [validate: success, `7b42a705d1e2`](https://github.com/appolon1908/Backstage/actions/runs/34493359172) |
+| [Sentry](https://github.com/appolon1908/Sentry) | Application exceptions and release-level error evidence | `GET /api/0/projects/{organization}/{project}/issues/` ([upstream contract](https://docs.sentry.io/api/events/list-a-projects-issues/)) | [validate: success, `6848d9ff1836`](https://github.com/appolon1908/Sentry/actions/runs/34493357611) |
+| [Wazuh](https://github.com/appolon1908/Wazuh) | Security agent status and sanitized security observations | `GET /agents` ([upstream contract](https://documentation.wazuh.com/current/user-manual/api/reference.html)) | [validate: success, `97262b09cde9`](https://github.com/appolon1908/Wazuh/actions/runs/34493360046) |
 
 Backstage receives a native catalog describing all 63 repositories as source resources, with ownership and a reference to the monitoring API. A repository is never treated as proof of a deployed service. Sentry exposes bounded unresolved-issue metadata; Wazuh exposes bounded agent IDs/status. Security and error observations also enter the same collector API. Native credentials stay on the server and are read from release-mounted files. Backstage guest configuration must remain private until the existing SSO/public-access gate is satisfied.
 

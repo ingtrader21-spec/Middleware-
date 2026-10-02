@@ -56,9 +56,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "${GITHUB_REPOSITORY}" = "ingtrader21-spec/Middleware-"
+          test "${GITHUB_REPOSITORY}" = "appolon1908/Middleware-"
           test "${IMAGE_REPOSITORY}" = \
-            "ghcr.io/ingtrader21-spec/codestra-middleware"
+            "ghcr.io/appolon1908/codestra-middleware"
           [[ "${IMAGE_DIGEST}" =~ ^sha256:[0-9a-f]{64}$ ]]
           [[ "${SOURCE_COMMIT}" =~ ^[0-9a-f]{40}$ ]]
           [[ "${RELEASE_TAG}" =~ ^sha-[0-9a-f]{40}-run-[1-9][0-9]*-attempt-[1-9][0-9]*$ ]]
@@ -96,7 +96,7 @@ jobs:
           EXPECTED_ISSUER: https://token.actions.githubusercontent.com
           # The single forward publisher is the only identity that may sign a
           # production Middleware digest; this verifier never signs anything.
-          EXPECTED_SIGNER: https://github.com/ingtrader21-spec/Middleware-/.github/workflows/release.yml@refs/heads/main
+          EXPECTED_SIGNER: https://github.com/appolon1908/Middleware-/.github/workflows/release.yml@refs/heads/main
         run: |
           set -euo pipefail
           subject="${IMAGE_REPOSITORY}@${IMAGE_DIGEST}"

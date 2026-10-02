@@ -1,6 +1,6 @@
 """Client for ``codestra_middleware_bridge``'s CRM/contact HTTP surface.
 
-``appolon1908-hue/Odoo``'s ``codestra_middleware_bridge`` addon already
+``appolon1908/Odoo``'s ``codestra_middleware_bridge`` addon already
 implements, and is the sole authority for, contact/note/task/opportunity/
 ticket state (``cc.customer.profile``, ``mail.message``, ``mail.activity``,
 ``crm.lead``, ``cc.helpdesk.ticket``) -- per the platform spec's "do not

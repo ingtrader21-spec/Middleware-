@@ -22,7 +22,7 @@ AUDIENCE = "platform-test-api"
 REQUEST = "d335d985-287e-4e13-a76a-19d651fb566e"
 SERVICE = {
     "service_id": "sample-api", "owner": "platform", "tenant_mode": "multi-tenant",
-    "type": "api", "repository": "appolon1908-hue/sample-api", "environments": ["staging"],
+    "type": "api", "repository": "appolon1908/sample-api", "environments": ["staging"],
     "dependencies": [], "data_classification": "confidential", "slo_profile": "customer-api",
     "alert_profile": "business-critical",
 }

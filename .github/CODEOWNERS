@@ -1,14 +1,14 @@
 # Middleware source and repository policy authority
-* @appolon1908-hue @kazan555
+* @appolon1908 @kazan555
 
 # Appolon retains ownership of production packaging and release controls.
-/.github/workflows/ @appolon1908-hue
-/app/ @appolon1908-hue
-/migrations/ @appolon1908-hue
-/contracts/ @appolon1908-hue
-/config/ @appolon1908-hue
-/Dockerfile.runtime @appolon1908-hue
-/requirements-*.txt @appolon1908-hue
+/.github/workflows/ @appolon1908
+/app/ @appolon1908
+/migrations/ @appolon1908
+/contracts/ @appolon1908
+/config/ @appolon1908
+/Dockerfile.runtime @appolon1908
+/requirements-*.txt @appolon1908
 
 # Isolated-staging security governance
 /.github/workflows/security-owner-decision-*.yml @kazan555

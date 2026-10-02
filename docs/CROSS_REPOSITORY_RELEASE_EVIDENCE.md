@@ -4,7 +4,7 @@
 
 Codestra repositories release independently. There is no central release-authority repository and no shared mutable deployment branch.
 
-For a feature that spans more than one repository, `ingtrader21-spec/Middleware-` owns only the **combined release-evidence note** because Middleware is the cross-system command/write boundary. This documentation responsibility does not authorize Middleware to merge, deploy or activate another repository.
+For a feature that spans more than one repository, `appolon1908/Middleware-` owns only the **combined release-evidence note** because Middleware is the cross-system command/write boundary. This documentation responsibility does not authorize Middleware to merge, deploy or activate another repository.
 
 ## Required evidence before a multi-repository change is called released
 

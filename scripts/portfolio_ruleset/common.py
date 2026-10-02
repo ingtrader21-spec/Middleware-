@@ -111,7 +111,7 @@ def load_policy() -> tuple[dict[str, Any], dict[str, Any]]:
     portfolio = load_json(PORTFOLIO_PATH)
     require(isinstance(portfolio, dict), "portfolio policy must be an object")
     require(portfolio.get("schema_version") == "1.0", "unsupported portfolio schema")
-    require(portfolio.get("owner") == "appolon1908-hue", "portfolio owner drift")
+    require(portfolio.get("owner") == "appolon1908", "portfolio owner drift")
     known = portfolio.get("known_active_repositories")
     if not isinstance(known, list):
         raise RolloutError("known repository inventory is invalid")

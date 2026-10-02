@@ -39,7 +39,7 @@ def load_policy(path: Path = POLICY_PATH) -> dict[str, Any]:
     require(isinstance(policy, dict), "governance policy must be an object")
     require(policy.get("schema_version") == "1.0", "unsupported governance schema")
     require(
-        policy.get("repository") == "ingtrader21-spec/Middleware-",
+        policy.get("repository") == "appolon1908/Middleware-",
         "repository authority drift",
     )
     require(

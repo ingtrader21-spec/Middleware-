@@ -38,7 +38,7 @@ jobs:
       - name: Check out exact selected Server B source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          repository: appolon1908-hue/Vicidialer-Codestra
+          repository: appolon1908/Vicidialer-Codestra
           ref: 9ac8ef4840f78ba4ad9b816e4e409298505103ce
           ssh-key: ${{ secrets.SELECTED_SERVER_B_DEPLOY_KEY }}
           path: selected-server-b

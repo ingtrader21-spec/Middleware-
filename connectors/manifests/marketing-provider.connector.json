@@ -5,7 +5,7 @@
   "display_name": "Codestra Marketing Provider Gateway",
   "version": "1.0.0",
   "cell": "core-communications",
-  "repository": "appolon1908-hue/Codestra-Marketing-",
+  "repository": "appolon1908/Codestra-Marketing-",
   "enabled_by_default": false,
   "direct_n8n_access": false,
   "runtime_binding": {

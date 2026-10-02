@@ -89,7 +89,7 @@ and the canonical layer should call it, not replace it.
 
 | Capability | Status | Evidence |
 |---|---|---|
-| Organizations/workspace membership | EXISTS | `appolon1908-hue/klyrow.com`, `apps/gateway/app/production_api.py`: `GET/POST /v1/organizations/{id}/members`, `PATCH /v1/organizations/{id}/members/{id}`. |
+| Organizations/workspace membership | EXISTS | `appolon1908/klyrow.com`, `apps/gateway/app/production_api.py`: `GET/POST /v1/organizations/{id}/members`, `PATCH /v1/organizations/{id}/members/{id}`. |
 | Domain/sender/SMTP-credential management | EXISTS | `apps/gateway/app/capabilities.py` + `provider.py`: `/v1/internal/email/domains/register`, `/v1/internal/email/senders/*` (including `/suspend`), `/v1/internal/email/smtp/credentials/*` (including `/revoke`). |
 | Message send + idempotency + events + health + reputation | EXISTS | `/v1/internal/email/communications/messages` (POST, idempotent - confirmed by `test_communications_provider.py`), `GET .../messages/{id}`, `.../messages/{id}/events`, `.../domains`, `.../provider-health`, `.../reputation`. Also a named `/v1/internal/email/beyvra/send` path. |
 | Klyrow's own architectural contract | EXISTS | `KLYROW_IDENTITY_AUTOMATION_ODOO_CONTROL_PLANE.md` in that repo independently states the *same* system-of-record boundaries this registry assumes (Keycloak=identity, Klyrow=product state, Middleware=only cross-system trust boundary, Odoo=back-office, n8n=non-authoritative). No architectural conflict. |
@@ -99,7 +99,7 @@ and the canonical layer should call it, not replace it.
 
 | Capability | Status | Evidence |
 |---|---|---|
-| Sender profiles, opt-outs, campaigns, templates, contacts | EXISTS | `appolon1908-hue/telnexa`, `billing/product_api.py`, prefix `/api/v1`: `POST/GET /senders`, `POST/GET /opt-outs`, `POST /campaigns`, `POST /templates`, `POST/GET /contacts`. |
+| Sender profiles, opt-outs, campaigns, templates, contacts | EXISTS | `appolon1908/telnexa`, `billing/product_api.py`, prefix `/api/v1`: `POST/GET /senders`, `POST/GET /opt-outs`, `POST /campaigns`, `POST /templates`, `POST/GET /contacts`. |
 | Messages + webhooks + numbers + subaccounts + rates | EXISTS | `/messages/{id}[/events]`, `/webhooks` (GET/DELETE), `/numbers`, `/subaccounts`, `/rates`. |
 | Admin: provider health/circuit-breaker/dispatch/reconciliation/send-gates/finance | EXISTS | `/admin/providers[/{id}[/health]]`, `/admin/providers/{id}/circuit/{action}`, `/admin/dispatch/jobs`, `/admin/provider-events`, `/admin/reconciliation`, `/admin/send-gates[/{id}/close]`, `/admin/finance/summary`. This is a materially more complete "drift/reconciliation/safety-gate" implementation than anything in this registry's Milestone 5/toolset - Telnexa's admin surface should likely inform the *shape* of Middleware's own drift/operations APIs, not be duplicated by them. |
 | Provider event ingestion | EXISTS (outbound to Middleware) | `billing/app.py`: `POST /internal/v1/provider-events/jasmin` (Telnexa receiving from its own upstream Jasmin gateway) - not the same thing as Middleware receiving from Telnexa; see next row. |

@@ -20,7 +20,7 @@ def test_runtime_source_authority_resolves_protected_main_dynamically() -> None:
 
     repository = authority["repositoryAuthority"]
     assert isinstance(repository, dict)
-    assert repository["repository"] == "ingtrader21-spec/Middleware-"
+    assert repository["repository"] == "appolon1908/Middleware-"
     assert repository["protectedSourceRef"] == "refs/heads/main"
     assert repository["staticSourceShaAllowed"] is False
     assert repository["ruleset"] == "middleware-main-production-authority"

@@ -88,7 +88,7 @@ def test_committed_fabric_is_valid() -> None:
     [
         ("command_prefixes", ["ai.", "undeclared."], "command prefixes"),
         ("cell", "telephony-private", "adapter cell"),
-        ("repository", "appolon1908-hue/other", "adapter repository"),
+        ("repository", "appolon1908/other", "adapter repository"),
     ],
 )
 def test_sdk_validator_rejects_adapter_manifest_source_drift(

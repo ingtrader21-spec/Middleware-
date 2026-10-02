@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "kind": "middleware-runtime-source-authority",
   "repositoryAuthority": {
-    "repository": "ingtrader21-spec/Middleware-",
+    "repository": "appolon1908/Middleware-",
     "protectedSourceRef": "refs/heads/main",
     "sourceResolution": "resolve the exact protected-main GitHub event SHA at workflow execution",
     "staticSourceShaAllowed": false,

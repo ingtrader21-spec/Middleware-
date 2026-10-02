@@ -12,7 +12,7 @@
   "authorized_assigner": {
     "full_name": "Ralph Appolon",
     "corporate_role": "Authorized Representative",
-    "github_login": "appolon1908-hue"
+    "github_login": "appolon1908"
   },
   "role_overlap": {
     "release_owner_security_owner": true,
@@ -21,12 +21,12 @@
     "separate_role_decisions_required": true
   },
   "roles": {
-    "organization_owner": ["appolon1908-hue"],
-    "release_owner": ["appolon1908-hue"],
-    "security_owner": ["appolon1908-hue"],
-    "compliance_owner": ["appolon1908-hue"],
-    "operations_owner": ["appolon1908-hue"],
-    "rollback_approver": ["appolon1908-hue"]
+    "organization_owner": ["appolon1908"],
+    "release_owner": ["appolon1908"],
+    "security_owner": ["appolon1908"],
+    "compliance_owner": ["appolon1908"],
+    "operations_owner": ["appolon1908"],
+    "rollback_approver": ["appolon1908"]
   },
   "operating_hours": {
     "timezone": "America/New_York",

@@ -22,7 +22,7 @@
   ],
   "state": "desired-not-provisioned",
   "keycloakSourceOfTruth": {
-    "repository": "appolon1908-hue/Keycloak",
+    "repository": "appolon1908/Keycloak",
     "requiredClientId": "moneybee-backend"
   }
 }

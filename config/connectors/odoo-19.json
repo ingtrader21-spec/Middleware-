@@ -2,7 +2,7 @@
   "version": 1,
   "id": "odoo-19",
   "workstream": "integration/odoo-19",
-  "repository": "appolon1908-hue/Odoo",
+  "repository": "appolon1908/Odoo",
   "role": "erp",
   "transport": {
     "protocol": "internal_https",

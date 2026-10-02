@@ -1,12 +1,12 @@
 {
   "schemaVersion": "1.0",
   "authority": {
-    "sdkRepository": "appolon1908-hue/SDK-repository",
+    "sdkRepository": "appolon1908/SDK-repository",
     "sdkContractSha": "63c793e88cca5daecfb5c8a688b8674ab288c522",
-    "middlewareRepository": "ingtrader21-spec/Middleware-",
+    "middlewareRepository": "appolon1908/Middleware-",
     "middlewareBranch": "feat/communications-api-v1-sms-runtime",
     "middlewareBaseSha": "d9735422796cb2aa18a39339aad3cc87bdf67ba9",
-    "telnexaRepository": "appolon1908-hue/telnexa",
+    "telnexaRepository": "appolon1908/telnexa",
     "telnexaSourceBranch": "feat/communications-api-v1-sms-provider",
     "telnexaProtectedBranch": "main",
     "telnexaPullRequest": 22,

@@ -8,28 +8,28 @@ ALIASES = ROOT / "config" / "repository-name-aliases.v1.json"
 AUTHORITIES = ROOT / "config" / "repository-authorities.v1.json"
 EXPECTED = {
     1221155447: (
-        "appolon1908-hue/Frontend-Resturant-",
-        "appolon1908-hue/restaurant-frontend",
+        "appolon1908/Frontend-Resturant-",
+        "appolon1908/restaurant-frontend",
     ),
     1343761049: (
-        "appolon1908-hue/transportaion-Frontend",
-        "appolon1908-hue/freight-platform-frontend",
+        "appolon1908/transportaion-Frontend",
+        "appolon1908/freight-platform-frontend",
     ),
     1343962199: (
-        "appolon1908-hue/LARIM-A-Fornt-end",
-        "appolon1908-hue/LARIM-A-Frontend",
+        "appolon1908/LARIM-A-Fornt-end",
+        "appolon1908/LARIM-A-Frontend",
     ),
     1351353723: (
-        "appolon1908-hue/Codesrea-Social-",
-        "appolon1908-hue/Codestra-Social-Control-Plane",
+        "appolon1908/Codesrea-Social-",
+        "appolon1908/Codestra-Social-Control-Plane",
     ),
     1350724356: (
-        "appolon1908-hue/documentaions",
-        "appolon1908-hue/Codestra-Documentation",
+        "appolon1908/documentaions",
+        "appolon1908/Codestra-Documentation",
     ),
     1350724865: (
-        "appolon1908-hue/Infustruction-repo",
-        "appolon1908-hue/Codestra-Infrastructure",
+        "appolon1908/Infustruction-repo",
+        "appolon1908/Codestra-Infrastructure",
     ),
 }
 
@@ -100,10 +100,10 @@ def test_social_runtime_and_control_plane_remain_separate() -> None:
     authorities = load(AUTHORITIES)
     by_component = {item["component"]: item for item in authorities["authorities"]}
     assert by_component["social"]["principal_repository"] == (
-        "appolon1908-hue/social.codestra.co"
+        "appolon1908/social.codestra.co"
     )
     assert by_component["social-control-plane"]["principal_repository"] == (
-        "appolon1908-hue/Codesrea-Social-"
+        "appolon1908/Codesrea-Social-"
     )
     assert by_component["social"]["principal_repository"] != by_component[
         "social-control-plane"

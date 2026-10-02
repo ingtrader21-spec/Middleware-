@@ -11,7 +11,7 @@ are not production releases.
 The workflow publishes exactly one `linux/amd64` image to:
 
 ```text
-ghcr.io/ingtrader21-spec/codestra-middleware@sha256:<digest>
+ghcr.io/appolon1908/codestra-middleware@sha256:<digest>
 ```
 
 The SHA/run tag is only a discovery aid. Staging and production must use the
@@ -46,20 +46,20 @@ removed. Trust pins for all of this are derived, never hand-edited, by
 
 ### Repository identity versus registry namespace
 
-The repository moved from `appolon1908-hue/Middleware-` to
-`ingtrader21-spec/Middleware-`; every current workflow guard, Sigstore
+The repository moved from `appolon1908/Middleware-` to
+`appolon1908/Middleware-`; every current workflow guard, Sigstore
 certificate identity, provenance URI and OCI source label names the new
 repository. The GHCR package is a separate authority: user-owned packages do
 not move with a repository transfer, and a GitHub Actions installation token
 can only publish to its own owner's namespace. The first release run from the
 transferred repository (run 35528661211 on `2862af0a`) built the image and was
-then denied at `ghcr.io/appolon1908-hue/codestra-middleware` with
+then denied at `ghcr.io/appolon1908/codestra-middleware` with
 `permission_denied: The requested installation does not exist`. The package
 authority therefore follows the repository owner:
 
 | Package | Role |
 | --- | --- |
-| `ghcr.io/ingtrader21-spec/codestra-middleware` | canonical: the single forward publisher, every verifier, the orchestrator contract's artifact policy, the forward release authority and the manifest verifier bind this package and nothing else |
+| `ghcr.io/appolon1908/codestra-middleware` | canonical: the single forward publisher, every verifier, the orchestrator contract's artifact policy, the forward release authority and the manifest verifier bind this package and nothing else |
 | `ghcr.io/appolon1908-hue/codestra-middleware` | historical: holds the pre-transfer digests (public pull); may be named only by digest-pinned historical verification (`HISTORICAL_ARTIFACT_VERIFIER`) and by the pinned pre-transfer manifests; a live job naming it is a release-authority problem |
 
 No personal access token, secret-based registry login, local `docker push` or
@@ -94,7 +94,7 @@ No private signing key is stored in GitHub or in this repository. The required
 certificate identity is:
 
 ```text
-https://github.com/ingtrader21-spec/Middleware-/.github/workflows/release.yml@refs/heads/main
+https://github.com/appolon1908/Middleware-/.github/workflows/release.yml@refs/heads/main
 ```
 
 The required OIDC issuer is `https://token.actions.githubusercontent.com`.
@@ -116,9 +116,9 @@ Then verify the registry signature independently:
 
 ```bash
 cosign verify \
-  --certificate-identity 'https://github.com/ingtrader21-spec/Middleware-/.github/workflows/release.yml@refs/heads/main' \
+  --certificate-identity 'https://github.com/appolon1908/Middleware-/.github/workflows/release.yml@refs/heads/main' \
   --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
-  ghcr.io/ingtrader21-spec/codestra-middleware@sha256:<digest>
+  ghcr.io/appolon1908/codestra-middleware@sha256:<digest>
 ```
 
 Deployment must stop if the bundle, signer identity, source SHA, image digest,

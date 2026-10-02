@@ -22,7 +22,7 @@ TOKEN_ENV = "CODESTRA_REPOSITORY_ADMIN_TOKEN"
 CONFIRMATION = "APPLY_INTEGRATION_MAIN_RELEASE_AUTHORITY_V1"
 AUTHORITY_ID = "codestra.integration-main-release-authorities.v1"
 RULESET_NAME = "Codestra integration protected-main release gates"
-EXPECTED_OWNER = "appolon1908-hue"
+EXPECTED_OWNER = "appolon1908"
 EXPECTED_REVIEWER = {
     "login": "kazan555",
     "user_id": 77101516,
@@ -30,7 +30,7 @@ EXPECTED_REVIEWER = {
     "admin": False,
 }
 EXPECTED_REPOSITORIES = {
-    "appolon1908-hue/social.codestra.co": (
+    "appolon1908/social.codestra.co": (
         1348783113,
         (
             "Backend policy, migration, test, and build",
@@ -38,15 +38,15 @@ EXPECTED_REPOSITORIES = {
             "certify",
         ),
     ),
-    "appolon1908-hue/Codestra-AI": (
+    "appolon1908/Codestra-AI": (
         1351354401,
         ("unit-and-contract", "postgres-certification", "container-build"),
     ),
-    "appolon1908-hue/Codestra-Marketing-": (
+    "appolon1908/Codestra-Marketing-": (
         1351352422,
         ("unit-and-contract", "postgres-certification", "container-build"),
     ),
-    "appolon1908-hue/Vicidialer-Codestra": (
+    "appolon1908/Vicidialer-Codestra": (
         1347744324,
         (
             "deploy-readiness / deploy-readiness / secret-scan",
@@ -741,7 +741,7 @@ def execute(mode: str, confirmation: str) -> dict[str, Any]:
     require(mode in {"apply", "verify"}, "unsupported mode")
     if os.environ.get("GITHUB_ACTIONS") == "true":
         require(
-            os.environ.get("GITHUB_REPOSITORY") == "ingtrader21-spec/Middleware-",
+            os.environ.get("GITHUB_REPOSITORY") == "appolon1908/Middleware-",
             "workflow repository drift",
         )
         require(os.environ.get("GITHUB_REF") == "refs/heads/main", "protected main required")

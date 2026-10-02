@@ -4,7 +4,7 @@ metadata:
   name: middleware-integration-api
 spec:
   owner: codestra-platform
-  repository: ingtrader21-spec/Middleware-
+  repository: appolon1908/Middleware-
   tenantMode: multi-tenant
   type: api
   runtime:

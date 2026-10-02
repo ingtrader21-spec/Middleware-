@@ -1,6 +1,6 @@
 """Read-only client for ``codestra-foundation``'s tenant/entitlement API.
 
-``codestra-foundation`` (github.com/appolon1908-hue/codestra-foundation) is
+``codestra-foundation`` (github.com/appolon1908/codestra-foundation) is
 the existing, already-implemented authority for tenant lifecycle, billing,
 and consent/preferences (routers: ``tenants.py``, ``billing.py``,
 ``profiles.py``). Session Context must resolve tenant and entitlement state

@@ -22,7 +22,7 @@ def main() -> None:
     parser.add_argument("--image-repository")
     parser.add_argument(
         "--signer-identity",
-        default="https://github.com/ingtrader21-spec/Middleware-/.github/workflows/staging-candidate-build-sign.yml@refs/heads/main",
+        default="https://github.com/appolon1908/Middleware-/.github/workflows/staging-candidate-build-sign.yml@refs/heads/main",
     )
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--run-attempt", required=True)
@@ -51,7 +51,7 @@ def main() -> None:
     if manifest.get("image_digest") != args.image_digest:
         raise SystemExit("candidate manifest image digest mismatch")
     if args.image_repository is None:
-        args.image_repository = manifest.get("image_repository", "ghcr.io/ingtrader21-spec/codestra-middleware")
+        args.image_repository = manifest.get("image_repository", "ghcr.io/appolon1908/codestra-middleware")
     if manifest.get("image_repository", args.image_repository) != args.image_repository:
         raise SystemExit("candidate manifest image repository mismatch")
     rows = list(csv.DictReader(args.matrix.open(newline="", encoding="utf-8")))
@@ -103,7 +103,7 @@ def main() -> None:
         "decision_version": 1,
         "decision_status": "pending_security_owner_environment_approval",
         "company": "Codestra LLC",
-        "repository": "ingtrader21-spec/Middleware-",
+        "repository": "appolon1908/Middleware-",
         "pr_number": pr_number,
         "pr_head_sha": args.source_sha,
         "image_repository": args.image_repository,

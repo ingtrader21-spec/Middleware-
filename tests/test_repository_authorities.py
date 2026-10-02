@@ -97,7 +97,7 @@ class RepositoryAuthorityContractTests(unittest.TestCase):
         self.mutate_json(
             "config/repository-authorities.v1.json",
             lambda data: data["authorities"][0].update(
-                principal_repository="appolon1908-hue/nested/repository"
+                principal_repository="appolon1908/nested/repository"
             ),
         )
         self.assert_rejected("invalid_authority_identity")
@@ -109,7 +109,7 @@ class RepositoryAuthorityContractTests(unittest.TestCase):
                 {
                     "component": "reference-alias",
                     "principal_repository": (
-                        "appolon1908-hue/CODESTRA-PRODUCTION-PLATFORM"
+                        "appolon1908/CODESTRA-PRODUCTION-PLATFORM"
                     ),
                     "role": "forbidden-reference-alias",
                 }
@@ -135,7 +135,7 @@ class RepositoryAuthorityContractTests(unittest.TestCase):
         self.mutate_json(
             "config/adapter-registry.v2.json",
             lambda data: data["adapters"][0].update(
-                repository="appolon1908-hue/unregistered"
+                repository="appolon1908/unregistered"
             ),
         )
         self.assert_rejected("adapter_repository_has_no_principal:ai-provider")
@@ -150,7 +150,7 @@ class RepositoryAuthorityContractTests(unittest.TestCase):
     def test_manifest_repository_drift_fails_closed(self) -> None:
         self.mutate_json(
             "connectors/manifests/ai-provider.connector.json",
-            lambda data: data.update(repository="appolon1908-hue/Codestra-Marketing-"),
+            lambda data: data.update(repository="appolon1908/Codestra-Marketing-"),
         )
         self.assert_rejected("connector_repository_drift:ai-provider")
 

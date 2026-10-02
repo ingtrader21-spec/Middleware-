@@ -1,7 +1,7 @@
 # Middleware staging-sync production blockers
 
 Date: 2026-09-03  
-Source authority: `appolon1908-hue/Middleware-`  
+Source authority: `appolon1908/Middleware-`  
 Protected base: `9cd3fd3e46fb0366fbff69aeef251a1b85beff1d`
 
 ## Purpose

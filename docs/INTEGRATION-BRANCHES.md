@@ -43,7 +43,7 @@ Every other workstream depends directly or transitively on `core/integration-con
 | Branch | Platform | Runtime status | Scope |
 |---|---|---|---|
 | `platform/kong` | Kong | Active scope | API services, routes, plugins, authentication, mTLS, rate limits, allowlists, transformations, and gateway tests. |
-| `platform/caddy` | Caddy | Active scope | Middleware-side route compatibility and edge validation. Canonical production Caddy desired state is `appolon1908-hue/codestra-production-platform:operations/caddy/`. |
+| `platform/caddy` | Caddy | Active scope | Middleware-side route compatibility and edge validation. Canonical production Caddy desired state is `appolon1908/codestra-production-platform:operations/caddy/`. |
 | `platform/postgresql` | PostgreSQL | Active scope | Durable records, event ledger, outbox, audit, mappings, schema, migrations, least-privilege roles, backup/restore, and rollback. |
 | `platform/redis` | Redis | Active scope | Temporary queues, cache, leases, idempotency state, locks, retry scheduling, recovery, and integration tests. |
 | `platform/nats-jetstream` | NATS JetStream | Required shared primitive | Canonical event subjects, durable consumers, replay, service credentials, acknowledgements, deduplication, and central event transport. |
@@ -61,7 +61,7 @@ RabbitMQ does not replace NATS JetStream or supplement Redis merely because its 
 | `integration/jasmin-sms` | Jasmin | HTTP/SMPP submission, delivery receipts, inbound-message contracts, authentication, replay protection, suppression, rate limits, tests, and inventory. |
 | `integration/crawlee` | Crawlee | Crawl-job contracts, policies, tenant/job isolation, queue ownership, result ingestion, retries, deterministic fixtures, and inventory. |
 | `testing/playwright` | Playwright | Browser end-to-end tests, authentication tests, synthetic no-write canaries, deterministic test data, and safe trace/artifact handling. |
-| `integration/kyqra` | Kyqra | Contracts, tests, and runtime verification against canonical source `appolon1908-hue/kyqra-crawler`; the legacy `appolon1908-hue/kyqra` repository is retired. |
+| `integration/kyqra` | Kyqra | Contracts, tests, and runtime verification against canonical source `appolon1908/kyqra-crawler`; the legacy `appolon1908/kyqra` repository is retired. |
 | `integration/beyvra` | Beyvra | Contracts, tests, and runtime verification until the active service, endpoint, source path, owner, and deployment path are confirmed. |
 
 Postal and Jasmin may be underlying provider-host components while Klyrow and Telnexa remain the middleware-facing product integrations. The verification branches own middleware contracts and tests unless a separate architecture decision assigns underlying service source and deployment ownership to this repository.

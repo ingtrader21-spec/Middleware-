@@ -164,7 +164,7 @@ def test_signature_attestations_and_independent_verification_are_exact():
     assert "--certificate-identity \"${EXPECTED_IDENTITY}\"" in TEXT
     assert "--certificate-oidc-issuer \"${EXPECTED_ISSUER}\"" in TEXT
     assert (
-        "EXPECTED_IDENTITY: https://github.com/appolon1908-hue/Middleware-/"
+        "EXPECTED_IDENTITY: https://github.com/appolon1908/Middleware-/"
         ".github/workflows/publish-sign-qwen-auth-verifier.yml@refs/heads/main"
         in TEXT
     )
@@ -189,5 +189,5 @@ def test_multiple_verified_attestations_require_an_exact_predicate_match():
 
 def test_existing_middleware_signing_workflow_is_not_referenced_or_modified():
     assert "sign-middleware-release.yml" not in TEXT
-    assert "ghcr.io/ingtrader21-spec/codestra-middleware" not in TEXT
-    assert "ghcr.io/appolon1908-hue/codestra-middleware" not in TEXT
+    assert "ghcr.io/appolon1908/codestra-middleware" not in TEXT
+    assert "ghcr.io/appolon1908/codestra-middleware" not in TEXT

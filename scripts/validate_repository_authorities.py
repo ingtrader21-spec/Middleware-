@@ -9,33 +9,33 @@ from pathlib import Path
 from typing import Any, cast
 
 ROOT = Path(__file__).resolve().parents[1]
-REFERENCE = "appolon1908-hue/codestra-production-platform"
-MIDDLEWARE = "ingtrader21-spec/Middleware-"
+REFERENCE = "appolon1908/codestra-production-platform"
+MIDDLEWARE = "appolon1908/Middleware-"
 REFERENCE_CANONICAL = REFERENCE.casefold()
 FORBIDDEN_ADAPTER_REPOSITORIES = {
     REFERENCE_CANONICAL,
     MIDDLEWARE.casefold(),
 }
 IDENTIFIER_PATTERN = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*\Z")
-REPOSITORY_PATTERN = re.compile(r"(?:ingtrader21-spec|appolon1908-hue)/[A-Za-z0-9_.-]+\Z")
+REPOSITORY_PATTERN = re.compile(r"(?:appolon1908|appolon1908)/[A-Za-z0-9_.-]+\Z")
 EXPECTED = {
-    "ai": "appolon1908-hue/Codestra-AI",
-    "caddy": "appolon1908-hue/Caddy",
-    "keycloak": "appolon1908-hue/Keycloak",
-    "klyrow-email": "appolon1908-hue/klyrow.com",
-    "klyrow-web": "appolon1908-hue/klyrow-Website-",
-    "kong": "appolon1908-hue/Kong",
-    "kyqra-crawler": "appolon1908-hue/kyqra-crawler",
-    "marketing": "appolon1908-hue/Codestra-Marketing-",
-    "middleware": "ingtrader21-spec/Middleware-",
-    "n8n": "appolon1908-hue/N8N",
-    "odoo": "appolon1908-hue/Odoo",
-    "provisioning": "appolon1908-hue/codestra-provisioning-service",
-    "sdk": "appolon1908-hue/SDK-repository",
-    "social": "appolon1908-hue/social.codestra.co",
-    "telnexa-sms": "appolon1908-hue/telnexa",
-    "telnexa-web": "appolon1908-hue/Telnexa-web",
-    "vicidial-asterisk": "appolon1908-hue/Vicidialer-Codestra",
+    "ai": "appolon1908/Codestra-AI",
+    "caddy": "appolon1908/Caddy",
+    "keycloak": "appolon1908/Keycloak",
+    "klyrow-email": "appolon1908/klyrow.com",
+    "klyrow-web": "appolon1908/klyrow-Website-",
+    "kong": "appolon1908/Kong",
+    "kyqra-crawler": "appolon1908/kyqra-crawler",
+    "marketing": "appolon1908/Codestra-Marketing-",
+    "middleware": "appolon1908/Middleware-",
+    "n8n": "appolon1908/N8N",
+    "odoo": "appolon1908/Odoo",
+    "provisioning": "appolon1908/codestra-provisioning-service",
+    "sdk": "appolon1908/SDK-repository",
+    "social": "appolon1908/social.codestra.co",
+    "telnexa-sms": "appolon1908/telnexa",
+    "telnexa-web": "appolon1908/Telnexa-web",
+    "vicidial-asterisk": "appolon1908/Vicidialer-Codestra",
 }
 
 
@@ -144,7 +144,7 @@ def validate(root: Path = ROOT) -> tuple[int, int]:
             fail(f"duplicate_principal_repository:{repository}")
         if canonical_repository == REFERENCE_CANONICAL:
             fail(f"reference_repo_cannot_be_principal:{component}")
-        if not repository.startswith(("ingtrader21-spec/", "appolon1908-hue/")):
+        if not repository.startswith(("appolon1908/", "appolon1908/")):
             fail(f"non_codestra_principal:{component}")
         by_component[component] = repository
         principal_repositories.add(repository)
@@ -224,8 +224,8 @@ def validate(root: Path = ROOT) -> tuple[int, int]:
         root / "docs/REPOSITORY-AUTHORITY-POLICY.md",
     ]
     forbidden = (
-        "future shared API-edge Caddy source authority** is `appolon1908-hue/Kong`",
-        "Caddy's canonical Git home is\n`appolon1908-hue/codestra-production-platform",
+        "future shared API-edge Caddy source authority** is `appolon1908/Kong`",
+        "Caddy's canonical Git home is\n`appolon1908/codestra-production-platform",
         "central deployment manifest authority",
     )
     for path in text_targets:
@@ -249,7 +249,7 @@ def main() -> None:
     print(f"AUTHORITY_COUNT={authority_count}")
     print(f"CONNECTOR_PRINCIPAL_REPOSITORIES=PASS count={connector_count}")
     print("CODESTRA_PRODUCTION_PLATFORM=REFERENCE_ONLY")
-    print("CADDY_PRINCIPAL=appolon1908-hue/Caddy")
+    print("CADDY_PRINCIPAL=appolon1908/Caddy")
 
 
 if __name__ == "__main__":

@@ -36,7 +36,7 @@ def test_lifecycle_contract_is_pinned_to_protected_merge() -> None:
     value = json.loads(CONTRACT.read_text(encoding="utf-8"))
     lock = value["lifecycleContract"]
     assert lock == {
-        "repository": "appolon1908-hue/Keycloak",
+        "repository": "appolon1908/Keycloak",
         "path": "config/contracts/webhook-contracts.json",
         "protectedBranch": "main",
         "mergeSha": EXPECTED_MERGE_SHA,

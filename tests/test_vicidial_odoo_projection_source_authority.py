@@ -62,7 +62,7 @@ def test_projection_authority_records_candidates_without_activating_them() -> No
     dependencies = _document()["dependencies"]
 
     assert dependencies["keycloak"] == {
-        "repository": "appolon1908-hue/Keycloak",
+        "repository": "appolon1908/Keycloak",
         "pull_request": 86,
         "state_at_lock": "merged",
         "base_ref": "refs/heads/main",

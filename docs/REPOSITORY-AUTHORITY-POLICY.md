@@ -8,7 +8,7 @@ The machine-readable registry is `config/repository-authorities.v1.json`.
 
 ## Middleware owns only the Middleware boundary
 
-`ingtrader21-spec/Middleware-` owns:
+`appolon1908/Middleware-` owns:
 
 - cross-system command/event contracts and durable integration state;
 - authenticated Middleware APIs and workers;
@@ -27,21 +27,21 @@ Critical control-plane authorities are:
 
 | Component | Principal repository |
 |---|---|
-| Middleware | `ingtrader21-spec/Middleware-` |
-| Caddy | `appolon1908-hue/Caddy` |
-| Kong | `appolon1908-hue/Kong` |
-| Keycloak | `appolon1908-hue/Keycloak` |
-| n8n | `appolon1908-hue/N8N` |
-| Odoo | `appolon1908-hue/Odoo` |
-| Telnexa SMS/Jasmin | `appolon1908-hue/telnexa` |
-| Telnexa website | `appolon1908-hue/Telnexa-web` |
-| Klyrow email platform | `appolon1908-hue/klyrow.com` |
-| Klyrow website | `appolon1908-hue/klyrow-Website-` |
-| Kyqra crawler | `appolon1908-hue/kyqra-crawler` |
-| VICIdial/Asterisk connector | `appolon1908-hue/Vicidialer-Codestra` |
-| Provisioning | `appolon1908-hue/codestra-provisioning-service` |
-| SDKs / connector kit | `appolon1908-hue/SDK-repository` |
-| Social/Postiz | `appolon1908-hue/social.codestra.co` |
+| Middleware | `appolon1908/Middleware-` |
+| Caddy | `appolon1908/Caddy` |
+| Kong | `appolon1908/Kong` |
+| Keycloak | `appolon1908/Keycloak` |
+| n8n | `appolon1908/N8N` |
+| Odoo | `appolon1908/Odoo` |
+| Telnexa SMS/Jasmin | `appolon1908/telnexa` |
+| Telnexa website | `appolon1908/Telnexa-web` |
+| Klyrow email platform | `appolon1908/klyrow.com` |
+| Klyrow website | `appolon1908/klyrow-Website-` |
+| Kyqra crawler | `appolon1908/kyqra-crawler` |
+| VICIdial/Asterisk connector | `appolon1908/Vicidialer-Codestra` |
+| Provisioning | `appolon1908/codestra-provisioning-service` |
+| SDKs / connector kit | `appolon1908/SDK-repository` |
+| Social/Postiz | `appolon1908/social.codestra.co` |
 
 The full reviewed registry also records independent product repositories so Middleware does not accidentally absorb their source.
 
@@ -53,7 +53,7 @@ The shared API-edge ownership chain is permanently:
 client -> Caddy -> Kong -> Middleware -> owned downstream runtime
 ```
 
-`appolon1908-hue/Caddy` owns the canonical edge contract at `config/caddy-kong-contract.v1.json`, including the outer TLS/host/reverse-proxy handoff. `appolon1908-hue/Kong` owns the gateway route/security implementation. Middleware must not ask Caddy to bypass Kong for a path already represented in Kong source.
+`appolon1908/Caddy` owns the canonical edge contract at `config/caddy-kong-contract.v1.json`, including the outer TLS/host/reverse-proxy handoff. `appolon1908/Kong` owns the gateway route/security implementation. Middleware must not ask Caddy to bypass Kong for a path already represented in Kong source.
 
 Caddy must not create trusted application identity headers. Kong performs token/scope policy and sets authenticated downstream identity; Middleware revalidates the identity/tenant authorization required for privileged commands.
 
@@ -61,7 +61,7 @@ Transitional legacy Caddy upstreams may exist only as migration compatibility fo
 
 ## `codestra-production-platform`
 
-`appolon1908-hue/codestra-production-platform` is reference-only under the current model. It remains useful for:
+`appolon1908/codestra-production-platform` is reference-only under the current model. It remains useful for:
 
 - historical runtime inventories;
 - previous deployment provenance;

@@ -53,7 +53,7 @@ jobs:
           target: ${{ matrix.target }}
           push: ${{ github.event_name == 'push' }}
           load: ${{ github.event_name == 'pull_request' }}
-          tags: ghcr.io/appolon1908-hue/${{ matrix.component }}:${{ github.sha }}
+          tags: ghcr.io/appolon1908/${{ matrix.component }}:${{ github.sha }}
           build-args: |
             VCS_REF=${{ github.sha }}
             BUILD_REVISION=${{ github.sha }}
@@ -65,14 +65,14 @@ jobs:
           sbom: ${{ github.event_name == 'push' }}
       - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          image-ref: ghcr.io/appolon1908-hue/${{ matrix.component }}:${{ github.sha }}
+          image-ref: ghcr.io/appolon1908/${{ matrix.component }}:${{ github.sha }}
           severity: CRITICAL,HIGH
           ignore-unfixed: true
           exit-code: '1'
       - name: Verify immutable candidate evidence
         if: github.event_name == 'push'
         env:
-          IMAGE: ghcr.io/appolon1908-hue/${{ matrix.component }}@${{ steps.build.outputs.digest }}
+          IMAGE: ghcr.io/appolon1908/${{ matrix.component }}@${{ steps.build.outputs.digest }}
         run: |
           set -euo pipefail
           docker buildx imagetools inspect "$IMAGE" --format '{{ json .SBOM }}' > sbom.json

@@ -5,11 +5,11 @@ this branch on 2026-08-30. Production provider activation remains gated.
 
 ## Authority
 
-Repository: `ingtrader21-spec/Middleware-`
+Repository: `appolon1908/Middleware-`
 
 Branch: `feat/communications-api-v1-sms-runtime`
 
-Frozen SDK contract: `appolon1908-hue/SDK-repository@63c793e88cca5daecfb5c8a688b8674ab288c522`
+Frozen SDK contract: `appolon1908/SDK-repository@63c793e88cca5daecfb5c8a688b8674ab288c522`
 
 Telnexa/Jasmin remains the SMS provider/runtime authority. Middleware remains the only privileged cross-system write authority.
 

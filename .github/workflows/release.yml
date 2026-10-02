@@ -30,8 +30,8 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       SOURCE_SHA: 29b25cba8302cd15ef4d87b68f501da6347f2f17
       IMAGE_DIGEST: sha256:0f5a5b3b1c8166d6509b228541bee01533f5feb1dbef24ed2d241194ba610802
-      IMAGE: ghcr.io/appolon1908-hue/codestra-middleware@sha256:0f5a5b3b1c8166d6509b228541bee01533f5feb1dbef24ed2d241194ba610802
-      SIGNER: https://github.com/appolon1908-hue/Middleware-/.github/workflows/release.yml@refs/heads/main
+      IMAGE: ghcr.io/appolon1908/codestra-middleware@sha256:0f5a5b3b1c8166d6509b228541bee01533f5feb1dbef24ed2d241194ba610802
+      SIGNER: https://github.com/appolon1908/Middleware-/.github/workflows/release.yml@refs/heads/main
       ISSUER: https://token.actions.githubusercontent.com
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -43,12 +43,12 @@ jobs:
       - name: Retrieve immutable evidence from the original successful release
         run: |
           set -Eeuo pipefail
-          test "$GITHUB_REPOSITORY" = ingtrader21-spec/Middleware-
-          gh api repos/appolon1908-hue/Middleware-/actions/runs/33922375053 > "$RUNNER_TEMP/original-run.json"
+          test "$GITHUB_REPOSITORY" = appolon1908/Middleware-
+          gh api repos/appolon1908/Middleware-/actions/runs/33922375053 > "$RUNNER_TEMP/original-run.json"
           jq -e --arg sha "$SOURCE_SHA" '.conclusion == "success" and .head_sha == $sha and .event == "workflow_run" and .path == ".github/workflows/release.yml"' "$RUNNER_TEMP/original-run.json"
-          gh api repos/appolon1908-hue/Middleware-/actions/artifacts/9955590882 > "$RUNNER_TEMP/artifact.json"
+          gh api repos/appolon1908/Middleware-/actions/artifacts/9955590882 > "$RUNNER_TEMP/artifact.json"
           jq -e '.expired == false and .workflow_run.id == 33922375053 and .digest == "sha256:e04928d95ec12a429096af180f3bbd40891af324eff0f4868f5a7d638e74c5b6"' "$RUNNER_TEMP/artifact.json"
-          gh api repos/appolon1908-hue/Middleware-/actions/artifacts/9955590882/zip > "$RUNNER_TEMP/original-release.zip"
+          gh api repos/appolon1908/Middleware-/actions/artifacts/9955590882/zip > "$RUNNER_TEMP/original-release.zip"
           echo "e04928d95ec12a429096af180f3bbd40891af324eff0f4868f5a7d638e74c5b6  $RUNNER_TEMP/original-release.zip" | sha256sum --check --strict
           mkdir "$RUNNER_TEMP/original-release"
           unzip -q "$RUNNER_TEMP/original-release.zip" -d "$RUNNER_TEMP/original-release"
@@ -95,7 +95,7 @@ jobs:
     # authorized as a narrow mutation by the protected production validator; any
     # change to this job requires a new trust generation.
     if: >-
-      github.repository == 'ingtrader21-spec/Middleware-' &&
+      github.repository == 'appolon1908/Middleware-' &&
       (
         (
           github.event_name == 'workflow_run' &&
@@ -115,7 +115,7 @@ jobs:
       packages: write
       id-token: write
     env:
-      IMAGE_REPOSITORY: ghcr.io/ingtrader21-spec/codestra-middleware
+      IMAGE_REPOSITORY: ghcr.io/appolon1908/codestra-middleware
       COSIGN_YES: "true"
       SOURCE_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
       EXPECTED_SCHEMA_HEAD: 0067_service_catalog_monitoring_state
@@ -135,7 +135,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -Eeuo pipefail
-          test "$GITHUB_REPOSITORY" = "ingtrader21-spec/Middleware-"
+          test "$GITHUB_REPOSITORY" = "appolon1908/Middleware-"
           test "$GITHUB_REF" = "refs/heads/main"
           [[ "$EXPECTED_SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
           test "$(git rev-parse HEAD)" = "$EXPECTED_SOURCE_SHA"
@@ -176,7 +176,7 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: >-
-            ghcr.io/ingtrader21-spec/codestra-middleware:sha-${{ env.SOURCE_SHA }}-run-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+            ghcr.io/appolon1908/codestra-middleware:sha-${{ env.SOURCE_SHA }}-run-${{ github.run_id }}-attempt-${{ github.run_attempt }}
           build-args: |
             SOURCE_REPOSITORY=https://github.com/${{ github.repository }}
             SOURCE_REVISION=${{ env.SOURCE_SHA }}
@@ -272,13 +272,13 @@ jobs:
                       "platform": "linux/amd64",
                   },
                   "resolvedDependencies": [{
-                      "uri": f"git+https://github.com/ingtrader21-spec/Middleware-@{os.environ['RELEASE_SOURCE_SHA']}",
+                      "uri": f"git+https://github.com/appolon1908/Middleware-@{os.environ['RELEASE_SOURCE_SHA']}",
                       "digest": {"gitCommit": os.environ["RELEASE_SOURCE_SHA"]},
                   }],
               },
               "runDetails": {
                   "builder": {
-                      "id": "https://github.com/ingtrader21-spec/Middleware-/.github/workflows/release.yml@refs/heads/main"
+                      "id": "https://github.com/appolon1908/Middleware-/.github/workflows/release.yml@refs/heads/main"
                   }
               },
           }
@@ -306,7 +306,7 @@ jobs:
       - name: Verify signer identity and every release binding
         run: |
           set -Eeuo pipefail
-          SIGNER_IDENTITY='https://github.com/ingtrader21-spec/Middleware-/.github/workflows/release.yml@refs/heads/main'
+          SIGNER_IDENTITY='https://github.com/appolon1908/Middleware-/.github/workflows/release.yml@refs/heads/main'
           OIDC_ISSUER='https://token.actions.githubusercontent.com'
           cosign verify \
             --certificate-identity "$SIGNER_IDENTITY" \

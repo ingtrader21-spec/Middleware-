@@ -20,10 +20,10 @@ def valid_manifest() -> dict[str, object]:
         "$schema": "https://codestra.internal/schemas/candidate-image-manifest.v1.json",
         "manifest_version": 1,
         "company": "Codestra LLC",
-        "repository": "ingtrader21-spec/Middleware-",
+        "repository": "appolon1908/Middleware-",
         "pr_number": 68,
         "head_sha": HEAD,
-        "image_repository": "ghcr.io/ingtrader21-spec/codestra-middleware",
+        "image_repository": "ghcr.io/appolon1908/codestra-middleware",
         "image_digest": DIGEST,
         "candidate_scope": "server_a_isolated_staging_candidate",
         "production_release_provenance_assigned": False,
@@ -53,13 +53,13 @@ def validate(tmp_path: Path, manifest: dict[str, object]) -> subprocess.Complete
             "--expected-company",
             "Codestra LLC",
             "--expected-repository",
-            "ingtrader21-spec/Middleware-",
+            "appolon1908/Middleware-",
             "--expected-pr-number",
             "68",
             "--expected-head-sha",
             HEAD,
             "--expected-image-repository",
-            "ghcr.io/ingtrader21-spec/codestra-middleware",
+            "ghcr.io/appolon1908/codestra-middleware",
             "--expected-image-digest",
             DIGEST,
         ],
@@ -82,9 +82,9 @@ def test_schema_accepts_non_historical_positive_pr_number(tmp_path: Path) -> Non
         [
             sys.executable, str(VALIDATOR), "--manifest", str(path), "--schema", str(SCHEMA),
             "--expected-company", "Codestra LLC", "--expected-repository",
-            "ingtrader21-spec/Middleware-", "--expected-pr-number", "214",
+            "appolon1908/Middleware-", "--expected-pr-number", "214",
             "--expected-head-sha", HEAD, "--expected-image-repository",
-            "ghcr.io/ingtrader21-spec/codestra-middleware", "--expected-image-digest", DIGEST,
+            "ghcr.io/appolon1908/codestra-middleware", "--expected-image-digest", DIGEST,
         ],
         check=False, capture_output=True, text=True,
     )
@@ -116,14 +116,14 @@ def test_wrong_exact_binding_fails(tmp_path: Path, field: str, value: object) ->
 
 def test_mutable_tag_only_identity_fails(tmp_path: Path) -> None:
     manifest = valid_manifest()
-    manifest["image_repository"] = "ghcr.io/ingtrader21-spec/codestra-middleware:latest"
+    manifest["image_repository"] = "ghcr.io/appolon1908/codestra-middleware:latest"
     assert validate(tmp_path, manifest).returncode != 0
 
 
 def test_pre_transfer_package_is_not_a_candidate_repository(tmp_path: Path) -> None:
     """Candidate images can only be published to the repository owner's package."""
     manifest = valid_manifest()
-    manifest["image_repository"] = "ghcr.io/appolon1908-hue/codestra-middleware"
+    manifest["image_repository"] = "ghcr.io/appolon1908/codestra-middleware"
     assert validate(tmp_path, manifest).returncode != 0
 
 

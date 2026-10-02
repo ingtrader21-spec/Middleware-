@@ -1,6 +1,6 @@
 """Secret references: pointers to OpenBao secrets that never carry a value.
 
-The contract is owned by ``appolon1908-hue/Codestra-OpenBao``
+The contract is owned by ``appolon1908/Codestra-OpenBao``
 (``contracts/secret-reference.v1.schema.json``) and vendored byte-for-byte under
 ``contracts/secrets/`` with a canonical sha256 pin. Middleware may store and
 return a reference together with rotation, lease and reconciliation metadata;
@@ -110,7 +110,7 @@ class SecretReference(BaseModel):
     workload_identity: str | None = Field(default=None, pattern=IDENTITY.pattern)
     secret_owner: str | None = Field(default=None, pattern=IDENTITY.pattern)
     consumer_repository: str | None = Field(
-        default=None, pattern=r"^appolon1908-hue/[A-Za-z0-9._-]+$"
+        default=None, pattern=r"^appolon1908/[A-Za-z0-9._-]+$"
     )
     rotation_status: Literal[
         "unknown", "current", "rotation_due", "rotating", "revoked"

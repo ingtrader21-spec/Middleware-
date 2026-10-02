@@ -15,7 +15,7 @@ never authorized deployment or activation.
 
 Required configuration:
 
-- required reviewer: the mapped Release Owner, currently `appolon1908-hue`;
+- required reviewer: the mapped Release Owner, currently `appolon1908`;
 - prevent self-review: enabled;
 - administrator bypass: disabled;
 - deployment branches: protected branches only (`main`);

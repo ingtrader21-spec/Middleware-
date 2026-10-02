@@ -6,7 +6,7 @@ Date: 2026-08-30
 
 Frozen SDK contract:
 
-`appolon1908-hue/SDK-repository:feat/communications-api-v1-contracts@63c793e88cca5daecfb5c8a688b8674ab288c522`
+`appolon1908/SDK-repository:feat/communications-api-v1-contracts@63c793e88cca5daecfb5c8a688b8674ab288c522`
 
 Middleware branch:
 
@@ -14,7 +14,7 @@ Middleware branch:
 
 Klyrow provider branch:
 
-`appolon1908-hue/klyrow.com:feat/communications-api-v1-email-provider@15b14b63d2f17a74091702d9f6ddc5787237e317`
+`appolon1908/klyrow.com:feat/communications-api-v1-email-provider@15b14b63d2f17a74091702d9f6ddc5787237e317`
 
 ## Scope Implemented
 

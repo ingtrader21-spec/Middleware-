@@ -9,7 +9,7 @@
     "schema_version": {"const": "1.0"},
     "release_id": {"type": "string", "pattern": "^[0-9a-f]{12}-[0-9a-f]{12}$"},
     "service": {"const": "middleware-api"},
-    "repository": {"enum": ["ingtrader21-spec/Middleware-", "appolon1908-hue/Middleware-"]},
+    "repository": {"enum": ["appolon1908/Middleware-", "appolon1908/Middleware-"]},
     "source": {
       "type": "object",
       "additionalProperties": false,
@@ -25,9 +25,9 @@
       "additionalProperties": false,
       "required": ["repository", "digest", "reference", "platforms", "base_image"],
       "properties": {
-        "repository": {"enum": ["ghcr.io/ingtrader21-spec/codestra-middleware", "ghcr.io/appolon1908-hue/codestra-middleware"]},
+        "repository": {"enum": ["ghcr.io/appolon1908/codestra-middleware", "ghcr.io/appolon1908/codestra-middleware"]},
         "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
-        "reference": {"type": "string", "pattern": "^ghcr\\.io/(ingtrader21-spec|appolon1908-hue)/codestra-middleware@sha256:[0-9a-f]{64}$"},
+        "reference": {"type": "string", "pattern": "^ghcr\\.io/(appolon1908|appolon1908)/codestra-middleware@sha256:[0-9a-f]{64}$"},
         "platforms": {"const": ["linux/amd64"]},
         "base_image": {"const": "python:3.14.7-slim-bookworm@sha256:82bc3c539b8813ada9d68c63b40158fa002f7f33de9bf3312a3dfdc0620dff56"}
       }
@@ -48,7 +48,7 @@
       "required": ["workflow_path", "workflow_identity", "run_id", "run_attempt", "built_at", "runner_image", "provenance"],
       "properties": {
         "workflow_path": {"const": ".github/workflows/release.yml"},
-        "workflow_identity": {"enum": ["https://github.com/ingtrader21-spec/Middleware-/.github/workflows/release.yml@refs/heads/main", "https://github.com/appolon1908-hue/Middleware-/.github/workflows/release.yml@refs/heads/main"]},
+        "workflow_identity": {"enum": ["https://github.com/appolon1908/Middleware-/.github/workflows/release.yml@refs/heads/main", "https://github.com/appolon1908/Middleware-/.github/workflows/release.yml@refs/heads/main"]},
         "run_id": {"type": "integer", "minimum": 1},
         "run_attempt": {"type": "integer", "minimum": 1},
         "built_at": {"type": "string", "format": "date-time", "pattern": "Z$"},
@@ -81,7 +81,7 @@
         "image_signature": {"const": "sigstore-keyless"},
         "manifest_signature": {"const": "sigstore-keyless-bundle"},
         "oidc_issuer": {"const": "https://token.actions.githubusercontent.com"},
-        "certificate_identity": {"enum": ["https://github.com/ingtrader21-spec/Middleware-/.github/workflows/release.yml@refs/heads/main", "https://github.com/appolon1908-hue/Middleware-/.github/workflows/release.yml@refs/heads/main"]},
+        "certificate_identity": {"enum": ["https://github.com/appolon1908/Middleware-/.github/workflows/release.yml@refs/heads/main", "https://github.com/appolon1908/Middleware-/.github/workflows/release.yml@refs/heads/main"]},
         "transparency_log_required": {"const": true},
         "vulnerability_policy": {"const": "fail-high-or-critical-with-fix"}
       }
@@ -96,13 +96,13 @@
       }
     }
   },
-  "if": {"properties": {"repository": {"const": "appolon1908-hue/Middleware-"}}},
+  "if": {"properties": {"repository": {"const": "appolon1908/Middleware-"}}},
   "then": {
-    "$comment": "Pre-transfer releases keep their historical repository name, workflow identity and GHCR package only for these exact pinned source SHA / image digest pairs; every other manifest must name ingtrader21-spec/Middleware-, its workflow identity and its package.",
+    "$comment": "Pre-transfer releases keep their historical repository name, workflow identity and GHCR package only for these exact pinned source SHA / image digest pairs; every other manifest must name appolon1908/Middleware-, its workflow identity and its package.",
     "properties": {
-      "image": {"properties": {"repository": {"const": "ghcr.io/appolon1908-hue/codestra-middleware"}, "reference": {"pattern": "^ghcr\\.io/appolon1908-hue/codestra-middleware@sha256:[0-9a-f]{64}$"}}},
-      "build": {"properties": {"workflow_identity": {"const": "https://github.com/appolon1908-hue/Middleware-/.github/workflows/release.yml@refs/heads/main"}}},
-      "verification": {"properties": {"certificate_identity": {"const": "https://github.com/appolon1908-hue/Middleware-/.github/workflows/release.yml@refs/heads/main"}}}
+      "image": {"properties": {"repository": {"const": "ghcr.io/appolon1908/codestra-middleware"}, "reference": {"pattern": "^ghcr\\.io/appolon1908/codestra-middleware@sha256:[0-9a-f]{64}$"}}},
+      "build": {"properties": {"workflow_identity": {"const": "https://github.com/appolon1908/Middleware-/.github/workflows/release.yml@refs/heads/main"}}},
+      "verification": {"properties": {"certificate_identity": {"const": "https://github.com/appolon1908/Middleware-/.github/workflows/release.yml@refs/heads/main"}}}
     },
     "anyOf": [
       {"properties": {"source": {"properties": {"git_sha": {"const": "164969b4824fb4d2eb38b232bfb7abc18e33d8ac"}}}, "image": {"properties": {"digest": {"const": "sha256:18017a1a40a7969495661446badd8b43d1d4153c2036d89b0fb3065469e27941"}}}}},
@@ -113,9 +113,9 @@
   },
   "else": {
     "properties": {
-      "image": {"properties": {"repository": {"const": "ghcr.io/ingtrader21-spec/codestra-middleware"}, "reference": {"pattern": "^ghcr\\.io/ingtrader21-spec/codestra-middleware@sha256:[0-9a-f]{64}$"}}},
-      "build": {"properties": {"workflow_identity": {"const": "https://github.com/ingtrader21-spec/Middleware-/.github/workflows/release.yml@refs/heads/main"}}},
-      "verification": {"properties": {"certificate_identity": {"const": "https://github.com/ingtrader21-spec/Middleware-/.github/workflows/release.yml@refs/heads/main"}}}
+      "image": {"properties": {"repository": {"const": "ghcr.io/appolon1908/codestra-middleware"}, "reference": {"pattern": "^ghcr\\.io/appolon1908/codestra-middleware@sha256:[0-9a-f]{64}$"}}},
+      "build": {"properties": {"workflow_identity": {"const": "https://github.com/appolon1908/Middleware-/.github/workflows/release.yml@refs/heads/main"}}},
+      "verification": {"properties": {"certificate_identity": {"const": "https://github.com/appolon1908/Middleware-/.github/workflows/release.yml@refs/heads/main"}}}
     }
   },
   "$defs": {

@@ -1,6 +1,6 @@
 {
   "schema_version": "codestra.production-orchestrator-contract.v1",
-  "repository": "ingtrader21-spec/Middleware-",
+  "repository": "appolon1908/Middleware-",
   "repository_id": 1347559071,
   "default_branch": "main",
   "role": "canonical-middleware",
@@ -28,7 +28,7 @@
     "minimum_images": 1,
     "maximum_images": 1,
     "image_repositories": [
-      "ghcr.io/ingtrader21-spec/codestra-middleware"
+      "ghcr.io/appolon1908/codestra-middleware"
     ],
     "require_digest": true,
     "allow_rebuild_after_staging": false,

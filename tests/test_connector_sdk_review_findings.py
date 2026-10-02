@@ -124,7 +124,7 @@ class ConnectorSdkReviewFindingTests(unittest.TestCase):
         candidate = copy.deepcopy(self.raw("klyrow-email"))
         candidate["connector_id"] = "duplicate-email"
         candidate["display_name"] = "Duplicate Email"
-        candidate["repository"] = "appolon1908-hue/duplicate-email"
+        candidate["repository"] = "appolon1908/duplicate-email"
         service = ConnectorCatalogService(registry)
 
         with self.assertRaises(ConnectorVersionConflictError):

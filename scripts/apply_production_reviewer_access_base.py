@@ -20,12 +20,12 @@ EVIDENCE_DIR = ROOT / "artifacts" / "production-reviewer-access"
 TOKEN_ENV = "CODESTRA_REPOSITORY_ADMIN_TOKEN"
 CONFIRMATION = "APPLY_PRODUCTION_REVIEWER_ACCESS_V1"
 AUTHORITY_ID = "codestra.production-reviewer-access.v1"
-EXPECTED_OWNER = "appolon1908-hue"
+EXPECTED_OWNER = "appolon1908"
 # Repositories transferred out of the authority owner's account keep their
 # reviewer grant under the new owner, but only the exact names listed here;
 # every other repository must still belong to EXPECTED_OWNER.
 TRANSFERRED_REPOSITORY_OWNERS = {
-    "ingtrader21-spec/Middleware-": "ingtrader21-spec",
+    "appolon1908/Middleware-": "appolon1908",
 }
 
 
@@ -38,25 +38,25 @@ EXPECTED_REVIEWER = {
     "admin": False,
 }
 EXPECTED_REPOSITORIES = {
-    "appolon1908-hue/codestra-production-platform",
-    "ingtrader21-spec/Middleware-",
-    "appolon1908-hue/Websocket-",
-    "appolon1908-hue/Odoo",
-    "appolon1908-hue/Caddy",
-    "appolon1908-hue/Kong",
-    "appolon1908-hue/Keycloak",
-    "appolon1908-hue/SDK-repository",
-    "appolon1908-hue/Vicidialer-Codestra",
-    "appolon1908-hue/N8N",
-    "appolon1908-hue/klyrow.com",
-    "appolon1908-hue/social.codestra.co",
-    "appolon1908-hue/Codestra-AI",
-    "appolon1908-hue/Codestra-Marketing-",
-    "appolon1908-hue/codestra-provisioning-service",
-    "appolon1908-hue/Codestra-Prometheus",
-    "appolon1908-hue/telnexa",
-    "appolon1908-hue/kyqra-crawler",
-    "appolon1908-hue/beyvra-backend",
+    "appolon1908/codestra-production-platform",
+    "appolon1908/Middleware-",
+    "appolon1908/Websocket-",
+    "appolon1908/Odoo",
+    "appolon1908/Caddy",
+    "appolon1908/Kong",
+    "appolon1908/Keycloak",
+    "appolon1908/SDK-repository",
+    "appolon1908/Vicidialer-Codestra",
+    "appolon1908/N8N",
+    "appolon1908/klyrow.com",
+    "appolon1908/social.codestra.co",
+    "appolon1908/Codestra-AI",
+    "appolon1908/Codestra-Marketing-",
+    "appolon1908/codestra-provisioning-service",
+    "appolon1908/Codestra-Prometheus",
+    "appolon1908/telnexa",
+    "appolon1908/kyqra-crawler",
+    "appolon1908/beyvra-backend",
 }
 
 
@@ -219,7 +219,7 @@ def execute(mode: str, confirmation: str) -> dict[str, Any]:
     require(mode in {"apply", "verify"}, "unsupported mode")
     if os.environ.get("GITHUB_ACTIONS") == "true":
         require(
-            os.environ.get("GITHUB_REPOSITORY") == "ingtrader21-spec/Middleware-",
+            os.environ.get("GITHUB_REPOSITORY") == "appolon1908/Middleware-",
             "workflow repository drift",
         )
         require(os.environ.get("GITHUB_REF") == "refs/heads/main", "protected main required")

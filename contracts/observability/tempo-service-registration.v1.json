@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "service_id": "tempo",
-  "repository": "appolon1908-hue/Codestra-Tempo",
+  "repository": "appolon1908/Codestra-Tempo",
   "owner": "observability",
   "environments": [
     "staging",

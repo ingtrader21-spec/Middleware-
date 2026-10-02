@@ -8,7 +8,7 @@
 
 ## Decision
 
-Protected `main` in `ingtrader21-spec/Middleware-` is the **only forward source**
+Protected `main` in `appolon1908/Middleware-` is the **only forward source**
 authority. Every future Middleware image admitted to staging or production must
 be built by `.github/workflows/release.yml` from the exact protected-main event
 SHA, must carry schema head `0057_platform_service_catalog`, and must be addressed by an
@@ -43,7 +43,7 @@ PSTN call.
 ## Current release state
 
 ```text
-FORWARD_REPOSITORY=ingtrader21-spec/Middleware-
+FORWARD_REPOSITORY=appolon1908/Middleware-
 FORWARD_REF=refs/heads/main
 SOURCE_RESOLUTION=EXACT_PROTECTED_MAIN_EVENT_SHA
 STATIC_SHA_AUTHORITY=NO
@@ -86,7 +86,7 @@ it predates the realtime-gateway migration and the authority convergence merge:
 | Promotion authorized | `false` |
 | Source SHA | `b03b378f3a358de333e37cf6cc7a37668f004b4f` |
 | Git tree | `8e9a4be456a2f82ef3352a277f6f76f1a2e18d90` |
-| Image | `ghcr.io/appolon1908-hue/codestra-middleware@sha256:dfdcfb92538242df9c9e81c27f15f9bd14b2cb840ea4c16d91dccc8f0eed7a3c` |
+| Image | `ghcr.io/appolon1908/codestra-middleware@sha256:dfdcfb92538242df9c9e81c27f15f9bd14b2cb840ea4c16d91dccc8f0eed7a3c` |
 | Release ID | `b03b378f3a35-dfdcfb925382` |
 | Workflow run | `33908027409`, attempt `1` |
 | Artifact ID | `9950295151` |
@@ -190,7 +190,7 @@ The stale appolon runtime was:
 ```text
 container=codestra-appolon-middleware-integration-api-1
 source=f6748a58f8d2590520a4f28776770957061cdea1
-image=ghcr.io/appolon1908-hue/codestra-middleware@sha256:695fa3ce3f50ba4d0ae0784976b946a0a683ca731155e4bd3bd9e90a4670b820
+image=ghcr.io/appolon1908/codestra-middleware@sha256:695fa3ce3f50ba4d0ae0784976b946a0a683ca731155e4bd3bd9e90a4670b820
 ```
 
 Representative legacy APIs were:
@@ -221,7 +221,7 @@ workflow `.github/workflows/mirror-codestra-legacy-middleware-images.yml` copies
 their manifests and layers without rebuilding them into:
 
 ```text
-ghcr.io/appolon1908-hue/codestra-middleware-legacy
+ghcr.io/appolon1908/codestra-middleware-legacy
 ```
 
 The workflow:

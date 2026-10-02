@@ -74,7 +74,7 @@ assert "65.21.67.207" not in source
 assert not re.search(r"https?://", source)
 assert not re.search(r"BEGIN (?:RSA|OPENSSH|EC) PRIVATE KEY", source)
 
-assert PROVENANCE["source_repository"] == "appolon1908-hue/Middleware-"
+assert PROVENANCE["source_repository"] == "appolon1908/Middleware-"
 assert PROVENANCE["source_pull_request"] == 65
 assert PROVENANCE["source_head_sha"] == "da215762375614aa617bf838f9e4974ac2ad7c68"
 assert PROVENANCE["callback_auth_source_head"] == "04fa56f4c8bb8caea3e5281816a2986bcb47ba05"

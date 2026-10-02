@@ -19,7 +19,7 @@ jobs:
     timeout-minutes: 15
     env:
       IMAGE: docker.io/codestra1980/telephony-event-gateway@sha256:bbfa5e05ce9dd33d3ebc7f5475ee1810e47e5eaecd29adac0aa24c5252958266
-      EXPECTED_IDENTITY: https://github.com/appolon1908-hue/Middleware-/.github/workflows/sign-gateway-canary-rc1.yml@refs/heads/main
+      EXPECTED_IDENTITY: https://github.com/appolon1908/Middleware-/.github/workflows/sign-gateway-canary-rc1.yml@refs/heads/main
       EXPECTED_ISSUER: https://token.actions.githubusercontent.com
     steps:
       - name: Check out immutable workflow revision
@@ -34,7 +34,7 @@ jobs:
         working-directory: security/vex/gateway-canary-rc1
         run: |
           set -euo pipefail
-          test "${GITHUB_REPOSITORY}" = "appolon1908-hue/Middleware-"
+          test "${GITHUB_REPOSITORY}" = "appolon1908/Middleware-"
           test "${GITHUB_REF}" = "refs/heads/main"
           test "$(git -C ../../.. rev-parse --is-shallow-repository)" = "false"
           ! grep -nE '<[^>]+>|NOT_PROVIDED|PLACEHOLDER|PENDING_HUMAN_APPROVAL' \

@@ -14,7 +14,7 @@ import yaml
 
 
 WORKFLOW = Path(".github/workflows/exact-main-production-release.yml")
-PUBLISHER_IDENTITY = "https://github.com/ingtrader21-spec/Middleware-/.github/workflows/release.yml@refs/heads/main"
+PUBLISHER_IDENTITY = "https://github.com/appolon1908/Middleware-/.github/workflows/release.yml@refs/heads/main"
 
 
 def source() -> str:

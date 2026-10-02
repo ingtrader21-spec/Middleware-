@@ -167,7 +167,7 @@ def test_live_ruleset_requires_github_actions_app_binding(policy: dict) -> None:
     live = {
         **payload,
         "source_type": "Repository",
-        "source": "ingtrader21-spec/Middleware-",
+        "source": "appolon1908/Middleware-",
     }
     validate_live_ruleset(live, policy["default_branch_ruleset"])
 
@@ -184,7 +184,7 @@ def test_live_ruleset_requires_code_owner_review(policy: dict) -> None:
     live = {
         **payload,
         "source_type": "Repository",
-        "source": "ingtrader21-spec/Middleware-",
+        "source": "appolon1908/Middleware-",
     }
     pull_request = next(
         item for item in live["rules"] if item["type"] == "pull_request"

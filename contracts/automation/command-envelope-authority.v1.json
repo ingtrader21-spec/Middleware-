@@ -4,7 +4,7 @@
   "contract_id": "codestra.automation-command-envelope-authority",
   "status": "ACCEPTED",
   "accepted_on": "2026-09-04",
-  "authority_repository": "ingtrader21-spec/Middleware-",
+  "authority_repository": "appolon1908/Middleware-",
   "canonical_api": "/v2/automation/*",
   "identity": {
     "issuer": "https://auth.codestra.co/realms/codestra",
@@ -65,12 +65,12 @@
     "blind_retry_prohibited": true
   },
   "consumers": [
-    "appolon1908-hue/N8N",
-    "appolon1908-hue/Keycloak",
-    "appolon1908-hue/Kong",
-    "appolon1908-hue/Caddy",
-    "appolon1908-hue/klyrow.com",
-    "appolon1908-hue/Odoo"
+    "appolon1908/N8N",
+    "appolon1908/Keycloak",
+    "appolon1908/Kong",
+    "appolon1908/Caddy",
+    "appolon1908/klyrow.com",
+    "appolon1908/Odoo"
   ],
   "activation": {
     "source_acceptance_authorizes_runtime": false,

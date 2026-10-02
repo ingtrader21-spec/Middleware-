@@ -16,7 +16,7 @@ LOCK_PATH = ROOT / "config" / "production-integration-lock.v1.json"
 EVIDENCE_DIR = ROOT / "artifacts" / "production-integration-lock"
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
-REPO_RE = re.compile(r"^appolon1908-hue/[A-Za-z0-9_.-]+$")
+REPO_RE = re.compile(r"^appolon1908/[A-Za-z0-9_.-]+$")
 SOURCE_STATES = {
     "protected_source_ready",
     "candidate_pending_review",
@@ -234,7 +234,7 @@ def validate_lock(value: Mapping[str, Any]) -> dict[str, Any]:
 
     authority = require_mapping(value.get("authority"), "authority missing")
     require(
-        authority.get("repository") == "appolon1908-hue/Middleware-",
+        authority.get("repository") == "appolon1908/Middleware-",
         "authority repository drift",
     )
     base_sha = require_nonempty_string(

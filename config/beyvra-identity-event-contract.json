@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "state": "contract-only-runtime-unverified",
   "source": {
-    "repository": "appolon1908-hue/beyvra-backend",
+    "repository": "appolon1908/beyvra-backend",
     "eventType": "identity.account.provisioned",
     "schema": "contracts/beyvra-identity-provisioned.schema.json"
   },

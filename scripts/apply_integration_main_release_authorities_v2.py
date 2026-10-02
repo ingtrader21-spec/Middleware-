@@ -26,22 +26,22 @@ if spec is None or spec.loader is None:
 BASE = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(BASE)
 
-EXPECTED_OWNER = "appolon1908-hue"
-EXPECTED_OWNER_ID = 275410064
-EXPECTED_REPOSITORY = "ingtrader21-spec/Middleware-"
+EXPECTED_OWNER = "appolon1908"
+EXPECTED_OWNER_ID = 335843231
+EXPECTED_REPOSITORY = "appolon1908/Middleware-"
 EXPECTED_REPOSITORY_ID = 1347559071
 EXPECTED_ISSUE_NUMBER = 130
 EXPECTED_ISSUE_COMMAND = "/apply-integration-main-release-authority v1"
 EXPECTED_REPOSITORIES = {
-    "appolon1908-hue/Codestra-AI": (
+    "appolon1908/Codestra-AI": (
         1351354401,
         ("unit-and-contract", "postgres-certification", "container-build"),
     ),
-    "appolon1908-hue/Codestra-Marketing-": (
+    "appolon1908/Codestra-Marketing-": (
         1351352422,
         ("unit-and-contract", "postgres-certification", "container-build"),
     ),
-    "appolon1908-hue/Codestra-Prometheus": (
+    "appolon1908/Codestra-Prometheus": (
         1350767800,
         (
             "production-source-validation",
@@ -49,7 +49,7 @@ EXPECTED_REPOSITORIES = {
             "deploy-readiness / deploy-readiness / overlay-secret-scan",
         ),
     ),
-    "appolon1908-hue/N8N": (
+    "appolon1908/N8N": (
         1347560645,
         (
             "Validate exact repository SHA",
@@ -57,18 +57,18 @@ EXPECTED_REPOSITORIES = {
             "deploy-readiness / deploy-readiness / secret-scan",
         ),
     ),
-    "appolon1908-hue/Vicidialer-Codestra": (
+    "appolon1908/Vicidialer-Codestra": (
         1347744324,
         (
             "deploy-readiness / deploy-readiness / secret-scan",
             "deploy-readiness / deploy-readiness / source-ci",
         ),
     ),
-    "appolon1908-hue/klyrow.com": (
+    "appolon1908/klyrow.com": (
         1334863061,
         ("frontend", "test", "secrets", "image"),
     ),
-    "appolon1908-hue/social.codestra.co": (
+    "appolon1908/social.codestra.co": (
         1348783113,
         (
             "Backend policy, migration, test, and build",

@@ -1,7 +1,7 @@
 # Portfolio-wide production branch ruleset
 
 This package applies one repository ruleset to every active repository owned by
-`appolon1908-hue`.
+`appolon1908`.
 
 ## Exact policy
 
@@ -31,7 +31,7 @@ The owner-only workflow uses the existing secret name:
 `CODESTRA_REPOSITORY_ADMIN_TOKEN`
 
 The secret must be a short-lived fine-grained personal access token owned by
-`appolon1908-hue`, granted access to every repository in scope, with repository
+`appolon1908`, granted access to every repository in scope, with repository
 **Administration: Read and write**. Metadata read access is implicit.
 
 Never place the token in a commit, issue, pull request, workflow input, log, or
@@ -42,7 +42,7 @@ chat. Rotate or remove it after the verified rollout.
 Before the first mutation, the applier:
 
 1. enumerates all repositories visible to the authenticated owner token;
-2. filters only active repositories owned by `appolon1908-hue`;
+2. filters only active repositories owned by `appolon1908`;
 3. proves every repository in the committed 56-repository minimum inventory is
    visible;
 4. proves ruleset administration can be read for every selected repository.
@@ -62,7 +62,7 @@ requires the merge commit message to identify this exact portfolio ruleset
 change.
 
 A fail-closed retry remains available. The workflow is locked to repository
-owner ID `275410064`, issue `#116`, and this exact owner comment:
+owner ID `335843231`, issue `#116`, and this exact owner comment:
 
 ```text
 /apply-portfolio-production-ruleset v1

@@ -359,8 +359,8 @@
   ],
   "product_boundaries": {
     "product.beyvra-nonfinancial": {
-      "backend_repository": "appolon1908-hue/beyvra-backend",
-      "frontend_repository": "appolon1908-hue/beyvra-frontend",
+      "backend_repository": "appolon1908/beyvra-backend",
+      "frontend_repository": "appolon1908/beyvra-frontend",
       "frontend_is_automation_client": false,
       "allowed_command_prefixes": ["beyvra.operations."],
       "prohibited_prefixes": [

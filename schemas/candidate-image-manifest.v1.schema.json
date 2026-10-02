@@ -29,11 +29,11 @@
     "$schema": {"const": "https://codestra.internal/schemas/candidate-image-manifest.v1.json"},
     "manifest_version": {"const": 1},
     "company": {"const": "Codestra LLC"},
-    "repository": {"const": "ingtrader21-spec/Middleware-"},
+    "repository": {"const": "appolon1908/Middleware-"},
     "pr_number": {"type": "integer", "minimum": 1},
     "head_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
     "image_repository": {"enum": [
-      "ghcr.io/ingtrader21-spec/codestra-middleware",
+      "ghcr.io/appolon1908/codestra-middleware",
       "ghcr.io/codestra-srl/codestra-agent-desktop",
       "ghcr.io/codestra-srl/codestra-websocket-gateway"
     ]},

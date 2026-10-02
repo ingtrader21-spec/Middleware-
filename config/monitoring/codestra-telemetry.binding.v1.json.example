@@ -2,7 +2,7 @@
   "schema_version": 1,
   "service_id": "codestra-telemetry",
   "tenant": "codestra-platform",
-  "repository": "appolon1908-hue/Codestra-Telemetry",
+  "repository": "appolon1908/Codestra-Telemetry",
   "environments": [
     "development",
     "staging",

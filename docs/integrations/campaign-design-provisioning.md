@@ -92,6 +92,6 @@ exercise an injected retry and a controlled mismatch. Preserve history and
 remove only the test resources created by that run. A healthy service or a
 preview-only response does not satisfy this acceptance.
 
-Paired Odoo PR: https://github.com/appolon1908-hue/Odoo/pull/95
-Schema dependency: https://github.com/appolon1908-hue/Middleware-/pull/222
+Paired Odoo PR: https://github.com/appolon1908/Odoo/pull/95
+Schema dependency: https://github.com/appolon1908/Middleware-/pull/222
 Source tests and production preflight: ../evidence/campaign-provisioning-20260910.json

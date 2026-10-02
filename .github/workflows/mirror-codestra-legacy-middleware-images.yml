@@ -25,7 +25,7 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          test "$GITHUB_REPOSITORY" = "appolon1908-hue/Middleware-"
+          test "$GITHUB_REPOSITORY" = "appolon1908/Middleware-"
           test "$GITHUB_EVENT_NAME" = "workflow_dispatch"
           test "$GITHUB_REF" = "refs/heads/main"
           test "$GITHUB_SHA" = "${{ github.sha }}"
@@ -137,7 +137,7 @@ jobs:
             exit 78
           fi
 
-          source_user="${CODESTRA_GHCR_USER:-appolon1908-hue}"
+          source_user="${CODESTRA_GHCR_USER:-appolon1908}"
           printf '%s' "$CODESTRA_GHCR_TOKEN" |
             skopeo login \
               --authfile "$SOURCE_AUTH_FILE" \

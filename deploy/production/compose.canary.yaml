@@ -82,7 +82,7 @@ services:
       com.codestra.service: middleware-migrate-canary
       com.codestra.environment: production
       com.codestra.deployment.mode: read-only-canary
-      com.codestra.source.repository: ingtrader21-spec/Middleware-
+      com.codestra.source.repository: appolon1908/Middleware-
       com.codestra.source.sha: ${MIDDLEWARE_SOURCE_SHA:?exact protected source SHA required}
       com.codestra.image.digest: ${MIDDLEWARE_IMAGE_DIGEST:?exact signed image digest required}
 
@@ -119,7 +119,7 @@ services:
       com.codestra.environment: production
       com.codestra.deployment.mode: read-only-canary
       com.codestra.gateway.exposure: none
-      com.codestra.source.repository: ingtrader21-spec/Middleware-
+      com.codestra.source.repository: appolon1908/Middleware-
       com.codestra.source.sha: ${MIDDLEWARE_SOURCE_SHA:?exact protected source SHA required}
       com.codestra.image.digest: ${MIDDLEWARE_IMAGE_DIGEST:?exact signed image digest required}
 

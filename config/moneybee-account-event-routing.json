@@ -4,7 +4,7 @@
   "eventSchemaVersion": 1,
   "source": {
     "system": "moneybee-backend",
-    "repository": "appolon1908-hue/Moneybee-Backend",
+    "repository": "appolon1908/Moneybee-Backend",
     "transport": "middleware-api",
     "identityContract": "config/moneybee-backend-producer-identity.json",
     "requiredAudience": "middleware-api",

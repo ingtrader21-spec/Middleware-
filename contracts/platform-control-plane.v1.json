@@ -4,10 +4,10 @@
   "status": "PREPARED_DISABLED",
   "decision": "middleware_adopts_automation_v2",
   "repositories": {
-    "orchestration": "appolon1908-hue/N8N",
-    "write_authority": "ingtrader21-spec/Middleware-",
-    "business_authority": "appolon1908-hue/Odoo",
-    "gateway_authority": "appolon1908-hue/Kong"
+    "orchestration": "appolon1908/N8N",
+    "write_authority": "appolon1908/Middleware-",
+    "business_authority": "appolon1908/Odoo",
+    "gateway_authority": "appolon1908/Kong"
   },
   "flow": [
     "n8n -> kong -> middleware-v2",

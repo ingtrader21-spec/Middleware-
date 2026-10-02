@@ -13,7 +13,7 @@ enable a business/provider effect.
 
 ## Authority
 
-- Repository: `ingtrader21-spec/Middleware-`
+- Repository: `appolon1908/Middleware-`
 - Source ref: protected `main`
 - Change authority: issue `#118`
 - Owner command: `/deploy-middleware-production-readonly v1`
@@ -41,7 +41,7 @@ Before server access, the workflow requires:
    digest, release ID, migration head, SBOM, vulnerability report, and signer;
 6. Cosign verification of the image, SPDX attestation, and signed manifest;
 7. an exact digest reference under
-   `ghcr.io/ingtrader21-spec/codestra-middleware`.
+   `ghcr.io/appolon1908/codestra-middleware`.
 
 ## Required GitHub production secrets
 

@@ -1,6 +1,6 @@
 # Issue #74: Complete automation-v2 runtime and cross-system staging certification
 
-This pull request tracks the repository-side work for [issue #74](appolon1908-hue/issues/Middleware-74).
+This pull request tracks the repository-side work for [issue #74](appolon1908/issues/Middleware-74).
 
 The branch starts from the current protected . Implementation changes and runtime evidence must remain within the issue's reviewed scope. Production changes, external effects, and release activation stay disabled until the issue's required approvals, checks, staging evidence, rollback proof, and independent runtime certification are complete.
 

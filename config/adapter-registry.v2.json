@@ -4,14 +4,14 @@
     {
       "id": "ai-provider",
       "cell": "core-communications",
-      "repository": "appolon1908-hue/Codestra-AI",
+      "repository": "appolon1908/Codestra-AI",
       "command_prefixes": ["ai."],
       "direct_n8n": false
     },
     {
       "id": "beyvra-nonfinancial",
       "cell": "beyvra-financial",
-      "repository": "appolon1908-hue/beyvra-backend",
+      "repository": "appolon1908/beyvra-backend",
       "command_prefixes": ["beyvra.operations."],
       "direct_n8n": false,
       "forbidden_prefixes": [
@@ -23,63 +23,63 @@
     {
       "id": "klyrow-alert-email",
       "cell": "core-communications",
-      "repository": "appolon1908-hue/klyrow.com",
+      "repository": "appolon1908/klyrow.com",
       "command_prefixes": ["observability.alert."],
       "direct_n8n": false
     },
     {
       "id": "klyrow-email",
       "cell": "core-communications",
-      "repository": "appolon1908-hue/klyrow.com",
+      "repository": "appolon1908/klyrow.com",
       "command_prefixes": ["email."],
       "direct_n8n": false
     },
     {
       "id": "kyqra-crawler",
       "cell": "core-communications",
-      "repository": "appolon1908-hue/kyqra-crawler",
+      "repository": "appolon1908/kyqra-crawler",
       "command_prefixes": ["crawler."],
       "direct_n8n": false
     },
     {
       "id": "marketing-provider",
       "cell": "core-communications",
-      "repository": "appolon1908-hue/Codestra-Marketing-",
+      "repository": "appolon1908/Codestra-Marketing-",
       "command_prefixes": ["marketing."],
       "direct_n8n": false
     },
     {
       "id": "odoo-19",
       "cell": "core-communications",
-      "repository": "appolon1908-hue/Odoo",
+      "repository": "appolon1908/Odoo",
       "command_prefixes": ["crm."],
       "direct_n8n": false
     },
     {
       "id": "postly-social",
       "cell": "core-communications",
-      "repository": "appolon1908-hue/social.codestra.co",
+      "repository": "appolon1908/social.codestra.co",
       "command_prefixes": ["social."],
       "direct_n8n": false
     },
     {
       "id": "provisioning-service",
       "cell": "core-communications",
-      "repository": "appolon1908-hue/codestra-provisioning-service",
+      "repository": "appolon1908/codestra-provisioning-service",
       "command_prefixes": ["provisioning."],
       "direct_n8n": false
     },
     {
       "id": "telnexa-sms",
       "cell": "core-communications",
-      "repository": "appolon1908-hue/telnexa",
+      "repository": "appolon1908/telnexa",
       "command_prefixes": ["sms."],
       "direct_n8n": false
     },
     {
       "id": "vicidial-restricted",
       "cell": "telephony-private",
-      "repository": "appolon1908-hue/Vicidialer-Codestra",
+      "repository": "appolon1908/Vicidialer-Codestra",
       "command_prefixes": ["telephony.", "telephony-internal."],
       "direct_n8n": false
     }

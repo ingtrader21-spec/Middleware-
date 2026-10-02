@@ -8,7 +8,7 @@ recording references in public issues.
 
 For Server A isolated-staging risk decisions only, `kazan555` is the delegated
 Security Owner approval principal. The requestor and implementation operator is
-`appolon1908-hue`; that principal cannot approve its own security decision.
+`appolon1908`; that principal cannot approve its own security decision.
 
 This delegation grants no authority for production deployment or activation,
 Server B, telephony, communications, customer data, or recordings. Those

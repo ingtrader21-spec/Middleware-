@@ -104,7 +104,7 @@ def test_snapshot_predecessor_reference_must_bind_exact_digest() -> None:
     value = copy.deepcopy(_document())
     candidate = value["forwardAuthority"]["image"]["currentSignedCandidate"]
     candidate["imageReference"] = (
-        "ghcr.io/appolon1908-hue/codestra-middleware@"
+        "ghcr.io/appolon1908/codestra-middleware@"
         "sha256:0000000000000000000000000000000000000000000000000000000000000000"
     )
     errors = validator.validate_document(value, root=ROOT)

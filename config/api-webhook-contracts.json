@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "upstreamContract": {
-    "repository": "appolon1908-hue/Keycloak",
+    "repository": "appolon1908/Keycloak",
     "path": "config/contracts/webhook-contracts.json",
     "reviewBranch": "feat/service-api-webhook-identity-contracts",
     "reviewSha": "187d058423dc7703deee9132f4a750222b3d974b"
   },
   "lifecycleContract": {
-    "repository": "appolon1908-hue/Keycloak",
+    "repository": "appolon1908/Keycloak",
     "path": "config/contracts/webhook-contracts.json",
     "protectedBranch": "main",
     "mergeSha": "922d039b5143f3ac738e88998036355562a8dd5d"

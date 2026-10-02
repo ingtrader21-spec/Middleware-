@@ -1,7 +1,7 @@
 # Full integration production program
 
 Date: 2026-09-04  
-Authority: `appolon1908-hue/Middleware-`  
+Authority: `appolon1908/Middleware-`  
 Base Middleware source: `4092b3b1e57819da75eb45631176b022f70a0c55`  
 Decision: **NO-GO until every runtime gate passes**
 

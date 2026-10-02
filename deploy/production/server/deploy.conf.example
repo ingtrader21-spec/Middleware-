@@ -14,6 +14,6 @@ BACKUP_COMMAND=/usr/local/sbin/codestra-middleware-backup
 BACKUP_DIR=/var/backups/codestra-middleware
 OFFHOST_BACKUP_DIR=
 EVIDENCE_DIR=/var/lib/codestra-middleware/deployments
-GHCR_USERNAME=appolon1908-hue
+GHCR_USERNAME=appolon1908
 FORWARDED_ALLOW_IPS=127.0.0.1
 OBSERVATION_SECONDS=30

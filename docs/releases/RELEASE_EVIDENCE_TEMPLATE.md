@@ -11,7 +11,7 @@
 
 | Repository | Accepted commit SHA | PR | CI run(s) | Result |
 |---|---|---|---|---|
-| `appolon1908-hue/...` | `<40-char SHA>` | `#...` | `...` | `PASS` |
+| `appolon1908/...` | `<40-char SHA>` | `#...` | `...` | `PASS` |
 
 ## Immutable artifacts
 

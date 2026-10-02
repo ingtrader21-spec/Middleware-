@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "status": "SOURCE_ONLY_DISABLED",
-  "authority": "ingtrader21-spec/Middleware-",
+  "authority": "appolon1908/Middleware-",
   "default_activation": "DISABLED",
   "dispatch_model": "durable-outbox-plus-atomic-claim",
   "routes": [

@@ -9,7 +9,7 @@
 ## Canonical rule
 
 The only forward-looking source authority is protected `main` in
-`ingtrader21-spec/Middleware-`. A static SHA stored in repository metadata is not
+`appolon1908/Middleware-`. A static SHA stored in repository metadata is not
 an authority because it becomes stale as soon as another protected merge lands.
 Every release or certification workflow must resolve the exact protected-main
 GitHub event SHA and bind that immutable source to the release manifest, source
@@ -19,7 +19,7 @@ and runtime profile.
 The only forward image repository is:
 
 ```text
-ghcr.io/ingtrader21-spec/codestra-middleware
+ghcr.io/appolon1908/codestra-middleware
 ```
 
 The pre-transfer package `ghcr.io/appolon1908-hue/codestra-middleware` holds the
@@ -129,7 +129,7 @@ build.
 
 The inventory distinguishes registry manifest digests from Server A-only Docker
 image IDs. Registry-addressable Codestra-SRL images are copied without rebuilding
-to `ghcr.io/appolon1908-hue/codestra-middleware-legacy`; local-only images require
+to `ghcr.io/appolon1908/codestra-middleware-legacy`; local-only images require
 host-side archive and OCI-config-digest evidence. Neither backup path changes a
 container, Compose project, route, queue, database, or provider capability.
 

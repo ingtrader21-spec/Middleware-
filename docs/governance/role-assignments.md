@@ -1,7 +1,7 @@
 # Codestra governance role assignments
 
 Effective 2026-07-28, Codestra SRL assigns the following governance roles to
-Ralph Appolon (`appolon1908-hue`) under resolution
+Ralph Appolon (`appolon1908`) under resolution
 `CODESTRA-GOV-RES-2026-001`:
 
 | Role | Responsibility |

@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "authority_id": "codestra.integration-main-release-authorities.v1",
-  "owner": "appolon1908-hue",
+  "owner": "appolon1908",
   "ruleset_name": "Codestra integration protected-main release gates",
   "reviewer": {
     "login": "kazan555",
@@ -20,7 +20,7 @@
   "bypass_actors": [],
   "repositories": [
     {
-      "repository": "appolon1908-hue/Codestra-AI",
+      "repository": "appolon1908/Codestra-AI",
       "repository_id": 1351354401,
       "default_branch": "main",
       "required_status_checks": [
@@ -30,7 +30,7 @@
       ]
     },
     {
-      "repository": "appolon1908-hue/Codestra-Marketing-",
+      "repository": "appolon1908/Codestra-Marketing-",
       "repository_id": 1351352422,
       "default_branch": "main",
       "required_status_checks": [
@@ -40,7 +40,7 @@
       ]
     },
     {
-      "repository": "appolon1908-hue/Codestra-Prometheus",
+      "repository": "appolon1908/Codestra-Prometheus",
       "repository_id": 1350767800,
       "default_branch": "main",
       "required_status_checks": [
@@ -50,7 +50,7 @@
       ]
     },
     {
-      "repository": "appolon1908-hue/klyrow.com",
+      "repository": "appolon1908/klyrow.com",
       "repository_id": 1334863061,
       "default_branch": "main",
       "required_status_checks": [
@@ -61,7 +61,7 @@
       ]
     },
     {
-      "repository": "appolon1908-hue/N8N",
+      "repository": "appolon1908/N8N",
       "repository_id": 1347560645,
       "default_branch": "main",
       "required_status_checks": [
@@ -71,7 +71,7 @@
       ]
     },
     {
-      "repository": "appolon1908-hue/social.codestra.co",
+      "repository": "appolon1908/social.codestra.co",
       "repository_id": 1348783113,
       "default_branch": "main",
       "required_status_checks": [
@@ -81,7 +81,7 @@
       ]
     },
     {
-      "repository": "appolon1908-hue/Vicidialer-Codestra",
+      "repository": "appolon1908/Vicidialer-Codestra",
       "repository_id": 1347744324,
       "default_branch": "main",
       "required_status_checks": [

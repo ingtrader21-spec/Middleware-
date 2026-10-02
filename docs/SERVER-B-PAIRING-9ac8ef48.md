@@ -3,7 +3,7 @@
 Middleware source under test: PR #145, based on `0c56a5ea261d9bca9bef0f565c5b35ddcdc8cd22`
 before the fixes recorded by this change.
 
-Selected Server B source: `appolon1908-hue/Vicidialer-Codestra`
+Selected Server B source: `appolon1908/Vicidialer-Codestra`
 `9ac8ef4840f78ba4ad9b816e4e409298505103ce` (PR #29).
 
 The paired test imports the selected Server B implementation directly. It uses

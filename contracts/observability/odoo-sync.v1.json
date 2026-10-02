@@ -2,8 +2,8 @@
   "schema_version": "1.0",
   "title": "Kyyow observability to Odoo projection contract",
   "authority": {
-    "api_owner": "ingtrader21-spec/Middleware-",
-    "business_record_owner": "appolon1908-hue/Odoo",
+    "api_owner": "appolon1908/Middleware-",
+    "business_record_owner": "appolon1908/Odoo",
     "external_write_authority": "Middleware only",
     "source_commit": "feature-branch",
     "runtime_activation": "ODOO_RESULT_DELIVERY_ENABLED and Odoo registry route approval"

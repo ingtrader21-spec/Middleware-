@@ -16,7 +16,7 @@ EXPECTED = {
     "schema_version": "codestra.calling-contract-lock.v1",
     "version": "1.0.0",
     "sha256": "b39cdffe56a8185c91174228f0423df68b1137f34875f6ee52f9914f904bf724",
-    "authority": "appolon1908-hue/codestra-production-platform#257",
+    "authority": "appolon1908/codestra-production-platform#257",
     "role": "command_boundary",
     "external_effects_enabled": False,
 }
@@ -80,7 +80,7 @@ def self_test() -> None:
         raise AssertionError(f"negative calling-contract fixture {number} was accepted")
 
     duplicate_json = [
-        '{"authority":"wrong","authority":"appolon1908-hue/codestra-production-platform#257"}',
+        '{"authority":"wrong","authority":"appolon1908/codestra-production-platform#257"}',
         '{"role":"wrong_role","role":"command_boundary"}',
         '{"external_effects_enabled":true,"external_effects_enabled":false}',
     ]

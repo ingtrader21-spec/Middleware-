@@ -56,18 +56,18 @@ REPOSITORY_FIELDS = {
     "required_status_checks",
 }
 EXPECTED_REPOSITORIES = {
-    "appolon1908-hue/codestra": (1319808791, ("verify", "container")),
-    "appolon1908-hue/backend2": (1319903950, ("validate", "container")),
-    "appolon1908-hue/Telnexa-web": (
+    "appolon1908/codestra": (1319808791, ("verify", "container")),
+    "appolon1908/backend2": (1319903950, ("validate", "container")),
+    "appolon1908/Telnexa-web": (
         1346958528,
         ("validate-build-smoke", "docker-build"),
     ),
-    "appolon1908-hue/scrapper": (
+    "appolon1908/scrapper": (
         1329513537,
         ("deployment-policy", "validate"),
     ),
-    "appolon1908-hue/Breero.com": (1331354808, ("quality",)),
-    "appolon1908-hue/Moneybee-Backend": (
+    "appolon1908/Breero.com": (1331354808, ("quality",)),
+    "appolon1908/Moneybee-Backend": (
         1343760409,
         (
             "verify",
@@ -168,7 +168,7 @@ def validate_config(config: Mapping[str, Any]) -> list[dict[str, Any]]:
         config.get("authority_id") == "codestra.portfolio-main-release-authorities.v1",
         "authority ID drift",
     )
-    require(config.get("owner") == "appolon1908-hue", "owner drift")
+    require(config.get("owner") == "appolon1908", "owner drift")
     require(config.get("ruleset_name") == RULESET_NAME, "ruleset name drift")
     require(config.get("reviewer") == EXPECTED_REVIEWER, "reviewer authority drift")
     required_approvals = config.get("required_approvals")

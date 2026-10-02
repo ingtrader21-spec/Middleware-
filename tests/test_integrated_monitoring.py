@@ -128,7 +128,7 @@ def system(tmp_path, monkeypatch):
         "artifact_root": str(tmp_path),
         "repositories": [
             {
-                "repository": "ingtrader21-spec/Middleware-",
+                "repository": "appolon1908/Middleware-",
                 "tenant": "codestra-platform",
                 "group": "platform",
             }
@@ -136,7 +136,7 @@ def system(tmp_path, monkeypatch):
         "services": {
             "sample-api": {
                 "tenant": "codestra-platform",
-                "repository": "ingtrader21-spec/Middleware-",
+                "repository": "appolon1908/Middleware-",
                 "environments": ["production"],
                 "dependencies": [],
                 "required_signals": ["metrics", "logs", "traces"],
@@ -508,7 +508,7 @@ def test_all_36_operations_have_working_success_paths(system):
             },
         )
     event = {
-        "repository": {"full_name": "ingtrader21-spec/Middleware-"},
+        "repository": {"full_name": "appolon1908/Middleware-"},
         "after": "b" * 40,
     }
     raw = json.dumps(event).encode()

@@ -20,7 +20,7 @@
     {
       "component": "middleware",
       "github_repository_id": 1347559071,
-      "current_repository": "ingtrader21-spec/Middleware-",
+      "current_repository": "appolon1908/Middleware-",
       "authority_role": "cross-system-control-plane",
       "lifecycle": "active",
       "cell": "middleware-core",
@@ -32,7 +32,7 @@
     {
       "component": "caddy",
       "github_repository_id": 1350228103,
-      "current_repository": "appolon1908-hue/Caddy",
+      "current_repository": "appolon1908/Caddy",
       "authority_role": "shared-edge-tls-reverse-proxy",
       "lifecycle": "active",
       "cell": "edge-identity",
@@ -44,7 +44,7 @@
     {
       "component": "kong",
       "github_repository_id": 1347790742,
-      "current_repository": "appolon1908-hue/Kong",
+      "current_repository": "appolon1908/Kong",
       "authority_role": "api-gateway-policy-routes-plugins",
       "lifecycle": "active",
       "cell": "edge-identity",
@@ -56,7 +56,7 @@
     {
       "component": "keycloak",
       "github_repository_id": 1347523366,
-      "current_repository": "appolon1908-hue/Keycloak",
+      "current_repository": "appolon1908/Keycloak",
       "authority_role": "identity-clients-scopes-token-issuance",
       "lifecycle": "active",
       "cell": "edge-identity",
@@ -68,7 +68,7 @@
     {
       "component": "n8n",
       "github_repository_id": 1347560645,
-      "current_repository": "appolon1908-hue/N8N",
+      "current_repository": "appolon1908/N8N",
       "authority_role": "automation-workflow-source",
       "lifecycle": "active",
       "cell": "automation",
@@ -80,7 +80,7 @@
     {
       "component": "odoo",
       "github_repository_id": 1347522940,
-      "current_repository": "appolon1908-hue/Odoo",
+      "current_repository": "appolon1908/Odoo",
       "authority_role": "odoo-modules-business-crm-source",
       "lifecycle": "active",
       "cell": "communications",
@@ -92,7 +92,7 @@
     {
       "component": "telnexa-sms",
       "github_repository_id": 1334764612,
-      "current_repository": "appolon1908-hue/telnexa",
+      "current_repository": "appolon1908/telnexa",
       "authority_role": "jasmin-sms-runtime-billing-webhooks",
       "lifecycle": "active",
       "cell": "communications",
@@ -104,7 +104,7 @@
     {
       "component": "telnexa-web",
       "github_repository_id": 1346958528,
-      "current_repository": "appolon1908-hue/Telnexa-web",
+      "current_repository": "appolon1908/Telnexa-web",
       "authority_role": "telnexa-public-website-onboarding",
       "lifecycle": "active",
       "cell": "product-clients",
@@ -116,7 +116,7 @@
     {
       "component": "klyrow-email",
       "github_repository_id": 1334863061,
-      "current_repository": "appolon1908-hue/klyrow.com",
+      "current_repository": "appolon1908/klyrow.com",
       "authority_role": "email-postal-mautic-runtime",
       "lifecycle": "active",
       "cell": "communications",
@@ -128,7 +128,7 @@
     {
       "component": "klyrow-web",
       "github_repository_id": 1346968526,
-      "current_repository": "appolon1908-hue/klyrow-Website-",
+      "current_repository": "appolon1908/klyrow-Website-",
       "authority_role": "klyrow-public-marketing-frontend",
       "lifecycle": "active",
       "cell": "product-clients",
@@ -140,7 +140,7 @@
     {
       "component": "kyqra-crawler",
       "github_repository_id": 1334792686,
-      "current_repository": "appolon1908-hue/kyqra-crawler",
+      "current_repository": "appolon1908/kyqra-crawler",
       "authority_role": "canonical-crawler-runtime",
       "lifecycle": "active",
       "cell": "crawler",
@@ -152,7 +152,7 @@
     {
       "component": "kyqra-legacy",
       "github_repository_id": 1334764212,
-      "current_repository": "appolon1908-hue/kyqra",
+      "current_repository": "appolon1908/kyqra",
       "authority_role": "legacy-reference-only",
       "lifecycle": "deprecated",
       "cell": "legacy-disabled",
@@ -164,7 +164,7 @@
     {
       "component": "vicidial-asterisk",
       "github_repository_id": 1347744324,
-      "current_repository": "appolon1908-hue/Vicidialer-Codestra",
+      "current_repository": "appolon1908/Vicidialer-Codestra",
       "authority_role": "voice-contact-center-connector-runtime",
       "lifecycle": "active",
       "cell": "telephony-restricted",
@@ -176,7 +176,7 @@
     {
       "component": "provisioning",
       "github_repository_id": 1339900477,
-      "current_repository": "appolon1908-hue/codestra-provisioning-service",
+      "current_repository": "appolon1908/codestra-provisioning-service",
       "authority_role": "identity-access-provisioning-runtime",
       "lifecycle": "active",
       "cell": "core-control-plane",
@@ -188,7 +188,7 @@
     {
       "component": "sdk",
       "github_repository_id": 1349042079,
-      "current_repository": "appolon1908-hue/SDK-repository",
+      "current_repository": "appolon1908/SDK-repository",
       "authority_role": "developer-facing-contracts-sdks-connector-kit",
       "lifecycle": "active",
       "cell": "governance",
@@ -200,7 +200,7 @@
     {
       "component": "social",
       "github_repository_id": 1348783113,
-      "current_repository": "appolon1908-hue/social.codestra.co",
+      "current_repository": "appolon1908/social.codestra.co",
       "authority_role": "social-postiz-product-source",
       "lifecycle": "active",
       "cell": "communications",
@@ -212,7 +212,7 @@
     {
       "component": "ai",
       "github_repository_id": 1351354401,
-      "current_repository": "appolon1908-hue/Codestra-AI",
+      "current_repository": "appolon1908/Codestra-AI",
       "authority_role": "ai-provider-product-source",
       "lifecycle": "active",
       "cell": "product-clients",
@@ -224,7 +224,7 @@
     {
       "component": "marketing",
       "github_repository_id": 1351352422,
-      "current_repository": "appolon1908-hue/Codestra-Marketing-",
+      "current_repository": "appolon1908/Codestra-Marketing-",
       "authority_role": "marketing-provider-product-source",
       "lifecycle": "active",
       "cell": "product-clients",
@@ -236,7 +236,7 @@
     {
       "component": "scrapper",
       "github_repository_id": 1329513537,
-      "current_repository": "appolon1908-hue/scrapper",
+      "current_repository": "appolon1908/scrapper",
       "authority_role": "legacy-business-scrapper-source-and-migration-evidence",
       "lifecycle": "legacy-migration",
       "cell": "legacy-disabled",
@@ -248,7 +248,7 @@
     {
       "component": "beyvra-backend",
       "github_repository_id": 1319831182,
-      "current_repository": "appolon1908-hue/beyvra-backend",
+      "current_repository": "appolon1908/beyvra-backend",
       "authority_role": "independent-product-backend",
       "lifecycle": "active",
       "cell": "financial-isolated",
@@ -260,7 +260,7 @@
     {
       "component": "beyvra-frontend",
       "github_repository_id": 1320246591,
-      "current_repository": "appolon1908-hue/beyvra-frontend",
+      "current_repository": "appolon1908/beyvra-frontend",
       "authority_role": "independent-product-frontend",
       "lifecycle": "active",
       "cell": "financial-isolated",
@@ -272,7 +272,7 @@
     {
       "component": "moneybee-backend",
       "github_repository_id": 1343760409,
-      "current_repository": "appolon1908-hue/Moneybee-Backend",
+      "current_repository": "appolon1908/Moneybee-Backend",
       "authority_role": "independent-product-backend",
       "lifecycle": "active",
       "cell": "product-clients",
@@ -284,7 +284,7 @@
     {
       "component": "moneybee-frontend",
       "github_repository_id": 1343759743,
-      "current_repository": "appolon1908-hue/Moneybee-frontend-",
+      "current_repository": "appolon1908/Moneybee-frontend-",
       "authority_role": "independent-product-frontend",
       "lifecycle": "active",
       "cell": "product-clients",
@@ -296,7 +296,7 @@
     {
       "component": "breero",
       "github_repository_id": 1331354808,
-      "current_repository": "appolon1908-hue/Breero.com",
+      "current_repository": "appolon1908/Breero.com",
       "authority_role": "independent-product",
       "lifecycle": "active",
       "cell": "product-clients",
@@ -308,7 +308,7 @@
     {
       "component": "larim-a-backend",
       "github_repository_id": 1343962951,
-      "current_repository": "appolon1908-hue/LARIM-A-Backend",
+      "current_repository": "appolon1908/LARIM-A-Backend",
       "authority_role": "independent-product-backend",
       "lifecycle": "active",
       "cell": "product-clients",
@@ -320,7 +320,7 @@
     {
       "component": "larim-a-frontend",
       "github_repository_id": 1343962199,
-      "current_repository": "appolon1908-hue/LARIM-A-Fornt-end",
+      "current_repository": "appolon1908/LARIM-A-Fornt-end",
       "authority_role": "independent-product-frontend",
       "lifecycle": "active",
       "cell": "product-clients",
@@ -329,7 +329,7 @@
       "adapter_id": null,
       "name_aliases": [
         {
-          "repository": "appolon1908-hue/LARIM-A-Frontend",
+          "repository": "appolon1908/LARIM-A-Frontend",
           "status": "PREPARED_NOT_RENAMED"
         }
       ]
@@ -337,7 +337,7 @@
     {
       "component": "booked4seasons",
       "github_repository_id": 1332044491,
-      "current_repository": "appolon1908-hue/booked4seasons",
+      "current_repository": "appolon1908/booked4seasons",
       "authority_role": "independent-product",
       "lifecycle": "active",
       "cell": "product-clients",
@@ -349,7 +349,7 @@
     {
       "component": "codestra-public-site",
       "github_repository_id": 1319808791,
-      "current_repository": "appolon1908-hue/codestra",
+      "current_repository": "appolon1908/codestra",
       "authority_role": "public-site-source",
       "lifecycle": "active",
       "cell": "product-clients",
@@ -361,7 +361,7 @@
     {
       "component": "restaurant-frontend",
       "github_repository_id": 1221155447,
-      "current_repository": "appolon1908-hue/Frontend-Resturant-",
+      "current_repository": "appolon1908/Frontend-Resturant-",
       "authority_role": "independent-product-frontend",
       "lifecycle": "active",
       "cell": "product-clients",
@@ -370,7 +370,7 @@
       "adapter_id": null,
       "name_aliases": [
         {
-          "repository": "appolon1908-hue/restaurant-frontend",
+          "repository": "appolon1908/restaurant-frontend",
           "status": "PREPARED_NOT_RENAMED"
         }
       ]
@@ -378,7 +378,7 @@
     {
       "component": "freight-platform-frontend",
       "github_repository_id": 1343761049,
-      "current_repository": "appolon1908-hue/transportaion-Frontend",
+      "current_repository": "appolon1908/transportaion-Frontend",
       "authority_role": "independent-product-frontend",
       "lifecycle": "active",
       "cell": "product-clients",
@@ -387,7 +387,7 @@
       "adapter_id": null,
       "name_aliases": [
         {
-          "repository": "appolon1908-hue/freight-platform-frontend",
+          "repository": "appolon1908/freight-platform-frontend",
           "status": "PREPARED_NOT_RENAMED"
         }
       ]
@@ -395,7 +395,7 @@
     {
       "component": "social-control-plane",
       "github_repository_id": 1351353723,
-      "current_repository": "appolon1908-hue/Codesrea-Social-",
+      "current_repository": "appolon1908/Codesrea-Social-",
       "authority_role": "provider-neutral-social-control-plane-architecture",
       "lifecycle": "planned-name-review",
       "cell": "planned-control-planes",
@@ -404,7 +404,7 @@
       "adapter_id": null,
       "name_aliases": [
         {
-          "repository": "appolon1908-hue/Codestra-Social-Control-Plane",
+          "repository": "appolon1908/Codestra-Social-Control-Plane",
           "status": "PREPARED_NOT_RENAMED"
         }
       ]
@@ -412,7 +412,7 @@
     {
       "component": "platform-documentation",
       "github_repository_id": 1350724356,
-      "current_repository": "appolon1908-hue/documentaions",
+      "current_repository": "appolon1908/documentaions",
       "authority_role": "cross-repository-documentation-authority",
       "lifecycle": "active",
       "cell": "governance",
@@ -421,7 +421,7 @@
       "adapter_id": null,
       "name_aliases": [
         {
-          "repository": "appolon1908-hue/Codestra-Documentation",
+          "repository": "appolon1908/Codestra-Documentation",
           "status": "PREPARED_NOT_RENAMED"
         }
       ]
@@ -429,7 +429,7 @@
     {
       "component": "platform-infrastructure",
       "github_repository_id": 1350724865,
-      "current_repository": "appolon1908-hue/Infustruction-repo",
+      "current_repository": "appolon1908/Infustruction-repo",
       "authority_role": "shared-infrastructure-and-release-governance",
       "lifecycle": "active",
       "cell": "governance",
@@ -438,7 +438,7 @@
       "adapter_id": null,
       "name_aliases": [
         {
-          "repository": "appolon1908-hue/Codestra-Infrastructure",
+          "repository": "appolon1908/Codestra-Infrastructure",
           "status": "PREPARED_NOT_RENAMED"
         }
       ]

@@ -1,7 +1,7 @@
 # Isolated-staging Security Owner governance
 
 `kazan555` is the approval delegate for security-risk decisions scoped only to
-Server A isolated staging. `appolon1908-hue` is the requestor and implementation
+Server A isolated staging. `appolon1908` is the requestor and implementation
 operator. The roles must remain separate.
 
 The `security-owner-signing` environment enforces the delegate review, prevents

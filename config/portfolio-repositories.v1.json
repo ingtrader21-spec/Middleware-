@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "owner": "appolon1908-hue",
+  "owner": "appolon1908",
   "ruleset_path": "config/ai-production-branch-ruleset.v1.json",
   "skip_archived": true,
   "skip_disabled": true,

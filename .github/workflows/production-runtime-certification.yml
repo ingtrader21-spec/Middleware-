@@ -29,7 +29,7 @@ jobs:
       DEPLOY_HOST: 65.109.65.169
       DEPLOY_PORT: "22"
       DEPLOY_USER: middleware-deploy
-      SIGNER_IDENTITY: https://github.com/ingtrader21-spec/Middleware-/.github/workflows/release.yml@refs/heads/main
+      SIGNER_IDENTITY: https://github.com/appolon1908/Middleware-/.github/workflows/release.yml@refs/heads/main
       OIDC_ISSUER: https://token.actions.githubusercontent.com
 
     steps:
@@ -47,7 +47,7 @@ jobs:
           EVENT_SHA: ${{ github.sha }}
         run: |
           set -Eeuo pipefail
-          test "$GITHUB_REPOSITORY" = "ingtrader21-spec/Middleware-"
+          test "$GITHUB_REPOSITORY" = "appolon1908/Middleware-"
           test "$GITHUB_REF" = "refs/heads/main"
           test "$(git rev-parse HEAD)" = "$EVENT_SHA"
           test -z "$(git status --porcelain)"
@@ -174,7 +174,7 @@ jobs:
           path = Path(sys.argv[1])
           source_sha, release_run_id, output_path = sys.argv[2:]
           value = json.loads(path.read_text(encoding="utf-8"))
-          if value.get("schema_version") != "1.0" or value.get("repository") != "ingtrader21-spec/Middleware-":
+          if value.get("schema_version") != "1.0" or value.get("repository") != "appolon1908/Middleware-":
               raise SystemExit("release manifest authority mismatch")
           if value.get("source", {}).get("git_sha") != source_sha or value.get("source", {}).get("ref") != "refs/heads/main":
               raise SystemExit("release source mismatch")
@@ -183,7 +183,7 @@ jobs:
           image_reference = value.get("image", {}).get("reference", "")
           image_digest = value.get("image", {}).get("digest", "")
           release_id = value.get("release_id", "")
-          if not re.fullmatch(r"ghcr\.io/ingtrader21-spec/codestra-middleware@sha256:[0-9a-f]{64}", image_reference):
+          if not re.fullmatch(r"ghcr\.io/appolon1908/codestra-middleware@sha256:[0-9a-f]{64}", image_reference):
               raise SystemExit("release image reference invalid")
           if image_reference.rsplit("@", 1)[1] != image_digest:
               raise SystemExit("release digest mismatch")

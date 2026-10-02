@@ -57,7 +57,7 @@ services:
     labels:
       com.codestra.service: middleware-observability-alerts
       com.codestra.environment: production
-      com.codestra.source.repository: ingtrader21-spec/Middleware-
+      com.codestra.source.repository: appolon1908/Middleware-
       com.codestra.source.sha: ${MIDDLEWARE_SOURCE_SHA:?exact protected source SHA required}
       com.codestra.image.digest: ${MIDDLEWARE_IMAGE_DIGEST:?exact image digest required}
 

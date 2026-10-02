@@ -7,7 +7,7 @@
   "canonical_event_schema": "contracts/platform/event-envelope.v1.schema.json",
   "external_authorities": {
     "integration_and_release": {
-      "repository": "appolon1908-hue/codestra-production-platform",
+      "repository": "appolon1908/codestra-production-platform",
       "branch": "release/production-activation",
       "contract_catalog": "contracts/catalog.v1.json",
       "runtime_composition": "composition/runtime-composition.v1.json",
@@ -15,9 +15,9 @@
       "caddy_config_home": "operations/caddy"
     },
     "crawler_source": {
-      "repository": "appolon1908-hue/kyqra-crawler",
+      "repository": "appolon1908/kyqra-crawler",
       "branch": "main",
-      "retired_repository": "appolon1908-hue/kyqra"
+      "retired_repository": "appolon1908/kyqra"
     }
   },
   "synchronization_policy": {
@@ -85,7 +85,7 @@
       "branch": "platform/caddy",
       "category": "platform",
       "runtime_status": "declared_active_scope",
-      "scope": "Middleware-side route compatibility and edge validation. Canonical production Caddy desired state lives in appolon1908-hue/codestra-production-platform at operations/caddy"
+      "scope": "Middleware-side route compatibility and edge validation. Canonical production Caddy desired state lives in appolon1908/codestra-production-platform at operations/caddy"
     },
     {
       "branch": "platform/postgresql",
@@ -229,7 +229,7 @@
       "branch": "integration/kyqra",
       "category": "configured-unverified",
       "runtime_status": "configured_worker_not_observed",
-      "scope": "Kyqra contracts and runtime verification against the canonical appolon1908-hue/kyqra-crawler source only, until a running worker, endpoint, ownership, and deployment path are confirmed"
+      "scope": "Kyqra contracts and runtime verification against the canonical appolon1908/kyqra-crawler source only, until a running worker, endpoint, ownership, and deployment path are confirmed"
     },
     {
       "branch": "integration/beyvra",

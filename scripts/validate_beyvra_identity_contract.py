@@ -23,7 +23,7 @@ def main():
     require(contract["schemaVersion"] == 1, "schema version changed")
     require(contract["state"] == "contract-only-runtime-unverified", "runtime state overstated")
     require(contract["source"] == {
-        "repository": "appolon1908-hue/beyvra-backend",
+        "repository": "appolon1908/beyvra-backend",
         "eventType": "identity.account.provisioned",
         "schema": "contracts/beyvra-identity-provisioned.schema.json",
     }, "source contract changed")

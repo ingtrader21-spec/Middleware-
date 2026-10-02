@@ -2,7 +2,7 @@
 
 ## Implemented transport
 
-This companion to `appolon1908-hue/telnexa#29` consumes the read-only API added
+This companion to `appolon1908/telnexa#29` consumes the read-only API added
 by Telnexa PR #30 (merged source `8c8a8f95556ee4ca9a374abdaf9781ce9469ace6`).
 The reviewed X-API-Key, tenant, correlation and idempotency contract remains in
 place. Middleware never sends directly to Jasmin or a carrier.

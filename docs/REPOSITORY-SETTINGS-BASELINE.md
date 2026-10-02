@@ -1,7 +1,7 @@
 # Middleware repository settings baseline
 
 This document is the exact target state for
-`https://github.com/ingtrader21-spec/Middleware-/settings`.
+`https://github.com/appolon1908/Middleware-/settings`.
 
 ## Current verified drift on 2026-08-30
 
@@ -135,7 +135,7 @@ The repository therefore contains an idempotent, owner-only applier:
 
 The workflow runs only when GitHub reports all of the following:
 
-- repository is exactly `ingtrader21-spec/Middleware-`;
+- repository is exactly `appolon1908/Middleware-`;
 - issue number is exactly `68` and is not a pull request;
 - comment author login and numeric ID are the repository owner;
 - author association is `OWNER`;

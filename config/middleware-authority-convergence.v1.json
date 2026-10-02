@@ -6,7 +6,7 @@
   "serverA": {
     "host": "65.109.65.169",
     "runtimeInventoryObservedAt": "2026-09-01T17:56:34Z",
-    "runtimeInventorySource": "appolon1908-hue/Infustruction-repo@main:reports/runtime-reconciliation/STAGE6-RUNTIME-INVENTORY.csv",
+    "runtimeInventorySource": "appolon1908/Infustruction-repo@main:reports/runtime-reconciliation/STAGE6-RUNTIME-INVENTORY.csv",
     "runtimeWorkloadsCatalogued": 31,
     "runtimeMutationStatus": "NOT_EXECUTED",
     "productionChanged": false,
@@ -15,7 +15,7 @@
   },
   "forwardAuthority": {
     "source": {
-      "repository": "ingtrader21-spec/Middleware-",
+      "repository": "appolon1908/Middleware-",
       "protectedRef": "refs/heads/main",
       "resolution": "exact protected-main GitHub event SHA at release execution",
       "staticShaIsAuthority": false,
@@ -23,13 +23,13 @@
       "observedGitTreeId": "8e9a4be456a2f82ef3352a277f6f76f1a2e18d90"
     },
     "image": {
-      "repository": "ghcr.io/appolon1908-hue/codestra-middleware",
+      "repository": "ghcr.io/appolon1908/codestra-middleware",
       "releaseWorkflow": ".github/workflows/release.yml",
       "currentSignedCandidate": {
         "sourceSha": "b03b378f3a358de333e37cf6cc7a37668f004b4f",
         "gitTreeId": "8e9a4be456a2f82ef3352a277f6f76f1a2e18d90",
         "imageDigest": "sha256:dfdcfb92538242df9c9e81c27f15f9bd14b2cb840ea4c16d91dccc8f0eed7a3c",
-        "imageReference": "ghcr.io/appolon1908-hue/codestra-middleware@sha256:dfdcfb92538242df9c9e81c27f15f9bd14b2cb840ea4c16d91dccc8f0eed7a3c",
+        "imageReference": "ghcr.io/appolon1908/codestra-middleware@sha256:dfdcfb92538242df9c9e81c27f15f9bd14b2cb840ea4c16d91dccc8f0eed7a3c",
         "releaseId": "b03b378f3a35-dfdcfb925382",
         "schemaHead": "0009_observability_incidents",
         "builtAt": "2026-09-04T18:50:33Z",
@@ -101,11 +101,11 @@
   "runtimeImageFamilies": [
     {
       "id": "appolon-superseded-api",
-      "authority": "appolon1908-hue",
+      "authority": "appolon1908",
       "role": "superseded-appolon-runtime",
       "environment": "production",
       "sourceSha": "f6748a58f8d2590520a4f28776770957061cdea1",
-      "runtimeReference": "ghcr.io/appolon1908-hue/codestra-middleware@sha256:695fa3ce3f50ba4d0ae0784976b946a0a683ca731155e4bd3bd9e90a4670b820",
+      "runtimeReference": "ghcr.io/appolon1908/codestra-middleware@sha256:695fa3ce3f50ba4d0ae0784976b946a0a683ca731155e4bd3bd9e90a4670b820",
       "digest": "sha256:695fa3ce3f50ba4d0ae0784976b946a0a683ca731155e4bd3bd9e90a4670b820",
       "digestKind": "registry-manifest-digest",
       "workloads": [
@@ -116,7 +116,7 @@
       "backup": {
         "method": "retain-existing-appolon-ghcr-digest",
         "state": "AVAILABLE_IN_APPOLON_GHCR",
-        "reference": "ghcr.io/appolon1908-hue/codestra-middleware@sha256:695fa3ce3f50ba4d0ae0784976b946a0a683ca731155e4bd3bd9e90a4670b820"
+        "reference": "ghcr.io/appolon1908/codestra-middleware@sha256:695fa3ce3f50ba4d0ae0784976b946a0a683ca731155e4bd3bd9e90a4670b820"
       }
     },
     {
@@ -136,7 +136,7 @@
       "backup": {
         "method": "server-a-archive-and-config-digest-mirror",
         "state": "PENDING_SERVER_A_ACCESS",
-        "destinationTag": "ghcr.io/appolon1908-hue/codestra-middleware-legacy:server-a-codestra-primary-api-local-5dd751a9da60",
+        "destinationTag": "ghcr.io/appolon1908/codestra-middleware-legacy:server-a-codestra-primary-api-local-5dd751a9da60",
         "evidenceCommand": "scripts/server-a-backup-legacy-middleware-images.sh",
         "verification": "destination OCI config digest must equal the recorded Docker image ID"
       }
@@ -158,8 +158,8 @@
       "backup": {
         "method": "registry-preserve-digest",
         "state": "PENDING_ACTIONS_MIRROR",
-        "destinationTag": "ghcr.io/appolon1908-hue/codestra-middleware-legacy:codestra-srl-integration-api-09d4bd0f7b23",
-        "destinationDigestReference": "ghcr.io/appolon1908-hue/codestra-middleware-legacy@sha256:09d4bd0f7b2376e0a06d3efae27a6642429389fa7e3277791ec0b36584e87175",
+        "destinationTag": "ghcr.io/appolon1908/codestra-middleware-legacy:codestra-srl-integration-api-09d4bd0f7b23",
+        "destinationDigestReference": "ghcr.io/appolon1908/codestra-middleware-legacy@sha256:09d4bd0f7b2376e0a06d3efae27a6642429389fa7e3277791ec0b36584e87175",
         "evidenceWorkflow": ".github/workflows/mirror-codestra-legacy-middleware-images.yml"
       }
     },
@@ -189,7 +189,7 @@
       "backup": {
         "method": "server-a-archive-and-config-digest-mirror",
         "state": "PENDING_SERVER_A_ACCESS",
-        "destinationTag": "ghcr.io/appolon1908-hue/codestra-middleware-legacy:server-a-codestra-shared-workers-b3ca9aa-1a9e13a0c930",
+        "destinationTag": "ghcr.io/appolon1908/codestra-middleware-legacy:server-a-codestra-shared-workers-b3ca9aa-1a9e13a0c930",
         "evidenceCommand": "scripts/server-a-backup-legacy-middleware-images.sh",
         "verification": "destination OCI config digest must equal the recorded Docker image ID"
       }
@@ -211,7 +211,7 @@
       "backup": {
         "method": "server-a-archive-and-config-digest-mirror",
         "state": "PENDING_SERVER_A_ACCESS",
-        "destinationTag": "ghcr.io/appolon1908-hue/codestra-middleware-legacy:server-a-codestra-postly-polling-worker-d3ac2b34d216",
+        "destinationTag": "ghcr.io/appolon1908/codestra-middleware-legacy:server-a-codestra-postly-polling-worker-d3ac2b34d216",
         "evidenceCommand": "scripts/server-a-backup-legacy-middleware-images.sh",
         "verification": "destination OCI config digest must equal the recorded Docker image ID"
       }
@@ -233,7 +233,7 @@
       "backup": {
         "method": "server-a-archive-and-config-digest-mirror",
         "state": "PENDING_SERVER_A_ACCESS",
-        "destinationTag": "ghcr.io/appolon1908-hue/codestra-middleware-legacy:server-a-codestra-breero-odoo-worker-961c0569a503",
+        "destinationTag": "ghcr.io/appolon1908/codestra-middleware-legacy:server-a-codestra-breero-odoo-worker-961c0569a503",
         "evidenceCommand": "scripts/server-a-backup-legacy-middleware-images.sh",
         "verification": "destination OCI config digest must equal the recorded Docker image ID"
       }
@@ -255,7 +255,7 @@
       "backup": {
         "method": "server-a-archive-and-config-digest-mirror",
         "state": "PENDING_SERVER_A_ACCESS",
-        "destinationTag": "ghcr.io/appolon1908-hue/codestra-middleware-legacy:server-a-codestra-event-and-webhook-workers-93cbb4a11765",
+        "destinationTag": "ghcr.io/appolon1908/codestra-middleware-legacy:server-a-codestra-event-and-webhook-workers-93cbb4a11765",
         "evidenceCommand": "scripts/server-a-backup-legacy-middleware-images.sh",
         "verification": "destination OCI config digest must equal the recorded Docker image ID"
       },
@@ -280,8 +280,8 @@
       "backup": {
         "method": "registry-preserve-digest",
         "state": "PENDING_ACTIONS_MIRROR",
-        "destinationTag": "ghcr.io/appolon1908-hue/codestra-middleware-legacy:codestra-srl-notification-scheduler-73fe86858d7a",
-        "destinationDigestReference": "ghcr.io/appolon1908-hue/codestra-middleware-legacy@sha256:73fe86858d7a9303bbb151c77097aa43c0739e71c4781636e7db81dd4eadbf98",
+        "destinationTag": "ghcr.io/appolon1908/codestra-middleware-legacy:codestra-srl-notification-scheduler-73fe86858d7a",
+        "destinationDigestReference": "ghcr.io/appolon1908/codestra-middleware-legacy@sha256:73fe86858d7a9303bbb151c77097aa43c0739e71c4781636e7db81dd4eadbf98",
         "evidenceWorkflow": ".github/workflows/mirror-codestra-legacy-middleware-images.yml"
       }
     },
@@ -302,8 +302,8 @@
       "backup": {
         "method": "registry-preserve-digest",
         "state": "PENDING_ACTIONS_MIRROR",
-        "destinationTag": "ghcr.io/appolon1908-hue/codestra-middleware-legacy:codestra-srl-odoo-result-worker-ab74b9eb56c9",
-        "destinationDigestReference": "ghcr.io/appolon1908-hue/codestra-middleware-legacy@sha256:ab74b9eb56c9625597476ab6669b065b471314c912cb2d4677118de230e3d4e2",
+        "destinationTag": "ghcr.io/appolon1908/codestra-middleware-legacy:codestra-srl-odoo-result-worker-ab74b9eb56c9",
+        "destinationDigestReference": "ghcr.io/appolon1908/codestra-middleware-legacy@sha256:ab74b9eb56c9625597476ab6669b065b471314c912cb2d4677118de230e3d4e2",
         "evidenceWorkflow": ".github/workflows/mirror-codestra-legacy-middleware-images.yml"
       }
     },
@@ -324,7 +324,7 @@
       "backup": {
         "method": "server-a-archive-and-config-digest-mirror",
         "state": "PENDING_SERVER_A_ACCESS",
-        "destinationTag": "ghcr.io/appolon1908-hue/codestra-middleware-legacy:server-a-codestra-scraper-odoo-worker-55dfe9ddfa8b",
+        "destinationTag": "ghcr.io/appolon1908/codestra-middleware-legacy:server-a-codestra-scraper-odoo-worker-55dfe9ddfa8b",
         "evidenceCommand": "scripts/server-a-backup-legacy-middleware-images.sh",
         "verification": "destination OCI config digest must equal the recorded Docker image ID"
       }
@@ -346,8 +346,8 @@
       "backup": {
         "method": "registry-preserve-digest",
         "state": "PENDING_ACTIONS_MIRROR",
-        "destinationTag": "ghcr.io/appolon1908-hue/codestra-middleware-legacy:codestra-srl-webphone-session-issuer-48dbb4201b4c",
-        "destinationDigestReference": "ghcr.io/appolon1908-hue/codestra-middleware-legacy@sha256:48dbb4201b4cf8abee1600936a84da52a92969ab124fb44a0007059e75d57e85",
+        "destinationTag": "ghcr.io/appolon1908/codestra-middleware-legacy:codestra-srl-webphone-session-issuer-48dbb4201b4c",
+        "destinationDigestReference": "ghcr.io/appolon1908/codestra-middleware-legacy@sha256:48dbb4201b4cf8abee1600936a84da52a92969ab124fb44a0007059e75d57e85",
         "evidenceWorkflow": ".github/workflows/mirror-codestra-legacy-middleware-images.yml"
       }
     },
@@ -369,7 +369,7 @@
       "backup": {
         "method": "server-a-archive-and-config-digest-mirror",
         "state": "PENDING_SERVER_A_ACCESS",
-        "destinationTag": "ghcr.io/appolon1908-hue/codestra-middleware-legacy:server-a-codestra-staging-callback-57a4a3a22278",
+        "destinationTag": "ghcr.io/appolon1908/codestra-middleware-legacy:server-a-codestra-staging-callback-57a4a3a22278",
         "evidenceCommand": "scripts/server-a-backup-legacy-middleware-images.sh",
         "verification": "destination OCI config digest must equal the recorded Docker image ID"
       }
@@ -392,7 +392,7 @@
       "backup": {
         "method": "server-a-archive-and-config-digest-mirror",
         "state": "PENDING_SERVER_A_ACCESS",
-        "destinationTag": "ghcr.io/appolon1908-hue/codestra-middleware-legacy:server-a-codestra-staging-core-b81c125296ef",
+        "destinationTag": "ghcr.io/appolon1908/codestra-middleware-legacy:server-a-codestra-staging-core-b81c125296ef",
         "evidenceCommand": "scripts/server-a-backup-legacy-middleware-images.sh",
         "verification": "destination OCI config digest must equal the recorded Docker image ID"
       }
@@ -415,7 +415,7 @@
       "backup": {
         "method": "server-a-archive-and-config-digest-mirror",
         "state": "PENDING_SERVER_A_ACCESS",
-        "destinationTag": "ghcr.io/appolon1908-hue/codestra-middleware-legacy:server-a-legacy-staging-appolon-attributed-workers-ed7accf6d1f9",
+        "destinationTag": "ghcr.io/appolon1908/codestra-middleware-legacy:server-a-legacy-staging-appolon-attributed-workers-ed7accf6d1f9",
         "evidenceCommand": "scripts/server-a-backup-legacy-middleware-images.sh",
         "verification": "destination OCI config digest must equal the recorded Docker image ID"
       }
@@ -437,7 +437,7 @@
       "backup": {
         "method": "server-a-archive-and-config-digest-mirror",
         "state": "PENDING_SERVER_A_ACCESS",
-        "destinationTag": "ghcr.io/appolon1908-hue/codestra-middleware-legacy:server-a-codestra-staging-scraper-canary-dc97c48f3a29",
+        "destinationTag": "ghcr.io/appolon1908/codestra-middleware-legacy:server-a-codestra-staging-scraper-canary-dc97c48f3a29",
         "evidenceCommand": "scripts/server-a-backup-legacy-middleware-images.sh",
         "verification": "destination OCI config digest must equal the recorded Docker image ID"
       }
@@ -461,16 +461,16 @@
       "backup": {
         "method": "server-a-archive-and-config-digest-mirror",
         "state": "PENDING_SERVER_A_ACCESS",
-        "destinationTag": "ghcr.io/appolon1908-hue/codestra-middleware-legacy:server-a-codestra-staging-social-workers-8e4a1afa8ca7",
+        "destinationTag": "ghcr.io/appolon1908/codestra-middleware-legacy:server-a-codestra-staging-social-workers-8e4a1afa8ca7",
         "evidenceCommand": "scripts/server-a-backup-legacy-middleware-images.sh",
         "verification": "destination OCI config digest must equal the recorded Docker image ID"
       }
     }
   ],
   "convergencePolicy": {
-    "singleForwardRepository": "ingtrader21-spec/Middleware-",
-    "singleForwardImageRepository": "ghcr.io/ingtrader21-spec/codestra-middleware",
-    "legacyBackupImageRepository": "ghcr.io/appolon1908-hue/codestra-middleware-legacy",
+    "singleForwardRepository": "appolon1908/Middleware-",
+    "singleForwardImageRepository": "ghcr.io/appolon1908/codestra-middleware",
+    "legacyBackupImageRepository": "ghcr.io/appolon1908/codestra-middleware-legacy",
     "blindWholeFleetReplacementAllowed": false,
     "legacyNewBuildsAllowed": false,
     "legacyRuntimeExpansionAllowed": false,

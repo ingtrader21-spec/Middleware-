@@ -4,7 +4,7 @@
 
 This branch implements the Middleware side of the frozen Communications API v1 contract from:
 
-`appolon1908-hue/SDK-repository:feat/communications-api-v1-contracts@63c793e88cca5daecfb5c8a688b8674ab288c522`
+`appolon1908/SDK-repository:feat/communications-api-v1-contracts@63c793e88cca5daecfb5c8a688b8674ab288c522`
 
 Middleware remains the privileged cross-system write/control authority. Klyrow remains the email provider/runtime authority.
 

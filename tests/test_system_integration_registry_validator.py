@@ -165,7 +165,7 @@ def test_authority_repository_name_drift_is_rejected(
 ) -> None:
     registry, authorities, aliases = copy.deepcopy(documents)
     authority(authorities, "n8n")["principal_repository"] = (
-        "ingtrader21-spec/Middleware-"
+        "appolon1908/Middleware-"
     )
     assert_rejected(
         validator, registry, authorities, aliases, "authority repository mismatch: n8n"
@@ -199,7 +199,7 @@ def test_controlled_rename_id_misbinding_is_rejected(
 def test_alias_target_drift_is_rejected(validator: ModuleType, documents) -> None:
     registry, authorities, aliases = copy.deepcopy(documents)
     aliases["mappings"][0]["target_repository_after_cutover"] = (
-        "appolon1908-hue/other-target"
+        "appolon1908/other-target"
     )
     assert_rejected(
         validator, registry, authorities, aliases, "registry alias target mismatch"
@@ -211,7 +211,7 @@ def test_coordinated_alias_target_drift_is_rejected(
 ) -> None:
     registry, authorities, aliases = copy.deepcopy(documents)
     repository_id = 1350724356
-    replacement_target = "appolon1908-hue/Codestra-Docs-Replacement"
+    replacement_target = "appolon1908/Codestra-Docs-Replacement"
     mapping = next(
         item
         for item in aliases["mappings"]
@@ -238,7 +238,7 @@ def test_alias_target_cannot_collide_with_current_repository(
 ) -> None:
     registry, authorities, aliases = copy.deepcopy(documents)
     repository_id = 1350724356
-    target = "ingtrader21-spec/Middleware-"
+    target = "appolon1908/Middleware-"
     alias = next(
         item
         for item in aliases["mappings"]
@@ -263,7 +263,7 @@ def test_alias_target_cannot_collide_with_reference_only_repository(
 ) -> None:
     registry, authorities, aliases = copy.deepcopy(documents)
     repository_id = 1350724356
-    target = "appolon1908-hue/codestra-production-platform"
+    target = "appolon1908/codestra-production-platform"
     alias = next(
         item
         for item in aliases["mappings"]
@@ -436,7 +436,7 @@ def test_canonical_adapter_ownership_cannot_move_between_repositories(
     adapters = validator.load_object(validator.ADAPTER_PATH)
     next(item for item in adapters["adapters"] if item["id"] == "telnexa-sms")[
         "repository"
-    ] = "appolon1908-hue/Codestra-AI"
+    ] = "appolon1908/Codestra-AI"
 
     with pytest.raises(
         validator.RegistryError, match="canonical adapter ownership mismatch"

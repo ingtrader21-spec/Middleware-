@@ -3,8 +3,8 @@
 The Beyvra integration is split into two repositories:
 
 ```text
-appolon1908-hue/beyvra-backend
-appolon1908-hue/beyvra-frontend
+appolon1908/beyvra-backend
+appolon1908/beyvra-frontend
 ```
 
 The backend is the domain authority and the only Beyvra application that may participate in Middleware automation commands. The frontend is a browser UI and never authenticates as an n8n or Middleware machine client.

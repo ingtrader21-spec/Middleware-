@@ -229,7 +229,7 @@ EVENT_TYPE = re.compile(r"^codestra\.[a-z0-9_]+(?:\.[a-z0-9_]+)+$")
 CLIENT_ID = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 WEBHOOK_ID = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 WEBHOOK_PATH = re.compile(r"^/api/v1/[a-z0-9-]+(?:/[a-z0-9-]+)*$")
-REPOSITORY = re.compile(r"^(?:ingtrader21-spec|appolon1908-hue)/[A-Za-z0-9_.-]+$")
+REPOSITORY = re.compile(r"^(?:appolon1908|appolon1908)/[A-Za-z0-9_.-]+$")
 ACCESS_FIELDS = {
     "schemaVersion",
     "upstreamContract",
@@ -497,8 +497,8 @@ def validate_upstream(
         {"repository", "path", "reviewBranch", "reviewSha"},
         f"{label}: upstreamContract fields changed",
     )
-    if upstream.get("repository") != "appolon1908-hue/Keycloak":
-        fail(f"{label}: upstream repository must be appolon1908-hue/Keycloak")
+    if upstream.get("repository") != "appolon1908/Keycloak":
+        fail(f"{label}: upstream repository must be appolon1908/Keycloak")
     if upstream.get("path") != expected_path:
         fail(f"{label}: unexpected upstream path")
     if upstream.get("reviewBranch") != "feat/service-api-webhook-identity-contracts":
@@ -514,8 +514,8 @@ def validate_lifecycle_contract(value: object) -> None:
         {"repository", "path", "protectedBranch", "mergeSha"},
         "webhook lifecycleContract fields changed",
     )
-    if lifecycle.get("repository") != "appolon1908-hue/Keycloak":
-        fail("webhook lifecycle repository must be appolon1908-hue/Keycloak")
+    if lifecycle.get("repository") != "appolon1908/Keycloak":
+        fail("webhook lifecycle repository must be appolon1908/Keycloak")
     if lifecycle.get("path") != "config/contracts/webhook-contracts.json":
         fail("webhook lifecycle path changed")
     if lifecycle.get("protectedBranch") != "main":

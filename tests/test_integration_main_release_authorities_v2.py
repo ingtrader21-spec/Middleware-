@@ -50,9 +50,9 @@ class IntegrationMainReleaseAuthorityV2Tests(unittest.TestCase):
 
     def test_new_governance_gap_repositories_are_exact(self) -> None:
         expected = {
-            "appolon1908-hue/N8N",
-            "appolon1908-hue/klyrow.com",
-            "appolon1908-hue/Codestra-Prometheus",
+            "appolon1908/N8N",
+            "appolon1908/klyrow.com",
+            "appolon1908/Codestra-Prometheus",
         }
         observed = {row["repository"] for row in MODULE.BASE.validate_config(self.config)}
         self.assertTrue(expected.issubset(observed))
@@ -113,8 +113,8 @@ class IntegrationMainReleaseAuthorityV2Tests(unittest.TestCase):
         self.assertIn("CONTROL_PLANE_MUTATION=repository-administration", condition)
         self.assertIn("github.event_name == 'issue_comment'", condition)
         self.assertIn("github.event.repository.id == 1347559071", condition)
-        self.assertIn("github.event.sender.id == 275410064", condition)
-        self.assertIn("github.event.comment.user.id == 275410064", condition)
+        self.assertIn("github.event.sender.id == 335843231", condition)
+        self.assertIn("github.event.comment.user.id == 335843231", condition)
         self.assertIn("github.event.comment.body == '/apply-integration-main-release-authority v1'", condition)
         self.assertNotIn("github.event_name == 'workflow_dispatch'", condition)
         self.assertNotIn("if: ${{ false }}", condition)

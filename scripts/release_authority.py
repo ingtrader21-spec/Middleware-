@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Classify every workflow's release authority for ingtrader21-spec/Middleware-.
+"""Classify every workflow's release authority for appolon1908/Middleware-.
 
 Exactly one workflow may create a production Middleware image: build or push a
 registry image in the canonical image repository *and* give it a production
@@ -28,14 +28,14 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOWS = ROOT / ".github" / "workflows"
 
-CANONICAL_REPOSITORY = "ingtrader21-spec/Middleware-"
-PRE_TRANSFER_REPOSITORY = "appolon1908-hue/Middleware-"
+CANONICAL_REPOSITORY = "appolon1908/Middleware-"
+PRE_TRANSFER_REPOSITORY = "appolon1908/Middleware-"
 # The package lives in the repository owner's GHCR namespace: an Actions
 # installation token can only publish to its own owner. The pre-transfer package
 # keeps the historical digests and may only be named by digest-pinned historical
 # verification, never by a live publisher.
-CANONICAL_IMAGE_REPOSITORY = "ghcr.io/ingtrader21-spec/codestra-middleware"
-PRE_TRANSFER_IMAGE_REPOSITORY = "ghcr.io/appolon1908-hue/codestra-middleware"
+CANONICAL_IMAGE_REPOSITORY = "ghcr.io/appolon1908/codestra-middleware"
+PRE_TRANSFER_IMAGE_REPOSITORY = "ghcr.io/appolon1908/codestra-middleware"
 CANONICAL_RELEASE_WORKFLOW = ".github/workflows/release.yml"
 CANONICAL_SCHEMA_HEAD = "0067_service_catalog_monitoring_state"
 RETIRED_SCHEMA_HEADS = ("0059_integrated_monitoring",)

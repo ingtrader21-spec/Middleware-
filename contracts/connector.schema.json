@@ -9,7 +9,7 @@
     "version": {"const": 1},
     "id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
     "workstream": {"type": "string", "pattern": "^(integration|platform|site)/[a-z0-9][a-z0-9-]*$"},
-    "repository": {"type": "string", "pattern": "^(?:ingtrader21-spec|appolon1908-hue)/[A-Za-z0-9._-]+$"},
+    "repository": {"type": "string", "pattern": "^(?:appolon1908|appolon1908)/[A-Za-z0-9._-]+$"},
     "role": {"enum": ["frontend", "backend", "identity", "gateway", "erp", "social-site", "social-adapter"]},
     "transport": {
       "type": "object",

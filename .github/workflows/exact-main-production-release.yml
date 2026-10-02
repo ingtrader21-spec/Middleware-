@@ -39,7 +39,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  IMAGE_REPOSITORY: ghcr.io/ingtrader21-spec/codestra-middleware
+  IMAGE_REPOSITORY: ghcr.io/appolon1908/codestra-middleware
   SOURCE_SHA: ${{ inputs.source_sha }}
   MERGED_PR_NUMBER: ${{ inputs.merged_pr_number }}
   AUTHORITY_RUN_ID: ${{ inputs.authority_run_id }}
@@ -57,7 +57,7 @@ env:
 jobs:
   release:
     name: Exact Main Production Release Admission (read-only)
-    if: github.repository == 'ingtrader21-spec/Middleware-' && github.ref == 'refs/heads/main'
+    if: github.repository == 'appolon1908/Middleware-' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 75
     services:
@@ -149,7 +149,7 @@ jobs:
           echo "${AUTHORITY_DOCUMENT_SHA256}  authority/security-owner-authority.json" | sha256sum -c -
           "${RUNNER_TEMP}/cosign" verify-blob \
             --bundle authority/security-owner-authority.sigstore.json \
-            --certificate-identity "https://github.com/ingtrader21-spec/Middleware-/.github/workflows/security-owner-authority-sign.yml@refs/heads/main" \
+            --certificate-identity "https://github.com/appolon1908/Middleware-/.github/workflows/security-owner-authority-sign.yml@refs/heads/main" \
             --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
             authority/security-owner-authority.json
           jq -e --arg sha "${SOURCE_SHA}" '
@@ -197,7 +197,7 @@ jobs:
           (cd vex && sha256sum -c SHA256SUMS)
           "${RUNNER_TEMP}/cosign" verify-blob \
             --bundle vex/openvex.sigstore.json \
-            --certificate-identity "https://github.com/ingtrader21-spec/Middleware-/.github/workflows/security-owner-decision-sign.yml@refs/heads/main" \
+            --certificate-identity "https://github.com/appolon1908/Middleware-/.github/workflows/security-owner-decision-sign.yml@refs/heads/main" \
             --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
             vex/openvex.json
           vex_digest="$(jq -er .metadata.image_digest vex/openvex.json)"
@@ -217,7 +217,7 @@ jobs:
 
       - name: Verify the candidate was signed by the single forward publisher
         env:
-          PUBLISHER_IDENTITY: https://github.com/ingtrader21-spec/Middleware-/.github/workflows/release.yml@refs/heads/main
+          PUBLISHER_IDENTITY: https://github.com/appolon1908/Middleware-/.github/workflows/release.yml@refs/heads/main
           OIDC_ISSUER: https://token.actions.githubusercontent.com
         run: |
           set -euo pipefail
@@ -276,7 +276,7 @@ jobs:
           set -euo pipefail
           digest="$(jq -er .metadata.image_digest vex/openvex.json)"
           subject="${IMAGE_REPOSITORY}@${digest}"
-          identity="https://github.com/ingtrader21-spec/Middleware-/.github/workflows/release.yml@refs/heads/main"
+          identity="https://github.com/appolon1908/Middleware-/.github/workflows/release.yml@refs/heads/main"
           issuer="https://token.actions.githubusercontent.com"
           docker image rm "middleware:${SOURCE_SHA}"
           docker pull "${subject}"

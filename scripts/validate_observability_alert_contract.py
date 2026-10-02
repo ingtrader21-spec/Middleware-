@@ -97,7 +97,7 @@ COMMAND_CONTRACT: dict[str, object] = {
 ADAPTER_CONTRACT: dict[str, object] = {
     "id": "klyrow-alert-email",
     "cell": "core-communications",
-    "repository": "appolon1908-hue/klyrow.com",
+    "repository": "appolon1908/klyrow.com",
     "command_prefixes": ["observability.alert."],
     "direct_n8n": False,
 }
@@ -462,7 +462,7 @@ def validate(root: Path = ROOT) -> tuple[int, int]:
         repository = require_string(
             candidate.get("repository"), f"invalid_adapter_repository:{connector_id}"
         )
-        if re.fullmatch(r"appolon1908-hue/[A-Za-z0-9_.-]+", repository) is None:
+        if re.fullmatch(r"appolon1908/[A-Za-z0-9_.-]+", repository) is None:
             fail(f"invalid_adapter_repository:{connector_id}")
         prefixes = require_string_list(
             candidate.get("command_prefixes"),

@@ -2069,7 +2069,7 @@ class AgentProvisioningStep(Base):
     """Per-external-operation saga log, one row per attempt.
 
     Deliberately mirrors codestra.provisioning.step's field shape on the
-    Odoo side (appolon1908-hue/Odoo, codestra_identity_provisioning) so the
+    Odoo side (appolon1908/Odoo, codestra_identity_provisioning) so the
     two systems describe the same saga in the same vocabulary:
     system/operation/attempt/state/external_reference/started_at/
     completed_at/readback_state/error_code/error_summary. Never stores

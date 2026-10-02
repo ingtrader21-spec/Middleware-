@@ -6,11 +6,11 @@ supersedes_snapshot:
   legacy_anchor: 2f1c7af41f87c27e2881c3695621ece787b97445
 
 decision:
-  single_forward_source_repository: ingtrader21-spec/Middleware-
+  single_forward_source_repository: appolon1908/Middleware-
   source_ref: refs/heads/main
   source_resolution: exact_protected_main_event_sha_at_release_execution
   static_sha_is_authority: false
-  single_forward_image_repository: ghcr.io/appolon1908-hue/codestra-middleware
+  single_forward_image_repository: ghcr.io/appolon1908/codestra-middleware
   current_release_authority: config/middleware-forward-release-authority.v1.json
   required_schema_head: 0057_platform_service_catalog
   candidate_status: PENDING_EXACT_PROTECTED_MERGE_BUILD
@@ -25,7 +25,7 @@ decision:
     workflow_run_attempt: 1
     artifact_id: 10060015854
     artifact_archive_digest: sha256:f940575a8f45f7ddae47d67ef539eb1dbe3f4b663198845b4b8062598fb925ee
-    image: ghcr.io/appolon1908-hue/codestra-middleware@sha256:18017a1a40a7969495661446badd8b43d1d4153c2036d89b0fb3065469e27941
+    image: ghcr.io/appolon1908/codestra-middleware@sha256:18017a1a40a7969495661446badd8b43d1d4153c2036d89b0fb3065469e27941
     image_digest: sha256:18017a1a40a7969495661446badd8b43d1d4153c2036d89b0fb3065469e27941
     schema_head: 0057_platform_service_catalog
     release_manifest_sha256: sha256:250c0b6a916c2b18a6f7b46e17a83b23d327e11c13e0354924b28fd4be1caf1b
@@ -48,7 +48,7 @@ decision:
     workflow_run_attempt: 1
     artifact_id: 10036514846
     artifact_archive_digest: sha256:0a678bdb2d8796bb2d09d3203bb92a5eefeac447c76e49156917c5e5c5bf7adf
-    image: ghcr.io/appolon1908-hue/codestra-middleware@sha256:41ae78d368b5e2db2e9fe9be50fd5041b3f1a07ae4837170a76a68889be565e6
+    image: ghcr.io/appolon1908/codestra-middleware@sha256:41ae78d368b5e2db2e9fe9be50fd5041b3f1a07ae4837170a76a68889be565e6
     image_digest: sha256:41ae78d368b5e2db2e9fe9be50fd5041b3f1a07ae4837170a76a68889be565e6
     schema_head: 0057_platform_service_catalog
     release_manifest_sha256: sha256:64564dfb72fea44a14e24dddbdfbfb069d7c1543b1005575a5a0d89ccb8a4232
@@ -79,7 +79,7 @@ historical_signed_predecessor:
   release_id: b03b378f3a35-dfdcfb925382
   workflow_run_id: 33908027409
   artifact_id: 9950295151
-  image: ghcr.io/appolon1908-hue/codestra-middleware@sha256:dfdcfb92538242df9c9e81c27f15f9bd14b2cb840ea4c16d91dccc8f0eed7a3c
+  image: ghcr.io/appolon1908/codestra-middleware@sha256:dfdcfb92538242df9c9e81c27f15f9bd14b2cb840ea4c16d91dccc8f0eed7a3c
   image_digest: sha256:dfdcfb92538242df9c9e81c27f15f9bd14b2cb840ea4c16d91dccc8f0eed7a3c
   schema_head: 0009_observability_incidents
   signature: sigstore_keyless_verified
@@ -137,7 +137,7 @@ server_a:
   stale_appolon_api:
     container: codestra-appolon-middleware-integration-api-1
     source_sha: f6748a58f8d2590520a4f28776770957061cdea1
-    image: ghcr.io/appolon1908-hue/codestra-middleware@sha256:695fa3ce3f50ba4d0ae0784976b946a0a683ca731155e4bd3bd9e90a4670b820
+    image: ghcr.io/appolon1908/codestra-middleware@sha256:695fa3ce3f50ba4d0ae0784976b946a0a683ca731155e4bd3bd9e90a4670b820
   legacy_primary_api:
     container: codestra-middleware-1
     source_sha: b3ca9aa458fef843e3065aeff3397c656349f138
@@ -151,7 +151,7 @@ server_a:
   production_changed: false
 
 backup:
-  appolon_legacy_image_repository: ghcr.io/appolon1908-hue/codestra-middleware-legacy
+  appolon_legacy_image_repository: ghcr.io/appolon1908/codestra-middleware-legacy
   exact_registry_mirror_workflow: .github/workflows/mirror-codestra-legacy-middleware-images.yml
   local_image_backup_operator: scripts/server-a-backup-legacy-middleware-images.sh
   codestra_source_retained: true

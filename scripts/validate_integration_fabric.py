@@ -103,8 +103,8 @@ def validate() -> None:
         )
         adapter_prefixes[adapter_id] = set(command_prefixes)
         require(
-            adapter["repository"].startswith("appolon1908-hue/"),
-            'integration fabric invariant failed: adapter["repository"].startswith("appolon1908-hue/")',
+            adapter["repository"].startswith("appolon1908/"),
+            'integration fabric invariant failed: adapter["repository"].startswith("appolon1908/")',
         )
 
     for policy in command_registry["commands"]:

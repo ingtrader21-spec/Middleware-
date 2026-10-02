@@ -64,8 +64,8 @@ def main() -> int:
         if not WORKSTREAM_RE.fullmatch(str(item.get("workstream", ""))):
             errors.append(f"{path.name}: invalid workstream")
         repository = item.get("repository")
-        if not isinstance(repository, str) or not repository.startswith("appolon1908-hue/"):
-            errors.append(f"{path.name}: explicit appolon1908-hue repository required")
+        if not isinstance(repository, str) or not repository.startswith("appolon1908/"):
+            errors.append(f"{path.name}: explicit appolon1908 repository required")
         transport = item.get("transport", {})
         if not isinstance(transport, dict) or set(transport) != TRANSPORT_KEYS:
             errors.append(f"{path.name}: transport fields must exactly match the schema")

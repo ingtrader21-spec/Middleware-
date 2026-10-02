@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "authority_id": "codestra.portfolio-main-release-authorities.v1",
-  "owner": "appolon1908-hue",
+  "owner": "appolon1908",
   "ruleset_name": "Codestra protected default-branch release gates",
   "reviewer": {
     "login": "kazan555",
@@ -18,7 +18,7 @@
   ],
   "repositories": [
     {
-      "repository": "appolon1908-hue/codestra",
+      "repository": "appolon1908/codestra",
       "repository_id": 1319808791,
       "default_branch": "main",
       "required_status_checks": [
@@ -27,7 +27,7 @@
       ]
     },
     {
-      "repository": "appolon1908-hue/backend2",
+      "repository": "appolon1908/backend2",
       "repository_id": 1319903950,
       "default_branch": "main",
       "required_status_checks": [
@@ -36,7 +36,7 @@
       ]
     },
     {
-      "repository": "appolon1908-hue/Telnexa-web",
+      "repository": "appolon1908/Telnexa-web",
       "repository_id": 1346958528,
       "default_branch": "main",
       "required_status_checks": [
@@ -45,7 +45,7 @@
       ]
     },
     {
-      "repository": "appolon1908-hue/scrapper",
+      "repository": "appolon1908/scrapper",
       "repository_id": 1329513537,
       "default_branch": "main",
       "required_status_checks": [
@@ -54,7 +54,7 @@
       ]
     },
     {
-      "repository": "appolon1908-hue/Breero.com",
+      "repository": "appolon1908/Breero.com",
       "repository_id": 1331354808,
       "default_branch": "main",
       "required_status_checks": [
@@ -62,7 +62,7 @@
       ]
     },
     {
-      "repository": "appolon1908-hue/Moneybee-Backend",
+      "repository": "appolon1908/Moneybee-Backend",
       "repository_id": 1343760409,
       "default_branch": "main",
       "required_status_checks": [

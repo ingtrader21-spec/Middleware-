@@ -49,7 +49,7 @@ class PortfolioReleaseReviewerAccessTests(unittest.TestCase):
         config = copy.deepcopy(self.config)
         config["repositories"].append(
             {
-                "repository": "appolon1908-hue/other",
+                "repository": "appolon1908/other",
                 "repository_id": 1,
                 "default_branch": "main",
                 "required_status_checks": ["verify"],

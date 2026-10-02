@@ -50,7 +50,7 @@ def run_block(text: str, step_name: str) -> str:
 class ReleaseWorkflowRegressions(unittest.TestCase):
     def test_candidate_publish_scan_and_evidence_share_canonical_owner(self) -> None:
         text = CANDIDATE.read_text(encoding="utf-8")
-        prefix = "ghcr.io/appolon1908-hue/${{ matrix.component }}"
+        prefix = "ghcr.io/appolon1908/${{ matrix.component }}"
         self.assertEqual(text.count(prefix), 3)
         self.assertNotIn("ghcr.io/codestra-srl/", text)
         self.assertIn(f"tags: {prefix}:${{{{ github.sha }}}}", text)
@@ -103,7 +103,7 @@ class ReleaseWorkflowRegressions(unittest.TestCase):
                 capture = Path(directory) / "arguments"
                 environment = {
                     "PATH": os.defpath,
-                    "GITHUB_REPOSITORY": "ingtrader21-spec/Middleware-",
+                    "GITHUB_REPOSITORY": "appolon1908/Middleware-",
                     "GITHUB_SHA": "a" * 40,
                     "ROLLOUT_OUTCOME": outcome,
                     "CAPTURE_PATH": str(capture),
@@ -128,8 +128,8 @@ class ReleaseWorkflowRegressions(unittest.TestCase):
             "github.event_name == 'issue_comment'",
             "github.event.issue.number == 130",
             "github.event.repository.id == 1347559071",
-            "github.event.sender.id == 275410064",
-            "github.event.comment.user.id == 275410064",
+            "github.event.sender.id == 335843231",
+            "github.event.comment.user.id == 335843231",
             "'/apply-production-reviewer-access v1'",
         ):
             self.assertIn(expected, condition)

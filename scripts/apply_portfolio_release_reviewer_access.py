@@ -34,12 +34,12 @@ EXPECTED_REVIEWER = {
     "permission": "push",
 }
 EXPECTED_REPOSITORIES = {
-    "appolon1908-hue/codestra": 1319808791,
-    "appolon1908-hue/backend2": 1319903950,
-    "appolon1908-hue/Telnexa-web": 1346958528,
-    "appolon1908-hue/scrapper": 1329513537,
-    "appolon1908-hue/Breero.com": 1331354808,
-    "appolon1908-hue/Moneybee-Backend": 1343760409,
+    "appolon1908/codestra": 1319808791,
+    "appolon1908/backend2": 1319903950,
+    "appolon1908/Telnexa-web": 1346958528,
+    "appolon1908/scrapper": 1329513537,
+    "appolon1908/Breero.com": 1331354808,
+    "appolon1908/Moneybee-Backend": 1343760409,
 }
 ACCEPTED_PERMISSIONS = {"push", "maintain", "admin"}
 ACCEPTED_ROLES = {"write", "maintain", "admin"}

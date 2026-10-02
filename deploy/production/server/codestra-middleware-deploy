@@ -88,7 +88,7 @@ done
 
 [[ "$(id -u)" -eq 0 ]] || fail "root_required"
 [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]] || fail "invalid_source_sha"
-[[ "$IMAGE_REFERENCE" =~ ^ghcr\.io/ingtrader21-spec/codestra-middleware@sha256:[0-9a-f]{64}$ ]] || fail "invalid_image_reference"
+[[ "$IMAGE_REFERENCE" =~ ^ghcr\.io/appolon1908/codestra-middleware@sha256:[0-9a-f]{64}$ ]] || fail "invalid_image_reference"
 [[ "$RELEASE_RUN_ID" =~ ^[1-9][0-9]{5,19}$ ]] || fail "invalid_release_run_id"
 [[ "$RELEASE_ID" =~ ^[0-9a-f]{12}-[0-9a-f]{12}$ ]] || fail "invalid_release_id"
 [[ "$BUNDLE_SHA256" =~ ^sha256:[0-9a-f]{64}$ ]] || fail "invalid_bundle_sha256"
@@ -133,7 +133,7 @@ OBSERVATION_SECONDS="$(config_value OBSERVATION_SECONDS)" || fail "observation_s
 [[ "$BACKUP_COMMAND" == /usr/local/sbin/codestra-middleware-backup ]] || fail "unexpected_backup_command"
 [[ -x "$BACKUP_COMMAND" && ! -L "$BACKUP_COMMAND" ]] || fail "backup_command_missing_or_symlink"
 [[ "$EVIDENCE_DIR" == /var/lib/codestra-middleware/deployments && "$EVIDENCE_DIR" != *".."* ]] || fail "unsafe_evidence_dir"
-[[ "$GHCR_USERNAME" == "appolon1908-hue" ]] || fail "unexpected_registry_username"
+[[ "$GHCR_USERNAME" == "appolon1908" ]] || fail "unexpected_registry_username"
 [[ "$FORWARDED_ALLOW_IPS" =~ ^[A-Za-z0-9:.,/-]+$ ]] || fail "invalid_forwarded_allow_ips"
 [[ "$OBSERVATION_SECONDS" =~ ^[0-9]+$ && "$OBSERVATION_SECONDS" -ge 30 && "$OBSERVATION_SECONDS" -le 300 ]] || fail "invalid_observation_seconds"
 
@@ -289,7 +289,7 @@ manifest_path = release_dir / "release-manifest.v1.json"
 value = json.loads(manifest_path.read_text(encoding="utf-8"))
 required = {
     "schema_version": "1.0",
-    "repository": "appolon1908-hue/Middleware-",
+    "repository": "appolon1908/Middleware-",
     "service": "middleware-api",
     "release_id": release_id,
 }
@@ -316,7 +316,7 @@ promotion = value.get("promotion", {})
 if promotion.get("mutable_tags_authoritative") is not False or promotion.get("staging_and_production_same_digest") is not True:
     raise SystemExit("release promotion authority mismatch")
 verification = value.get("verification", {})
-identity = "https://github.com/appolon1908-hue/Middleware-/.github/workflows/release.yml@refs/heads/main"
+identity = "https://github.com/appolon1908/Middleware-/.github/workflows/release.yml@refs/heads/main"
 if verification.get("certificate_identity") != identity or verification.get("oidc_issuer") != "https://token.actions.githubusercontent.com":
     raise SystemExit("release signer authority mismatch")
 for artifact_name in ("sbom", "vulnerability_report"):

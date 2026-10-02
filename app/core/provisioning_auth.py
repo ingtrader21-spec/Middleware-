@@ -1,7 +1,7 @@
 """Machine-to-machine authority for the agent provisioning API.
 
 Odoo (via the ``provisioning-service`` Keycloak client - see
-``appolon1908-hue/Keycloak``'s ``config/contracts/service-access-matrix.json``)
+``appolon1908/Keycloak``'s ``config/contracts/service-access-matrix.json``)
 calls this API with a client-credentials token carrying ``aud=middleware-api``
 and a ``scope`` claim of ``identity.request integration.configure
 tenant.provision``. That client intentionally holds no realm role - the

@@ -24,9 +24,9 @@ else:
 
 SOURCE = "29b25cba8302cd15ef4d87b68f501da6347f2f17"
 DIGEST = "sha256:0f5a5b3b1c8166d6509b228541bee01533f5feb1dbef24ed2d241194ba610802"
-REPOSITORY = "ghcr.io/appolon1908-hue/codestra-middleware"
+REPOSITORY = "ghcr.io/appolon1908/codestra-middleware"
 BUILDER = (
-    "https://github.com/appolon1908-hue/Middleware-/"
+    "https://github.com/appolon1908/Middleware-/"
     ".github/workflows/release.yml@refs/heads/main"
 )
 
@@ -73,7 +73,7 @@ def recover(evidence: Path, sbom_verification: Path) -> dict:
             "buildType": "https://codestra.example/buildtypes/exact-main-middleware-production/v1",
             "externalParameters": {"sourceSha": SOURCE, "platform": "linux/amd64"},
             "resolvedDependencies": [{
-                "uri": f"git+https://github.com/appolon1908-hue/Middleware-@{SOURCE}",
+                "uri": f"git+https://github.com/appolon1908/Middleware-@{SOURCE}",
                 "digest": {"gitCommit": SOURCE},
             }],
         },

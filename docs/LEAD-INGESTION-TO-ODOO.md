@@ -50,7 +50,7 @@ After validation, the middleware creates or updates the Odoo lead in the `new` s
 
 ## Crawler results
 
-Kyqra crawler results enter through the authenticated `POST /api/v1/kyqra/results` route and durable inbox. The route accepts the canonical Codestra event envelope with a batched `payload.results` completion payload. Each result includes the source reference, capture method, job ID, content digest when available, tenant, and provenance. Kyqra pins the shared `kyqra-crawler-v1` contract from `appolon1908-hue/SDK-repository` before delivery.
+Kyqra crawler results enter through the authenticated `POST /api/v1/kyqra/results` route and durable inbox. The route accepts the canonical Codestra event envelope with a batched `payload.results` completion payload. Each result includes the source reference, capture method, job ID, content digest when available, tenant, and provenance. Kyqra pins the shared `kyqra-crawler-v1` contract from `appolon1908/SDK-repository` before delivery.
 
 The middleware may create or update an Odoo record automatically, but the initial stage is:
 

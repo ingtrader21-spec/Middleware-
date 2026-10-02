@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Middleware V3 Database Certification Control",
-    "description": "PostgreSQL/private DB operational certification overlay for ingtrader21-spec/Middleware-. No raw SQL. Production-safe is read-only. Linear PAS-98; DB Program PAS-77.",
+    "description": "PostgreSQL/private DB operational certification overlay for appolon1908/Middleware-. No raw SQL. Production-safe is read-only. Linear PAS-98; DB Program PAS-77.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "event": [

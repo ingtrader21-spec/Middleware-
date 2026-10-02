@@ -625,7 +625,7 @@ class ConnectorSdkStandardsTests(unittest.TestCase):
         class Args(Namespace):
             connector_id = "sample-api"
             display_name = "Sample API"
-            repository = "appolon1908-hue/sample-api"
+            repository = "appolon1908/sample-api"
             cell = "core-communications"
             command_prefix = "sample."
             capability = "SAMPLE_WRITE"

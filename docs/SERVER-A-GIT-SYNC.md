@@ -2,7 +2,7 @@
 
 Target host: `65.109.65.169`
 
-Repository: `ingtrader21-spec/Middleware-`
+Repository: `appolon1908/Middleware-`
 
 This runbook synchronizes reviewed Git metadata, contracts, route inventory, and operational discovery scripts to Server A. It does not activate contract-only middleware APIs and does not change the working Caddy/Keycloak runtime path.
 

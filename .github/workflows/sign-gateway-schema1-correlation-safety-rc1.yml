@@ -29,7 +29,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "${GITHUB_REPOSITORY}" = "appolon1908-hue/Middleware-"
+          test "${GITHUB_REPOSITORY}" = "appolon1908/Middleware-"
           test "${GITHUB_REF}" = "refs/heads/main"
           test "$(git rev-parse --is-shallow-repository)" = "false"
           sha256sum -c security/vex/gateway-schema1-correlation-safety-rc1/openvex.json.sha256
@@ -126,7 +126,7 @@ jobs:
       - name: Independently verify identity issuer and transparency bundles
         shell: bash
         env:
-          EXPECTED_IDENTITY: https://github.com/appolon1908-hue/Middleware-/.github/workflows/sign-gateway-schema1-correlation-safety-rc1.yml@refs/heads/main
+          EXPECTED_IDENTITY: https://github.com/appolon1908/Middleware-/.github/workflows/sign-gateway-schema1-correlation-safety-rc1.yml@refs/heads/main
           EXPECTED_ISSUER: https://token.actions.githubusercontent.com
         run: |
           set -euo pipefail

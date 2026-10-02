@@ -9,7 +9,7 @@ committing the private document:
   `749ca481ba19cd85054ed96414764889169480151ffac8fa7a64f07e8b8ebf02`;
 - effective date: 2026-07-28;
 - authorized assigner: Ralph Appolon, Authorized Representative of Codestra
-  SRL, GitHub login `appolon1908-hue`.
+  SRL, GitHub login `appolon1908`.
 
 The protected resolution uses a typed signature entered at Ralph Appolon's
 direction. It is not a certificate-based digital signature. Its integrity is

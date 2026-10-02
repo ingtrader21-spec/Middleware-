@@ -148,8 +148,8 @@ def test_manifest_rejects_noncanonical_serialization(tmp_path: Path) -> None:
 def test_manifest_names_the_current_repository_and_keeps_pinned_historical_releases(
     tmp_path: Path,
 ) -> None:
-    """New releases must name ingtrader21-spec/Middleware- and live in the
-    ghcr.io/ingtrader21-spec package. Releases signed before the repository transfer
+    """New releases must name appolon1908/Middleware- and live in the
+    ghcr.io/appolon1908 package. Releases signed before the repository transfer
     keep appolon1908-hue/Middleware- and the ghcr.io/appolon1908-hue package, but only
     for the exact source SHA / image digest pairs pinned in HISTORICAL_RELEASES; the
     same rule is expressed by the JSON schema so both verifiers agree."""
@@ -164,11 +164,11 @@ def test_manifest_names_the_current_repository_and_keeps_pinned_historical_relea
         expected_certificate_identity,
     )
 
-    assert REPOSITORY == "ingtrader21-spec/Middleware-"
+    assert REPOSITORY == "appolon1908/Middleware-"
     assert HISTORICAL_REPOSITORY == "appolon1908-hue/Middleware-"
-    assert IMAGE_REPOSITORY == "ghcr.io/ingtrader21-spec/codestra-middleware"
+    assert IMAGE_REPOSITORY == "ghcr.io/appolon1908/codestra-middleware"
     assert HISTORICAL_IMAGE_REPOSITORY == "ghcr.io/appolon1908-hue/codestra-middleware"
-    assert CERTIFICATE_IDENTITY.startswith("https://github.com/ingtrader21-spec/Middleware-/")
+    assert CERTIFICATE_IDENTITY.startswith("https://github.com/appolon1908/Middleware-/")
     assert HISTORICAL_CERTIFICATE_IDENTITY.startswith("https://github.com/appolon1908-hue/Middleware-/")
     assert HISTORICAL_RELEASES, "the pinned pre-transfer releases must stay recorded"
     schema = json.loads(

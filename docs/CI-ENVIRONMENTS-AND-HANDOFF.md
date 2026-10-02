@@ -12,7 +12,7 @@ Codestra uses a decentralized source model: **if a component has its own GitHub 
 
 The canonical machine-readable mapping is `config/repository-authorities.v1.json`; `scripts/validate_repository_authorities.py` fails CI when this rule is violated.
 
-`appolon1908-hue/codestra-production-platform` is reference-only: historical runtime inventory, deployment provenance, rollback/recovery evidence and migration comparison. It is not central release authority and cannot be principal source for a component that has a dedicated repository.
+`appolon1908/codestra-production-platform` is reference-only: historical runtime inventory, deployment provenance, rollback/recovery evidence and migration comparison. It is not central release authority and cannot be principal source for a component that has a dedicated repository.
 
 For a cross-repository feature, Middleware owns the combined evidence note because it is the cross-system write boundary. That evidence role does not give Middleware authority to merge, deploy or activate another repository.
 
@@ -64,32 +64,32 @@ versioned contract
 
 ## Caddy and gateway ownership
 
-The dedicated repository `appolon1908-hue/Caddy` is now the principal source for shared Codestra Caddy edge configuration. The initial `api.codestra.co` baseline is imported there from the historical `codestra-production-platform:release/production-activation:operations/caddy/api.codestra.co.caddy` reference without claiming runtime convergence.
+The dedicated repository `appolon1908/Caddy` is now the principal source for shared Codestra Caddy edge configuration. The initial `api.codestra.co` baseline is imported there from the historical `codestra-production-platform:release/production-activation:operations/caddy/api.codestra.co.caddy` reference without claiming runtime convergence.
 
-`appolon1908-hue/Kong` owns Kong services, route/plugin policy, Keycloak OIDC enforcement and gateway reconciliation. Kong does not own Caddy source merely because Caddy forwards to Kong.
+`appolon1908/Kong` owns Kong services, route/plugin policy, Keycloak OIDC enforcement and gateway reconciliation. Kong does not own Caddy source merely because Caddy forwards to Kong.
 
-Middleware `platform/caddy` material is compatibility/review evidence only and must not become a second Caddy runtime source. New shared-edge Caddy source belongs in `appolon1908-hue/Caddy`.
+Middleware `platform/caddy` material is compatibility/review evidence only and must not become a second Caddy runtime source. New shared-edge Caddy source belongs in `appolon1908/Caddy`.
 
 No live Caddy configuration has been changed. Runtime convergence requires read-only inventory, checksum comparison, staging Caddy → Kong/Middleware validation, rollback rehearsal, controlled reload and post-change read-back.
 
 ## Principal provider/product ownership
 
 ```text
-Caddy                   = appolon1908-hue/Caddy
-Kong                    = appolon1908-hue/Kong
-Keycloak                = appolon1908-hue/Keycloak
-N8N                     = appolon1908-hue/N8N
-Odoo                    = appolon1908-hue/Odoo
-Telnexa/Jasmin          = appolon1908-hue/telnexa (SMS only)
-Telnexa website         = appolon1908-hue/Telnexa-web
-Klyrow/Postal/Mautic    = appolon1908-hue/klyrow.com
-Klyrow website          = appolon1908-hue/klyrow-Website-
-Kyqra crawler           = appolon1908-hue/kyqra-crawler
-VICIdial/Asterisk       = appolon1908-hue/Vicidialer-Codestra
-Provisioning            = appolon1908-hue/codestra-provisioning-service
-SDK / connector kit     = appolon1908-hue/SDK-repository
-Social/Postiz           = appolon1908-hue/social.codestra.co
-Middleware              = ingtrader21-spec/Middleware-
+Caddy                   = appolon1908/Caddy
+Kong                    = appolon1908/Kong
+Keycloak                = appolon1908/Keycloak
+N8N                     = appolon1908/N8N
+Odoo                    = appolon1908/Odoo
+Telnexa/Jasmin          = appolon1908/telnexa (SMS only)
+Telnexa website         = appolon1908/Telnexa-web
+Klyrow/Postal/Mautic    = appolon1908/klyrow.com
+Klyrow website          = appolon1908/klyrow-Website-
+Kyqra crawler           = appolon1908/kyqra-crawler
+VICIdial/Asterisk       = appolon1908/Vicidialer-Codestra
+Provisioning            = appolon1908/codestra-provisioning-service
+SDK / connector kit     = appolon1908/SDK-repository
+Social/Postiz           = appolon1908/social.codestra.co
+Middleware              = appolon1908/Middleware-
 ```
 
 Independent products such as MoneyBee, Beyvra, Breero, LARIM-A and the public Codestra site also remain in their dedicated repositories; Middleware may integrate with them but may not absorb their application source.

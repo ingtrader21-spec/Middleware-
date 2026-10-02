@@ -2,7 +2,7 @@
 
 ## Decision
 
-`appolon1908-hue/SDK-repository` and `ingtrader21-spec/Middleware-` are not competing authorities and must not be consolidated into one runtime codebase.
+`appolon1908/SDK-repository` and `appolon1908/Middleware-` are not competing authorities and must not be consolidated into one runtime codebase.
 
 - `SDK-repository` is the developer-facing SDK/distribution authority: reusable contracts, generated clients, webhook helpers, connector-kit APIs, n8n nodes, compatibility gates and distributable adapter packages.
 - `Middleware-` is the privileged connector runtime/control authority: trusted adapter registration, machine/tenant/actor authorization, semantic idempotency, durable inbox/outbox state, secret resolution, provider command execution, read-back, unknown-outcome reconciliation, kill switches and production activation.
@@ -27,7 +27,7 @@ SDK code must never become an alternate provider write path. A connector package
 ## VICIdial example
 
 - reusable connector interfaces: `SDK-repository` / `@codestra/connector-kit`
-- actual VICIdial/Asterisk implementation: `appolon1908-hue/Vicidialer-Codestra`
+- actual VICIdial/Asterisk implementation: `appolon1908/Vicidialer-Codestra`
 - cross-system command/control authority: `Middleware-`
 
 Therefore the supported path is:

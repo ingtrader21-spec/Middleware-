@@ -20,7 +20,7 @@
       "required": ["owner", "repository", "tenantMode", "type", "runtime", "environments", "ingress", "contracts", "telemetry", "dependencies", "integration", "safety", "secrets", "dataClassification", "sloProfile", "alertProfile"],
       "properties": {
         "owner": {"type": "string", "minLength": 2},
-        "repository": {"type": "string", "pattern": "^(?:ingtrader21-spec|appolon1908-hue)/[A-Za-z0-9._-]+$"},
+        "repository": {"type": "string", "pattern": "^(?:appolon1908|appolon1908)/[A-Za-z0-9._-]+$"},
         "tenantMode": {"enum": ["single-tenant", "multi-tenant", "platform"]},
         "type": {"enum": ["api", "website", "worker", "adapter", "scheduled-job", "websocket"]},
         "runtime": {

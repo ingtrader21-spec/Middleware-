@@ -18,15 +18,15 @@ SHA40 = re.compile(r"^[0-9a-f]{40}$")
 DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
 ID = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 CONTAINER = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$")
-CANONICAL_REPOSITORY = "ingtrader21-spec/Middleware-"
+CANONICAL_REPOSITORY = "appolon1908/Middleware-"
 # Forward releases publish to the repository owner's package; every signed
 # image observed so far was published to the pre-transfer package and stays
 # referenced there by digest.
-CANONICAL_IMAGE_REPOSITORY = "ghcr.io/ingtrader21-spec/codestra-middleware"
-OBSERVED_IMAGE_REPOSITORY = "ghcr.io/appolon1908-hue/codestra-middleware"
+CANONICAL_IMAGE_REPOSITORY = "ghcr.io/appolon1908/codestra-middleware"
+OBSERVED_IMAGE_REPOSITORY = "ghcr.io/appolon1908/codestra-middleware"
 LEGACY_REPOSITORY = "Codestra-SRL/codestra-middleware"
 LEGACY_BACKUP_REPOSITORY = (
-    "ghcr.io/appolon1908-hue/codestra-middleware-legacy"
+    "ghcr.io/appolon1908/codestra-middleware-legacy"
 )
 CURRENT_SCHEMA_HEAD = "0067_service_catalog_monitoring_state"
 PREDECESSOR_SCHEMA_HEAD = "0009_observability_incidents"
@@ -657,7 +657,7 @@ def validate_document(
                 f"{prefix} legacy family must be rollback-only",
                 errors,
             )
-        if authority_name == "appolon1908-hue":
+        if authority_name == "appolon1908":
             _expect(
                 role == "superseded-appolon-runtime",
                 f"{prefix} appolon runtime must be marked superseded",
@@ -772,7 +772,7 @@ def validate_document(
             )
         elif method == "retain-existing-appolon-ghcr-digest":
             _expect(
-                authority_name == "appolon1908-hue",
+                authority_name == "appolon1908",
                 f"{prefix} appolon retention assigned to wrong authority",
                 errors,
             )

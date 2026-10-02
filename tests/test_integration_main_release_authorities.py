@@ -221,7 +221,7 @@ class IntegrationMainReleaseAuthorityTests(unittest.TestCase):
 
     def test_unknown_repository_fails(self) -> None:
         broken = copy.deepcopy(self.config)
-        broken["repositories"][0]["repository"] = "appolon1908-hue/not-authorized"
+        broken["repositories"][0]["repository"] = "appolon1908/not-authorized"
         with self.assertRaises(MODULE.PolicyError):
             MODULE.validate_config(broken)
 
@@ -260,8 +260,8 @@ class IntegrationMainReleaseAuthorityTests(unittest.TestCase):
         self.assertEqual(
             MODULE.ensure_exact_reviewer_write(
                 existing,
-                "appolon1908-hue/Codestra-AI",
-                "appolon1908-hue/Codestra-AI",
+                "appolon1908/Codestra-AI",
+                "appolon1908/Codestra-AI",
                 "verify",
             ),
             ("verified-write", False),
@@ -278,8 +278,8 @@ class IntegrationMainReleaseAuthorityTests(unittest.TestCase):
         self.assertEqual(
             MODULE.ensure_exact_reviewer_write(
                 corrected,
-                "appolon1908-hue/Codestra-AI",
-                "appolon1908-hue/Codestra-AI",
+                "appolon1908/Codestra-AI",
+                "appolon1908/Codestra-AI",
                 "apply",
             ),
             ("added-and-verified-write", False),
@@ -297,8 +297,8 @@ class IntegrationMainReleaseAuthorityTests(unittest.TestCase):
             with self.assertRaisesRegex(MODULE.PolicyError, "exact write"):
                 MODULE.ensure_exact_reviewer_write(
                     unchanged,
-                    "appolon1908-hue/Codestra-AI",
-                    "appolon1908-hue/Codestra-AI",
+                    "appolon1908/Codestra-AI",
+                    "appolon1908/Codestra-AI",
                     "apply",
                 )
             self.assertEqual(unchanged.methods, ["GET", "PUT", "GET"])
@@ -321,8 +321,8 @@ class IntegrationMainReleaseAuthorityTests(unittest.TestCase):
         with self.assertRaises(MODULE.GitHubApiError):
             MODULE.ensure_exact_reviewer_write(
                 api,
-                "appolon1908-hue/Codestra-AI",
-                "appolon1908-hue/Codestra-AI",
+                "appolon1908/Codestra-AI",
+                "appolon1908/Codestra-AI",
                 "apply",
             )
         self.assertEqual(api.methods, ["GET"])

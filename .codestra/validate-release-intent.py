@@ -25,7 +25,7 @@ from typing import Any, cast
 CONTRACT_PATH = Path(".codestra/production-orchestrator-contract.v1.json")
 SCHEMA = "codestra.production-orchestrator-contract.v1"
 WORKFLOW = ".github/workflows/manual-release-intent.yml"
-CONTROLLER_REPOSITORY = "appolon1908-hue/codestra-production-platform"
+CONTROLLER_REPOSITORY = "appolon1908/codestra-production-platform"
 CONTROLLER_BRANCH = "release/production-activation"
 INDEPENDENT_REVIEWER_ID = 77101516
 CANDIDATE_SCHEMA = "codestra.manual-production-candidate.v1"
@@ -56,22 +56,22 @@ CANDIDATE_SAFETY_KEYS = (SAFETY_KEYS - {"external_effects_default"}) | {
     "external_effects_enabled"
 }
 CATALOG_REPOSITORIES = {
-    "appolon1908-hue/Infustruction-repo",
-    "appolon1908-hue/Keycloak",
-    "ingtrader21-spec/Middleware-",
-    "appolon1908-hue/codestra",
-    "appolon1908-hue/beyvra-backend",
-    "appolon1908-hue/backend2",
-    "appolon1908-hue/beyvra-frontend",
-    "appolon1908-hue/scrapper",
-    "appolon1908-hue/Breero.com",
-    "appolon1908-hue/Moneybee-Backend",
-    "appolon1908-hue/Telnexa-web",
+    "appolon1908/Infustruction-repo",
+    "appolon1908/Keycloak",
+    "appolon1908/Middleware-",
+    "appolon1908/codestra",
+    "appolon1908/beyvra-backend",
+    "appolon1908/backend2",
+    "appolon1908/beyvra-frontend",
+    "appolon1908/scrapper",
+    "appolon1908/Breero.com",
+    "appolon1908/Moneybee-Backend",
+    "appolon1908/Telnexa-web",
     CONTROLLER_REPOSITORY,
 }
 PR_ONLY_REQUIRED_CHECKS = {
-    "appolon1908-hue/Keycloak": frozenset({"bootstrap"}),
-    "ingtrader21-spec/Middleware-": frozenset(
+    "appolon1908/Keycloak": frozenset({"bootstrap"}),
+    "appolon1908/Middleware-": frozenset(
         {
             "Validate middleware merge result",
             "Validate middleware source head",
@@ -79,19 +79,19 @@ PR_ONLY_REQUIRED_CHECKS = {
     ),
 }
 EXPECTED_CHECK_WORKFLOWS = {
-    "appolon1908-hue/Infustruction-repo": {
+    "appolon1908/Infustruction-repo": {
         "orchestrator-contract": ".github/workflows/production-orchestrator-contract.yml",
         "validate": ".github/workflows/source-authority-matrix.yml",
         "validate-source": ".github/workflows/source-authority-matrix.yml",
         "validate-merge-result": ".github/workflows/source-authority-matrix.yml",
     },
-    "appolon1908-hue/Keycloak": {
+    "appolon1908/Keycloak": {
         "orchestrator-contract": ".github/workflows/production-orchestrator-contract.yml",
         "validate": ".github/workflows/validate.yml",
         "validate-source": ".github/workflows/validate.yml",
         "validate-merge-result": ".github/workflows/validate.yml",
     },
-    "ingtrader21-spec/Middleware-": {
+    "appolon1908/Middleware-": {
         "orchestrator-contract": ".github/workflows/production-orchestrator-contract.yml",
         "validate": ".github/workflows/middleware-ci.yml",
         "connector-runtime-build": ".github/workflows/middleware-ci.yml",
@@ -103,39 +103,39 @@ EXPECTED_CHECK_WORKFLOWS = {
         "Temporal critical workflow integration": ".github/workflows/middleware-ci.yml",
         "Synthetic no-effect acceptance E2E": ".github/workflows/middleware-ci.yml",
     },
-    "appolon1908-hue/codestra": {
+    "appolon1908/codestra": {
         "orchestrator-contract": ".github/workflows/production-orchestrator-contract.yml",
         "verify": ".github/workflows/ci.yml",
         "container": ".github/workflows/ci.yml",
     },
-    "appolon1908-hue/beyvra-backend": {
+    "appolon1908/beyvra-backend": {
         "orchestrator-contract": ".github/workflows/production-orchestrator-contract.yml",
         "container": ".github/workflows/ci.yml",
         "exact-head-base-ci": ".github/workflows/ci.yml",
         "secrets": ".github/workflows/ci.yml",
         "validate": ".github/workflows/ci.yml",
     },
-    "appolon1908-hue/backend2": {
+    "appolon1908/backend2": {
         "orchestrator-contract": ".github/workflows/production-orchestrator-contract.yml",
         "validate": ".github/workflows/ci.yml",
         "container": ".github/workflows/ci.yml",
     },
-    "appolon1908-hue/beyvra-frontend": {
+    "appolon1908/beyvra-frontend": {
         "orchestrator-contract": ".github/workflows/production-orchestrator-contract.yml",
         "exact-head-base-ci": ".github/workflows/ci.yml",
         "secrets": ".github/workflows/ci.yml",
         "validate": ".github/workflows/ci.yml",
     },
-    "appolon1908-hue/scrapper": {
+    "appolon1908/scrapper": {
         "orchestrator-contract": ".github/workflows/production-orchestrator-contract.yml",
         "deployment-policy": ".github/workflows/ci.yml",
         "validate": ".github/workflows/ci.yml",
     },
-    "appolon1908-hue/Breero.com": {
+    "appolon1908/Breero.com": {
         "orchestrator-contract": ".github/workflows/production-orchestrator-contract.yml",
         "quality": ".github/workflows/quality.yml",
     },
-    "appolon1908-hue/Moneybee-Backend": {
+    "appolon1908/Moneybee-Backend": {
         "orchestrator-contract": ".github/workflows/production-orchestrator-contract.yml",
         "verify": ".github/workflows/ci.yml",
         "postgres-identity-tenancy": ".github/workflows/ci.yml",
@@ -145,7 +145,7 @@ EXPECTED_CHECK_WORKFLOWS = {
         "application": ".github/workflows/secure-ci.yml",
         "deployment-policy": ".github/workflows/secure-ci.yml",
     },
-    "appolon1908-hue/Telnexa-web": {
+    "appolon1908/Telnexa-web": {
         "orchestrator-contract": ".github/workflows/production-orchestrator-contract.yml",
         "validate-build-smoke": ".github/workflows/ci.yml",
         "docker-build": ".github/workflows/ci.yml",
@@ -161,48 +161,48 @@ ORCHESTRATOR_CONTRACT_WORKFLOW_SHA256 = (
     "5e968a824d9738ac8237dfd677bae1091aaecfe73f3f98d0c6c63f07a503968f"
 )
 EXPECTED_CHECK_WORKFLOW_SHA256 = {
-    "appolon1908-hue/Infustruction-repo": {
+    "appolon1908/Infustruction-repo": {
         ".github/workflows/production-orchestrator-contract.yml": ORCHESTRATOR_CONTRACT_WORKFLOW_SHA256,
         ".github/workflows/source-authority-matrix.yml": "1ca826d1f37c06b0ad2bc5a94a5b19516ad24fce486bdaa1b5b384e62f759221",
     },
-    "appolon1908-hue/Keycloak": {
+    "appolon1908/Keycloak": {
         ".github/workflows/production-orchestrator-contract.yml": ORCHESTRATOR_CONTRACT_WORKFLOW_SHA256,
         ".github/workflows/validate.yml": "34e8692d93f3a30949e1e3de0543d4db93c508ce026538f6b5a8442d1a800f1a",
     },
-    "ingtrader21-spec/Middleware-": {
+    "appolon1908/Middleware-": {
         ".github/workflows/production-orchestrator-contract.yml": ORCHESTRATOR_CONTRACT_WORKFLOW_SHA256,
         ".github/workflows/middleware-ci.yml": "8cec813feb267b63f4f27807606237dbe518f2fb94379062e447a6636fea2f16",
     },
-    "appolon1908-hue/codestra": {
+    "appolon1908/codestra": {
         ".github/workflows/production-orchestrator-contract.yml": ORCHESTRATOR_CONTRACT_WORKFLOW_SHA256,
         ".github/workflows/ci.yml": "7b0a377343c86b1274ecb91c4cc2423d6c045c0197eae9eb1abe775d791a73d1",
     },
-    "appolon1908-hue/beyvra-backend": {
+    "appolon1908/beyvra-backend": {
         ".github/workflows/production-orchestrator-contract.yml": ORCHESTRATOR_CONTRACT_WORKFLOW_SHA256,
         ".github/workflows/ci.yml": "1c2e654ffd1011f662985d261411502c392789b882b6d089ba18e182e53248d1",
     },
-    "appolon1908-hue/backend2": {
+    "appolon1908/backend2": {
         ".github/workflows/production-orchestrator-contract.yml": ORCHESTRATOR_CONTRACT_WORKFLOW_SHA256,
         ".github/workflows/ci.yml": "e27367a06aa79f7adca93d148f7e9c88efe35e77a3893407ffc3988f1b36c217",
     },
-    "appolon1908-hue/beyvra-frontend": {
+    "appolon1908/beyvra-frontend": {
         ".github/workflows/production-orchestrator-contract.yml": ORCHESTRATOR_CONTRACT_WORKFLOW_SHA256,
         ".github/workflows/ci.yml": "7459a31c6b005e9345661b10ee8df45a570ac652280a2eacbcdfd4673fb115da",
     },
-    "appolon1908-hue/scrapper": {
+    "appolon1908/scrapper": {
         ".github/workflows/production-orchestrator-contract.yml": ORCHESTRATOR_CONTRACT_WORKFLOW_SHA256,
         ".github/workflows/ci.yml": "31d81c5be094a1510bc821ef4359bba591630d2273662f5de0683205d908c60d",
     },
-    "appolon1908-hue/Breero.com": {
+    "appolon1908/Breero.com": {
         ".github/workflows/production-orchestrator-contract.yml": ORCHESTRATOR_CONTRACT_WORKFLOW_SHA256,
         ".github/workflows/quality.yml": "9e8367e853316594a325fbcb0f22f1e701c35c205b15e66a5228ae8b4ce10ce4",
     },
-    "appolon1908-hue/Moneybee-Backend": {
+    "appolon1908/Moneybee-Backend": {
         ".github/workflows/production-orchestrator-contract.yml": ORCHESTRATOR_CONTRACT_WORKFLOW_SHA256,
         ".github/workflows/ci.yml": "0bed241476483a0ac38e0fc8bb2b06a23b076645a6b0b355cf0420fcf4d2f451",
         ".github/workflows/secure-ci.yml": "6ab4ebf30e47aee65ba3e1d7106ddd0c6feea546a57ebd289cf4fcfed9106e00",
     },
-    "appolon1908-hue/Telnexa-web": {
+    "appolon1908/Telnexa-web": {
         ".github/workflows/production-orchestrator-contract.yml": ORCHESTRATOR_CONTRACT_WORKFLOW_SHA256,
         ".github/workflows/ci.yml": "1b8db51b1d607a04b9d1f578802c4f58d1eb824638cc5a9ac1bd114a9869a462",
     },
@@ -228,12 +228,12 @@ BACKEND_PRODUCTION_VALIDATOR_SHA256 = (
     "83d2fce102104543b871530f11115f20"
 )
 EXPECTED_CHECK_WORKFLOW_EXECUTABLE_SHA256 = {
-    "appolon1908-hue/Infustruction-repo": {
+    "appolon1908/Infustruction-repo": {
         ".github/workflows/production-orchestrator-contract.yml": {
             ".codestra/validate-production-orchestrator-contract.py": SHARED_PRODUCTION_VALIDATOR_SHA256,
         },
     },
-    "appolon1908-hue/Keycloak": {
+    "appolon1908/Keycloak": {
         ".github/workflows/production-orchestrator-contract.yml": {
             ".codestra/validate-production-orchestrator-contract.py": KEYCLOAK_PRODUCTION_VALIDATOR_SHA256,
         },
@@ -264,7 +264,7 @@ EXPECTED_CHECK_WORKFLOW_EXECUTABLE_SHA256 = {
             ),
         },
     },
-    "ingtrader21-spec/Middleware-": {
+    "appolon1908/Middleware-": {
         ".github/workflows/production-orchestrator-contract.yml": {
             ".codestra/validate-production-orchestrator-contract.py": MIDDLEWARE_PRODUCTION_VALIDATOR_SHA256,
         },
@@ -299,32 +299,32 @@ EXPECTED_CHECK_WORKFLOW_EXECUTABLE_SHA256 = {
             ),
         },
     },
-    "appolon1908-hue/codestra": {
+    "appolon1908/codestra": {
         ".github/workflows/production-orchestrator-contract.yml": {
             ".codestra/validate-production-orchestrator-contract.py": SHARED_PRODUCTION_VALIDATOR_SHA256,
         },
     },
-    "appolon1908-hue/beyvra-backend": {
+    "appolon1908/beyvra-backend": {
         ".github/workflows/production-orchestrator-contract.yml": {
             ".codestra/validate-production-orchestrator-contract.py": BACKEND_PRODUCTION_VALIDATOR_SHA256,
         },
     },
-    "appolon1908-hue/backend2": {
+    "appolon1908/backend2": {
         ".github/workflows/production-orchestrator-contract.yml": {
             ".codestra/validate-production-orchestrator-contract.py": SHARED_PRODUCTION_VALIDATOR_SHA256,
         },
     },
-    "appolon1908-hue/beyvra-frontend": {
+    "appolon1908/beyvra-frontend": {
         ".github/workflows/production-orchestrator-contract.yml": {
             ".codestra/validate-production-orchestrator-contract.py": SHARED_PRODUCTION_VALIDATOR_SHA256,
         },
     },
-    "appolon1908-hue/scrapper": {
+    "appolon1908/scrapper": {
         ".github/workflows/production-orchestrator-contract.yml": {
             ".codestra/validate-production-orchestrator-contract.py": SHARED_PRODUCTION_VALIDATOR_SHA256,
         },
     },
-    "appolon1908-hue/Breero.com": {
+    "appolon1908/Breero.com": {
         ".github/workflows/production-orchestrator-contract.yml": {
             ".codestra/validate-production-orchestrator-contract.py": SHARED_PRODUCTION_VALIDATOR_SHA256,
         },
@@ -359,12 +359,12 @@ EXPECTED_CHECK_WORKFLOW_EXECUTABLE_SHA256 = {
             "scripts/ci/validate-breero-scope.sh": "f8ffb8a3953c56d7d6722938825bfb33fced802ba162f4cefd3d12be8ffb9a1e",
         },
     },
-    "appolon1908-hue/Moneybee-Backend": {
+    "appolon1908/Moneybee-Backend": {
         ".github/workflows/production-orchestrator-contract.yml": {
             ".codestra/validate-production-orchestrator-contract.py": SHARED_PRODUCTION_VALIDATOR_SHA256,
         },
     },
-    "appolon1908-hue/Telnexa-web": {
+    "appolon1908/Telnexa-web": {
         ".github/workflows/production-orchestrator-contract.yml": {
             ".codestra/validate-production-orchestrator-contract.py": SHARED_PRODUCTION_VALIDATOR_SHA256,
         },
@@ -372,47 +372,47 @@ EXPECTED_CHECK_WORKFLOW_EXECUTABLE_SHA256 = {
 }
 RELEASE_VALIDATOR_SOURCE_PATH = ".codestra/validate-release-intent.py"
 EXPECTED_REQUIRED_CHECK_SOURCE_CLOSURE_SHA256 = {
-    "appolon1908-hue/Infustruction-repo": (
+    "appolon1908/Infustruction-repo": (
         "218de46417be1425f8686cdf35c881ae"
         "cad750495cbe4576831de6aec3e642b2"
     ),
-    "appolon1908-hue/Keycloak": (
+    "appolon1908/Keycloak": (
         "0a409c1c9cc8c6f43d2d83d5347b9433"
         "fcdd0d5c3832479b10deda8c6a6afca6"
     ),
-    "ingtrader21-spec/Middleware-": (
+    "appolon1908/Middleware-": (
         "59c70756ffba0ab5195e36e52e41f74e76"
         "eab21ca0ca5b376af6536d124a9db6"
     ),
-    "appolon1908-hue/codestra": (
+    "appolon1908/codestra": (
         "4e3ea69c3ec2a4bd6e4b50395672f44d"
         "ec4a75460ed8648186445f1e8793b016"
     ),
-    "appolon1908-hue/beyvra-backend": (
+    "appolon1908/beyvra-backend": (
         "8a3a6eb731ece61cc83f8e0333689f70"
         "87be9db4f7e93698a37f860fdd453135"
     ),
-    "appolon1908-hue/backend2": (
+    "appolon1908/backend2": (
         "fa191e95756aec0a8987425eb697eb8e"
         "2316d7b59ba77e6cd10bb52b10c2c43a"
     ),
-    "appolon1908-hue/beyvra-frontend": (
+    "appolon1908/beyvra-frontend": (
         "ce51e23c535871d23306264bb3806bb1"
         "3a710efeb649e0247e3377ac929ab5eb"
     ),
-    "appolon1908-hue/scrapper": (
+    "appolon1908/scrapper": (
         "783feb31fc0ada4b043a62bf53dbfc1f"
         "19ad25962daeeff809b9a9d391b1e2f0"
     ),
-    "appolon1908-hue/Breero.com": (
+    "appolon1908/Breero.com": (
         "d59c04b6a621ab43c8e57c795880b050"
         "c27b77d05e43e4edb696db6aac677e60"
     ),
-    "appolon1908-hue/Moneybee-Backend": (
+    "appolon1908/Moneybee-Backend": (
         "a283e388028892ced3ac8445893ec2fa"
         "8bd7c7373418284f08106c82b765c31a"
     ),
-    "appolon1908-hue/Telnexa-web": (
+    "appolon1908/Telnexa-web": (
         "dbd17acc6862e74d9eb5ffbaf3a1f3f4"
         "9c41e364057a08e3aa57588afea236a3"
     ),
@@ -2299,7 +2299,7 @@ def self_test() -> int:
     require(
         breero_quality_closure
         <= set(
-            EXPECTED_CHECK_WORKFLOW_EXECUTABLE_SHA256["appolon1908-hue/Breero.com"][
+            EXPECTED_CHECK_WORKFLOW_EXECUTABLE_SHA256["appolon1908/Breero.com"][
                 ".github/workflows/quality.yml"
             ]
         ),
@@ -2364,7 +2364,7 @@ def self_test() -> int:
         raise PolicyError("negative required-check executable digest regression passed")
     require(
         head_applicable_required_checks(
-            "appolon1908-hue/Infustruction-repo",
+            "appolon1908/Infustruction-repo",
             ["orchestrator-contract", "validate", "validate-source"],
             ["orchestrator-contract", "validate", "validate-source"],
         )
@@ -2373,7 +2373,7 @@ def self_test() -> int:
     )
     try:
         head_applicable_required_checks(
-            "appolon1908-hue/Infustruction-repo",
+            "appolon1908/Infustruction-repo",
             ["orchestrator-contract", "validate", "validate-source"],
             ["orchestrator-contract", "validate-source"],
         )
@@ -2383,7 +2383,7 @@ def self_test() -> int:
         raise PolicyError("negative stale required-check contract regression passed")
     require(
         head_applicable_required_checks(
-            "ingtrader21-spec/Middleware-",
+            "appolon1908/Middleware-",
             [
                 "Validate middleware merge result",
                 "Validate middleware source head",
@@ -2404,7 +2404,7 @@ def self_test() -> int:
     ]
     require(
         head_applicable_required_checks(
-            "appolon1908-hue/Keycloak",
+            "appolon1908/Keycloak",
             keycloak_head_checks + ["bootstrap"],
             keycloak_head_checks,
         )
@@ -2557,7 +2557,7 @@ def self_test() -> int:
         latest[("validate", 15368)] is None,
         "newest pending check-run regression failed",
     )
-    workflow_repository = "appolon1908-hue/Moneybee-Backend"
+    workflow_repository = "appolon1908/Moneybee-Backend"
     workflow_sha = "a" * 40
     workflow_checks = [
         {
@@ -2815,7 +2815,7 @@ def self_test() -> int:
         candidate_raw,
         candidate_hash,
         "release-test-001",
-        "appolon1908-hue/Infustruction-repo",
+        "appolon1908/Infustruction-repo",
         "4" * 40,
         "5" * 64,
         [],
@@ -2826,7 +2826,7 @@ def self_test() -> int:
             candidate_raw,
             "6" * 64,
             "release-test-001",
-            "appolon1908-hue/Infustruction-repo",
+            "appolon1908/Infustruction-repo",
             "4" * 40,
             "5" * 64,
             [],
